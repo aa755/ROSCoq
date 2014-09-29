@@ -1,7 +1,7 @@
 
 
 
-Process.vo : Process.v
+Process.vo : Process.v core.vo
 	coqc $<
 
 roscore.vo : roscore.v Process.vo

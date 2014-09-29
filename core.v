@@ -49,6 +49,8 @@ Definition Rlt (s1 s2 : R) : Set :=
 Definition Rgt (s1 s2 : R) : Set := Rlt s2 s1.
 
 
+Notation "a < b < c" := (Qlt a  b /\  Qlt b  c) : Q_scope .
+
 Delimit Scope R_scope with R.
 Infix "<" := Rlt : R_scope.
 Infix ">" := Rgt : R_scope.
