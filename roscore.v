@@ -16,12 +16,13 @@ Record RosTopic := {
     topicType : RosMesgType
 }.
 
-
+(** the [RosTopic] "selfTCP" is reserved.
+    it is subscribed by only the node with that
+    TCP adress and anyone can write to it *)
 
 Inductive Message :=
-| topicM :  forall (r :RosTopic), payLoadType (topicType r) -> Message
+| topicM :  forall (r :RosTopic), payLoadType (topicType r) -> Message.
 (* string could be rrplaced by a list bool to indicate a binary blob *)
-| genricM :  TCPAddress -> string -> Message.
 
 
 Add LoadPath "../../../ssrcorn" as CoRN.
@@ -75,9 +76,22 @@ Record RosOutDevNode (Env : Type) :=
     odev : OutDev Env (payLoadType (topicType inpTopic))
 }.
 
+Set Implicit Arguments.
+
 Inductive RosNode : Type := 
 | rsw : RosSwNode -> RosNode
 | rhi : forall {Env : Type}, 
         RosInpDevNode Env -> RosNode
 | rho : forall {Env : Type}, 
         RosOutDevNode Env -> RosNode.
+
+Open Scope list_scope.
+
+Definition IncomingTopics  (rn : RosNode) : list RosTopic
+  :=
+match rn with
+| rsw rsn => subscribedTopics rsn
+| rhi _ _ => nil
+| rho _ rout =>  cons (inpTopic _ rout) nil
+end.
+

@@ -5,15 +5,26 @@ Require Export roscore.
 Set Implicit Arguments.
 
 Record ROSCyberPhysSystem := {
-   nodes: list RosNode
+   NodeIndex : Set;
+   nodes: NodeIndex -> RosNode
   (* a proof that nodes have unique names and locations *)
 }.
 
 Record Event (cp : ROSCyberPhysSystem) := {    
-    location : RosNode;
     time : Time;
-    mesg : Message;
-    locValid : In location (nodes cp)
+    recdMesg : Message
 }.
 
+
+Record EventOrdering (cp : ROSCyberPhysSystem) :=
+{
+    events : (NodeIndex cp) -> list (Event cp);
+    causedBy : 
+    
+}.
+
+
+
+
+(** we need to axiomatize a mailbox in event ordering *)
 
