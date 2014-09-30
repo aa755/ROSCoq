@@ -1,12 +1,10 @@
 
 
+roscore.vo : roscore.v Process.vo
+	coqc $<
 
 Process.vo : Process.v core.vo
 	coqc $<
-
-roscore.vo : roscore.v Process.vo
-	coqc $<
-	
 
 
 ADC.vo : ADC.v core.vo

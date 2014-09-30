@@ -75,3 +75,9 @@ Record RosOutDevNode (Env : Type) :=
     odev : OutDev Env (payLoadType (topicType inpTopic))
 }.
 
+Inductive RosNode : Type := 
+| rsw : RosSwNode -> RosNode
+| rhi : forall {Env : Type}, 
+        RosInpDevNode Env -> RosNode
+| rho : forall {Env : Type}, 
+        RosOutDevNode Env -> RosNode.
