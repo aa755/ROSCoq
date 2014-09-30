@@ -6,6 +6,14 @@ buildP : (In -> ((Process In Out)* Out))
           -> Process In Out.
 
 
+Definition getOutput {In Out : Type}
+  (p: Process In Out) (inp : In ): Out :=
+
+match p with
+| buildP f => snd (f inp)
+end.
+
+
 Add LoadPath "../../../ssrcorn" as CoRN.
 Add LoadPath "../../../ssrcorn/math-classes/src" as MathClasses.
 Require Export core.
@@ -58,6 +66,13 @@ Coercion makeOutDev : MemoryLessOutDev >-> OutDev.
     Time is relative to the previous emitted message.
     If no message was emitted yet, time is relative to
     the instant the device (driver) was turned on.
+
+    The reason why [InpDev] cannot be modeled
+    by a software node is because unlike
+    software nodes, input devices can emit
+    messages even when they did not receive
+    any input. Maybe we can generalize software
+    nodes to do that. 
 *)
 CoInductive InpDev (Out : Type) :=
 maybeSendMesg : 

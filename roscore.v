@@ -28,6 +28,13 @@ Add LoadPath "../../../ssrcorn" as CoRN.
 Add LoadPath "../../../ssrcorn/math-classes/src" as MathClasses.
 Require Export Process.
 
+Definition ProcessTiming 
+  (p : Process Message (list Message)) :=
+  forall (m: Message),
+    {tl : list Time | length tl = length (getOutput p m) }.
+
+
+
 Record RosSwNode :=
 {
     SNmaster : TCPAddress;
@@ -35,12 +42,18 @@ Record RosSwNode :=
     nodeAddress : TCPAddress;
     subscribedTopics : list RosTopic;
     publishTopics : list RosTopic;
-    process : Process Message Message
+    process : Process Message (list Message);
 (* need to ensure that when processes are give
     inputs in topics [subscribedTopics] the outputs
     are only in [publishTopics].
     the implementation subscribes to these topics
 *)
+
+    (** The following is only for reasoning purposes
+      and will not be extracted *)
+    pTiming : ProcessTiming process
+
+  
 }.
 
 (** There is no code to extract for devices

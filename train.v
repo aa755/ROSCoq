@@ -1,8 +1,9 @@
+
+Add LoadPath "../../../ssrcorn" as CoRN.
+Add LoadPath "../../../ssrcorn/math-classes/src" as MathClasses.
+
 Require Export Process.
 
-Require Import Coq.QArith.QArith.
-Require Import Coq.QArith.Qabs.
-Require Import Coq.QArith.QOrderedType.
 
 Add LoadPath "../../../ssrcorn" as CoRN.
 Add LoadPath "../../../ssrcorn/math-classes/src" as MathClasses.
@@ -16,7 +17,7 @@ Add LoadPath "../../../ssrcorn/math-classes/src" as MathClasses.
 
 Record TrainState :=
 {
-  posX : Q; (* this should really be R *)
+  posX : R; (* this should really be R *)
   vX : Q
 }.
 
@@ -28,4 +29,23 @@ fun inp tp => (forall t:Time,
        (inp  < (tp t) < (inp + 1))).
 
 (* MOVE !! *)
-Definition Timer (t : Time)
+
+Require Export model.structures.Qpossec.
+
+Lemma mkTime (qp : Qpos) : Time.
+Admitted.
+
+
+(** outputs a message every [delay] seconds *)
+Definition Timer (delay : Qpos) : InpDev unit unit.
+cofix.
+  constructor. right.
+  split.
+  - split; [constructor|].
+    exact (mkTime delay). 
+  - exact Timer.
+Defined.
+
+
+(** To model randomness, the device can
+  take a stream of random bits as input *)
