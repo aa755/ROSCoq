@@ -23,6 +23,9 @@ Inductive Message :=
 (* string could be rrplaced by a list bool to indicate a binary blob *)
 | genricM :  TCPAddress -> string -> Message.
 
+
+Add LoadPath "../../../ssrcorn" as CoRN.
+Add LoadPath "../../../ssrcorn/math-classes/src" as MathClasses.
 Require Export Process.
 
 Record RosSwNode :=

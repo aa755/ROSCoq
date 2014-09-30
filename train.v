@@ -4,7 +4,8 @@ Require Import Coq.QArith.QArith.
 Require Import Coq.QArith.Qabs.
 Require Import Coq.QArith.QOrderedType.
 
-
+Add LoadPath "../../../ssrcorn" as CoRN.
+Add LoadPath "../../../ssrcorn/math-classes/src" as MathClasses.
 
 (** this is a 1D train between 2 stations
     It has sensors on each side to estimate
@@ -26,9 +27,5 @@ Definition VelOutDevice :
 fun inp tp => (forall t:Time, 
        (inp  < (tp t) < (inp + 1))).
 
-
-Definition DistanceDevice : 
-  MemoryLessOutDev Q Q :=
-fun inp tp => (forall t:Time, 
-       (inp  < (tp t) < (inp + 1))).
-
+(* MOVE !! *)
+Definition Timer (t : Time)

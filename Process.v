@@ -6,6 +6,8 @@ buildP : (In -> ((Process In Out)* Out))
           -> Process In Out.
 
 
+Add LoadPath "../../../ssrcorn" as CoRN.
+Add LoadPath "../../../ssrcorn/math-classes/src" as MathClasses.
 Require Export core.
 
 (** not relevant for code generation, 
