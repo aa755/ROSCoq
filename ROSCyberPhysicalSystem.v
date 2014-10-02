@@ -16,6 +16,11 @@ Class DecEq (T : Type) :=
     eqdec : forall (a b :T), {a=b} + {a<>b}
 }.
 
+(** received messages are enqued in a mailbox
+    and the dequed *)
+Inductive EventKind := sendEvt | enqEvt | deqEvt.
+
+
 (** In any run, there will only be a finitely
     many events. So the collection of events
     in the entire system can be represented
@@ -25,29 +30,73 @@ Class DecEq (T : Type) :=
 Class EventType (T: Type) 
       {cp : ROSCyberPhysSystem} 
       {deq: DecEq T}
-    := {    
-    eTime : T -> Time;
+    := {
     eLoc : T ->  (NodeIndex cp);
+    recdMesg : T -> Message;
+    eKind : T -> EventKind;
+    eTime : T -> Time;
+    timeDistinct : forall (a b : T), 
+      eTime a = eTime b
+      -> a = b;
     eLocIndex : T -> nat;
-    recdMesg : T -> Message    
-}.
+    indexDistinct : forall (a b : T), 
+      eLoc a = eLoc b
+      -> eLocIndex a = eLocIndex b
+      -> a = b;
+    timeIndexConsistent : forall (a b : T),
+      eLocIndex a < eLocIndex b
+      -> eTime a [<] eTime b;
+
+    processedEvts : forall loc n,
+      { l :list T | forall e, 
+              eLoc e =loc 
+              -> eKind e = deqEvt
+              -> (In e l <-> eLocIndex e < n) };
+
+    causedByNode : forall e,
+    eKind e = sendEvt
+    ->
+      match (rev (proj1_sig (processedEvts (eLoc e) (eLocIndex e)))) with
+      | nil => False
+      | h :: tl => True 
+        (** after consming tl, when the local node gets h,
+            it outputs the message in e*)
+      end
+
+    (** FIFO queue axiomatization *)
+    (** *)
+        
+  }.
 
 Require Export Coq.Init.Wf.
 
-(** Both send and receives are messages *)
+(** Both send and receives are events *)
 
-
-Record SystemOrder (E :Type)  
+Record PossibleEventOrder (E :Type)  
     {cp : ROSCyberPhysSystem} 
-    {et : @EventType E cp}
+    {deq : DecEq E} 
+    {et : @EventType E cp deq}
 :=
 {
-    causedBy : E -> E -> Prop
+    causedBy : E -> E -> Prop;
     localCausal : forall (e1 e2 : E),
         (eLoc e1) = (eLoc e2)
         -> causedBy e1 e2
-        -> 
-    causalWf : 
+        -> eLocIndex e1 < eLocIndex e1;
+
+    localTotal : forall (e1 e2 : E),
+        (eLoc e1) = (eLoc e2)
+        -> {causedBy e1 e2} + {causedBy e2 e1};
+
+    globalCausal : forall (e1 e2 : E),
+        causedBy e1 e2
+        -> eLocIndex e1 < eLocIndex e1;
+
+    (** the stuff below can probably be
+      derived from the stuff above *)
+
+    causalWf : well_founded causedBy
+    
 }.
 
 
