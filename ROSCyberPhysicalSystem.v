@@ -6,7 +6,7 @@ Set Implicit Arguments.
 
 Record ROSCyberPhysSystem := {
    NodeIndex : Set;
-   nodes: NodeIndex -> RosNode
+   node: NodeIndex -> RosNode
   (* a proof that nodes have unique names and locations *)
 }.
 
@@ -20,6 +20,25 @@ Class DecEq (T : Type) :=
     and the dequed *)
 Inductive EventKind := sendEvt | enqEvt | deqEvt.
 
+Definition boolToProp (b : bool) : Prop :=
+match b with
+| true => True
+| false => False
+end.
+
+Add LoadPath "../../../nuprl/coq".
+
+Fixpoint decreasing (ln : list nat) : Prop :=
+match ln with
+| nil => True
+| h :: tl => True
+end.
+
+Fixpoint increasing (ln : list nat) : Prop :=
+match ln with
+| nil => True
+| h :: tl => True
+end.
 
 (** In any run, there will only be a finitely
     many events. So the collection of events
@@ -32,7 +51,7 @@ Class EventType (T: Type)
       {deq: DecEq T}
     := {
     eLoc : T ->  (NodeIndex cp);
-    recdMesg : T -> Message;
+    mesg : T -> Message;
     eKind : T -> EventKind;
     eTime : T -> Time;
     timeDistinct : forall (a b : T), 
@@ -47,25 +66,47 @@ Class EventType (T: Type)
       eLocIndex a < eLocIndex b
       -> eTime a [<] eTime b;
 
-    processedEvts : forall loc n,
-      { l :list T | forall e, 
-              eLoc e =loc 
-              -> eKind e = deqEvt
-              -> (In e l <-> eLocIndex e < n) };
+    prevProcessedEvts : forall loc evt,
+      { l :list T | decreasing (map eLocIndex l) /\
+              forall e, 
+              (In e l <-> 
+                    (eLoc e =loc
+                    /\ eKind e = deqEvt
+                    /\ eLocIndex e < (eLocIndex evt))) };
 
-    causedByNode : forall e,
-    eKind e = sendEvt
-    ->
-      match (rev (proj1_sig (processedEvts (eLoc e) (eLocIndex e)))) with
-      | nil => False
-      | h :: tl => True 
-        (** after consming tl, when the local node gets h,
-            it outputs the message in e*)
-      end
+    futureSends : forall loc evt,
+      { l :list T | decreasing (map eLocIndex l) /\
+              forall e, 
+              (In e l <-> 
+                    (eLoc e =loc
+                    /\ eKind e = deqEvt
+                    /\ eLocIndex e < (eLocIndex evt))) };
 
     (** FIFO queue axiomatization *)
-    (** *)
-        
+
+    correctBehaviour : forall e,
+    let procEvts := (proj1_sig (prevProcessedEvts (eLoc e) e)) in
+    let procMsgs := map mesg procEvts in
+    match ((node cp) (eLoc e)) with
+    | rsw swnd =>
+       match eKind e with
+       | sendEvt => 
+            match procMsgs with
+            | nil => False
+            | last :: rest => 
+                In (mesg e) (getOutputL (process swnd) rest last)
+            end
+       | deqEvt => 
+          let ourM := (getOutputL (process swnd) procMsgs (mesg e))
+          in True
+       | enqEvt => True 
+    (* messages are always welcome. 
+        when modelling a finite sized mailbox, 
+      this may no longer be true *)
+       end
+    | rhi _ _ => True
+    | rho _ _ => True
+    end
   }.
 
 Require Export Coq.Init.Wf.
@@ -75,9 +116,7 @@ Require Export Coq.Init.Wf.
 Record PossibleEventOrder (E :Type)  
     {cp : ROSCyberPhysSystem} 
     {deq : DecEq E} 
-    {et : @EventType E cp deq}
-:=
-{
+    {et : @EventType E cp deq} := {
     causedBy : E -> E -> Prop;
     localCausal : forall (e1 e2 : E),
         (eLoc e1) = (eLoc e2)

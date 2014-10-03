@@ -13,10 +13,33 @@ match p with
 | buildP f => snd (f inp)
 end.
 
+Definition getNewProc {In Out : Type}
+  (p: Process In Out) (inp : In ): Process In Out :=
+match p with
+| buildP f => fst (f inp)
+end.
+
+Require Export Coq.Lists.List.
+
+Fixpoint getNewProcL  {In Out : Type}
+  (p: Process In Out) (linp : list In ): Process In Out :=
+match linp with
+| nil => p
+| hi::tli => getNewProcL (getNewProc p hi) tli
+end.
+
+Definition getOutputL  {In Out : Type}
+    (p: Process In Out) 
+    (prefix : list In) 
+    (last : In) : Out :=
+  let procBeforeLast := getNewProcL p prefix in
+  getOutput procBeforeLast last.
+
 
 Add LoadPath "../../../ssrcorn" as CoRN.
 Add LoadPath "../../../ssrcorn/math-classes/src" as MathClasses.
 Require Export core.
+
 
 (** not relevant for code generation, 
     only relevant for reasoning *)
