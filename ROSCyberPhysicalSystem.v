@@ -47,24 +47,36 @@ end.
     representing all events in the system *)
 
 Class EventType (T: Type) 
-      {cp : ROSCyberPhysSystem} 
-      {deq: DecEq T}
-    := {
-    eLoc : T ->  (NodeIndex cp);
-    mesg : T -> Message;
-    eKind : T -> EventKind;
-    eTime : T -> Time;
-    timeDistinct : forall (a b : T), 
-      eTime a = eTime b
-      -> a = b;
-    eLocIndex : T -> nat;
-    indexDistinct : forall (a b : T), 
-      eLoc a = eLoc b
-      -> eLocIndex a = eLocIndex b
-      -> a = b;
-    timeIndexConsistent : forall (a b : T),
-      eLocIndex a < eLocIndex b
-      -> eTime a [<] eTime b;
+      {Loc : Type} 
+      {deq: DecEq T} := {
+  eLoc : T ->  Loc;
+  mesg : T -> Message;
+  eKind : T -> EventKind;
+  eTime : T -> Time;
+  timeDistinct : forall (a b : T), 
+    eTime a = eTime b
+    -> a = b;
+  eLocIndex : T -> nat;
+  indexDistinct : forall (a b : T), 
+    eLoc a = eLoc b
+    -> eLocIndex a = eLocIndex b
+    -> a = b;
+  timeIndexConsistent : forall (a b : T),
+    eLocIndex a < eLocIndex b
+    -> eTime a [<] eTime b;
+
+  localEvts : Loc -> (nat -> option T);
+
+  locEvtIndex : forall (l: Loc) n t,
+    ((eLoc t) = l /\ (eLocIndex t) = n)
+    <-> localEvts l n = Some t;
+
+  localIndexDense : forall (l: Loc) n t,
+    ((eLoc t) = l /\ (eLocIndex t) = n)
+    -> forall m, m <n ->  
+        {tm : T | ((eLoc tm) = l /\ (eLocIndex tm) = m)}
+    
+ }.
 
     prevProcessedEvts : forall loc evt,
       { l :list T | decreasing (map eLocIndex l) /\
