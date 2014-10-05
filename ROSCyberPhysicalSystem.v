@@ -157,27 +157,63 @@ Definition CorrectSWNodeBehaviour (E L :Type)
       let evIndex := eLocIndex ev in
 
       match (eKind ev) with
-      | deqEvt =>  
-          exists len, futureSends (eLocIndex ev) len locEvts = lastOutMsgs
+        | deqEvt =>  
+            exists len, futureSends (eLocIndex ev) len locEvts = lastOutMsgs
 
-      | sendEvt => 
-        match procEvts with
-        | nil => False
-        | last :: _ => 
-            length (sendsInRange (eLocIndex last)  evIndex locEvts)
-               <= length lastOutMsgs 
-        end
+        | sendEvt => 
+          match procEvts with
+          | nil => False
+          | last :: _ => 
+              length (sendsInRange (eLocIndex last)  evIndex locEvts)
+                 <= length lastOutMsgs 
+          end
 
-      | enqEvt => True (* messages are always welcome. When modelling a finite sized mailbox,this may no longer be true *)
+        | enqEvt => True (* messages are always welcome. When modelling a finite sized mailbox,this may no longer be true *)
       end
   end.
 
 
+Definition enqueue {A : Type} 
+    (el : A) (oldQueue : list A) : list A :=
+    el :: oldQueue.
 
-    (** FIFO queue axiomatization *)
+Definition dequeue {A : Type} (l: list A) : option A * list A :=
+match rev l with
+| nil => (None, nil)
+| last :: rest => (Some last, rev rest)
+end.
 
 
+(** FIFO queue axiomatization *)
+Fixpoint CorrectFIFOQueueUpto   {E L :Type}
+    {deq : DecEq E}
+    {et : @EventType E L deq} (upto : nat)
+    (locEvts: nat -> option E) :  Prop * list Message :=
+match upto with
+| 0 => (True, nil)
+| S upto' =>
+    let (pr, queue) := CorrectFIFOQueueUpto upto' locEvts in
+    match locEvts upto' with
+    | None => (pr, queue)
+    | Some ev => 
+          match (eKind ev) with
+          | sendEvt => (pr,queue)
+          | enqEvt =>  (pr, enqueue (eMesg ev) queue)
+          | deqEvt => 
+              let (el, newQueue) := dequeue queue in
+              match el with
+              | None => (False, queue)
+              | Some mesg => (pr /\ mesg = (eMesg ev), newQueue)
+               end
+          end
+    end
+end.
 
 
-(** we need to axiomatize a mailbox in event ordering *)
+Definition CorrectFIFOQueue   {E L :Type}
+    {deq : DecEq E}
+    {et : @EventType E L deq}
+    (locEvts: nat -> option E) :  Prop :=
+forall (upto : nat), fst (CorrectFIFOQueueUpto upto locEvts).
+
 
