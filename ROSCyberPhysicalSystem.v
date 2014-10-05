@@ -74,7 +74,21 @@ Class EventType (T: Type)
   localIndexDense : forall (l: Loc) n t m,
     ((eLoc t) = l /\ (eLocIndex t) = n)
     -> m <n 
-    -> {tm : T | ((eLoc tm) = l /\ (eLocIndex tm) = m)}    
+    -> {tm : T | ((eLoc tm) = l /\ (eLocIndex tm) = m)};
+
+    (** At any time, we can partition local events
+      into a finite set of events happening before
+      and ones happening after *)
+
+  finiteTime : forall (l: Loc) (t: Time),
+    {index : nat | 
+        forall n, 
+            match (localEvts l n) with
+            | None => True
+            | Some ev => 
+                  (n <= index -> eTime ev [<=] t)
+                  /\ (n > index -> Cast (eTime ev [>] t))
+            end }
  }.
 
 Require Export Coq.Init.Wf.
@@ -147,6 +161,7 @@ Definition CorrectSWNodeBehaviour (E L :Type)
     {et : @EventType E L deq}
     (swNode : RosSwNode)
     (locEvts: nat -> option E) : Prop :=
+
   forall n: nat,
   match (locEvts n) with
   | None  => True
@@ -217,3 +232,12 @@ Definition CorrectFIFOQueue   {E L :Type}
 forall (upto : nat), fst (CorrectFIFOQueueUpto upto locEvts).
 
 
+Definition OutDevStateAtTime (E L :Type)  
+    {deq : DecEq E}
+    {et : @EventType E L deq}
+    (t : Time)
+    (Env : Type)
+    (outDev : RosOutDevNode Env)
+    (locEvts: nat -> option E) : Env :=
+
+    
