@@ -28,12 +28,20 @@ match linp with
 | hi::tli => getNewProcL (getNewProc p hi) tli
 end.
 
-Definition getOutputL  {In Out : Type}
+Definition getLastOutput  {In Out : Type}
     (p: Process In Out) 
     (prefix : list In) 
     (last : In) : Out :=
   let procBeforeLast := getNewProcL p prefix in
   getOutput procBeforeLast last.
+
+Definition getLastOutputL  {In Out : Type}
+    (p: Process In (list Out)) 
+    (allInputs : list In)  : list Out :=
+    match allInputs with
+    | nil => nil
+    | last :: rest => getLastOutput p rest last
+    end.
 
 
 Add LoadPath "../../../ssrcorn" as CoRN.

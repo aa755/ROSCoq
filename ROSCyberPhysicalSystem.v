@@ -50,7 +50,7 @@ Class EventType (T: Type)
       {Loc : Type} 
       {deq: DecEq T} := {
   eLoc : T ->  Loc;
-  mesg : T -> Message;
+  eMesg : T -> Message;
   eKind : T -> EventKind;
   eTime : T -> Time;
   timeDistinct : forall (a b : T), 
@@ -71,55 +71,11 @@ Class EventType (T: Type)
     ((eLoc t) = l /\ (eLocIndex t) = n)
     <-> localEvts l n = Some t;
 
-  localIndexDense : forall (l: Loc) n t,
+  localIndexDense : forall (l: Loc) n t m,
     ((eLoc t) = l /\ (eLocIndex t) = n)
-    -> forall m, m <n ->  
-        {tm : T | ((eLoc tm) = l /\ (eLocIndex tm) = m)}
-    
+    -> m <n 
+    -> {tm : T | ((eLoc tm) = l /\ (eLocIndex tm) = m)}    
  }.
-
-    prevProcessedEvts : forall loc evt,
-      { l :list T | decreasing (map eLocIndex l) /\
-              forall e, 
-              (In e l <-> 
-                    (eLoc e =loc
-                    /\ eKind e = deqEvt
-                    /\ eLocIndex e < (eLocIndex evt))) };
-
-    futureSends : forall loc evt,
-      { l :list T | decreasing (map eLocIndex l) /\
-              forall e, 
-              (In e l <-> 
-                    (eLoc e =loc
-                    /\ eKind e = deqEvt
-                    /\ eLocIndex e < (eLocIndex evt))) };
-
-    (** FIFO queue axiomatization *)
-
-    correctBehaviour : forall e,
-    let procEvts := (proj1_sig (prevProcessedEvts (eLoc e) e)) in
-    let procMsgs := map mesg procEvts in
-    match ((node cp) (eLoc e)) with
-    | rsw swnd =>
-       match eKind e with
-       | sendEvt => 
-            match procMsgs with
-            | nil => False
-            | last :: rest => 
-                In (mesg e) (getOutputL (process swnd) rest last)
-            end
-       | deqEvt => 
-          let ourM := (getOutputL (process swnd) procMsgs (mesg e))
-          in True
-       | enqEvt => True 
-    (* messages are always welcome. 
-        when modelling a finite sized mailbox, 
-      this may no longer be true *)
-       end
-    | rhi _ _ => True
-    | rho _ _ => True
-    end
-  }.
 
 Require Export Coq.Init.Wf.
 
@@ -128,20 +84,15 @@ Require Export Coq.Init.Wf.
 Record PossibleEventOrder (E :Type)  
     {cp : ROSCyberPhysSystem} 
     {deq : DecEq E} 
-    {et : @EventType E cp deq} := {
+    {et : @EventType E (NodeIndex cp) deq} := {
     causedBy : E -> E -> Prop;
     localCausal : forall (e1 e2 : E),
         (eLoc e1) = (eLoc e2)
-        -> causedBy e1 e2
-        -> eLocIndex e1 < eLocIndex e1;
-
-    localTotal : forall (e1 e2 : E),
-        (eLoc e1) = (eLoc e2)
-        -> {causedBy e1 e2} + {causedBy e2 e1};
+        -> (causedBy e1 e2 <-> eLocIndex e1 < eLocIndex e1);
 
     globalCausal : forall (e1 e2 : E),
         causedBy e1 e2
-        -> eLocIndex e1 < eLocIndex e1;
+        -> eTime e1 [<] eTime e1;
 
     (** the stuff below can probably be
       derived from the stuff above *)
@@ -149,6 +100,81 @@ Record PossibleEventOrder (E :Type)
     causalWf : well_founded causedBy
     
 }.
+
+Fixpoint prevProcessedEvents  {E L :Type}
+    {deq : DecEq E}
+  {et : @EventType E L deq} (m : nat)
+  (locEvents : nat -> option E) : list E :=
+  match m with
+  | 0 => nil
+  | S m' => (match locEvents m' with
+              | Some ev => match (eKind ev) with
+                            | deqEvt => (ev)::nil
+                            | _ => nil
+                            end
+              | None => nil (* this will never happen *)
+             end
+            )++ (prevProcessedEvents m' locEvents)
+  end.
+
+
+Fixpoint futureSends  {E L :Type}
+    {deq : DecEq E}
+  {et : @EventType E L deq} (start : nat) (len : nat)
+  (locEvents : nat -> option E) : list Message :=
+  match len with
+  | 0 => nil
+  | S len' => 
+      match locEvents (start + len') with
+      | Some ev => 
+          match (eKind ev) with
+          | sendEvt => (eMesg ev) :: (futureSends (S start) len' locEvents)
+          | deqEvt => nil (* event processing is atomic, as of now*)
+          | enqEvt => (futureSends (S start) len' locEvents)
+          end
+      | None => nil (* this will never happen *)
+       end
+  end.
+
+Definition sendsInRange  {E L :Type}
+    {deq : DecEq E}
+  {et : @EventType E L deq} (startIncl : nat) (endIncl : nat)
+  (locEvents : nat -> option E) : list Message :=
+  futureSends startIncl (endIncl + 1 - startIncl) locEvents.
+
+Definition CorrectSWNodeBehaviour (E L :Type)  
+    {deq : DecEq E}
+    {et : @EventType E L deq}
+    (swNode : RosSwNode)
+    (locEvts: nat -> option E) : Prop :=
+  forall n: nat,
+  match (locEvts n) with
+  | None  => True
+  | Some ev => 
+      let procEvts := prevProcessedEvents (S (eLocIndex ev))locEvts in
+      let procMsgs := map eMesg procEvts in
+      let lastOutMsgs := getLastOutputL (process swNode) procMsgs in
+      let evIndex := eLocIndex ev in
+
+      match (eKind ev) with
+      | deqEvt =>  
+          exists len, futureSends (eLocIndex ev) len locEvts = lastOutMsgs
+
+      | sendEvt => 
+        match procEvts with
+        | nil => False
+        | last :: _ => 
+            length (sendsInRange (eLocIndex last)  evIndex locEvts)
+               <= length lastOutMsgs 
+        end
+
+      | enqEvt => True (* messages are always welcome. When modelling a finite sized mailbox,this may no longer be true *)
+      end
+  end.
+
+
+
+    (** FIFO queue axiomatization *)
 
 
 
