@@ -73,15 +73,25 @@ Variable Env : Type.
     that the robots physical speed somewhere between
     0.9m/s and 1.1 m/s until a new message arrives
  *)
+Open Scope type_scope.
+
 Definition OutDev (Inp : Type) :=
-  Process Inp ((Time -> Env) -> Prop).
+  ((Time -> Env) -> Prop) * Process Inp ((Time -> Env) -> Prop).
 
 Definition MemoryLessOutDev (Inp : Type) :=
-  Inp -> ((Time -> Env) -> Prop).
+  ((Time -> Env) -> Prop) * (Inp -> ((Time -> Env) -> Prop)).
+Close Scope type_scope.
 
-CoFixpoint makeOutDev {Inp: Type} 
-  (m: MemoryLessOutDev Inp) : OutDev Inp :=
-   buildP (fun inp : Inp => (makeOutDev m, m inp)).
+CoFixpoint makeOutDevAux {Inp: Type} 
+  (m: (Inp -> ((Time -> Env) -> Prop))) 
+    : Process Inp ((Time -> Env) -> Prop) :=
+   buildP (fun inp : Inp => (makeOutDevAux  m,  m inp)).
+
+Definition makeOutDev {Inp: Type} 
+  (m: MemoryLessOutDev Inp) 
+    : OutDev Inp :=
+  (fst m,  makeOutDevAux (snd m)).
+
 
 Coercion makeOutDev : MemoryLessOutDev >-> OutDev.
 

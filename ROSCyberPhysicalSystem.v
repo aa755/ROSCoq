@@ -80,15 +80,17 @@ Class EventType (T: Type)
       into a finite set of events happening before
       and ones happening after *)
 
-  finiteTime : forall (l: Loc) (t: Time),
-    {index : nat | 
-        forall n, 
+  prevEvts : Loc -> Time -> nat;
+
+
+   prevEventsIndexCorrect: 
+    forall (l: Loc) (t: Time) (n : nat) , 
             match (localEvts l n) with
             | None => True
             | Some ev => 
-                  (n <= index -> eTime ev [<=] t)
-                  /\ (n > index -> Cast (eTime ev [>] t))
-            end }
+                  (n <= prevEvts l t -> eTime ev [<=] t)
+                  /\ (n > prevEvts l t -> Cast (eTime ev [>] t))
+            end
  }.
 
 Require Export Coq.Init.Wf.
@@ -232,12 +234,23 @@ Definition CorrectFIFOQueue   {E L :Type}
 forall (upto : nat), fst (CorrectFIFOQueueUpto upto locEvts).
 
 
-Definition OutDevStateAtTime (E L :Type)  
+(** What does it mean for a physical quantity
+    to be controlled by an output device *)
+
+Fixpoint OutDevBehaviourUpto (E L :Type)  
     {deq : DecEq E}
     {et : @EventType E L deq}
-    (t : Time)
     (Env : Type)
+    (physQ : Time -> Env)
     (outDev : RosOutDevNode Env)
-    (locEvts: nat -> option E) : Env :=
+    (processedEvts: list E)
+    (uptoIndex : nat)
+  :=
+  match processedEvts with
+  | nil => (fst (odev outDev)) physQ
+  | last :: rest => 
+  end.
+
+  
 
     

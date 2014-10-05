@@ -1,5 +1,7 @@
 Require Import String.
 
+Set Implicit Arguments.
+
 Record RosMesgType := {
     RosMsgID : string;
     payLoadType : Type
@@ -92,6 +94,6 @@ Definition IncomingTopics  (rn : RosNode) : list RosTopic
 match rn with
 | rsw rsn => subscribedTopics rsn
 | rhi _ _ => nil
-| rho _ rout =>  cons (inpTopic _ rout) nil
+| rho _ rout =>  cons (inpTopic rout) nil
 end.
 
