@@ -75,16 +75,26 @@ Variable Env : Type.
  *)
 Open Scope type_scope.
 
+Record OutDefBehaviour (Env : Type ):= {
+  allowedBhv : forall (t:Time), (RInInterval (clcr [0] t) -> Env) -> Prop
+
+    (* ; extendTime : forall (t1 t2 :Time)
+            (ev1 : RInInterval (clcr [0] t1) -> Env) ,
+            t1 [<] t2
+            -> allowedBhv t1 ev1
+            -> {ev2 : RInInterval (clcr [0] t2) -> Env | allowedBhv t2 ev2} *)
+}.
+
 Definition OutDev (Inp : Type) :=
-  ((Time -> Env) -> Prop) * Process Inp ((Time -> Env) -> Prop).
+  (OutDefBehaviour Inp) * Process Inp (OutDefBehaviour Inp).
 
 Definition MemoryLessOutDev (Inp : Type) :=
-  ((Time -> Env) -> Prop) * (Inp -> ((Time -> Env) -> Prop)).
+  (OutDefBehaviour Inp) * (Inp -> (OutDefBehaviour Inp)).
 Close Scope type_scope.
 
 CoFixpoint makeOutDevAux {Inp: Type} 
-  (m: (Inp -> ((Time -> Env) -> Prop))) 
-    : Process Inp ((Time -> Env) -> Prop) :=
+  (m: (Inp -> (OutDefBehaviour Inp))) 
+    : Process Inp (OutDefBehaviour Inp) :=
    buildP (fun inp : Inp => (makeOutDevAux  m,  m inp)).
 
 Definition makeOutDev {Inp: Type} 
