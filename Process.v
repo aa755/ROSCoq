@@ -21,11 +21,12 @@ end.
 
 Require Export Coq.Lists.List.
 
+(** outermost event is the last event *)
 Fixpoint getNewProcL  {In Out : Type}
   (p: Process In Out) (linp : list In ): Process In Out :=
 match linp with
 | nil => p
-| hi::tli => getNewProcL (getNewProc p hi) tli
+| hi::tli => getNewProc (getNewProcL p tli) hi
 end.
 
 Definition getLastOutput  {In Out : Type}
@@ -75,8 +76,8 @@ Variable Env : Type.
  *)
 Open Scope type_scope.
 
-Record OutDefBehaviour (Env : Type ):= {
-  allowedBhv : forall (t:Time), (RInInterval (clcr [0] t) -> Env) -> Prop
+Record OutDevBehaviour := {
+  allowedBhv :> forall (t:Time), (RInInterval (clcr [0] t) -> Env) -> Prop
 
     (* ; extendTime : forall (t1 t2 :Time)
             (ev1 : RInInterval (clcr [0] t1) -> Env) ,
@@ -86,22 +87,29 @@ Record OutDefBehaviour (Env : Type ):= {
 }.
 
 Definition OutDev (Inp : Type) :=
-  (OutDefBehaviour Inp) * Process Inp (OutDefBehaviour Inp).
+  OutDevBehaviour * Process Inp OutDevBehaviour.
 
 Definition MemoryLessOutDev (Inp : Type) :=
-  (OutDefBehaviour Inp) * (Inp -> (OutDefBehaviour Inp)).
+  OutDevBehaviour * (Inp -> OutDevBehaviour).
 Close Scope type_scope.
 
 CoFixpoint makeOutDevAux {Inp: Type} 
-  (m: (Inp -> (OutDefBehaviour Inp))) 
-    : Process Inp (OutDefBehaviour Inp) :=
+  (m: Inp -> OutDevBehaviour) 
+    : Process Inp OutDevBehaviour :=
    buildP (fun inp : Inp => (makeOutDevAux  m,  m inp)).
 
 Definition makeOutDev {Inp: Type} 
   (m: MemoryLessOutDev Inp) 
-    : OutDev Inp :=
+    : OutDev  Inp :=
   (fst m,  makeOutDevAux (snd m)).
 
+Definition getOutDevBhv  {In : Type}
+    (p: OutDev In )
+    (allInputs : list In)  : OutDevBehaviour :=
+    match allInputs with
+    | nil => fst p
+    | last :: rest => getLastOutput (snd p) rest last
+    end.
 
 Coercion makeOutDev : MemoryLessOutDev >-> OutDev.
 

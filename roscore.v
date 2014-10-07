@@ -77,6 +77,21 @@ Record RosOutDevNode (Env : Type) :=
     inpTopic : RosTopic;
     odev : OutDev Env (payLoadType (topicType inpTopic))
 }.
+  
+(** Implementing this will need simplification of topic definitions.
+  We need decidable equality on topics, which is not currently true *)
+Definition filterMegsByTopic (lm : list Message)
+  (topic : RosTopic) : list (payLoadType (topicType topic)).
+Admitted.
+  
+Definition getRosOutDevBhv  {Env : Type}
+    (p: RosOutDevNode Env )
+    (allInputs : list Message)  : OutDevBehaviour Env :=
+    let filterMsgs := filterMegsByTopic allInputs (inpTopic p) in
+    match filterMsgs with
+    | nil => fst (odev p)
+    | last :: rest => getLastOutput (snd (odev p)) rest last
+    end.
 
 Set Implicit Arguments.
 

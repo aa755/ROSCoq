@@ -117,6 +117,7 @@ Record PossibleEventOrder (E :Type)
     
 }.
 
+(** first event is innermost, last event is outermost *)
 Fixpoint prevProcessedEvents  {E L :Type}
     {deq : DecEq E}
   {et : @EventType E L deq} (m : nat)
@@ -240,15 +241,21 @@ forall (upto : nat), fst (CorrectFIFOQueueUpto upto locEvts).
 Fixpoint OutDevBehaviourUpto (E L :Type)  
     {deq : DecEq E}
     {et : @EventType E L deq}
-    (Env : Type)
+    {Env : Type}
     (physQ : Time -> Env)
     (outDev : RosOutDevNode Env)
     (processedEvts: list E)
-    (uptoIndex : nat)
-  :=
+    (uptoTime : Time) :=
   match processedEvts with
-  | nil => (fst (odev outDev)) physQ
-  | last :: rest => 
+  | nil => (fst (odev outDev)) _ (restrictTill physQ uptoTime)
+  | last :: rest =>  
+      let recUptoTime := (eTime last) in
+      let timeDiff := uptoTime [-] recUptoTime in
+      let recProp := OutDevBehaviourUpto physQ outDev rest recUptoTime in
+      let restMsgs := map eMesg rest in
+      let recP := getRosOutDevBhv outDev restMsgs in
+      recProp /\ (restrictTill physQ timeDiff)
+      (* physQ needs to be advanced *)
   end.
 
   

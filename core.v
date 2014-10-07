@@ -48,9 +48,24 @@ Record RInInterval (intvl : interval)  := {
 
 Definition Rpos := RInInterval (closel [0]).
 
+Definition restrictToInterval {A} (f : R -> A) 
+    (intvl : interval) : (RInInterval intvl) -> A :=
+    fun r => f r.
 
 
 Definition Time := Rpos.
+
+Lemma restrictTill {A} (f : Time -> A) 
+    (right : Time) : (RInInterval (clcr [0] right)) -> A.
+  intro rint.
+  destruct rint.
+  apply f. exists realV0.
+  unfold iprop.
+  unfold iprop in realVPos0.
+  destruct realVPos0.
+  trivial.
+Defined.
+
 
 Definition equalUpto {Value : Type} (t: R) (f1 f2 : Time -> Value) :=
   forall  (ti: Time), (ti [<=] t) -> f1 ti = f2 ti.
@@ -62,9 +77,8 @@ Inductive Cast (T: Type) : Prop :=
 cast : T -> Cast T.
 
 Open Scope R_scope.
-Definition RInterval (left right: R) :=
-{r : R |  left <= r <= right}.
-  
+
+
 (** Much of the work in defining devices is to decide what the inputs
     and outputs are and what property they specify. Each device is defined
     in it's own file *)
