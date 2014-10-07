@@ -250,11 +250,12 @@ Fixpoint OutDevBehaviourUpto (E L :Type)
   | nil => (fst (odev outDev)) _ (restrictTill physQ uptoTime)
   | last :: rest =>  
       let recUptoTime := (eTime last) in
-      let timeDiff := uptoTime [-] recUptoTime in
+      let timeDiff := tdiff uptoTime recUptoTime in
       let recProp := OutDevBehaviourUpto physQ outDev rest recUptoTime in
       let restMsgs := map eMesg rest in
-      let recP := getRosOutDevBhv outDev restMsgs in
-      recProp /\ (restrictTill physQ timeDiff)
+      let outdBh := getRosOutDevBhv outDev restMsgs in
+      recProp /\ outdBh timeDiff 
+            (fastFwdAndRestrict physQ recUptoTime uptoTime)
       (* physQ needs to be advanced *)
   end.
 

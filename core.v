@@ -66,6 +66,29 @@ Lemma restrictTill {A} (f : Time -> A)
   trivial.
 Defined.
 
+Lemma fastFwd {A} (f : Time -> A) 
+    (duration : Time) : Time  -> A.
+  intro rint.
+  destruct rint.
+  apply f. exists (realV0 [+] duration).
+  destruct duration. simpl.
+  unfold iprop.
+  unfold iprop in realVPos0.
+  unfold iprop in realVPos1.
+  eauto with *.
+Defined.
+
+Definition tdiff (t tl : Time) : Time.
+  exists (AbsIR (tl [-] t)).
+  unfold iprop.
+  apply AbsIR_nonneg.
+Defined.
+
+Definition fastFwdAndRestrict {A}
+    (f : Time -> A) (tstart tend : Time) :
+      (RInInterval (clcr [0] (tdiff tend tstart))) -> A :=
+restrictTill (fastFwd f tstart) (tdiff tend tstart).
+
 
 Definition equalUpto {Value : Type} (t: R) (f1 f2 : Time -> Value) :=
   forall  (ti: Time), (ti [<=] t) -> f1 ti = f2 ti.
