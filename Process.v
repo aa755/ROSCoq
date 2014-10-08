@@ -139,4 +139,6 @@ maybeSendMesg :
         -> (unit + (Out * Time * InpDev Out)))
         -> InpDev Out.
 
+(** Input devices may receive message as instructions.
+    This model is not expressive enough to capture that. *)
 End Dev.

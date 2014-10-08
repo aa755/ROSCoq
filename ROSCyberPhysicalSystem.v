@@ -236,9 +236,13 @@ forall (upto : nat), fst (CorrectFIFOQueueUpto upto locEvts).
 
 
 (** What does it mean for a physical quantity
-    to be controlled by an output device *)
+    to be controlled by an output device.
+    
+    [uptoTime] only makes sense if it is later than
+    the timestamp of the last event
+ *)
 
-Fixpoint OutDevBehaviourUpto (E L :Type)  
+Fixpoint OutDevBehaviourCorrectUpto (E L :Type)  
     {deq : DecEq E}
     {et : @EventType E L deq}
     {Env : Type}
@@ -251,7 +255,7 @@ Fixpoint OutDevBehaviourUpto (E L :Type)
   | last :: rest =>  
       let recUptoTime := (eTime last) in
       let timeDiff := tdiff uptoTime recUptoTime in
-      let recProp := OutDevBehaviourUpto physQ outDev rest recUptoTime in
+      let recProp := OutDevBehaviourCorrectUpto physQ outDev rest recUptoTime in
       let restMsgs := map eMesg rest in
       let outdBh := getRosOutDevBhv outDev restMsgs in
       recProp /\ outdBh timeDiff 
@@ -261,4 +265,28 @@ Fixpoint OutDevBehaviourUpto (E L :Type)
 
   
 
+Definition OutDevBehaviourCorrect (E L :Type)  
+    {deq : DecEq E}
+    {et : @EventType E L deq}
+    {Env : Type}
+    (physQ : Time -> Env)
+    (outDev : RosOutDevNode Env)
+    (locEvents : nat -> option E)
+    (lastEvtIndex : Time -> nat)
+     :=
+  forall (t : Time),
+    let lastIndex := lastEvtIndex t in
+    let prevProcEvents :=  prevProcessedEvents lastIndex locEvents in
+    OutDevBehaviourCorrectUpto physQ outDev prevProcEvents t.
+
+(*
+CoFixpoint InpDevBehaviourCorrect (E L :Type)  
+    {deq : DecEq E}
+    {et : @EventType E L deq}
+    {Env : Type}
+    (physQ : Time -> Env)
+    (outDev : RosOutDevNode Env)
+    (locEvents : nat -> option E)
+    (lastEvtIndex : Time -> nat) := True.
+*)
     

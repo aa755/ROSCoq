@@ -1,6 +1,9 @@
 ROSCyberPhysicalSystem.vo : ROSCyberPhysicalSystem.v roscore.vo
 	coqc $<
 	
+train.vo : Process.vo train.v
+	coqc $<
+	
 
 roscore.vo : roscore.v Process.vo
 	coqc $<

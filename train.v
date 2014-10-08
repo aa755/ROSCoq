@@ -23,10 +23,13 @@ Record TrainState :=
 
 Open Scope Q_scope.
 
+Definition VelExactly  (vel : Q) : OutDevBehaviour R :=
+Build_OutDevBehaviour (fun tm rint =>  (forall t, rint t = Q2R vel)).
+
 Definition VelOutDevice : 
-  MemoryLessOutDev Q Q :=
-fun inp tp => (forall t:Time, 
-       (inp  < (tp t) < (inp + 1))).
+  MemoryLessOutDev R Q :=
+  (VelExactly 0, fun q => VelExactly q).
+
 
 (* MOVE !! *)
 
@@ -48,4 +51,5 @@ Defined.
 
 
 (** To model randomness, the device can
-  take a stream of random bits as input *)
+  take a stream of random bits as input 
+  This randomness source can be a part of the environment.*)
