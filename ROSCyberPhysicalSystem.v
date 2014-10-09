@@ -279,7 +279,6 @@ Definition OutDevBehaviourCorrect (E L :Type)
     let prevProcEvents :=  prevProcessedEvents lastIndex locEvents in
     OutDevBehaviourCorrectUpto physQ outDev prevProcEvents t.
 
-(*
 CoFixpoint InpDevBehaviourCorrect (E L :Type)  
     {deq : DecEq E}
     {et : @EventType E L deq}
@@ -288,5 +287,4 @@ CoFixpoint InpDevBehaviourCorrect (E L :Type)
     (outDev : RosOutDevNode Env)
     (locEvents : nat -> option E)
     (lastEvtIndex : Time -> nat) := True.
-*)
     

@@ -140,5 +140,9 @@ maybeSendMesg :
         -> InpDev Out.
 
 (** Input devices may receive message as instructions.
-    This model is not expressive enough to capture that. *)
+    This model is not expressive enough to capture that.
+    
+    Howver, that is not too bad. In ROS, sensors like
+    kinect continuously emit and there is no control data.
+ *)
 End Dev.
