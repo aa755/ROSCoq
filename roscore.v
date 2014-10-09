@@ -35,8 +35,7 @@ Section RosCore.
 
 Context  `{rtopic : RosTopicType RosTopic}.
 
-Inductive Message :=
-| topicM :  forall (r :RosTopic), topicType r -> Message.
+Definition Message := sigT topicType.
 (* string could be rrplaced by a list bool to indicate a binary blob *)
 
 
@@ -53,11 +52,12 @@ Record RosSwNode :=
 {
     process :> Process Message (list Message);
 
+    subscribeTopics : list RosTopic;
+    publishTopics : list RosTopic;
+
 (* 
     privateTopic : RosTopic;
 
-    subscribedTopics : list RosTopic;
-    publishTopics : list RosTopic;
 
     need to ensure that when processes are give
     inputs in topics [subscribedTopics] the outputs
@@ -119,7 +119,7 @@ Definition transport {T:Type} {a b:T} {P:T -> Type} (eq:a=b) (pa: P a) : (P b):=
 Definition getPayLoad  (topic : RosTopic) (m : Message) :
 list ( (topicType topic)) :=
 match m with
-| topicM tp pl => match (eqdec  tp topic) with
+| existT tp pl => match (eqdec  tp topic) with
                   | left peq =>  @transport _ _ _ (fun tpp => list ( (topicType tpp))) peq (pl::nil) 
                   | right _ => nil
                   end
@@ -151,14 +151,29 @@ Inductive RosNode : Type :=
         RosOutDevNode Env -> RosNode.
 
 Open Scope list_scope.
-End RosCore.
 
-(*
-Definition IncomingTopics  (rn : RosNode) : list RosTopic
+Definition SubscribeTopics  (rn : RosNode) : list RosTopic
   :=
 match rn with
-| rsw rsn => subscribedTopics rsn
+| rsw rsn => subscribeTopics rsn
 | rhi _ _ => nil
 | rho _ rout =>  cons (inpTopic rout) nil
 end.
-*)
+
+Definition PublishTopics  (rn : RosNode) : list RosTopic
+  :=
+match rn with
+| rsw rsn => publishTopics rsn
+| rhi _ rinp => cons (outTopic rinp) nil
+| rho _ _ =>   nil
+end.
+
+
+Definition validRecvMesg (rn : RosNode) (m : Message) :=
+In (proj1_sigT _ _ m) (SubscribeTopics rn).
+
+Definition validSendMesg (rn : RosNode) (m : Message) :=
+In (proj1_sigT _ _ m) (PublishTopics rn).
+
+
+End RosCore.

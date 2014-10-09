@@ -136,6 +136,11 @@ Class DecEq (T : Type) :=
 
 
 
+Definition boolToProp (b : bool) : Prop :=
+match b with
+| true => True
+| false => False
+end.
 
 Open Scope R_scope.
 

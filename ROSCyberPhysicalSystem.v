@@ -8,34 +8,9 @@ Set Implicit Arguments.
     and the dequed *)
 Inductive EventKind := sendEvt | enqEvt | deqEvt.
 
-Definition boolToProp (b : bool) : Prop :=
-match b with
-| true => True
-| false => False
-end.
-
-
-Fixpoint decreasing (ln : list nat) : Prop :=
-match ln with
-| nil => True
-| h :: tl => True
-end.
-
-Fixpoint increasing (ln : list nat) : Prop :=
-match ln with
-| nil => True
-| h :: tl => True
-end.
-
 
 Section RosLoc.
 Context (RosTopic : Type) {tdeq : DecEq RosTopic} {rtopic : @RosTopicType RosTopic _}.
-
-Class RosLocType ( RosLoc: Type) {deq : DecEq RosLoc} :=
-{
-   node: RosLoc -> RosNode
-}.
-
 
 
 (** In any run, there will only be a finitely
@@ -91,28 +66,75 @@ Class EventType (T: Type)
             end
  }.
 
-Require Export Coq.Init.Wf.
 
-(** Both send and receives are events *)
 
-Record PossibleEventOrder (E :Type)  
-    {deq : DecEq E}       {Loc : Type} 
-    {et : @EventType E Loc deq} := {
-    causedBy : E -> E -> Prop;
-    localCausal : forall (e1 e2 : E),
-        (eLoc e1) = (eLoc e2)
-        -> (causedBy e1 e2 <-> eLocIndex e1 < eLocIndex e1);
 
-    globalCausal : forall (e1 e2 : E),
-        causedBy e1 e2
-        -> eTime e1 [<] eTime e1;
+Definition enqueue {A : Type} 
+    (el : A) (oldQueue : list A) : list A :=
+    el :: oldQueue.
 
-    (** the stuff below can probably be
-      derived from the stuff above *)
+Definition dequeue {A : Type} (l: list A) : option A * list A :=
+match rev l with
+| nil => (None, nil)
+| last :: rest => (Some last, rev rest)
+end.
 
-    causalWf : well_founded causedBy
+
+(** FIFO queue axiomatization *)
+Fixpoint CorrectFIFOQueueUpto   {E L :Type}
+    {deq : DecEq E}
+    {et : @EventType E L deq} (upto : nat)
+    (locEvts: nat -> option E) :  Prop * list Message :=
+match upto with
+| 0 => (True, nil)
+| S upto' =>
+    let (pr, queue) := CorrectFIFOQueueUpto upto' locEvts in
+    match locEvts upto' with
+    | None => (pr, queue)
+    | Some ev => 
+          match (eKind ev) with
+          | sendEvt => (pr,queue)
+          | enqEvt =>  (pr, enqueue (eMesg ev) queue)
+          | deqEvt => 
+              let (el, newQueue) := dequeue queue in
+              match el with
+              | None => (False, queue)
+              | Some mesg => (pr /\ mesg = (eMesg ev), newQueue)
+               end
+          end
+    end
+end.
+
+
+Definition CorrectFIFOQueue   {E L :Type}
+    {deq : DecEq E}
+    {et : @EventType E L deq}
+    (locEvts: nat -> option E) :  Prop :=
+forall (upto : nat), fst (CorrectFIFOQueueUpto upto locEvts).
+
+(** A node only receives meeages from subscribed topics *)
+
+Definition noSpamRecv  {E L :Type} {deq : DecEq E} {et : @EventType E L deq}
+    (locEvents : nat -> option E)
+    (rnode :  RosNode) :=
     
-}.
+    forall n, match (locEvents n) with
+              | Some rv => validRecvMesg rnode (eMesg rv)
+              | None => True
+              end.
+
+Definition noSpamSend  {E L :Type} {deq : DecEq E} {et : @EventType E L deq}
+    (locEvents : nat -> option E)
+    (rnode :  RosNode) :=
+    
+    forall n, match (locEvents n) with
+              | Some rv => validSendMesg rnode (eMesg rv)
+              | None => True
+              end.
+
+
+(** Some properties about events at a particular location. In the
+    next Coq Section, we formalize the interlocation properties. *)
 
 (** first event is innermost, last event is outermost *)
 Fixpoint prevProcessedEvents  {E L :Type}
@@ -186,51 +208,6 @@ Definition CorrectSWNodeBehaviour (E L :Type)
         | enqEvt => True (* messages are always welcome. When modelling a finite sized mailbox,this may no longer be true *)
       end
   end.
-
-
-Definition enqueue {A : Type} 
-    (el : A) (oldQueue : list A) : list A :=
-    el :: oldQueue.
-
-Definition dequeue {A : Type} (l: list A) : option A * list A :=
-match rev l with
-| nil => (None, nil)
-| last :: rest => (Some last, rev rest)
-end.
-
-
-(** FIFO queue axiomatization *)
-Fixpoint CorrectFIFOQueueUpto   {E L :Type}
-    {deq : DecEq E}
-    {et : @EventType E L deq} (upto : nat)
-    (locEvts: nat -> option E) :  Prop * list Message :=
-match upto with
-| 0 => (True, nil)
-| S upto' =>
-    let (pr, queue) := CorrectFIFOQueueUpto upto' locEvts in
-    match locEvts upto' with
-    | None => (pr, queue)
-    | Some ev => 
-          match (eKind ev) with
-          | sendEvt => (pr,queue)
-          | enqEvt =>  (pr, enqueue (eMesg ev) queue)
-          | deqEvt => 
-              let (el, newQueue) := dequeue queue in
-              match el with
-              | None => (False, queue)
-              | Some mesg => (pr /\ mesg = (eMesg ev), newQueue)
-               end
-          end
-    end
-end.
-
-
-Definition CorrectFIFOQueue   {E L :Type}
-    {deq : DecEq E}
-    {et : @EventType E L deq}
-    (locEvts: nat -> option E) :  Prop :=
-forall (upto : nat), fst (CorrectFIFOQueueUpto upto locEvts).
-
 
 (** What does it mean for a physical quantity
     to be controlled by an output device.
@@ -350,4 +327,11 @@ Definition InpDevBehaviourCorrect (E L :Type)
   forall n, ConjL (initialSegment n props).
     
 
+Class RosLocType ( RosLoc: Type) {deq : DecEq RosLoc} :=
+{
+   node: RosLoc -> RosNode
+}.
+
 End RosLoc.
+
+(* Section WholeSystem *)
