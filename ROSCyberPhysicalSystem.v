@@ -280,7 +280,7 @@ Definition OutDevBehaviourCorrect (E L :Type)
     OutDevBehaviourCorrectUpto physQ outDev prevProcEvents t.
 
 CoInductive CoList (A : Type) : Type :=
-    nil : CoList A | cons : A -> CoList A -> CoList A.
+    cnil : CoList A | ccons : A -> CoList A -> CoList A.
 
 CoFixpoint InpDevBehaviourCorrect (E L :Type)  
     {deq : DecEq E}
@@ -289,5 +289,5 @@ CoFixpoint InpDevBehaviourCorrect (E L :Type)
     (physQ : Time -> Env)
     (outDev : RosInpDevNode Env)
     (locEvents : nat -> option E)
-    (lastEvtIndex : Time -> nat) : CoList Prop := nil.
+    (lastEvtIndex : Time -> nat) : CoList Prop := @cnil Prop.
     
