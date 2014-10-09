@@ -116,6 +116,27 @@ Definition ConjL (lp : list Prop) : Prop := (fold_left (fun A B => A/\B) lp True
 Inductive Cast (T: Type) : Prop :=
 cast : T -> Cast T.
 
+
+Require Import String.
+
+
+Definition InjectiveFun {A B} (f : A -> B) :=
+  forall (a1 a2: A), f a1 = f a2 -> a1 = a2.
+
+Class UniqueNames (T : Type) :=
+{
+    tname : T -> string;
+    tnameInj : InjectiveFun tname
+}.
+
+Class DecEq (T : Type) :=
+{
+    eqdec : forall (a b :T), {a=b} + {a<>b}
+}.
+
+
+
+
 Open Scope R_scope.
 
 

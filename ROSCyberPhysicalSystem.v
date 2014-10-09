@@ -12,11 +12,6 @@ Record ROSCyberPhysSystem := {
 }.
 
 
-Class DecEq (T : Type) :=
-{
-    eqdec : forall (a b :T), {a=b} + {a<>b}
-}.
-
 (** received messages are enqued in a mailbox
     and the dequed *)
 Inductive EventKind := sendEvt | enqEvt | deqEvt.
@@ -27,7 +22,6 @@ match b with
 | false => False
 end.
 
-Add LoadPath "../../../nuprl/coq".
 
 Fixpoint decreasing (ln : list nat) : Prop :=
 match ln with
@@ -321,13 +315,24 @@ CoFixpoint InpDevBehaviourCorrectAux (E L :Type)
   let indev := getIDev (idev inpDev) in
   match (indev (fastFwd physQ startTime)) with
   | inl _ => 
-      ccons (noMessagesAfter locEvents lastEvtIndex startTime)
+      ccons (noMessagesAfter 
+                  locEvents 
+                  lastEvtIndex 
+                  startTime)
             (@cnil Prop)
   | inr ((mesg, timeSent), newIdev) => 
-      ccons (nextMessageAtTime locEvents lastEvtIndex 
-                startTime timeSent (makeTopicMesg mesg))
-            (InpDevBehaviourCorrectAux physQ ( substIDev inpDev newIdev )
-                locEvents lastEvtIndex timeSent)
+      ccons (nextMessageAtTime 
+                  locEvents 
+                  lastEvtIndex 
+                  startTime 
+                  timeSent 
+                  (makeTopicMesg mesg))
+            (InpDevBehaviourCorrectAux 
+                  physQ 
+                  ( substIDev inpDev newIdev )
+                  locEvents 
+                  lastEvtIndex 
+                  timeSent)
   end.
 
 Definition InpDevBehaviourCorrect (E L :Type)  
