@@ -279,12 +279,15 @@ Definition OutDevBehaviourCorrect (E L :Type)
     let prevProcEvents :=  prevProcessedEvents lastIndex locEvents in
     OutDevBehaviourCorrectUpto physQ outDev prevProcEvents t.
 
+CoInductive CoList (A : Type) : Type :=
+    nil : CoList A | cons : A -> CoList A -> CoList A.
+
 CoFixpoint InpDevBehaviourCorrect (E L :Type)  
     {deq : DecEq E}
     {et : @EventType E L deq}
     {Env : Type}
     (physQ : Time -> Env)
-    (outDev : RosOutDevNode Env)
+    (outDev : RosInpDevNode Env)
     (locEvents : nat -> option E)
-    (lastEvtIndex : Time -> nat) := True.
+    (lastEvtIndex : Time -> nat) : CoList Prop := nil.
     
