@@ -4,14 +4,6 @@ Require Export roscore.
 Require Export CoList.
 
 Set Implicit Arguments.
-
-Record ROSCyberPhysSystem := {
-   NodeIndex : Set;
-   node: NodeIndex -> RosNode
-  (* a proof that nodes have unique names and locations *)
-}.
-
-
 (** received messages are enqued in a mailbox
     and the dequed *)
 Inductive EventKind := sendEvt | enqEvt | deqEvt.
@@ -34,6 +26,17 @@ match ln with
 | nil => True
 | h :: tl => True
 end.
+
+
+Section RosLoc.
+Context (RosTopic : Type) {tdeq : DecEq RosTopic} {rtopic : @RosTopicType RosTopic _}.
+
+Class RosLocType ( RosLoc: Type) {deq : DecEq RosLoc} :=
+{
+   node: RosLoc -> RosNode
+}.
+
+
 
 (** In any run, there will only be a finitely
     many events. So the collection of events
@@ -93,9 +96,8 @@ Require Export Coq.Init.Wf.
 (** Both send and receives are events *)
 
 Record PossibleEventOrder (E :Type)  
-    {cp : ROSCyberPhysSystem} 
-    {deq : DecEq E} 
-    {et : @EventType E (NodeIndex cp) deq} := {
+    {deq : DecEq E}       {Loc : Type} 
+    {et : @EventType E Loc deq} := {
     causedBy : E -> E -> Prop;
     localCausal : forall (e1 e2 : E),
         (eLoc e1) = (eLoc e2)
@@ -347,3 +349,5 @@ Definition InpDevBehaviourCorrect (E L :Type)
   let props := InpDevBehaviourCorrectAux physQ inpDev locEvents lastEvtIndex t0 in
   forall n, ConjL (initialSegment n props).
     
+
+End RosLoc.

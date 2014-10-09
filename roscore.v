@@ -33,9 +33,7 @@ Class RosTopicType (RT : Type) {deq : DecEq RT}
 
 Section RosCore.
 
-Variable RosTopic : Type.
-Variable tdeq : DecEq RosTopic.
-Variable rtopic : @RosTopicType RosTopic _.
+Context  `{rtopic : RosTopicType RosTopic}.
 
 Inductive Message :=
 | topicM :  forall (r :RosTopic), topicType r -> Message.
