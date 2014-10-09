@@ -92,6 +92,12 @@ Definition tadd (t tl : Time) : Time.
   eauto with *.
 Defined.
 
+Definition t0 : Time.
+  exists [0]. unfold iprop.
+  apply leEq_reflexive.
+Defined.
+
+
 
 Definition fastFwdAndRestrict {A}
     (f : Time -> A) (tstart tend : Time) :
@@ -104,6 +110,8 @@ Definition equalUpto {Value : Type} (t: R) (f1 f2 : Time -> Value) :=
 
 Set Implicit Arguments.
 
+Definition ConjL (lp : list Prop) : Prop := (fold_left (fun A B => A/\B) lp True).
+ 
 
 Inductive Cast (T: Type) : Prop :=
 cast : T -> Cast T.

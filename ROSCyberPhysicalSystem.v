@@ -1,6 +1,7 @@
 Add LoadPath "../../../ssrcorn" as CoRN.
 Add LoadPath "../../../ssrcorn/math-classes/src" as MathClasses.
 Require Export roscore.
+Require Export CoList.
 
 Set Implicit Arguments.
 
@@ -279,9 +280,6 @@ Definition OutDevBehaviourCorrect (E L :Type)
     let prevProcEvents :=  prevProcessedEvents lastIndex locEvents in
     OutDevBehaviourCorrectUpto physQ outDev prevProcEvents t.
 
-CoInductive CoList (A : Type) : Type :=
-    cnil : CoList A | ccons : A -> CoList A -> CoList A.
-
 Definition noMessagesAfter (E L :Type)  
     {deq : DecEq E}
     {et : @EventType E L deq}
@@ -310,7 +308,7 @@ Definition nextMessageAtTime (E L :Type)
                 /\ (eMesg ev = m)
   end.
 
-CoFixpoint InpDevBehaviourCorrect (E L :Type)  
+CoFixpoint InpDevBehaviourCorrectAux (E L :Type)  
     {deq : DecEq E}
     {et : @EventType E L deq}
     {Env : Type}
@@ -318,7 +316,8 @@ CoFixpoint InpDevBehaviourCorrect (E L :Type)
     (inpDev : RosInpDevNode Env)
     (locEvents : nat -> option E)
     (lastEvtIndex : Time -> nat)
-    (startTime : Time) : CoList Prop := 
+    (startTime : Time) : CoList Prop :=
+
   let indev := getIDev (idev inpDev) in
   match (indev (fastFwd physQ startTime)) with
   | inl _ => 
@@ -327,7 +326,19 @@ CoFixpoint InpDevBehaviourCorrect (E L :Type)
   | inr ((mesg, timeSent), newIdev) => 
       ccons (nextMessageAtTime locEvents lastEvtIndex 
                 startTime timeSent (makeTopicMesg mesg))
-            (InpDevBehaviourCorrect physQ ( substIDev inpDev newIdev )
+            (InpDevBehaviourCorrectAux physQ ( substIDev inpDev newIdev )
                 locEvents lastEvtIndex timeSent)
   end.
+
+Definition InpDevBehaviourCorrect (E L :Type)  
+  {deq : DecEq E}
+  {et : @EventType E L deq}
+  {Env : Type}
+  (physQ : Time -> Env)
+  (inpDev : RosInpDevNode Env)
+  (locEvents : nat -> option E)
+  (lastEvtIndex : Time -> nat) :=
+
+  let props := InpDevBehaviourCorrectAux physQ inpDev locEvents lastEvtIndex t0 in
+  forall n, ConjL (initialSegment n props).
     

@@ -94,7 +94,11 @@ Record RosOutDevNode (Env : Type) :=
 }.
   
 (** Implementing this will need simplification of topic definitions.
-  We need decidable equality on topics, which is not currently true *)
+  We need decidable equality on topics, which is not currently true.
+  Also, one could have 2 topics with same string name and different
+  payload types
+
+ *)
 Definition filterMegsByTopic (lm : list Message)
   (topic : RosTopic) : list (payLoadType (topicType topic)).
 Admitted.
