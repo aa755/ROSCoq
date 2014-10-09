@@ -70,6 +70,21 @@ Record RosInpDevNode (Env : Type) :=
     idev : InpDev Env (payLoadType (topicType outTopic))
 }.
 
+Definition makeTopicMesg {outTopic : RosTopic}
+  (payload : (payLoadType (topicType outTopic))) : Message.
+econstructor; eauto. 
+  (* in this context, there is only one possible message *)
+Defined.
+
+Definition substIDev {Env : Type} (rid : RosInpDevNode Env)
+  (newd : InpDev Env (payLoadType (topicType (outTopic rid))))
+  : RosInpDevNode Env :=
+Build_RosInpDevNode (IDMasterAddress rid)
+                    (IDnodeName rid)
+                    (outTopic rid)
+                    newd.
+
+
 Record RosOutDevNode (Env : Type) :=
 {
     ODMasterAddress : TCPAddress;

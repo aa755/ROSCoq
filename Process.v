@@ -145,4 +145,12 @@ maybeSendMesg :
     Howver, that is not too bad. In ROS, sensors like
     kinect continuously emit and there is no control data.
  *)
+
+Definition getIDev {Out : Type} (idv : InpDev Out ) :
+((Time -> Env) -> (unit + (Out * Time * InpDev Out)))
+  :=
+match idv with
+maybeSendMesg mmm => mmm
+end.
+
 End Dev.

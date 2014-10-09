@@ -282,12 +282,52 @@ Definition OutDevBehaviourCorrect (E L :Type)
 CoInductive CoList (A : Type) : Type :=
     cnil : CoList A | ccons : A -> CoList A -> CoList A.
 
+Definition noMessagesAfter (E L :Type)  
+    {deq : DecEq E}
+    {et : @EventType E L deq}
+    (locEvents : nat -> option E)
+    (lastEvtIndex : Time -> nat)
+    (t : Time) : Prop :=
+    
+  let tIndex := lastEvtIndex t in
+  forall n,
+     n > tIndex
+     -> locEvents n = None.
+
+Definition nextMessageAtTime (E L :Type)  
+    {deq : DecEq E}
+    {et : @EventType E L deq}
+    (locEvents : nat -> option E)
+    (lastEvtIndex : Time -> nat)
+    (curTime : Time)
+    (mesgTime : Time)
+    (m : Message) : Prop :=
+    
+  let tIndex := lastEvtIndex curTime in
+  match locEvents tIndex with
+  | None => False
+  | Some ev  => (eTime ev = tadd curTime mesgTime) 
+                /\ (eMesg ev = m)
+  end.
+
 CoFixpoint InpDevBehaviourCorrect (E L :Type)  
     {deq : DecEq E}
     {et : @EventType E L deq}
     {Env : Type}
     (physQ : Time -> Env)
-    (outDev : RosInpDevNode Env)
+    (inpDev : RosInpDevNode Env)
     (locEvents : nat -> option E)
-    (lastEvtIndex : Time -> nat) : CoList Prop := @cnil Prop.
+    (lastEvtIndex : Time -> nat)
+    (startTime : Time) : CoList Prop := 
+  let indev := getIDev (idev inpDev) in
+  match (indev (fastFwd physQ startTime)) with
+  | inl _ => 
+      ccons (noMessagesAfter locEvents lastEvtIndex startTime)
+            (@cnil Prop)
+  | inr ((mesg, timeSent), newIdev) => 
+      ccons (nextMessageAtTime locEvents lastEvtIndex 
+                startTime timeSent (makeTopicMesg mesg))
+            (InpDevBehaviourCorrect physQ ( substIDev inpDev newIdev )
+                locEvents lastEvtIndex timeSent)
+  end.
     

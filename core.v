@@ -84,6 +84,15 @@ Definition tdiff (t tl : Time) : Time.
   apply AbsIR_nonneg.
 Defined.
 
+Definition tadd (t tl : Time) : Time.
+  exists (tl [+] t).
+  unfold iprop. destruct t. destruct tl.
+  simpl. unfold iprop in realVPos0.
+  unfold iprop in realVPos1.
+  eauto with *.
+Defined.
+
+
 Definition fastFwdAndRestrict {A}
     (f : Time -> A) (tstart tend : Time) :
       (RInInterval (clcr [0] (tdiff tend tstart))) -> A :=
