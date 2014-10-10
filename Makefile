@@ -6,7 +6,7 @@ ROSCyberPhysicalSystem.vo : ROSCyberPhysicalSystem.v roscore.vo CoList.vo
 CoList.vo : CoList.v
 	coqc $<
 	
-train.vo : Process.vo train.v
+trainDevs.vo : trainDevs.v Process.vo
 	coqc $<
 	
 

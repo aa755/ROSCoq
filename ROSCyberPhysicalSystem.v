@@ -343,6 +343,7 @@ end.
 
 Record PossibleEventOrder  := {
     causedBy : E -> E -> Prop;
+
     localCausal : forall (e1 e2 : E),
         (eLoc e1) = (eLoc e2)
         -> (causedBy e1 e2 <-> eLocIndex e1 < eLocIndex e1);
@@ -351,14 +352,21 @@ Record PossibleEventOrder  := {
         causedBy e1 e2
         -> eTime e1 [<] eTime e1;
 
+    eventualDelivery: forall (Es : E), exists (Er : E),
+          PossibleSendRecvPair Es Er
+          /\ causedBy Es Er;
+
+    recvSend: forall (Er : E), exists (Es : E),
+          PossibleSendRecvPair Es Er
+          /\ causedBy Es Er;
+
+    corr : CorrectFIFOQueue /\ AllNodeBehCorrect;
+
+
     (** the stuff below can probably be
       derived from the stuff above *)
 
-    causalWf : well_founded _ causedBy;
-    
-    eventualDelivery: forall (Es : E), exists (Er : E),
-    PossibleSendRecvPair Es Er
-    /\ causedBy Es Er
+    causalWf : well_founded _ causedBy
     
 }.
 End EventProps.
