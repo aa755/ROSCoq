@@ -3,14 +3,14 @@ Add LoadPath "../../../ssrcorn/math-classes/src" as MathClasses.
 Require Export roscore.
 Require Export CoList.
 
-Set Implicit Arguments.
 (** received messages are enqued in a mailbox
     and the dequed *)
-Inductive EventKind := sendEvt | enqEvt | deqEvt.
+Inductive EventKind := 
+sendEvt | enqEvt | deqEvt.
 
 
-Section RosLoc.
-Context (RosTopic : Type) {tdeq : DecEq RosTopic} {rtopic : @RosTopicType RosTopic _}.
+Section EventLoc.
+Context  `{rtopic : RosTopicType RosTopic}.
 
 
 (** In any run, there will only be a finitely
@@ -20,8 +20,8 @@ Context (RosTopic : Type) {tdeq : DecEq RosTopic} {rtopic : @RosTopicType RosTop
     representing all events in the system *)
 
 Class EventType (T: Type) 
-      {Loc : Type} 
-      {deq: DecEq T} := {
+      (Loc : Type) 
+      {tdeq: DecEq T} := {
   eLoc : T ->  Loc;
   eMesg : T -> Message;
   eKind : T -> EventKind;
@@ -67,23 +67,33 @@ Class EventType (T: Type)
  }.
 
 
+Class RosLocType ( RosLoc: Type) {deq : DecEq RosLoc} :=
+{
+   locNode: RosLoc -> RosNode;
+   maxDeliveryDelay : RosLoc -> RosLoc -> option Q;
+   (** a location type should also provide out a way
+      to access the way physical quantities
+      measured/ controlled by devices changes *)
+    
+   timeValuedEnv : forall rl, TimeValuedEnvType (locNode rl)
+    
+}.
+
+End EventLoc.
 
 
-Definition enqueue {A : Type} 
-    (el : A) (oldQueue : list A) : list A :=
-    el :: oldQueue.
+Set Implicit Arguments.
 
-Definition dequeue {A : Type} (l: list A) : option A * list A :=
-match rev l with
-| nil => (None, nil)
-| last :: rest => (Some last, rev rest)
-end.
+
+Section EventProps.
+Context  `{rtopic : RosTopicType RosTopic} 
+  `{dteq : Deq RosTopic}
+ `{etype : @EventType _ _ _ E LocT tdeq }
+  `{rlct : @RosLocType _ _ _ LocT ldeq}.
 
 
 (** FIFO queue axiomatization *)
-Fixpoint CorrectFIFOQueueUpto   {E L :Type}
-    {deq : DecEq E}
-    {et : @EventType E L deq} (upto : nat)
+Fixpoint CorrectFIFOQueueUpto   (upto : nat)
     (locEvts: nat -> option E) :  Prop * list Message :=
 match upto with
 | 0 => (True, nil)
@@ -106,15 +116,13 @@ match upto with
 end.
 
 
-Definition CorrectFIFOQueue   {E L :Type}
-    {deq : DecEq E}
-    {et : @EventType E L deq}
-    (locEvts: nat -> option E) :  Prop :=
-forall (upto : nat), fst (CorrectFIFOQueueUpto upto locEvts).
+Definition CorrectFIFOQueue    :  Prop :=
+forall (l: LocT)
+ (upto : nat), fst (CorrectFIFOQueueUpto upto (localEvts l)).
 
 (** A node only receives meeages from subscribed topics *)
 
-Definition noSpamRecv  {E L :Type} {deq : DecEq E} {et : @EventType E L deq}
+Definition noSpamRecv 
     (locEvents : nat -> option E)
     (rnode :  RosNode) :=
     
@@ -123,10 +131,9 @@ Definition noSpamRecv  {E L :Type} {deq : DecEq E} {et : @EventType E L deq}
               | None => True
               end.
 
-Definition noSpamSend  {E L :Type} {deq : DecEq E} {et : @EventType E L deq}
+Definition noSpamSend 
     (locEvents : nat -> option E)
-    (rnode :  RosNode) :=
-    
+    (rnode :  RosNode) :=    
     forall n, match (locEvents n) with
               | Some rv => validSendMesg rnode (eMesg rv)
               | None => True
@@ -137,9 +144,7 @@ Definition noSpamSend  {E L :Type} {deq : DecEq E} {et : @EventType E L deq}
     next Coq Section, we formalize the interlocation properties. *)
 
 (** first event is innermost, last event is outermost *)
-Fixpoint prevProcessedEvents  {E L :Type}
-    {deq : DecEq E}
-  {et : @EventType E L deq} (m : nat)
+Fixpoint prevProcessedEvents (m : nat)
   (locEvents : nat -> option E) : list E :=
   match m with
   | 0 => nil
@@ -154,9 +159,7 @@ Fixpoint prevProcessedEvents  {E L :Type}
   end.
 
 
-Fixpoint futureSends  {E L :Type}
-    {deq : DecEq E}
-  {et : @EventType E L deq} (start : nat) (len : nat)
+Fixpoint futureSends (start : nat) (len : nat)
   (locEvents : nat -> option E) : list Message :=
   match len with
   | 0 => nil
@@ -172,15 +175,11 @@ Fixpoint futureSends  {E L :Type}
        end
   end.
 
-Definition sendsInRange  {E L :Type}
-    {deq : DecEq E}
-  {et : @EventType E L deq} (startIncl : nat) (endIncl : nat)
+Definition sendsInRange  (startIncl : nat) (endIncl : nat)
   (locEvents : nat -> option E) : list Message :=
   futureSends startIncl (endIncl + 1 - startIncl) locEvents.
 
-Definition CorrectSWNodeBehaviour (E L :Type)  
-    {deq : DecEq E}
-    {et : @EventType E L deq}
+Definition CorrectSWNodeBehaviour 
     (swNode : RosSwNode)
     (locEvts: nat -> option E) : Prop :=
 
@@ -216,9 +215,7 @@ Definition CorrectSWNodeBehaviour (E L :Type)
     the timestamp of the last event
  *)
 
-Fixpoint OutDevBehaviourCorrectUpto (E L :Type)  
-    {deq : DecEq E}
-    {et : @EventType E L deq}
+Fixpoint OutDevBehaviourCorrectUpto 
     {Env : Type}
     (physQ : Time -> Env)
     (outDev : RosOutDevNode Env)
@@ -239,9 +236,7 @@ Fixpoint OutDevBehaviourCorrectUpto (E L :Type)
 
   
 
-Definition OutDevBehaviourCorrect (E L :Type)  
-    {deq : DecEq E}
-    {et : @EventType E L deq}
+Definition OutDevBehaviourCorrect 
     {Env : Type}
     (physQ : Time -> Env)
     (outDev : RosOutDevNode Env)
@@ -253,9 +248,7 @@ Definition OutDevBehaviourCorrect (E L :Type)
     let prevProcEvents :=  prevProcessedEvents lastIndex locEvents in
     OutDevBehaviourCorrectUpto physQ outDev prevProcEvents t.
 
-Definition noMessagesAfter (E L :Type)  
-    {deq : DecEq E}
-    {et : @EventType E L deq}
+Definition noMessagesAfter 
     (locEvents : nat -> option E)
     (lastEvtIndex : Time -> nat)
     (t : Time) : Prop :=
@@ -265,9 +258,7 @@ Definition noMessagesAfter (E L :Type)
      n > tIndex
      -> locEvents n = None.
 
-Definition nextMessageAtTime (E L :Type)  
-    {deq : DecEq E}
-    {et : @EventType E L deq}
+Definition nextMessageAtTime 
     (locEvents : nat -> option E)
     (lastEvtIndex : Time -> nat)
     (curTime : Time)
@@ -281,9 +272,7 @@ Definition nextMessageAtTime (E L :Type)
                 /\ (eMesg ev = m)
   end.
 
-CoFixpoint InpDevBehaviourCorrectAux (E L :Type)  
-    {deq : DecEq E}
-    {et : @EventType E L deq}
+CoFixpoint InpDevBehaviourCorrectAux 
     {Env : Type}
     (physQ : Time -> Env)
     (inpDev : RosInpDevNode Env)
@@ -314,9 +303,7 @@ CoFixpoint InpDevBehaviourCorrectAux (E L :Type)
                   timeSent)
   end.
 
-Definition InpDevBehaviourCorrect (E L :Type)  
-  {deq : DecEq E}
-  {et : @EventType E L deq}
+Definition InpDevBehaviourCorrect
   {Env : Type}
   (physQ : Time -> Env)
   (inpDev : RosInpDevNode Env)
@@ -327,11 +314,16 @@ Definition InpDevBehaviourCorrect (E L :Type)
   forall n, ConjL (initialSegment n props).
     
 
-Class RosLocType ( RosLoc: Type) {deq : DecEq RosLoc} :=
-{
-   node: RosLoc -> RosNode
-}.
+Definition NodeBehCorrect (l : LocT) : Prop.
+  pose proof (timeValuedEnv l) as timeEnv.
+  destruct (locNode l).
+  - exact (CorrectSWNodeBehaviour r (localEvts l)).
+  - exact (InpDevBehaviourCorrect timeEnv r (localEvts l) (prevEvts l)).
+  - exact (OutDevBehaviourCorrect timeEnv r (localEvts l) (prevEvts l)).
+Defined.
 
-End RosLoc.
+Definition AllNodeBehCorrect : Prop:= 
+  forall l, NodeBehCorrect l.
 
-(* Section WholeSystem *)
+(* Definition MessageTransportProp : *)
+End EventProps.

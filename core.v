@@ -143,6 +143,15 @@ match b with
 end.
 
 Open Scope R_scope.
+Definition enqueue {A : Type} 
+    (el : A) (oldQueue : list A) : list A :=
+    el :: oldQueue.
+
+Definition dequeue {A : Type} (l: list A) : option A * list A :=
+match rev l with
+| nil => (None, nil)
+| last :: rest => (Some last, rev rest)
+end.
 
 
 (** Much of the work in defining devices is to decide what the inputs

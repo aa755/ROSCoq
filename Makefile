@@ -1,5 +1,5 @@
 
-ROSCyberPhysicalSystem.vo : ROSCyberPhysicalSystem.v roscore.vo CoList.v
+ROSCyberPhysicalSystem.vo : ROSCyberPhysicalSystem.v roscore.vo CoList.vo
 	coqc $<
 
 

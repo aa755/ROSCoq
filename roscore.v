@@ -168,6 +168,14 @@ match rn with
 | rho _ _ =>   nil
 end.
 
+Definition TimeValuedEnvType  (rn : RosNode) : Type
+  :=
+match rn with
+| rsw rsn => unit
+| rhi Env _ => Time -> Env
+| rho Env _ => Time -> Env
+end.
+
 
 Definition validRecvMesg (rn : RosNode) (m : Message) :=
 In (proj1_sigT _ _ m) (SubscribeTopics rn).
