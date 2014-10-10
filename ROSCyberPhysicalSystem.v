@@ -70,7 +70,7 @@ Class EventType (T: Type)
 Class RosLocType ( RosLoc: Type) {deq : DecEq RosLoc} :=
 {
    locNode: RosLoc -> RosNode;
-   maxDeliveryDelay : RosLoc -> RosLoc -> option Q;
+   maxDeliveryDelay : RosLoc -> RosLoc -> option Time;
    (** a location type should also provide out a way
       to access the way physical quantities
       measured/ controlled by devices changes *)
@@ -325,5 +325,40 @@ Defined.
 Definition AllNodeBehCorrect : Prop:= 
   forall l, NodeBehCorrect l.
 
-(* Definition MessageTransportProp : *)
+Definition PossibleSendRecvPair
+  (Es  Er : E) : Prop :=
+match (eKind Es, eKind Er) with
+| (sendEvt, enqEvt) =>
+   (eMesg Es = eMesg Er)
+   /\ (validRecvMesg (locNode (eLoc Er)) (eMesg Er))
+   /\ (validSendMesg (locNode (eLoc Es)) (eMesg Es))
+   /\ (match (maxDeliveryDelay (eLoc Es) (eLoc Er)) with
+      | Some td =>  Cast (eTime Er [<]  tadd (eTime Es) td)
+      | None => True
+      end )
+    
+| _ => False
+end.
+
+
+Record PossibleEventOrder  := {
+    causedBy : E -> E -> Prop;
+    localCausal : forall (e1 e2 : E),
+        (eLoc e1) = (eLoc e2)
+        -> (causedBy e1 e2 <-> eLocIndex e1 < eLocIndex e1);
+
+    globalCausal : forall (e1 e2 : E),
+        causedBy e1 e2
+        -> eTime e1 [<] eTime e1;
+
+    (** the stuff below can probably be
+      derived from the stuff above *)
+
+    causalWf : well_founded _ causedBy;
+    
+    eventualDelivery: forall (Es : E), exists (Er : E),
+    PossibleSendRecvPair Es Er
+    /\ causedBy Es Er
+    
+}.
 End EventProps.

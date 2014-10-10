@@ -176,12 +176,14 @@ match rn with
 | rho Env _ => Time -> Env
 end.
 
+Definition mtopic (m : Message) :=
+(proj1_sigT _ _ m).
 
 Definition validRecvMesg (rn : RosNode) (m : Message) :=
-In (proj1_sigT _ _ m) (SubscribeTopics rn).
+In (mtopic m) (SubscribeTopics rn).
 
 Definition validSendMesg (rn : RosNode) (m : Message) :=
-In (proj1_sigT _ _ m) (PublishTopics rn).
+In (mtopic m) (PublishTopics rn).
 
 
 End RosCore.
