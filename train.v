@@ -3,6 +3,7 @@ Add LoadPath "../../../ssrcorn" as CoRN.
 Add LoadPath "../../../ssrcorn/math-classes/src" as MathClasses.
 Require Export ROSCyberPhysicalSystem.
 Require Export String.
+Require Export trainDevs.
 
 Instance stringdeceqdsjfklsajlk : DecEq string.
 constructor. exact string_dec.
@@ -30,14 +31,27 @@ Instance rldeqdsjfklsajlk : DecEq RosLoc.
 constructor. exact RosLoc_eq_dec.
 Defined.
 
+CoFixpoint tranControllerProgram (state : bool): Process Message (list Message).
+  constructor. intro m.
+  destruct m as [topicName payLoad].
+  case (eqdec topicName "timerSend"); intro Hc; subst.
+  - split. 
+    + exact (tranControllerProgram (negb state)).
+    + apply cons;[ | exact nil]. exists "motorRecv".
+      simpl. unfold stringTopic2Type. simpl.
+      destruct state ;[exact 1 | exact (0-1)].
+  - exact (tranControllerProgram state,nil).
+Defined.
 
 
-Instance rllllfjkfhsdakfsdakh : RosLocType RosLoc.
-(* we can't define the [timeValuedEnv]  component because
-   it is only function of the RosLoc, which does not have enough information.
-   One could add (Time -> R) to some nodes in RosLoc, but that
-   will give us infinitely many nodes, and also make equality undecidable.
-   [timeValuedEnv] is also a function of environment
- *)
+(*
+Definition locNode (rl : RosLoc) : RosNode :=
+match rl with
+| baseMotor =>
+| timerNode =>
+| digiController =>
+end.
+*)
 
+Instance rllllfjkfhsdakfsdakh : RosLocType TrainState RosLoc.
 

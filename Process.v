@@ -5,6 +5,23 @@ CoInductive Process (In Out : Type) :=
 buildP : (In -> ((Process In Out)* Out))
           -> Process In Out.
 
+(*
+CoInductive StateFulProcess (In State Out : Type) :=
+buildSP : (In -> State -> ((StateFulProcess In State Out)* Out))
+          -> StateFulProcess In State Out.
+
+CoFixpoint fromSFProcess {In State Out : Type} (initState : State)
+  (sfp : StateFulProcess In State Out)
+   : Process In Out.
+constructor. intro inp.
+destruct sfp.
+pose proof (p inp initState) as Hsfs.
+destruct Hsfs; split; [| trivial]. clear p.
+eauto.
+Defined.
+
+Coercion  fromSFProcess : StateFulProcess >-> Process.
+*)
 
 Definition getOutput {In Out : Type}
   (p: Process In Out) (inp : In ): Out :=

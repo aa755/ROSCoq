@@ -67,15 +67,16 @@ Class EventType (T: Type)
  }.
 
 
-Class RosLocType ( RosLoc: Type) {deq : DecEq RosLoc} :=
+Class RosLocType (PhysicalEnvType : Type) ( RosLoc: Type) 
+     {rldeq : DecEq RosLoc} :=
 {
    locNode: RosLoc -> RosNode;
    maxDeliveryDelay : RosLoc -> RosLoc -> option Time;
    (** a location type should also provide out a way
       to access the way physical quantities
       measured/ controlled by devices changes *)
-    
-   timeValuedEnv : forall rl, TimeValuedEnvType (locNode rl)
+   
+   timeValuedEnv : (Time -> PhysicalEnvType) -> forall rl, TimeValuedEnvType (locNode rl)
     
 }.
 
@@ -86,10 +87,12 @@ Set Implicit Arguments.
 
 
 Section EventProps.
-Context  `{rtopic : RosTopicType RosTopic} 
+Context  (PhysicalEnvType : Type)
+  (physics : Time -> PhysicalEnvType)
+  `{rtopic : RosTopicType RosTopic} 
   `{dteq : Deq RosTopic}
  `{etype : @EventType _ _ _ E LocT tdeq }
-  `{rlct : @RosLocType _ _ _ LocT ldeq}.
+  `{rlct : @RosLocType _ _ _ PhysicalEnvType LocT ldeq}.
 
 
 (** FIFO queue axiomatization *)
@@ -315,7 +318,7 @@ Definition InpDevBehaviourCorrect
     
 
 Definition NodeBehCorrect (l : LocT) : Prop.
-  pose proof (timeValuedEnv l) as timeEnv.
+  pose proof (timeValuedEnv physics l) as timeEnv.
   destruct (locNode l).
   - exact (CorrectSWNodeBehaviour r (localEvts l)).
   - exact (InpDevBehaviourCorrect timeEnv r (localEvts l) (prevEvts l)).
