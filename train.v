@@ -48,23 +48,44 @@ exists [1]. unfold iprop.
 eauto with *.
 Defined.
 
-Definition digiControllerTiming : ProcessTiming (digiControllerProgram true).
-intro m. exists (cons t1 nil). destruct m.
-simpl. 
-simpl. 
+Definition digiControllerTiming : ProcessTiming (digiControllerProgram true) :=
+ fun m => t1.
 
 
-Definition ControllerNode : RosSwNode.
+Definition ControllerNode : RosSwNode :=
+Build_RosSwNode ("timerSend"::nil) ("motorRecv"::nil) digiControllerTiming.
 
+Definition TimerNode : RosInpDevNode unit:=
+Build_RosInpDevNode "timerSend" (Timer 1).
 
-(*
+Definition BaseMotorNode : RosOutDevNode R :=
+(Build_RosOutDevNode "motorRecv" VelOutDevice).
+
 Definition locNode (rl : RosLoc) : RosNode :=
 match rl with
-| baseMotor =>
-| timerNode =>
-| digiController =>
+| baseMotor => ControllerNode
+| timerNode => TimerNode
+| digiController => BaseMotorNode
 end.
-*)
 
 Instance rllllfjkfhsdakfsdakh : RosLocType TrainState RosLoc.
+apply (Build_RosLocType _ _ _ locNode (fun srs dest => Some t1)).
+ intros ts rl. destruct rl; simpl; try (exact tt).
+  - exact (fun t => tt).
+  - exact (fun t => vX (ts t)).
+Defined.
+
+Section Train.
+Context  
+  (physics : Time -> TrainState)
+ `{etype : @EventType _ _ _ Event RosLoc tdeq }.
+
+Open Scope R_scope.
+
+Definition  TrainSpec : Prop :=
+  forall (eo : PossibleEventOrder physics) (t:Time), ([0]  <= (posX (physics t)) <= [1]).
+
+(** To begin with, let the VelControl device control position
+    make it exact if needed *)
+
 

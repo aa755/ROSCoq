@@ -163,14 +163,14 @@ Fixpoint prevProcessedEvents (m : nat)
 
 
 Fixpoint futureSends (start : nat) (len : nat)
-  (locEvents : nat -> option E) : list Message :=
+  (locEvents : nat -> option E) : list E :=
   match len with
   | 0 => nil
   | S len' => 
       match locEvents (start + len') with
       | Some ev => 
           match (eKind ev) with
-          | sendEvt => (eMesg ev) :: (futureSends (S start) len' locEvents)
+          | sendEvt => ev :: (futureSends (S start) len' locEvents)
           | deqEvt => nil (* event processing is atomic, as of now*)
           | enqEvt => (futureSends (S start) len' locEvents)
           end
@@ -180,7 +180,7 @@ Fixpoint futureSends (start : nat) (len : nat)
 
 Definition sendsInRange  (startIncl : nat) (endIncl : nat)
   (locEvents : nat -> option E) : list Message :=
-  futureSends startIncl (endIncl + 1 - startIncl) locEvents.
+  map eMesg (futureSends startIncl (endIncl + 1 - startIncl) locEvents).
 
 Definition CorrectSWNodeBehaviour 
     (swNode : RosSwNode)
@@ -197,7 +197,14 @@ Definition CorrectSWNodeBehaviour
 
       match (eKind ev) with
         | deqEvt =>  
-            exists len, futureSends (eLocIndex ev) len locEvts = lastOutMsgs
+            exists len, let sEvts := (futureSends (eLocIndex ev) len locEvts) in
+                        map eMesg sEvts = lastOutMsgs
+                        /\ match (rev sEvts) with
+                            | hsm :: _ => Cast (eTime hsm [<]  
+                                                  tadd (eTime ev) 
+                                                        (pTiming swNode (eMesg ev)))
+                            | nil => True
+                            end
 
         | sendEvt => 
           match procEvts with

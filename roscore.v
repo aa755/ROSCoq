@@ -43,8 +43,7 @@ Require Export Process.
 
 Definition ProcessTiming 
   (p : Process Message (list Message)) :=
-  forall (m: Message),
-    {tl : list Time | length tl = length (getOutput p m) }.
+  Message -> Time.
 
 
 
@@ -144,10 +143,10 @@ Definition getRosOutDevBhv  {Env : Type}
 Set Implicit Arguments.
 
 Inductive RosNode : Type := 
-| rsw : RosSwNode -> RosNode
-| rhi : forall {Env : Type}, 
+| rsw :> RosSwNode -> RosNode
+| rhi :> forall {Env : Type}, 
         RosInpDevNode Env -> RosNode
-| rho : forall {Env : Type}, 
+| rho :> forall {Env : Type}, 
         RosOutDevNode Env -> RosNode.
 
 Open Scope list_scope.

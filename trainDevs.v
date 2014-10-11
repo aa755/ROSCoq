@@ -18,7 +18,7 @@ Add LoadPath "../../../ssrcorn/math-classes/src" as MathClasses.
 Record TrainState :=
 {
   posX : R; (* this should really be R *)
-  vX : Q
+  vX : R
 }.
 
 Open Scope Q_scope.
