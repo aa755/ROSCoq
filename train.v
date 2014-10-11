@@ -31,17 +31,30 @@ Instance rldeqdsjfklsajlk : DecEq RosLoc.
 constructor. exact RosLoc_eq_dec.
 Defined.
 
-CoFixpoint tranControllerProgram (state : bool): Process Message (list Message).
+CoFixpoint digiControllerProgram (state : bool): Process Message (list Message).
   constructor. intro m.
   destruct m as [topicName payLoad].
   case (eqdec topicName "timerSend"); intro Hc; subst.
   - split. 
-    + exact (tranControllerProgram (negb state)).
+    + exact (digiControllerProgram (negb state)).
     + apply cons;[ | exact nil]. exists "motorRecv".
       simpl. unfold stringTopic2Type. simpl.
       destruct state ;[exact 1 | exact (0-1)].
-  - exact (tranControllerProgram state,nil).
+  - exact (digiControllerProgram state,nil).
 Defined.
+
+Definition t1 : Time.
+exists [1]. unfold iprop.
+eauto with *.
+Defined.
+
+Definition digiControllerTiming : ProcessTiming (digiControllerProgram true).
+intro m. exists (cons t1 nil). destruct m.
+simpl. 
+simpl. 
+
+
+Definition ControllerNode : RosSwNode.
 
 
 (*

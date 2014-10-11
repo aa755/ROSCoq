@@ -1,3 +1,6 @@
+train.vo : train.v ROSCyberPhysicalSystem.vo trainDevs.vo
+	coqc $<
+
 
 ROSCyberPhysicalSystem.vo : ROSCyberPhysicalSystem.v roscore.vo CoList.vo
 	coqc $<
