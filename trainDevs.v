@@ -35,17 +35,15 @@ Definition VelOutDevice :
 
 Require Export model.structures.Qpossec.
 
-Lemma mkTime (qp : Qpos) : Time.
-Admitted.
 
 
 (** outputs a message every [delay] seconds *)
-Definition Timer (delay : Qpos) : InpDev unit unit.
+Definition Timer (delay : nat) : InpDev unit unit.
 cofix.
   constructor. right.
   split.
   - split; [constructor|].
-    exact (mkTime delay). 
+    exact delay. 
   - exact Timer.
 Defined.
 

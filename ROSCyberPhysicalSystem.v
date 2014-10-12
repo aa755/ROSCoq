@@ -21,7 +21,9 @@ Context  `{rtopic : RosTopicType RosTopic}.
 
 Class EventType (T: Type) 
       (Loc : Type) 
-      {tdeq: DecEq T} := {
+      (** minimum time diff between events *)
+      (minGap : RPos) 
+      {tdeq: DecEq T}  := {
   eLoc : T ->  Loc;
   eMesg : T -> Message;
   eKind : T -> EventKind;
@@ -53,17 +55,9 @@ Class EventType (T: Type)
       into a finite set of events happening before
       and ones happening after *)
 
-  prevEvts : Loc -> Time -> nat;
-
-
-   prevEventsIndexCorrect: 
-    forall (l: Loc) (t: Time) (n : nat) , 
-            match (localEvts l n) with
-            | None => True
-            | Some ev => 
-                  (n <= prevEvts l t -> eTime ev [<=] t)
-                  /\ (n > prevEvts l t -> Cast (eTime ev [>] t))
-            end
+  eventSpacing :  forall (e1 e2 : T),
+    Cast ((eTime e1) [>] minGap)
+    /\ (eLoc e1 = eLoc e2 -> AbsIR (eTime e1 [-] eTime e2) [<=] minGap)
  }.
 
 
@@ -89,11 +83,35 @@ Set Implicit Arguments.
 Section EventProps.
 Context  (PhysicalEnvType : Type)
   (physics : Time -> PhysicalEnvType)
+  (minGap : RPos)
   `{rtopic : RosTopicType RosTopic} 
   `{dteq : Deq RosTopic}
- `{etype : @EventType _ _ _ E LocT tdeq }
+ `{etype : @EventType _ _ _ E LocT minGap tdeq }
   `{rlct : @RosLocType _ _ _ PhysicalEnvType LocT ldeq}.
 
+Definition  prevEvts (l : LocT) (t :Time) : nat.
+assert R as maxEvts.
+apply (cf_div  t (realV _ minGap)).
+simpl. destruct minGap. simpl. simpl in realVPos.
+apply pos_ap_zero; trivial.
+remember (Z.to_nat (proj1_sigT _ _ (overApproximate maxEvts))) as maxSearch.
+Admitted.
+
+
+Lemma    prevEventsIndex0 : 
+    forall (l: LocT) , prevEvts l 0 =0.
+Admitted.
+
+
+Lemma    prevEventsIndexCorrect: 
+    forall (l: LocT) (t: Time) (n : nat) , 
+            match (localEvts l n) with
+            | None => True
+            | Some ev => 
+                  (n <= prevEvts l t -> eTime ev [<=] t)
+                  /\ (n > prevEvts l t -> Cast (eTime ev [>] t))
+            end.
+Admitted.
 
 (** FIFO queue axiomatization *)
 Fixpoint CorrectFIFOQueueUpto   (upto : nat)
@@ -278,7 +296,7 @@ Definition nextMessageAtTime
   let tIndex := lastEvtIndex curTime in
   match locEvents tIndex with
   | None => False
-  | Some ev  => (eTime ev = tadd curTime mesgTime) 
+  | Some ev  => (realV _ (eTime ev) = curTime [+] mesgTime) 
                 /\ (eMesg ev = m)
   end.
 
@@ -323,7 +341,7 @@ Definition InpDevBehaviourCorrect
   let props := InpDevBehaviourCorrectAux physQ inpDev locEvents lastEvtIndex 0 in
   forall n, ConjL (initialSegment n props).
     
-
+(*noSpamRecv *)
 Definition NodeBehCorrect (l : LocT) : Prop.
   pose proof (timeValuedEnv physics l) as timeEnv.
   destruct (locNode l).

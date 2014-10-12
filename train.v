@@ -4,6 +4,7 @@ Add LoadPath "../../../ssrcorn/math-classes/src" as MathClasses.
 Require Export ROSCyberPhysicalSystem.
 Require Export String.
 Require Export trainDevs.
+(* Require Export CoRN.ode.SimpleIntegration. *)
 
 Instance stringdeceqdsjfklsajlk : DecEq string.
 constructor. exact string_dec.
@@ -78,13 +79,14 @@ Defined.
 Section Train.
 Context  
   (physics : Time -> TrainState)
- `{etype : @EventType _ _ _ Event RosLoc tdeq }.
+  (minGap : RPos)
+ `{etype : @EventType _ _ _ Event RosLoc minGap tdeq }.
 
 Open Scope R_scope.
 
 Section CorrProof.
 
-Variable eo : PossibleEventOrder physics.
+Variable eo : (@PossibleEventOrder _  physics minGap _ _ _ _ _ _ _ _ _).
 
 Definition  TrainSpec : Prop :=
   forall  (t:Time), ([0]  <= (posX (physics t)) <= [1]).
@@ -98,7 +100,7 @@ Close Scope R_scope.
 Close Scope Q_scope.
 Lemma timerEventsSpec : forall n:nat,  
 match timerEvts n with
-| Some ev  => ( realV _ (eTime ev) =  (N2R n))
+| Some ev  => ( realV _ (eTime ev) =  (N2R (S n)))
 | _ => False 
 end.
 Proof.
@@ -109,23 +111,22 @@ Proof.
   specialize (Hcr timerNode).
   unfold NodeBehCorrect in Hcr. simpl in Hcr.
     induction n as [| n' Hind].
-  specialize (Hcr 1).
-  unfold InpDevBehaviourCorrectAux in Hcr.
-  simpl in Hcr. unfold nextMessageAtTime in  Hcr.
-  simpl in Hcr.
+  - specialize (Hcr 1).
+    unfold InpDevBehaviourCorrectAux in Hcr.
+    simpl in Hcr. unfold nextMessageAtTime in  Hcr.
+    rewrite prevEventsIndex0 in Hcr.
+    fold timerEvts in Hcr. rewrite <- Heqtn in Hcr.
+    unfold ConjL in Hcr. destruct tn; simpl in Hcr; try tauto.
+    
+Admitted.
 
-
-
-  
-
-
-
-  destruct tn.
-  
 
 End CorrProof.
 
 (** To begin with, let the VelControl device control position
     make it exact if needed *)
 
+(** need to add sequence numbers in timer messages and keep
+    track of it in the controller sw *)
 
+(** N2R commuted with addition *)

@@ -45,14 +45,15 @@ Record RInInterval (intvl : interval)  := {
   realVPos : iprop intvl realV
 }.
 
-Definition Rpos := RInInterval (closel [0]).
+Definition RNonNeg := RInInterval (closel [0]).
+Definition RPos := RInInterval (openl [0]).
 
 Definition restrictToInterval {A} (f : R -> A) 
     (intvl : interval) : (RInInterval intvl) -> A :=
     fun r => f r.
 
 
-Definition Time := Rpos.
+Definition Time := RNonNeg.
 
 Lemma restrictTill {A} (f : Time -> A) 
     (right : Time) : (RInInterval (clcr [0] right)) -> A.
@@ -164,6 +165,27 @@ match rev l with
 | nil => (None, nil)
 | last :: rest => (Some last, rev rest)
 end.
+
+Require Export CoRN.reals.Q_in_CReals.
+
+Definition Z2R  (n: Z) : R := (inj_Q IR  n).
+
+Definition overApproximate (t: R) : { z:  Z | t  [<] Z2R z}.
+  remember (start_of_sequence _ t).
+  clear Heqs. destruct s as [qf Hp]. destruct Hp as [qc Hpp].
+  exists (Qround.Qceiling qc).
+  unfold Z2R. pose proof (Qround.Qle_ceiling qc) as Hq.
+  apply (inj_Q_leEq IR) in Hq.
+  eauto  using less_leEq_trans.
+Defined.
+
+(*
+Definition overApproximateN (t: R) : { n: nat | t  [<] N2R n}.
+destruct (overApproximate t) as [zf  Hp].
+exists (Z.to_N zf).
+*)
+
+
 
 
 (** Much of the work in defining devices is to decide what the inputs
