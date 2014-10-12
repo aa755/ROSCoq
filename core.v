@@ -8,11 +8,10 @@ Add LoadPath "../../../ssrcorn/math-classes/src" as MathClasses.
 Require Export CoRN.reals.CReals1.
 Require Export CoRN.ftc.MoreIntervals.
 
-Definition N2Q (n: nat) : Q :=
-  (inject_Z (Z_of_nat n)).
+(* Definition N2Q (n: nat) : Q := n. *)
 
 
-Coercion N2Q : nat >-> Q.
+(* Coercion N2Q : nat >-> Q. *)
 
 Definition ninv (n: nat) : Q :=
   Qinv (n).
@@ -23,7 +22,7 @@ Require Export Coq.ZArith.ZArith.
 
 Definition Q2R  (q: Q) : R := (inj_Q IR q).
 
-Definition N2R  (n: nat) : R := (inj_Q IR (N2Q n)).
+Definition N2R  (n: nat) : R := (inj_Q IR  n).
 
 (* Coercion Q2R : Q >-> IR. *)
 
@@ -92,10 +91,23 @@ Definition tadd (t tl : Time) : Time.
   eauto with *.
 Defined.
 
-Definition t0 : Time.
-  exists [0]. unfold iprop.
-  apply leEq_reflexive.
+
+  (* Q.Qle_nat *)
+
+Lemma N2RNonNeg : forall n, [0][<=]N2R n.
+Proof.
+  intro n. unfold N2R. rewrite <- inj_Q_Zero.
+  apply inj_Q_leEq.
+  apply Q.Qle_nat.
+Qed.
+
+Definition N2T (n: nat) : Time.
+  exists (N2R n). unfold iprop.
+  apply N2RNonNeg.
 Defined.
+
+Coercion N2T : nat >-> Time.
+
 
 
 

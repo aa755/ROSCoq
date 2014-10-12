@@ -82,8 +82,48 @@ Context
 
 Open Scope R_scope.
 
+Section CorrProof.
+
+Variable eo : PossibleEventOrder physics.
+
 Definition  TrainSpec : Prop :=
-  forall (eo : PossibleEventOrder physics) (t:Time), ([0]  <= (posX (physics t)) <= [1]).
+  forall  (t:Time), ([0]  <= (posX (physics t)) <= [1]).
+
+Definition timerEvts : nat -> option Event :=
+localEvts timerNode.
+
+(* Add LoadPath "../../../nuprl/coq". *)
+
+Close Scope R_scope.
+Close Scope Q_scope.
+Lemma timerEventsSpec : forall n:nat,  
+match timerEvts n with
+| Some ev  => ( realV _ (eTime ev) =  (N2R n))
+| _ => False 
+end.
+Proof.
+  intro n. simpl. remember (timerEvts n) as tn.
+  remember (timerEvts (S n)) as tsn.
+  pose proof (corr eo) as Hc.
+  destruct Hc as [Hcl Hcr].
+  specialize (Hcr timerNode).
+  unfold NodeBehCorrect in Hcr. simpl in Hcr.
+    induction n as [| n' Hind].
+  specialize (Hcr 1).
+  unfold InpDevBehaviourCorrectAux in Hcr.
+  simpl in Hcr. unfold nextMessageAtTime in  Hcr.
+  simpl in Hcr.
+
+
+
+  
+
+
+
+  destruct tn.
+  
+
+End CorrProof.
 
 (** To begin with, let the VelControl device control position
     make it exact if needed *)

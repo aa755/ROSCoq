@@ -320,7 +320,7 @@ Definition InpDevBehaviourCorrect
   (locEvents : nat -> option E)
   (lastEvtIndex : Time -> nat) :=
 
-  let props := InpDevBehaviourCorrectAux physQ inpDev locEvents lastEvtIndex t0 in
+  let props := InpDevBehaviourCorrectAux physQ inpDev locEvents lastEvtIndex 0 in
   forall n, ConjL (initialSegment n props).
     
 
