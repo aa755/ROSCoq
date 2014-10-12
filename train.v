@@ -94,30 +94,56 @@ Definition  TrainSpec : Prop :=
 Definition timerEvts : nat -> option Event :=
 localEvts timerNode.
 
-(* Add LoadPath "../../../nuprl/coq". *)
-
 Close Scope R_scope.
 Close Scope Q_scope.
+Add LoadPath "../../../nuprl/coq".
+Require Import UsefulTypes.
+Close Scope NupCoqScope.
+
+Open Scope R_scope.
+Close Scope Q_scope.
+
+
+Lemma N2R_add_commute : forall (n1 n2 : nat),
+  N2R n1 [+] N2R n2 = N2R (n1 + n2).
+Admitted.
+
+
+
 Lemma timerEventsSpec : forall n:nat,  
 match timerEvts n with
 | Some ev  => ( realV _ (eTime ev) =  (N2R (S n)))
 | _ => False 
 end.
 Proof.
-  intro n. simpl. remember (timerEvts n) as tn.
-  remember (timerEvts (S n)) as tsn.
+  intro n. simpl. 
+  (* remember (timerEvts n) as tn.
+  remember (timerEvts (S n)) as tsn. *)
   pose proof (corr eo) as Hc.
   destruct Hc as [Hcl Hcr].
   specialize (Hcr timerNode).
   unfold NodeBehCorrect in Hcr. simpl in Hcr.
-    induction n as [| n' Hind].
+  induction n as [| n' Hind].
   - specialize (Hcr 1).
     unfold InpDevBehaviourCorrectAux in Hcr.
     simpl in Hcr. unfold nextMessageAtTime in  Hcr.
     rewrite prevEventsIndex0 in Hcr.
+    fold timerEvts in Hcr. 
+    unfold ConjL in Hcr. destruct (timerEvts 0); simpl in Hcr; [| repnd; contradiction].
+    repnd. rewrite Hcr1. unfold N2R. apply N2R_add_commute.
+  - specialize (Hcr (S(S n'))). unfold InpDevBehaviourCorrectAux in Hcr.
+    simpl in Hcr. unfold nextMessageAtTime in  Hcr.
+    rewrite prevEventsIndex0 in Hcr.
+    fold timerEvts in Hcr. 
+
+
+  - specialize (Hcr (S (S n'))).
+    unfold InpDevBehaviourCorrectAux in Hcr.
+    simpl in Hcr. unfold nextMessageAtTime in  Hcr.
+    rewrite prevEventsIndex0 in Hcr.
     fold timerEvts in Hcr. rewrite <- Heqtn in Hcr.
-    unfold ConjL in Hcr. destruct tn; simpl in Hcr; try tauto.
-    
+    unfold ConjL in Hcr. destruct tn; simpl in Hcr; [| repnd; contradiction].
+    repnd. admit.
 Admitted.
 
 
