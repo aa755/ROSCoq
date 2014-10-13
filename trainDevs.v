@@ -38,14 +38,18 @@ Require Export model.structures.Qpossec.
 
 
 (** outputs a message every [delay] seconds *)
-Definition Timer (delay : nat) : InpDev unit unit.
+(*
+Definition OldTimer (delay : nat) : InpDev unit unit.
 cofix.
   constructor. right.
   split.
   - split; [constructor|].
-    exact delay. 
-  - exact Timer.
+    exact (N2T delay). 
+  - exact OldTimer.
 Defined.
+*)
+
+
 
 
 (** To model randomness, the device can

@@ -1,9 +1,7 @@
-
 Add LoadPath "../../../ssrcorn" as CoRN.
 Add LoadPath "../../../ssrcorn/math-classes/src" as MathClasses.
 Require Export ROSCyberPhysicalSystem.
 Require Export String.
-Require Export trainDevs.
 (* Require Export CoRN.ode.SimpleIntegration. *)
 
 Instance stringdeceqdsjfklsajlk : DecEq string.
@@ -17,7 +15,7 @@ Inductive Void :=.
 (** When adding a nrew topic, add cases of this function *)
 Definition stringTopic2Type (s : string) : Type :=
 if (eqdec s "motorRecv") then Q else
-if (eqdec s "timerSend") then unit else Void.
+if (eqdec s "timerSend") then nat else Void.
 
 
 Instance  ttttt : @RosTopicType string _.
@@ -44,23 +42,73 @@ CoFixpoint digiControllerProgram (state : bool): Process Message (list Message).
   - exact (digiControllerProgram state,nil).
 Defined.
 
-Definition t1 : Time.
-exists [1]. unfold iprop.
-eauto with *.
-Defined.
 
 Definition digiControllerTiming : ProcessTiming (digiControllerProgram true) :=
- fun m => t1.
+ fun m => (N2T 1).
+
+Definition ControllerNodeAux : RosSwNode :=
+  Build_RosSwNode digiControllerTiming.
+
+    
 
 
-Definition ControllerNode : RosSwNode :=
-Build_RosSwNode ("timerSend"::nil) ("motorRecv"::nil) digiControllerTiming.
+Section Train.
+Context  
+  (minGap : Qpos)
+ `{etype : @EventType _ _ _ Event RosLoc minGap tdeq}.
 
-Definition TimerNode : RosInpDevNode unit:=
-Build_RosInpDevNode "timerSend" (Timer 1).
 
-Definition BaseMotorNode : RosOutDevNode R :=
-(Build_RosOutDevNode "motorRecv" VelOutDevice).
+Definition ControllerNode :  @RosNode _ _ _ Event.
+  constructor.
+  - exact (Build_TopicInfo ("timerSend"::nil) ("motorRecv"::nil)).
+  - left. exact ControllerNodeAux.
+Defined.
+
+Definition TimerMesg (n : nat) : Message :=
+  existT _ "timerSend" n.
+
+Definition isTimerEvtNth (n : nat) (oe : option Event) : Prop :=
+  match oe with
+  | Some ev => (eKind ev) = sendEvt /\ (eMesg ev) = TimerMesg n
+  | None => False
+  end.
+
+
+Definition TimerDev : @Device Event unit :=
+  fun tp (evs : nat -> option Event) => forall n, isTimerEvtNth n (evs n).
+
+Definition TimerNode :  @RosNode _ _ _ Event.
+  constructor.
+  - exact (Build_TopicInfo ("timerSend"::nil) nil).
+  - right. exists unit. exact TimerDev.
+Defined.
+
+(** in some cases, the equations might invove transcendental 
+  functions like sine, cose which can output 
+  irrationals even on rational *)
+
+Record TrainState := {
+  posX : Q;
+  velX : Q
+}.
+
+Definition getVelM (m : Message ) : option Q :=
+match (eqdec (proj1_sigT _ _ m) "motorRecv") with
+| _ => None
+end.
+
+Definition getVel (e : Event) : option Q :=
+match (eKind e, eMesg e) with
+| (deqEvt, existT "motorRecv" q) => None
+| _ => None
+end.
+
+
+Definition TrainDev : @Device Event TrainState.
+  intros tp evs.
+  
+
+(* Build_RosOutDevNode "motorRecv" VelOutDevice *)
 
 Definition locNode (rl : RosLoc) : RosNode :=
 match rl with
@@ -76,11 +124,8 @@ apply (Build_RosLocType _ _ _ locNode (fun srs dest => Some t1)).
   - exact (fun t => vX (ts t)).
 Defined.
 
-Section Train.
-Context  
-  (physics : Time -> TrainState)
-  (minGap : RPos)
- `{etype : @EventType _ _ _ Event RosLoc minGap tdeq }.
+Context  (physics : Time -> TrainState).
+
 
 Open Scope R_scope.
 

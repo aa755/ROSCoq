@@ -1,4 +1,4 @@
-train.vo : train.v ROSCyberPhysicalSystem.vo trainDevs.vo
+train.vo : train.v ROSCyberPhysicalSystem.vo
 	coqc $<
 
 

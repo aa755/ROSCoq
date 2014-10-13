@@ -102,6 +102,11 @@ Definition tadd (t tl : Time) : Time.
 Defined.
 
 
+Definition N2T (n: nat) : Time.
+  exists n. eauto with *.
+Defined.
+
+Coercion N2T : nat >-> Time.
   (* Q.Qle_nat *)
 
 Lemma N2RNonNeg : forall n, [0][<=]N2R n.
@@ -112,12 +117,6 @@ Proof.
 Qed.
 
 (*
-Definition N2T (n: nat) : Time.
-  exists (N2R n). unfold iprop.
-  apply N2RNonNeg.
-Defined.
-
-Coercion N2T : nat >-> Time.
 
 
 
