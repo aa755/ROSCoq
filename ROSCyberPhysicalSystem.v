@@ -2,6 +2,11 @@ Add LoadPath "../../../ssrcorn" as CoRN.
 Add LoadPath "../../../ssrcorn/math-classes/src" as MathClasses.
 Require Export roscore.
 Require Export CoList.
+Require Import Coq.QArith.QArith.
+Require Import Coq.QArith.Qabs.
+Require Import Coq.QArith.QOrderedType.
+
+
 
 (** received messages are enqued in a mailbox
     and the dequed *)
@@ -9,9 +14,8 @@ Inductive EventKind :=
 sendEvt | enqEvt | deqEvt.
 
 
-Section EventLoc.
+Section Event.
 Context  `{rtopic : RosTopicType RosTopic}.
-
 
 (** In any run, there will only be a finitely
     many events. So the collection of events
@@ -22,7 +26,7 @@ Context  `{rtopic : RosTopicType RosTopic}.
 Class EventType (T: Type) 
       (Loc : Type) 
       (** minimum time diff between events *)
-      (minGap : RPos) 
+      (minGap : Qpos) 
       {tdeq: DecEq T}  := {
   eLoc : T ->  Loc;
   eMesg : T -> Message;
@@ -38,7 +42,7 @@ Class EventType (T: Type)
     -> a = b;
   timeIndexConsistent : forall (a b : T),
     eLocIndex a < eLocIndex b
-    -> eTime a [<] eTime b;
+    -> eTime a < eTime b;
 
   localEvts : Loc -> (nat -> option T);
 
@@ -46,7 +50,7 @@ Class EventType (T: Type)
     ((eLoc t) = l /\ (eLocIndex t) = n)
     <-> localEvts l n = Some t;
 
-  localIndexDense : forall (l: Loc) n t m,
+  localIndexDense : forall (l: Loc) n t (m : nat),
     ((eLoc t) = l /\ (eLocIndex t) = n)
     -> m <n 
     -> {tm : T | ((eLoc tm) = l /\ (eLocIndex tm) = m)};
@@ -56,10 +60,45 @@ Class EventType (T: Type)
       and ones happening after *)
 
   eventSpacing :  forall (e1 e2 : T),
-    Cast ((eTime e1) [>] minGap)
-    /\ (eLoc e1 = eLoc e2 -> AbsIR (eTime e1 [-] eTime e2) [<=] minGap)
+    Cast ((eTime e1) > minGap)
+    /\ (eLoc e1 = eLoc e2 -> Qabs (eTime e1 - eTime e2) <= minGap)
  }.
 
+
+End Event.
+
+Section DeviceAndLoc.
+Context  `{rtopic : RosTopicType RosTopic}
+  `{evt : @EventType _ _ _ Event LocT minG tdeq}.
+
+(** A device is a relation between how the assosiated (measured/actuated)
+    physical quantity changes over time and a trace of events
+    generated/consumed by the device.
+    The latter is represented by the type [(nat -> Event)].
+    It will be obtained by plugging in a location in [localEvts] above.
+    
+    The type [(nat -> Event)] needs to be specialized to indicate
+    facts that events are of same location and have increasing timestamps
+    Right now, a device property writer can assume that these hold. *)
+
+Definition Device (PhysQ : Type ) : Type :=
+                  (Time -> PhysQ)
+                  -> (nat -> option Event)
+                  -> Prop.
+
+Record RosNode : Type := { 
+  topicInf : @TopicInfo  RosTopic;
+  rnode : RosSwNode +  {PhysQ : Type | Device PhysQ}
+}.
+
+(** For devices, this function returns the type
+    which of functions denoting
+    how the associated physical quantity changes over time *)
+Definition TimeValuedPhysQType  (rn : RosNode) : Type :=
+match (rnode rn) with
+| inl _ => unit
+| inr (existT PhysQ _) => Time -> PhysQ
+end.
 
 Class RosLocType (PhysicalEnvType : Type) ( RosLoc: Type) 
      {rldeq : DecEq RosLoc} :=
@@ -70,12 +109,12 @@ Class RosLocType (PhysicalEnvType : Type) ( RosLoc: Type)
       to access the way physical quantities
       measured/ controlled by devices changes *)
    
-   timeValuedEnv : (Time -> PhysicalEnvType) -> forall rl, TimeValuedEnvType (locNode rl)
-    
+   timeValuedEnv : (Time -> PhysicalEnvType) 
+        -> forall rl, TimeValuedPhysQType (locNode rl)
 }.
 
-End EventLoc.
 
+End DeviceAndLoc.
 
 Set Implicit Arguments.
 
@@ -83,12 +122,13 @@ Set Implicit Arguments.
 Section EventProps.
 Context  (PhysicalEnvType : Type)
   (physics : Time -> PhysicalEnvType)
-  (minGap : RPos)
+  (minGap : Qpos)
   `{rtopic : RosTopicType RosTopic} 
   `{dteq : Deq RosTopic}
  `{etype : @EventType _ _ _ E LocT minGap tdeq }
-  `{rlct : @RosLocType _ _ _ PhysicalEnvType LocT ldeq}.
+  `{rlct : @RosLocType _ _ _ E PhysicalEnvType LocT ldeq}.
 
+(*
 Definition  prevEvts (l : LocT) (t :Time) : nat.
 assert R as maxEvts.
 apply (cf_div  t (realV _ minGap)).
@@ -112,6 +152,8 @@ Lemma    prevEventsIndexCorrect:
                   /\ (n > prevEvts l t -> Cast (eTime ev [>] t))
             end.
 Admitted.
+*)
+Close Scope Q_scope.
 
 (** FIFO queue axiomatization *)
 Fixpoint CorrectFIFOQueueUpto   (upto : nat)
@@ -145,18 +187,18 @@ forall (l: LocT)
 
 Definition noSpamRecv 
     (locEvents : nat -> option E)
-    (rnode :  RosNode) :=
+    (rnode :  @RosNode  _ _ _ E) :=
     
     forall n, match (locEvents n) with
-              | Some rv => validRecvMesg rnode (eMesg rv)
+              | Some rv => validRecvMesg (topicInf rnode) (eMesg rv)
               | None => True
               end.
 
 Definition noSpamSend 
     (locEvents : nat -> option E)
-    (rnode :  RosNode) :=    
+    (rnode :  @RosNode  _ _ _ E) :=    
     forall n, match (locEvents n) with
-              | Some rv => validSendMesg rnode (eMesg rv)
+              | Some rv => validSendMesg (topicInf rnode) (eMesg rv)
               | None => True
               end.
 
@@ -200,6 +242,8 @@ Definition sendsInRange  (startIncl : nat) (endIncl : nat)
   (locEvents : nat -> option E) : list Message :=
   map eMesg (futureSends startIncl (endIncl + 1 - startIncl) locEvents).
 
+Open Scope Q_scope.
+
 Definition CorrectSWNodeBehaviour 
     (swNode : RosSwNode)
     (locEvts: nat -> option E) : Prop :=
@@ -218,7 +262,7 @@ Definition CorrectSWNodeBehaviour
             exists len, let sEvts := (futureSends (eLocIndex ev) len locEvts) in
                         map eMesg sEvts = lastOutMsgs
                         /\ match (rev sEvts) with
-                            | hsm :: _ => Cast (eTime hsm [<]  
+                            | hsm :: _ => (eTime hsm <
                                                   tadd (eTime ev) 
                                                         (pTiming swNode (eMesg ev)))
                             | nil => True
@@ -242,7 +286,7 @@ Definition CorrectSWNodeBehaviour
     [uptoTime] only makes sense if it is later than
     the timestamp of the last event
  *)
-
+(*
 Fixpoint OutDevBehaviourCorrectUpto 
     {Env : Type}
     (physQ : Time -> Env)
@@ -282,7 +326,7 @@ Definition noMessagesAfter
     (t : Time) : Prop :=
     
   let tIndex := lastEvtIndex t in
-  forall n,
+  forall n:nat,
      n > tIndex
      -> locEvents n = None.
 
@@ -340,28 +384,43 @@ Definition InpDevBehaviourCorrect
 
   let props := InpDevBehaviourCorrectAux physQ inpDev locEvents lastEvtIndex 0 in
   forall n, ConjL (initialSegment n props).
-    
+
+*)    
 (*noSpamRecv *)
+
+Definition DeviceBehaviourCorrect
+    {Env : Type}
+    (physQ : Time -> Env)
+    (inpDev : Device Env)
+    (locEvents : nat -> option E) : Prop :=
+
+ inpDev physQ locEvents.
+
+
+
+
 Definition NodeBehCorrect (l : LocT) : Prop.
   pose proof (timeValuedEnv physics l) as timeEnv.
-  destruct (locNode l).
-  - exact (CorrectSWNodeBehaviour r (localEvts l)).
-  - exact (InpDevBehaviourCorrect timeEnv r (localEvts l) (prevEvts l)).
-  - exact (OutDevBehaviourCorrect timeEnv r (localEvts l) (prevEvts l)).
+  destruct (locNode l). destruct rnode0 as [rsw  Hxyxyx| PhysQ dev].
+  - exact (CorrectSWNodeBehaviour rsw (localEvts l)).
+  - destruct PhysQ as [PhysQ dev]. unfold TimeValuedPhysQType in timeEnv.
+    simpl in timeEnv.
+    exact (DeviceBehaviourCorrect timeEnv dev (localEvts l)).
 Defined.
 
 Definition AllNodeBehCorrect : Prop:= 
-  forall l, NodeBehCorrect l.
+  forall l,  NodeBehCorrect l.
+
 
 Definition PossibleSendRecvPair
   (Es  Er : E) : Prop :=
 match (eKind Es, eKind Er) with
 | (sendEvt, enqEvt) =>
    (eMesg Es = eMesg Er)
-   /\ (validRecvMesg (locNode (eLoc Er)) (eMesg Er))
-   /\ (validSendMesg (locNode (eLoc Es)) (eMesg Es))
+   /\ (validRecvMesg (topicInf (locNode (eLoc Er))) (eMesg Er))
+   /\ (validSendMesg (topicInf (locNode (eLoc Es))) (eMesg Es))
    /\ (match (maxDeliveryDelay (eLoc Es) (eLoc Er)) with
-      | Some td =>  Cast (eTime Er [<]  tadd (eTime Es) td)
+      | Some td =>   (eTime Er <  tadd (eTime Es) td)
       | None => True
       end )
     
@@ -378,7 +437,7 @@ Record PossibleEventOrder  := {
 
     globalCausal : forall (e1 e2 : E),
         causedBy e1 e2
-        -> eTime e1 [<] eTime e1;
+        -> eTime e1 < eTime e1;
 
     eventualDelivery: forall (Es : E), exists (Er : E),
           PossibleSendRecvPair Es Er

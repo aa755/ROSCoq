@@ -45,14 +45,17 @@ Definition ProcessTiming
   (p : Process Message (list Message)) :=
   Message -> Time.
 
+Set Implicit Arguments.
 
+Record TopicInfo :=
+{
+    subscribeTopics : list RosTopic;
+    publishTopics : list RosTopic
+}.
 
 Record RosSwNode :=
 {
     process :> Process Message (list Message);
-
-    subscribeTopics : list RosTopic;
-    publishTopics : list RosTopic;
 
 (* 
     privateTopic : RosTopic;
@@ -140,8 +143,20 @@ Definition getRosOutDevBhv  {Env : Type}
     | last :: rest => getLastOutput (snd (odev p)) rest last
     end.
 
-Set Implicit Arguments.
 
+Definition mtopic (m : Message) :=
+(proj1_sigT _ _ m).
+
+Definition validRecvMesg (rn : TopicInfo) (m : Message) :=
+In (mtopic m) (subscribeTopics rn).
+
+Definition validSendMesg (rn : TopicInfo) (m : Message) :=
+In (mtopic m) (publishTopics rn).
+
+End RosCore.
+
+
+(*
 Inductive RosNode : Type := 
 | rsw :> RosSwNode -> RosNode
 | rhi :> forall {Env : Type}, 
@@ -175,14 +190,6 @@ match rn with
 | rho Env _ => Time -> Env
 end.
 
-Definition mtopic (m : Message) :=
-(proj1_sigT _ _ m).
-
-Definition validRecvMesg (rn : RosNode) (m : Message) :=
-In (mtopic m) (SubscribeTopics rn).
-
-Definition validSendMesg (rn : RosNode) (m : Message) :=
-In (mtopic m) (PublishTopics rn).
 
 
-End RosCore.
+*)

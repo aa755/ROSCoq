@@ -77,7 +77,7 @@ Variable Env : Type.
 Open Scope type_scope.
 
 Record OutDevBehaviour := {
-  allowedBhv :> forall (t:Time), (RInInterval (clcr [0] t) -> Env) -> Prop
+  allowedBhv :> forall (t:RTime), (RInInterval (clcr [0] t) -> Env) -> Prop
 
     (* ; extendTime : forall (t1 t2 :Time)
             (ev1 : RInInterval (clcr [0] t1) -> Env) ,

@@ -53,8 +53,20 @@ Definition restrictToInterval {A} (f : R -> A)
     fun r => f r.
 
 
-Definition Time := RNonNeg.
+Definition RTime := RNonNeg.
+Open Scope Q_scope.
 
+Definition Time : Type := {q : Q | 0 <= q}.
+
+Definition Qpos : Type := {q : Q | 0 < q}.
+
+Definition T2Q (t : Time) : Q := (proj1_sig t).
+Definition Qp2Q (t : Qpos) : Q := (proj1_sig t).
+
+Coercion T2Q : Time >-> Q.
+Coercion Qp2Q : Qpos >-> Q.
+
+(*
 Lemma restrictTill {A} (f : Time -> A) 
     (right : Time) : (RInInterval (clcr [0] right)) -> A.
   intro rint.
@@ -77,19 +89,16 @@ Lemma fastFwd {A} (f : Time -> A)
   unfold iprop in realVPos1.
   eauto with *.
 Defined.
+*)
 
 Definition tdiff (t tl : Time) : Time.
-  exists (AbsIR (tl [-] t)).
-  unfold iprop.
-  apply AbsIR_nonneg.
+  exists (Qabs (tl - t)).
+  apply Qabs_nonneg.
 Defined.
 
 Definition tadd (t tl : Time) : Time.
-  exists (tl [+] t).
-  unfold iprop. destruct t. destruct tl.
-  simpl. unfold iprop in realVPos0.
-  unfold iprop in realVPos1.
-  eauto with *.
+  exists (tl + t). destruct t, tl. simpl.
+  apply Q.Qplus_nonneg; auto.
 Defined.
 
 
@@ -102,6 +111,7 @@ Proof.
   apply Q.Qle_nat.
 Qed.
 
+(*
 Definition N2T (n: nat) : Time.
   exists (N2R n). unfold iprop.
   apply N2RNonNeg.
@@ -111,15 +121,15 @@ Coercion N2T : nat >-> Time.
 
 
 
-
 Definition fastFwdAndRestrict {A}
     (f : Time -> A) (tstart tend : Time) :
       (RInInterval (clcr [0] (tdiff tend tstart))) -> A :=
 restrictTill (fastFwd f tstart) (tdiff tend tstart).
+*)
 
 
-Definition equalUpto {Value : Type} (t: R) (f1 f2 : Time -> Value) :=
-  forall  (ti: Time), (ti [<=] t) -> f1 ti = f2 ti.
+Definition equalUpto {Value : Type} (t: Time) (f1 f2 : Time -> Value) :=
+  forall  (ti: Time), (ti <= t) -> f1 ti = f2 ti.
 
 Set Implicit Arguments.
 
