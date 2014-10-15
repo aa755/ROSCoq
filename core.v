@@ -101,44 +101,44 @@ Definition tdiff (t tl : Time) : Time.
   unfold iprop. apply AbsIR_nonneg.
 Defined.
 
-Definition tadd (t tl : Time) : Time.
-  exists ((tl [+] t)).
-  unfold iprop. 
-Admitted.
-
+ 
+ Definition tadd (t tl : Time) : Time.
+   exists (tl [+] t).
+   unfold iprop. destruct t. destruct tl.
+   simpl. unfold iprop in realVPos0.
+   unfold iprop in realVPos1.
+   eauto with *.
 (*   exists (tl + t). destruct t, tl. simpl.
   apply Q.Qplus_nonneg; auto. 
-Defined.*)
+*)
+ Defined.
 
+ Lemma N2RNonNeg : forall n, [0][<=]N2R n.
+ Proof.
+   intro n. unfold N2R. rewrite <- inj_Q_Zero.
+   apply inj_Q_leEq.
+   apply Q.Qle_nat.
+ Qed.
 
-Definition N2T (n: nat) : Time.
-  exists (N2R n). 
-Admitted.
-(*Defined. *)
+ Definition N2T (n: nat) : Time.
+   exists (N2R n). unfold iprop.
+   apply N2RNonNeg.
+ Defined.
+
 
 Coercion N2T : nat >-> Time.
   (* Q.Qle_nat *)
-Lemma N2RNonNeg : forall n, [0][<=]N2R n.
-Proof.
-  intro n. unfold N2R. rewrite <- inj_Q_Zero.
-  apply inj_Q_leEq.
-  apply Q.Qle_nat.
-Qed.
 
 (*
-
-
-
 Definition fastFwdAndRestrict {A}
     (f : Time -> A) (tstart tend : Time) :
       (RInInterval (clcr [0] (tdiff tend tstart))) -> A :=
 restrictTill (fastFwd f tstart) (tdiff tend tstart).
 *)
 
-(*
 Definition equalUpto {Value : Type} (t: Time) (f1 f2 : Time -> Value) :=
-  forall  (ti: Time), (ti <= t) -> f1 ti = f2 ti.
-*)
+  forall  (ti: Time), (ti [<=] t) -> f1 ti = f2 ti.
+
 Set Implicit Arguments.
 
 Definition ConjL (lp : list Prop) : Prop := (fold_left (fun A B => A/\B) lp True).
@@ -206,6 +206,10 @@ exists (Z.to_N zf).
 
 Definition RTime :=Time.
 
+
+Lemma N2R_add_commute : forall (n1 n2 : nat),
+  N2R n1 [+] N2R n2 = N2R (n1 + n2).
+Abort.
 
 
 (** Much of the work in defining devices is to decide what the inputs

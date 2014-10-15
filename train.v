@@ -24,7 +24,7 @@ Instance  ttttt : @RosTopicType string _.
 constructor. exact stringTopic2Type.
 Defined.
 
-Inductive RosLoc := baseMotor | timerNode | digiController.
+Inductive RosLoc := baseMotor | leftProximity | rightProximity | digiController.
 
 Scheme Equality for RosLoc.
 
@@ -88,6 +88,8 @@ destruct (eqdec top "motorRecv").
   simpl in payl. apply Some. exact payl.
 - exact None.
 Defined.
+
+
 Section Train.
 Definition TimerMesg (n : nat) : Message :=
   existT _ "timerSend" n.
@@ -151,8 +153,7 @@ fun  (distanceAtTime : Time -> R)
             match (evs n) with
             | Some ev => C (eTime ev [<] t [+] maxDelay) 
             | None => False
-            end
-).
+            end).
 
 
 
@@ -229,10 +230,6 @@ Close Scope NupCoqScope.
 Open Scope R_scope.
 Close Scope Q_scope.
 
-
-Lemma N2R_add_commute : forall (n1 n2 : nat),
-  N2R n1 [+] N2R n2 = N2R (n1 + n2).
-Admitted.
 
 
 
