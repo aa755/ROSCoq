@@ -62,10 +62,11 @@ Definition initialState : TrainState := (mkSt 3 0).
 Definition initialPos : Q := posX initialState.
 Definition initialVel : Q := velX initialState.
 
+(*
 Definition posAfterTime (ist : TrainState)
   (elapsedTime : Time) : Q :=
    posX ist + elapsedTime* (velX ist).
-
+*)
 Definition opBind {A B : Type}
   (f : A-> option B) (a : option A) : option B :=
 match a with
@@ -137,22 +138,38 @@ Close Scope Q_scope.
 Definition getVelFromMsg (oev : option Event) : option Q  :=
 (opBind getVel oev).
 
+Definition C := Cast.
 
-(*
-Definition SlowMotor (reactionTime : R) : @Device Event R.
-unfold Device.
-intros tr evs.
-exact (forall n,
+Definition ProximitySensor (alertDist maxDelay: R) 
+  : @Device Event R :=
+fun  (distanceAtTime : Time -> R)  
+     (evs : nat -> option Event) 
+    =>
+      (forall t:Time,
+       distanceAtTime t  [>] alertDist
+       -> exists n,
+            match (evs n) with
+            | Some ev => C (eTime ev [<] t [+] maxDelay) 
+            | None => False
+            end
+).
+
+
+
+Definition SlowMotor (reactionTime : R) : @Device Event R :=
+fun  (velAtTime: Time -> R) (evs : nat -> option Event) 
+  => (forall n:nat,
           let ovn := getVelFromMsg (evs n) in
-          let tn := option_map (evs n) in
-          let tsn := option_map (evs (S n)) in
-          
-          match (vn, ts, tsn) with
-          | (Some vn, Some vsn) => 
-              forall t : Time, t [>=] 
+          let otn := option_map eTime (evs n) in
+          let otsn := option_map eTime (evs (S n)) in
+          match (ovn, otn, otsn) with
+          | (Some vn, Some tn , Some tsn) => 
+              forall t : Time, 
+                t [>] tn [+] reactionTime
+                -> t [<] tsn
+                -> velAtTime t = (Q2R vn)
           | _ => True
-          end.
-*)
+          end).
 
 (*
 
