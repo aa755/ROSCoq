@@ -1,5 +1,7 @@
 Add LoadPath "../../../ssrcorn" as CoRN.
 Add LoadPath "../../../ssrcorn/math-classes/src" as MathClasses.
+Add LoadPath "../../../nuprl/coq".
+
 Require Export ROSCyberPhysicalSystem.
 Require Export String.
 (* Require Export CoRN.ode.SimpleIntegration. *)
@@ -50,9 +52,45 @@ Definition ControllerNodeAux : RosSwNode :=
   Build_RosSwNode digiControllerTiming.
 
     
+Record TrainState := mkSt {
+  posX : Q;
+  velX : Q
+}.
 
+Definition initialState : TrainState := (mkSt 3 0).
+ 
+Definition initialPos : Q := posX initialState.
+Definition initialVel : Q := velX initialState.
 
+Definition posAfterTime (ist : TrainState)
+  (elapsedTime : Time) : Q :=
+   posX ist + elapsedTime* (velX ist).
+
+Definition opBind {A B : Type}
+  (f : A-> option B) (a : option A) : option B :=
+match a with
+| Some a' => f a'
+| None => None
+end. 
+
+Definition opExtract {A : Type}
+   (a : option A) (def: A ): A :=
+match a with
+| Some a' => a'
+| None => def
+end. 
+
+Definition getVelM (m : Message ) : option Q.
+destruct m as [top payl].
+destruct (eqdec top "motorRecv").
+- subst. simpl in payl. unfold stringTopic2Type in payl.
+  simpl in payl. apply Some. exact payl.
+- exact None.
+Defined.
 Section Train.
+Definition TimerMesg (n : nat) : Message :=
+  existT _ "timerSend" n.
+
 Context  
   (minGap : Qpos)
  `{etype : @EventType _ _ _ Event RosLoc minGap tdeq}.
@@ -64,8 +102,6 @@ Definition ControllerNode :  @RosNode _ _ _ Event.
   - left. exact ControllerNodeAux.
 Defined.
 
-Definition TimerMesg (n : nat) : Message :=
-  existT _ "timerSend" n.
 
 Definition isTimerEvtNth (n : nat) (oe : option Event) : Prop :=
   match oe with
@@ -87,20 +123,48 @@ Defined.
   functions like sine, cose which can output 
   irrationals even on rational *)
 
-Record TrainState := {
-  posX : Q;
-  velX : Q
-}.
 
-Definition getVelM (m : Message ) : option Q :=
-match (eqdec (proj1_sigT _ _ m) "motorRecv") with
+
+Definition getVel (e : Event) : option Q :=
+match (eKind e) with
+| deqEvt => getVelM (eMesg e)
 | _ => None
 end.
 
-Definition getVel (e : Event) : option Q :=
-match (eKind e, eMesg e) with
-| (deqEvt, existT "motorRecv" q) => None
-| _ => None
+
+Close Scope Q_scope.
+
+Definition getVelFromMsg (oev : option Event) : option Q  :=
+(opBind getVel oev).
+
+
+(*
+Definition SlowMotor (reactionTime : R) : @Device Event R.
+unfold Device.
+intros tr evs.
+exact (forall n,
+          let ovn := getVelFromMsg (evs n) in
+          let tn := option_map (evs n) in
+          let tsn := option_map (evs (S n)) in
+          
+          match (vn, ts, tsn) with
+          | (Some vn, Some vsn) => 
+              forall t : Time, t [>=] 
+          | _ => True
+          end.
+*)
+
+(*
+
+Fixpoint tstateAtN (locEvts: nat -> option Event) (n: nat)
+: TrainState :=
+let ev := (locEvts n) in
+let ovx := opBind getVel ev in
+match n with
+| 0 => let pos := (posAfterTime initialState (eTime ev)) in
+       let vel := opExtract ovx initialVel in
+                        mkSt pos vel 
+| S n => initialState
 end.
 
 
@@ -190,9 +254,9 @@ Proof.
     unfold ConjL in Hcr. destruct tn; simpl in Hcr; [| repnd; contradiction].
     repnd. admit.
 Admitted.
+*)
 
-
-End CorrProof.
+End Train.
 
 (** To begin with, let the VelControl device control position
     make it exact if needed *)

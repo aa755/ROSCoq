@@ -1,5 +1,7 @@
 Add LoadPath "../../../ssrcorn" as CoRN.
 Add LoadPath "../../../ssrcorn/math-classes/src" as MathClasses.
+Add LoadPath "../../../nuprl/coq".
+
 Require Export roscore.
 Require Export CoList.
 Require Import Coq.QArith.QArith.
