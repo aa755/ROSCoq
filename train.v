@@ -10,18 +10,28 @@ Instance stringdeceqdsjfklsajlk : DecEq string.
 constructor. exact string_dec.
 Defined.
 
-Open Scope string_scope.
+Inductive Topic :=  motorRecv | timerSend.
+
+Scheme Equality for Topic.
+
+Instance ldskflskdalfkTopic_eq_dec : DecEq Topic.
+constructor. exact Topic_eq_dec.
+Defined.
+
 
 Inductive Void :=.
 
+
 (** When adding a nrew topic, add cases of this function *)
-Definition stringTopic2Type (s : string) : Type :=
-if (eqdec s "motorRecv") then Q else
-if (eqdec s "timerSend") then nat else Void.
+Definition stringTopic2Type (t : Topic) : Type :=
+match t with
+| motorRecv => Q
+| timerSend => ( bool)%type
+end.
 
 
-Instance  ttttt : @RosTopicType string _.
-constructor. exact stringTopic2Type.
+Instance  ttttt : @RosTopicType Topic _.
+  constructor. exact stringTopic2Type.
 Defined.
 
 Inductive RosLoc := baseMotor | leftProximity | rightProximity | digiController.
@@ -32,13 +42,13 @@ Instance rldeqdsjfklsajlk : DecEq RosLoc.
 constructor. exact RosLoc_eq_dec.
 Defined.
 
-CoFixpoint digiControllerProgram (state : bool): Process Message (list Message).
+CoFixpoint digiControllerProgram : Process Message (list Message).
   constructor. intro m.
-  destruct m as [topicName payLoad].
-  case (eqdec topicName "timerSend"); intro Hc; subst.
-  - split. 
-    + exact (digiControllerProgram (negb state)).
-    + apply cons;[ | exact nil]. exists "motorRecv".
+  destruct m as [topicName payLoad]. 
+  destruct topicName; simpl.
+  - split.
+    + exact (digiControllerProgram).
+    + apply cons;[ | exact nil]. exists motorRecv.
       simpl. unfold stringTopic2Type. simpl.
       destruct state ;[exact 1 | exact (0-1)].
   - exact (digiControllerProgram state,nil).

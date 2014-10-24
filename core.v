@@ -5,7 +5,6 @@ Require Import Coq.QArith.QOrderedType.
 
 Add LoadPath "../../../ssrcorn" as CoRN.
 Add LoadPath "../../../ssrcorn/math-classes/src" as MathClasses.
-Require Export CoRN.reals.CReals1.
 Require Export CoRN.ftc.MoreIntervals.
 
 (* Definition N2Q (n: nat) : Q := n. *)
