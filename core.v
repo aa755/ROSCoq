@@ -216,3 +216,25 @@ Abort.
     in it's own file *)
 
 Close Scope R_scope.
+
+
+(** A [TimeFun] is a partial function from reals to reals,
+   such that its domain includes the non-negative reals.
+   From this, one can extract a member of [Time -> R]
+   representing how the physical quantity changed over time.
+  [PartIR] ensures functionality, unlike  [Time -> R] *)
+Record TimeFun := 
+ { f :> PartIR ;
+  definedOnNonNeg : included (closel [0]) (pfdom _ f)
+}.
+
+Definition getFun  (f : TimeFun) : Time -> R.
+ intro t. destruct f as [f Hinc].
+ destruct f.  simpl in Hinc.
+ destruct t. apply (pfpfun realV0).
+ apply Hinc. auto.
+Defined.
+
+Definition IsDerivativeOf (F F' : TimeFun) : CProp :=
+Derivative (closel [0]) I F' F.
+

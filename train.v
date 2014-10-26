@@ -64,11 +64,19 @@ Definition ControllerNodeAux : RosSwNode :=
 
 *)
 
-Require Export CoRN.ftc.Derivative.   
+
+ 
+
 Record TrainState := mkSt {
-  posX : IR;
-  velX : IR
+  posX : TimeFun;
+  velX : TimeFun;
+  deriv : IsDerivativeOf velX posX
 }.
+
+
+(*
+Coercion getFun  : TimeFun >->  IR.
+*)
 
 Definition initialState : TrainState := (mkSt 3 0).
  
