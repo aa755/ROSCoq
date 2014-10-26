@@ -83,17 +83,18 @@ Process (topicType inT) (topicType outT).
 Add LoadPath "../../../nuprl/coq".
 Require Import UsefulTypes.
 
+(*
 CoFixpoint makeSuperSimple {inT outT : RosTopic}
   (sswp : SSimpleSwProc inT outT) : SimpleSwProc inT outT.
   constructor. intro inp.
   apply sswp in inp. repnd.
-  dands; [ | exact [inp]; fail].
+  split; [ | exact [inp]; fail].
   apply makeSuperSimple.
   trivial.
 Defined.
 
 Coercion  makeSuperSimple : SSimpleSwProc >-> SimpleSwProc.
-
+*)
 (** There is no code to extract for devices
     These are here to model environment *)
 

@@ -42,6 +42,7 @@ Instance rldeqdsjfklsajlk : DecEq RosLoc.
 constructor. exact RosLoc_eq_dec.
 Defined.
 
+(*
 CoFixpoint digiControllerProgram : Process Message (list Message).
   constructor. intro m.
   destruct m as [topicName payLoad]. 
@@ -61,10 +62,12 @@ Definition digiControllerTiming : ProcessTiming (digiControllerProgram true) :=
 Definition ControllerNodeAux : RosSwNode :=
   Build_RosSwNode digiControllerTiming.
 
-    
+*)
+
+Require Export CoRN.ftc.Derivative.   
 Record TrainState := mkSt {
-  posX : Q;
-  velX : Q
+  posX : IR;
+  velX : IR
 }.
 
 Definition initialState : TrainState := (mkSt 3 0).
