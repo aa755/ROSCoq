@@ -1,3 +1,7 @@
+CoRNMisc.vo : CoRNMisc.v
+	coqc $<
+
+
 train.vo : train.v ROSCyberPhysicalSystem.vo
 	coqc $<
 
@@ -23,7 +27,7 @@ Process.vo : Process.v core.vo
 ADC.vo : ADC.v core.vo
 	coqc $<
 
-core.vo : core.v
+core.vo : core.v CoRNMisc.vo
 	coqc $<
 
 %.tex: %.v

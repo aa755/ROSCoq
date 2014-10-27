@@ -228,13 +228,23 @@ Record TimeFun :=
   definedOnNonNeg : included (closel [0]) (pfdom _ f)
 }.
 
-Definition getFun  (f : TimeFun) : Time -> R.
- intro t. destruct f as [f Hinc].
- destruct f.  simpl in Hinc.
- destruct t. apply (pfpfun realV0).
- apply Hinc. auto.
-Defined.
+Definition getF  (f : TimeFun)  (t :Time ) : R :=
+f t ((definedOnNonNeg f) _ (realVPos _ t)).
 
-Definition IsDerivativeOf (F F' : TimeFun) : CProp :=
-Derivative (closel [0]) I F' F.
+
+Definition isDerivativeOf (F' F : TimeFun) : CProp :=
+Derivative (closel [0]) I F F'.
+
+Require Export CoRNMisc.
+Lemma TDerivativeUB :forall {F F' : TimeFun}
+   (ta tb : Time) (Hab : ta[<]tb) (c : R),
+   isDerivativeOf F F'
+   -> UBoundInCompInt Hab F' c
+   -> ((getF F) tb[-] (getF F) ta)[<=]c[*](tb[-]ta).
+Proof.
+ intros ? ? ? ? ? ? Hisd Hub.
+ unfold getF. 
+ apply (AntiderivativeUB2 F F' ta tb Hab); auto.
+
+ 
 

@@ -135,6 +135,27 @@ Proof.
  exact Hlub.
 Qed.
 
+Lemma AntiderivativeUB2 : 
+forall (F F': PartFunct IR) (a b : IR) (Hab : a[<]b)
+     (derivF : Derivative (clcr a b) Hab F F') (c : IR)
+     Hdb Hda,
+     UBoundInCompInt Hab F' c
+     -> (F b Hdb[-] F a Hda)[<=]c[*](b[-]a).
+Proof.
+  intros ? ? ? ? ? ? ? ? ?  Hlub.
+  pose proof (pfwdef _ F b b Hdb
+               (Derivative_imp_inc _ _ _ _ derivF b (clr Hab))
+                (eq_reflexive _ _) ) 
+             as Hrwb.
+  rewrite Hrwb. clear Hrwb.
+  pose proof (pfwdef _ F a a Hda
+               (Derivative_imp_inc _ _ _ _ derivF a (cll Hab))
+                (eq_reflexive _ _) ) 
+             as Hrwa.
+  rewrite Hrwa. clear Hrwa.
+ apply AntiderivativeUB; auto.
+Qed.
+
 Definition LBoundInCompInt {a b} (Hab : a [<]b)
  (F : PartIR) (lb : IR) 
    :=
