@@ -238,13 +238,15 @@ Derivative (closel [0]) I F F'.
 Require Export CoRNMisc.
 Lemma TDerivativeUB :forall {F F' : TimeFun}
    (ta tb : Time) (Hab : ta[<]tb) (c : R),
-   isDerivativeOf F F'
+   isDerivativeOf F' F
    -> UBoundInCompInt Hab F' c
    -> ((getF F) tb[-] (getF F) ta)[<=]c[*](tb[-]ta).
 Proof.
  intros ? ? ? ? ? ? Hisd Hub.
  unfold getF. 
  apply (AntiderivativeUB2 F F' ta tb Hab); auto.
-
+ unfold isDerivativeOf in Hisd.
+ eapply Included_imp_Derivative;
+ [ apply Hisd | ].
  
 
