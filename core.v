@@ -246,7 +246,15 @@ Proof.
  unfold getF. 
  apply (AntiderivativeUB2 F F' ta tb Hab); auto.
  unfold isDerivativeOf in Hisd.
- eapply Included_imp_Derivative;
- [ apply Hisd | ].
- 
+ apply Included_imp_Derivative with 
+   (I:=closel [0]) (pI := I); trivial;[].
+ destruct ta as [ra pa].
+ destruct tb as [rb pb].
+ simpl. simpl in pa. simpl in pb.
+ unfold included. intros ? Hlft.
+ simpl in Hlft.
+ destruct Hlft. simpl.
+ eauto using leEq_transitive.
+Qed.
+
 

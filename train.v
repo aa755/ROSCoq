@@ -70,7 +70,7 @@ Definition ControllerNodeAux : RosSwNode :=
 Record TrainState := mkSt {
   posX : TimeFun;
   velX : TimeFun;
-  deriv : IsDerivativeOf velX posX
+  deriv : isDerivativeOf velX posX
 }.
 
 

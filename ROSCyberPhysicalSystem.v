@@ -128,8 +128,8 @@ Context  (PhysicalEnvType : Type)
   (minGap : Qpos)
   `{rtopic : RosTopicType RosTopic} 
   `{dteq : Deq RosTopic}
- `{etype : @EventType _ _ _ E LocT minGap tdeq }
-  `{rlct : @RosLocType _ _ _ E PhysicalEnvType LocT ldeq}.
+ `{etype : @EventType _ _ _ EV LocT minGap tdeq }
+  `{rlct : @RosLocType _ _ _ EV PhysicalEnvType LocT ldeq}.
 
 (*
 Definition  prevEvts (l : LocT) (t :Time) : nat.
@@ -160,7 +160,7 @@ Close Scope Q_scope.
 
 (** FIFO queue axiomatization *)
 Fixpoint CorrectFIFOQueueUpto   (upto : nat)
-    (locEvts: nat -> option E) :  Prop * list Message :=
+    (locEvts: nat -> option EV) :  Prop * list Message :=
 match upto with
 | 0 => (True, nil)
 | S upto' =>
@@ -189,8 +189,8 @@ forall (l: LocT)
 (** A node only receives meeages from subscribed topics *)
 
 Definition noSpamRecv 
-    (locEvents : nat -> option E)
-    (rnode :  @RosNode  _ _ _ E) :=
+    (locEvents : nat -> option EV)
+    (rnode :  @RosNode  _ _ _ EV) :=
     
     forall n, match (locEvents n) with
               | Some rv => validRecvMesg (topicInf rnode) (eMesg rv)
@@ -198,8 +198,8 @@ Definition noSpamRecv
               end.
 
 Definition noSpamSend 
-    (locEvents : nat -> option E)
-    (rnode :  @RosNode  _ _ _ E) :=    
+    (locEvents : nat -> option EV)
+    (rnode :  @RosNode  _ _ _ EV) :=    
     forall n, match (locEvents n) with
               | Some rv => validSendMesg (topicInf rnode) (eMesg rv)
               | None => True
@@ -211,7 +211,7 @@ Definition noSpamSend
 
 (** first event is innermost, last event is outermost *)
 Fixpoint prevProcessedEvents (m : nat)
-  (locEvents : nat -> option E) : list E :=
+  (locEvents : nat -> option EV) : list EV :=
   match m with
   | 0 => nil
   | S m' => (match locEvents m' with
@@ -226,7 +226,7 @@ Fixpoint prevProcessedEvents (m : nat)
 
 
 Fixpoint futureSends (start : nat) (len : nat)
-  (locEvents : nat -> option E) : list E :=
+  (locEvents : nat -> option EV) : list EV :=
   match len with
   | 0 => nil
   | S len' => 
@@ -242,14 +242,14 @@ Fixpoint futureSends (start : nat) (len : nat)
   end.
 
 Definition sendsInRange  (startIncl : nat) (endIncl : nat)
-  (locEvents : nat -> option E) : list Message :=
+  (locEvents : nat -> option EV) : list Message :=
   map eMesg (futureSends startIncl (endIncl + 1 - startIncl) locEvents).
 
 Open Scope Q_scope.
 
 Definition CorrectSWNodeBehaviour 
     (swNode : RosSwNode)
-    (locEvts: nat -> option E) : Prop :=
+    (locEvts: nat -> option EV) : Prop :=
 
   forall n: nat,
   match (locEvts n) with
@@ -395,7 +395,7 @@ Definition DeviceBehaviourCorrect
     {Env : Type}
     (physQ : Time -> Env)
     (inpDev : Device Env)
-    (locEvents : nat -> option E) : Prop :=
+    (locEvents : nat -> option EV) : Prop :=
 
  inpDev physQ locEvents.
 
@@ -416,7 +416,7 @@ Definition AllNodeBehCorrect : Prop:=
 
 
 Definition PossibleSendRecvPair
-  (Es  Er : E) : Prop :=
+  (Es  Er : EV) : Prop :=
 match (eKind Es, eKind Er) with
 | (sendEvt, enqEvt) =>
    (eMesg Es = eMesg Er)
@@ -432,21 +432,21 @@ end.
 
 
 Record PossibleEventOrder  := {
-    causedBy : E -> E -> Prop;
+    causedBy : EV -> EV -> Prop;
 
-    localCausal : forall (e1 e2 : E),
+    localCausal : forall (e1 e2 : EV),
         (eLoc e1) = (eLoc e2)
         -> (causedBy e1 e2 <-> eLocIndex e1 < eLocIndex e1);
 
-    globalCausal : forall (e1 e2 : E),
+    globalCausal : forall (e1 e2 : EV),
         causedBy e1 e2
         -> eTime e1 [<] eTime e1;
 
-    eventualDelivery: forall (Es : E), exists (Er : E),
+    eventualDelivery: forall (Es : EV), exists (Er : EV),
           PossibleSendRecvPair Es Er
           /\ causedBy Es Er;
 
-    recvSend: forall (Er : E), exists (Es : E),
+    recvSend: forall (Er : EV), exists (Es : EV),
           PossibleSendRecvPair Es Er
           /\ causedBy Es Er;
 
