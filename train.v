@@ -76,35 +76,25 @@ Record TrainState := mkSt {
 
 (*
 Coercion getFun  : TimeFun >->  IR.
-*)
-
 Definition initialState : TrainState := (mkSt 3 0).
- 
 Definition initialPos : Q := posX initialState.
 Definition initialVel : Q := velX initialState.
+*)
+
+ 
 
 (*
 Definition posAfterTime (ist : TrainState)
   (elapsedTime : Time) : Q :=
    posX ist + elapsedTime* (velX ist).
 *)
-Definition opBind {A B : Type}
-  (f : A-> option B) (a : option A) : option B :=
-match a with
-| Some a' => f a'
-| None => None
-end. 
 
-Definition opExtract {A : Type}
-   (a : option A) (def: A ): A :=
-match a with
-| Some a' => a'
-| None => def
-end. 
 
 Definition getVelM (m : Message ) : option Q.
 destruct m as [top payl].
-destruct (eqdec top "motorRecv").
+destruct top; simpl.
+unfold topicType in payl. simpl in payl.
+destruct (eqdec topdestruct top. "motorRecv").
 - subst. simpl in payl. unfold stringTopic2Type in payl.
   simpl in payl. apply Some. exact payl.
 - exact None.

@@ -258,3 +258,16 @@ Proof.
 Qed.
 
 
+Definition opBind {A B : Type}
+  (f : A-> option B) (a : option A) : option B :=
+match a with
+| Some a' => f a'
+| None => None
+end. 
+
+Definition opExtract {A : Type}
+   (a : option A) (def: A ): A :=
+match a with
+| Some a' => a'
+| None => def
+end. 
