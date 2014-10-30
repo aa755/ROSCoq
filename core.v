@@ -270,4 +270,19 @@ Definition opExtract {A : Type}
 match a with
 | Some a' => a'
 | None => def
-end. 
+end.
+
+Definition op2List {A} (a : option A) : list A :=
+match a with
+| Some a' => cons (a') nil
+| None => nil
+end.
+
+
+Definition opApPure {A B : Type}
+  (f : A-> B) (def : B) (a : option A) 
+  : B :=
+match a with
+| Some a' => f a'
+| None => def
+end.

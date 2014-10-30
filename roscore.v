@@ -74,6 +74,7 @@ Record RosSwNode :=
   
 }.
 
+(*
 Definition SimpleSwProc (inT outT : RosTopic) : Type :=
 Process (topicType inT) (list (topicType outT)).
 
@@ -83,7 +84,6 @@ Process (topicType inT) (topicType outT).
 Add LoadPath "../../../nuprl/coq".
 Require Import UsefulTypes.
 
-(*
 CoFixpoint makeSuperSimple {inT outT : RosTopic}
   (sswp : SSimpleSwProc inT outT) : SimpleSwProc inT outT.
   constructor. intro inp.
@@ -93,8 +93,36 @@ CoFixpoint makeSuperSimple {inT outT : RosTopic}
   trivial.
 Defined.
 
+
 Coercion  makeSuperSimple : SSimpleSwProc >-> SimpleSwProc.
 *)
+
+Definition SimplePureProcess (inT outT : RosTopic)
+  := (topicType inT) -> (topicType outT).
+
+Definition transport {T:Type} {a b:T} {P:T -> Type} (eq:a=b) (pa: P a) : (P b):=
+@eq_rect T a P pa b eq.
+
+
+Definition getPayLoad  (topic : RosTopic) (m : Message) :
+option (topicType topic) :=
+match m with
+| existT tp pl => match (eqdec  tp topic) with
+                  | left peq =>  Some (@transport _ _ _ (fun tpp => ( (topicType tpp))) peq pl)
+                  | right _ => None
+                  end
+end.
+
+
+CoFixpoint liftToMesg {InTopic OutTopic} 
+  (f : SimplePureProcess InTopic OutTopic) 
+    : Process Message (list Message) :=
+buildP ( fun inpMesg : Message => (liftToMesg f,
+match (getPayLoad InTopic inpMesg ) with
+| Some tmesg => cons (existT  _ _ (f tmesg)) nil
+| None => nil
+end)).
+  
 (** There is no code to extract for devices
     These are here to model environment *)
 
@@ -135,23 +163,13 @@ Record RosOutDevNode (Env : Type) :=
   payload types
 
  *)
-Definition transport {T:Type} {a b:T} {P:T -> Type} (eq:a=b) (pa: P a) : (P b):=
-@eq_rect T a P pa b eq.
 
 
-Definition getPayLoad  (topic : RosTopic) (m : Message) :
-list ( (topicType topic)) :=
-match m with
-| existT tp pl => match (eqdec  tp topic) with
-                  | left peq =>  @transport _ _ _ (fun tpp => list ( (topicType tpp))) peq (pl::nil) 
-                  | right _ => nil
-                  end
-end.
 
 
 Definition filterMegsByTopic (lm : list Message) 
   (topic : RosTopic) : list ( (topicType topic)) :=
-flat_map (getPayLoad topic) lm.
+flat_map (fun m => op2List (getPayLoad topic m)) lm.
 
 
   

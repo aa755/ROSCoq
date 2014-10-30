@@ -10,7 +10,7 @@ Instance stringdeceqdsjfklsajlk : DecEq string.
 constructor. exact string_dec.
 Defined.
 
-Inductive Topic :=  motorRecv | timerSend.
+Inductive Topic :=  MOTOR | PSENSOR.
 
 Scheme Equality for Topic.
 
@@ -23,18 +23,19 @@ Inductive Void :=.
 
 
 (** When adding a nrew topic, add cases of this function *)
-Definition stringTopic2Type (t : Topic) : Type :=
+Definition topic2Type (t : Topic) : Type :=
 match t with
-| motorRecv => Q
-| timerSend => ( bool)%type
+| MOTOR => Q
+| PSENSOR => bool
 end.
 
 
 Instance  ttttt : @RosTopicType Topic _.
-  constructor. exact stringTopic2Type.
+  constructor. exact topic2Type.
 Defined.
 
-Inductive RosLoc := baseMotor | leftProximity | rightProximity | digiController.
+Inductive RosLoc := 
+ BASEMOTOR | LEFTPSENSOR | RIGHTPSENSOR | SWCONTROLLER.
 
 Scheme Equality for RosLoc.
 
@@ -42,27 +43,26 @@ Instance rldeqdsjfklsajlk : DecEq RosLoc.
 constructor. exact RosLoc_eq_dec.
 Defined.
 
-(*
-CoFixpoint digiControllerProgram : Process Message (list Message).
-  constructor. intro m.
-  destruct m as [topicName payLoad]. 
-  destruct topicName; simpl.
-  - split.
-    + exact (digiControllerProgram).
-    + apply cons;[ | exact nil]. exists motorRecv.
-      simpl. unfold stringTopic2Type. simpl.
-      destruct state ;[exact 1 | exact (0-1)].
-  - exact (digiControllerProgram state,nil).
-Defined.
 
+(** it is a pure function that repeatedly
+   reads a message from the [PSENSOR] topic
+   and publish on the [MOTOR] *)
+Definition SwControllerProgram :
+  SimplePureProcess PSENSOR MOTOR :=
+fun side  => match side with
+            | true => 0 - 1
+            | false => 1
+            end.
 
-Definition digiControllerTiming : ProcessTiming (digiControllerProgram true) :=
+Definition SwProcess := 
+  liftToMesg SwControllerProgram.
+
+Definition digiControllerTiming : 
+  ProcessTiming (SwProcess) :=
  fun m => (N2T 1).
 
 Definition ControllerNodeAux : RosSwNode :=
   Build_RosSwNode digiControllerTiming.
-
-*)
 
 
  
@@ -74,37 +74,14 @@ Record TrainState := mkSt {
 }.
 
 
-(*
-Coercion getFun  : TimeFun >->  IR.
-Definition initialState : TrainState := (mkSt 3 0).
-Definition initialPos : Q := posX initialState.
-Definition initialVel : Q := velX initialState.
-*)
-
- 
-
-(*
-Definition posAfterTime (ist : TrainState)
-  (elapsedTime : Time) : Q :=
-   posX ist + elapsedTime* (velX ist).
-*)
-
-
-Definition getVelM (m : Message ) : option Q.
-destruct m as [top payl].
-destruct top; simpl.
-unfold topicType in payl. simpl in payl.
-destruct (eqdec topdestruct top. "motorRecv").
-- subst. simpl in payl. unfold stringTopic2Type in payl.
-  simpl in payl. apply Some. exact payl.
-- exact None.
-Defined.
+Definition getVelM (m : Message ) : option Q :=
+getPayLoad MOTOR m.
 
 
 Section Train.
-Definition TimerMesg (n : nat) : Message :=
-  existT _ "timerSend" n.
 
+(** To define IO devices, we already need
+    an Event type *)
 Context  
   (minGap : Qpos)
  `{etype : @EventType _ _ _ Event RosLoc minGap tdeq}.
@@ -112,31 +89,13 @@ Context
 
 Definition ControllerNode :  @RosNode _ _ _ Event.
   constructor.
-  - exact (Build_TopicInfo ("timerSend"::nil) ("motorRecv"::nil)).
+  - exact (Build_TopicInfo (PSENSOR::nil) (MOTOR::nil)).
   - left. exact ControllerNodeAux.
 Defined.
 
-
-Definition isTimerEvtNth (n : nat) (oe : option Event) : Prop :=
-  match oe with
-  | Some ev => (eKind ev) = sendEvt /\ (eMesg ev) = TimerMesg n
-  | None => False
-  end.
-
-
-Definition TimerDev : @Device Event unit :=
-  fun tp (evs : nat -> option Event) => forall n, isTimerEvtNth n (evs n).
-
-Definition TimerNode :  @RosNode _ _ _ Event.
-  constructor.
-  - exact (Build_TopicInfo ("timerSend"::nil) nil).
-  - right. exists unit. exact TimerDev.
-Defined.
-
-(** in some cases, the equations might invove transcendental 
-  functions like sine, cose which can output 
+(** In some cases, the equations might invove transcendental 
+  functions like sine, cos which can output 
   irrationals even on rational *)
-
 
 
 Definition getVel (e : Event) : option Q :=
@@ -153,7 +112,7 @@ Definition getVelFromMsg (oev : option Event) : option Q  :=
 
 Definition C := Cast.
 
-Definition ProximitySensor (alertDist maxDelay: R) 
+Definition ProximitySensor (alertDist maxDelay: R) (side : bool)
   : @Device Event R :=
 fun  (distanceAtTime : Time -> R)  
      (evs : nat -> option Event) 
@@ -163,6 +122,7 @@ fun  (distanceAtTime : Time -> R)
        -> exists n,
             match (evs n) with
             | Some ev => C (eTime ev [<] t [+] maxDelay) 
+                  /\ isSendOnTopic PSENSOR (fun b => b = side) ev
             | None => False
             end).
 
@@ -177,48 +137,51 @@ fun  (velAtTime: Time -> R) (evs : nat -> option Event)
           match (ovn, otn, otsn) with
           | (Some vn, Some tn , Some tsn) => 
               forall t : Time, 
-                t [>] tn [+] reactionTime
+                t [>] tn [+] ( reactionTime)
                 -> t [<] tsn
                 -> velAtTime t = (Q2R vn)
           | _ => True
           end).
 
-(*
-
-Fixpoint tstateAtN (locEvts: nat -> option Event) (n: nat)
-: TrainState :=
-let ev := (locEvts n) in
-let ovx := opBind getVel ev in
-match n with
-| 0 => let pos := (posAfterTime initialState (eTime ev)) in
-       let vel := opExtract ovx initialVel in
-                        mkSt pos vel 
-| S n => initialState
-end.
+Variable reactionTime : Q.
+Variable alertDist : Q.
+Variable maxDelay : Q.
 
 
-Definition TrainDev : @Device Event TrainState.
-  intros tp evs.
-  
 
-(* Build_RosOutDevNode "motorRecv" VelOutDevice *)
 
 Definition locNode (rl : RosLoc) : RosNode :=
 match rl with
-| baseMotor => ControllerNode
-| timerNode => TimerNode
-| digiController => BaseMotorNode
+| BASEMOTOR =>
+     {| topicInf:=
+        (Build_TopicInfo (MOTOR::nil) nil);
+        rnode := (inr  (existT  _ _ 
+                (SlowMotor (Q2R reactionTime)))) |}
+| LEFTPSENSOR => 
+     {| topicInf:=
+          (Build_TopicInfo nil (PSENSOR::nil));
+           rnode := (inr  (existT  _ _ 
+               (ProximitySensor (Q2R alertDist) (Q2R maxDelay) true)))|}
+| RIGHTPSENSOR => 
+     {| topicInf:=
+          (Build_TopicInfo nil (PSENSOR::nil));
+           rnode := (inr  (existT  _ _ 
+               (ProximitySensor (Q2R alertDist) (Q2R maxDelay) false)))|}
+
+| SWCONTROLLER => ControllerNode
 end.
 
-Instance rllllfjkfhsdakfsdakh : RosLocType TrainState RosLoc.
-apply (Build_RosLocType _ _ _ locNode (fun srs dest => Some t1)).
- intros ts rl. destruct rl; simpl; try (exact tt).
-  - exact (fun t => tt).
-  - exact (fun t => vX (ts t)).
+Instance rllllfjkfhsdakfsdakh : 
+   @RosLocType _ _ _ Event TrainState RosLoc _.
+apply (Build_RosLocType _ _ _ 
+         locNode (fun srs dest => Some (N2T 1))).
+ intros ts rl. remember rl as rll. destruct rll; simpl; try (exact tt);
+  unfold TimeValuedPhysQType; simpl.
+  - exact (getF (velX ts)).
+  - intro t. exact ( N2R 10 [+] (getF (posX ts)) t).
+  - intro t. exact ( N2R 10 [-] (getF (posX ts)) t).
 Defined.
-
-Context  (physics : Time -> TrainState).
-
+(* add train width in last 2 lines *)
 
 Open Scope R_scope.
 
@@ -244,42 +207,6 @@ Close Scope Q_scope.
 
 
 
-Lemma timerEventsSpec : forall n:nat,  
-match timerEvts n with
-| Some ev  => ( realV _ (eTime ev) =  (N2R (S n)))
-| _ => False 
-end.
-Proof.
-  intro n. simpl. 
-  (* remember (timerEvts n) as tn.
-  remember (timerEvts (S n)) as tsn. *)
-  pose proof (corr eo) as Hc.
-  destruct Hc as [Hcl Hcr].
-  specialize (Hcr timerNode).
-  unfold NodeBehCorrect in Hcr. simpl in Hcr.
-  induction n as [| n' Hind].
-  - specialize (Hcr 1).
-    unfold InpDevBehaviourCorrectAux in Hcr.
-    simpl in Hcr. unfold nextMessageAtTime in  Hcr.
-    rewrite prevEventsIndex0 in Hcr.
-    fold timerEvts in Hcr. 
-    unfold ConjL in Hcr. destruct (timerEvts 0); simpl in Hcr; [| repnd; contradiction].
-    repnd. rewrite Hcr1. unfold N2R. apply N2R_add_commute.
-  - specialize (Hcr (S(S n'))). unfold InpDevBehaviourCorrectAux in Hcr.
-    simpl in Hcr. unfold nextMessageAtTime in  Hcr.
-    rewrite prevEventsIndex0 in Hcr.
-    fold timerEvts in Hcr. 
-
-
-  - specialize (Hcr (S (S n'))).
-    unfold InpDevBehaviourCorrectAux in Hcr.
-    simpl in Hcr. unfold nextMessageAtTime in  Hcr.
-    rewrite prevEventsIndex0 in Hcr.
-    fold timerEvts in Hcr. rewrite <- Heqtn in Hcr.
-    unfold ConjL in Hcr. destruct tn; simpl in Hcr; [| repnd; contradiction].
-    repnd. admit.
-Admitted.
-*)
 
 End Train.
 

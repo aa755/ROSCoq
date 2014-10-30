@@ -112,7 +112,7 @@ Class RosLocType (PhysicalEnvType : Type) ( RosLoc: Type)
       to access the way physical quantities
       measured/ controlled by devices changes *)
    
-   timeValuedEnv : (Time -> PhysicalEnvType) 
+   timeValuedEnv : PhysicalEnvType
         -> forall rl, TimeValuedPhysQType (locNode rl)
 }.
 
@@ -124,39 +124,27 @@ Set Implicit Arguments.
 
 Section EventProps.
 Context  (PhysicalEnvType : Type)
-  (physics : Time -> PhysicalEnvType)
+  (physics : PhysicalEnvType)
   (minGap : Qpos)
   `{rtopic : RosTopicType RosTopic} 
   `{dteq : Deq RosTopic}
  `{etype : @EventType _ _ _ EV LocT minGap tdeq }
   `{rlct : @RosLocType _ _ _ EV PhysicalEnvType LocT ldeq}.
 
-(*
-Definition  prevEvts (l : LocT) (t :Time) : nat.
-assert R as maxEvts.
-apply (cf_div  t (realV _ minGap)).
-simpl. destruct minGap. simpl. simpl in realVPos.
-apply pos_ap_zero; trivial.
-remember (Z.to_nat (proj1_sigT _ _ (overApproximate maxEvts))) as maxSearch.
-Admitted.
-
-
-Lemma    prevEventsIndex0 : 
-    forall (l: LocT) , prevEvts l 0 =0.
-Admitted.
-
-
-Lemma    prevEventsIndexCorrect: 
-    forall (l: LocT) (t: Time) (n : nat) , 
-            match (localEvts l n) with
-            | None => True
-            | Some ev => 
-                  (n <= prevEvts l t -> eTime ev [<=] t)
-                  /\ (n > prevEvts l t -> Cast (eTime ev [>] t))
-            end.
-Admitted.
-*)
 Close Scope Q_scope.
+
+Definition isSendEvt (ev: EV) :Prop :=
+match (eKind ev) with
+| sendEvt => True
+| _ => False
+end.
+
+
+Definition isSendOnTopic
+  (tp: RosTopic) (property : (topicType tp) -> Prop) (ev: EV) : Prop :=
+isSendEvt ev /\ 
+(opApPure property False (getPayLoad tp (eMesg ev))).
+
 
 (** FIFO queue axiomatization *)
 Fixpoint CorrectFIFOQueueUpto   (upto : nat)

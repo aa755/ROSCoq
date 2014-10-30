@@ -5,6 +5,9 @@ CoInductive Process (In Out : Type) :=
 buildP : (In -> ((Process In Out)* Out))
           -> Process In Out.
 
+CoFixpoint mkPureProcess {In Out} 
+ (f : In -> Out) : Process In Out :=
+buildP (fun inp => (mkPureProcess f, f inp)).
 
 Definition getOutput {In Out : Type}
   (p: Process In Out) (inp : In ): Out :=
