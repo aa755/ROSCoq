@@ -143,12 +143,22 @@ fun  (velAtTime: Time -> R) (evs : nat -> option Event)
           | _ => True
           end).
 
-Variable reactionTime : Q.
-Variable alertDist : Q.
-Variable maxDelay : Q.
+Variable boundary : R.
 
+Definition rboundary : R := (boundary).
+Definition lboundary : R := ([0] [-] boundary).
 
+Variable reactionTime : R.
+Variable alertDist : R.
+Variable safeDist : R.
+Variable maxDelay : R.
+Variable hwidth : R. (* half of width *)
 
+Definition lEndPos (ts : TrainState) (t : Time) : R :=
+(getF (posX ts) t [-]  hwidth).
+
+Definition rEndPos (ts : TrainState) (t : Time) : R :=
+(getF (posX ts) t [+]  hwidth).
 
 Definition locNode (rl : RosLoc) : RosNode :=
 match rl with
@@ -156,17 +166,17 @@ match rl with
      {| topicInf:=
         (Build_TopicInfo (MOTOR::nil) nil);
         rnode := (inr  (existT  _ _ 
-                (SlowMotor (Q2R reactionTime)))) |}
+                (SlowMotor reactionTime))) |}
 | LEFTPSENSOR => 
      {| topicInf:=
           (Build_TopicInfo nil (PSENSOR::nil));
            rnode := (inr  (existT  _ _ 
-               (ProximitySensor (Q2R alertDist) (Q2R maxDelay) true)))|}
+               (ProximitySensor alertDist maxDelay true)))|}
 | RIGHTPSENSOR => 
      {| topicInf:=
           (Build_TopicInfo nil (PSENSOR::nil));
            rnode := (inr  (existT  _ _ 
-               (ProximitySensor (Q2R alertDist) (Q2R maxDelay) false)))|}
+               (ProximitySensor alertDist maxDelay false)))|}
 
 | SWCONTROLLER => ControllerNode
 end.
@@ -178,28 +188,26 @@ apply (Build_RosLocType _ _ _
  intros ts rl. remember rl as rll. destruct rll; simpl; try (exact tt);
   unfold TimeValuedPhysQType; simpl.
   - exact (getF (velX ts)).
-  - intro t. exact ( N2R 10 [+] (getF (posX ts)) t).
-  - intro t. exact ( N2R 10 [-] (getF (posX ts)) t).
+  - intro t. exact (AbsIR ((lEndPos ts t) [-] lboundary)).
+  - intro t. exact (AbsIR ((rEndPos ts t) [-] rboundary)).
 Defined.
-(* add train width in last 2 lines *)
 
 Open Scope R_scope.
 
-Section CorrProof.
-
-Variable eo : (@PossibleEventOrder _  physics minGap _ _ _ _ _ _ _ _ _).
+Variable tstate : TrainState.
+Variable eo : (@PossibleEventOrder _  tstate minGap _ _ _ _ _ _ _ _ _).
 
 Definition  TrainSpec : Prop :=
-  forall  (t:Time), ([0]  <= (posX (physics t)) <= [1]).
+  forall  (t:Time), 
+    ((lEndPos tstate t) [-] safeDist [>=] lboundary )
+    /\((rEndPos tstate t) [+] safeDist [<=] rboundary ).
 
-Definition timerEvts : nat -> option Event :=
-localEvts timerNode.
 
 Close Scope R_scope.
 Close Scope Q_scope.
 Add LoadPath "../../../nuprl/coq".
 Require Import UsefulTypes.
-Close Scope NupCoqScope.
+(* Close Scope NupCoqScope. *)
 
 Open Scope R_scope.
 Close Scope Q_scope.
