@@ -19,10 +19,7 @@ sendEvt | enqEvt | deqEvt.
 Section Event.
 Context  `{rtopic : RosTopicType RosTopic}.
 
-(** In any run, there will only be a finitely
-    many events. So the collection of events
-    in the entire system can be represented
-    as a list. [Event] is a type
+(** [Event] is a type
     representing all events in the system *)
 
 Class EventType (T: Type) 

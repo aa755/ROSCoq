@@ -197,8 +197,7 @@ Open Scope R_scope.
 Variable tstate : TrainState.
 Variable eo : (@PossibleEventOrder _  tstate minGap _ _ _ _ _ _ _ _ _).
 
-Definition  TrainSpec : Prop :=
-  forall  (t:Time), 
+Definition  TrainSpec (t:Time) : Prop :=
     ((lEndPos tstate t) [-] safeDist [>=] lboundary )
     /\((rEndPos tstate t) [+] safeDist [<=] rboundary ).
 
