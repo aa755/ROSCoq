@@ -59,7 +59,7 @@ Definition SwProcess :=
 
 Definition digiControllerTiming : 
   ProcessTiming (SwProcess) :=
- fun m => (N2T 1).
+ fun m => (N2QNNeg 1).
 
 Definition ControllerNodeAux : RosSwNode :=
   Build_RosSwNode digiControllerTiming.
@@ -105,12 +105,10 @@ match (eKind e) with
 end.
 
 
-Close Scope Q_scope.
 
 Definition getVelFromMsg (oev : option Event) : option Q  :=
 (opBind getVel oev).
 
-Definition C := Cast.
 
 Definition ProximitySensor (alertDist maxDelay: R) (side : bool)
   : @Device Event R :=
@@ -118,26 +116,33 @@ fun  (distanceAtTime : Time -> R)
      (evs : nat -> option Event) 
     =>
       (forall t:Time,
-       distanceAtTime t  [>] alertDist
+       (distanceAtTime t  [>]  alertDist)
        -> exists n,
             match (evs n) with
-            | Some ev => C (eTime ev [<] t [+] maxDelay) 
+            | Some ev => Cast (Q2R (eTime ev) [<] (t [+] maxDelay)) 
                   /\ isSendOnTopic PSENSOR (fun b => b = side) ev
             | None => False
             end).
 
+Close Scope Q_scope.
 
+Definition inIntervalDuring (f : Time -> R) (dstart  dend : Time)  
+     (intvl : interval) :=
+ forall t : Time, (clcr dstart dend) t  -> (intvl) (f t).
+  
+Require Export Coq.Unicode.Utf8.
 
-Definition SlowMotor (reactionTime : R) : @Device Event R :=
+Definition SlowMotorQ (reactionTime : R) : @Device Event R :=
 fun  (velAtTime: Time -> R) (evs : nat -> option Event) 
   => (forall n:nat,
           let ovn := getVelFromMsg (evs n) in
           let otn := option_map eTime (evs n) in
           let otsn := option_map eTime (evs (S n)) in
           match (ovn, otn, otsn) with
-          | (Some vn, Some tn , Some tsn) => 
-              forall t : Time, 
-                t [>] tn [+] ( reactionTime)
+          | (Some vn, Some tn , Some tsn) => exists  qt : Qpos,
+              forall t : Time,
+              
+                t [>] (Q2T qt)
                 -> t [<] tsn
                 -> velAtTime t = (Q2R vn)
           | _ => True

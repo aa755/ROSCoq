@@ -30,7 +30,7 @@ Class EventType (T: Type)
   eLoc : T ->  Loc;
   eMesg : T -> Message;
   eKind : T -> EventKind;
-  eTime : T -> Time;
+  eTime : T -> QTime;
   timeDistinct : forall (a b : T), 
     eTime a = eTime b
     -> a = b;
@@ -41,7 +41,7 @@ Class EventType (T: Type)
     -> a = b;
   timeIndexConsistent : forall (a b : T),
     eLocIndex a < eLocIndex b
-    -> eTime a [<] eTime b;
+    -> eTime a < eTime b;
 
   localEvts : Loc -> (nat -> option T);
 
@@ -59,9 +59,9 @@ Class EventType (T: Type)
       and ones happening after *)
 
   eventSpacing :  forall (e1 e2 : T),
-    Cast ((eTime e1) [>] (Q2R minGap))
+    (eTime e1 >  minGap)
     /\ (eLoc e1 = eLoc e2 
-        -> AbsIR (eTime e1 [-] eTime e2) [<=] Q2R minGap)
+        -> Qabs ((eTime e1) - (eTime e2)) <=  minGap)
  }.
 
 
@@ -104,7 +104,7 @@ Class RosLocType (PhysicalEnvType : Type) ( RosLoc: Type)
      {rldeq : DecEq RosLoc} :=
 {
    locNode: RosLoc -> RosNode;
-   maxDeliveryDelay : RosLoc -> RosLoc -> option Time;
+   maxDeliveryDelay : RosLoc -> RosLoc -> option QTime;
    (** a location type should also provide out a way
       to access the way physical quantities
       measured/ controlled by devices changes *)
@@ -250,8 +250,8 @@ Definition CorrectSWNodeBehaviour
             exists len, let sEvts := (futureSends (eLocIndex ev) len locEvts) in
                         map eMesg sEvts = lastOutMsgs
                         /\ match (rev sEvts) with
-                            | hsm :: _ => Cast (eTime hsm [<]
-                                                  tadd (eTime ev) 
+                            | hsm :: _ => (eTime hsm <
+                                                   (eTime ev) +
                                                         (pTiming swNode (eMesg ev)))
                             | nil => True
                             end
@@ -408,10 +408,9 @@ match (eKind Es, eKind Er) with
    /\ (validRecvMesg (topicInf (locNode (eLoc Er))) (eMesg Er))
    /\ (validSendMesg (topicInf (locNode (eLoc Es))) (eMesg Es))
    /\ (match (maxDeliveryDelay (eLoc Es) (eLoc Er)) with
-      | Some td =>   Cast (eTime Er [<]  tadd (eTime Es) td)
+      | Some td => (eTime Er <  eTime Es + td)
       | None => True
-      end )
-    
+      end)
 | _ => False
 end.
 
@@ -425,7 +424,7 @@ Record PossibleEventOrder  := {
 
     globalCausal : forall (e1 e2 : EV),
         causedBy e1 e2
-        -> eTime e1 [<] eTime e1;
+        -> eTime e1 < eTime e1;
 
     eventualDelivery: forall (Es : EV), exists (Er : EV),
           PossibleSendRecvPair Es Er

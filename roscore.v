@@ -43,7 +43,7 @@ Require Export Process.
 
 Definition ProcessTiming 
   (p : Process Message (list Message)) :=
-  Message -> Time.
+  Message -> QTime.
 
 Set Implicit Arguments.
 

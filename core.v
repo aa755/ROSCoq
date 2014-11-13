@@ -125,8 +125,34 @@ Defined.
  Defined.
 
 
+Definition QNNeg := {q : Q | 0 <= q}.
+Definition QTime := QNNeg.
+
+
+Definition QT2Q (t : QTime) : Q := (proj1_sig t).
+Coercion QT2Q : QTime >-> Q.
+
+Definition Q2T (q: QNNeg) : Time.
+  destruct q.
+  exists (Q2R x). simpl.
+  unfold Q2R.
+  rewrite <- inj_Q_Zero.
+  apply inj_Q_leEq.
+  trivial.
+Defined.
+
 Coercion N2T : nat >-> Time.
   (* Q.Qle_nat *)
+
+Coercion Q2T : QNNeg >-> Time.
+
+Definition N2QNNeg (n: nat) : QNNeg.
+  exists (n). unfold iprop.
+  apply Q.inject_Z_nonneg.
+  apply Nat2Z.is_nonneg.
+Defined.
+
+Coercion N2QNNeg : nat >-> QNNeg.
 
 (*
 Definition fastFwdAndRestrict {A}
@@ -140,7 +166,8 @@ Definition equalUpto {Value : Type} (t: Time) (f1 f2 : Time -> Value) :=
 
 Set Implicit Arguments.
 
-Definition ConjL (lp : list Prop) : Prop := (fold_left (fun A B => A/\B) lp True).
+Definition ConjL (lp : list Prop) : Prop 
+  := (fold_left (fun A B => A/\B) lp True).
  
 
 Inductive Cast (T: Type) : Prop :=
@@ -173,9 +200,8 @@ match b with
 end.
 
 Open Scope R_scope.
-Definition enqueue {A : Type} 
-    (el : A) (oldQueue : list A) : list A :=
-    el :: oldQueue.
+Definition enqueue {A : Type} (el : A) (oldQueue : list A) : list A :=
+     el :: oldQueue.
 
 Definition dequeue {A : Type} (l: list A) : option A * list A :=
 match rev l with
