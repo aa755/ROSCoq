@@ -132,7 +132,7 @@ Definition QTime := QNNeg.
 Definition QT2Q (t : QTime) : Q := (proj1_sig t).
 Coercion QT2Q : QTime >-> Q.
 
-Definition Q2T (q: QNNeg) : Time.
+Definition QT2T (q: QTime) : Time.
   destruct q.
   exists (Q2R x). simpl.
   unfold Q2R.
@@ -141,18 +141,23 @@ Definition Q2T (q: QNNeg) : Time.
   trivial.
 Defined.
 
+Definition QT2R (q: QTime) : R.
+  destruct q.
+  exact (Q2R x).
+Defined.
+
 Coercion N2T : nat >-> Time.
   (* Q.Qle_nat *)
 
-Coercion Q2T : QNNeg >-> Time.
+Coercion QT2T : QTime >-> Time.
 
-Definition N2QNNeg (n: nat) : QNNeg.
+Definition N2QTime (n: nat) : QTime.
   exists (n). unfold iprop.
   apply Q.inject_Z_nonneg.
   apply Nat2Z.is_nonneg.
 Defined.
 
-Coercion N2QNNeg : nat >-> QNNeg.
+Coercion N2QTime : nat >-> QTime.
 
 (*
 Definition fastFwdAndRestrict {A}

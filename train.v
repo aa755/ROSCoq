@@ -59,7 +59,7 @@ Definition SwProcess :=
 
 Definition digiControllerTiming : 
   ProcessTiming (SwProcess) :=
- fun m => (N2QNNeg 1).
+ fun m => (N2QTime 1).
 
 Definition ControllerNodeAux : RosSwNode :=
   Build_RosSwNode digiControllerTiming.
@@ -124,27 +124,47 @@ fun  (distanceAtTime : Time -> R)
             | None => False
             end).
 
-Close Scope Q_scope.
 
-Definition inIntervalDuring (f : Time -> R) (dstart  dend : Time)  
-     (intvl : interval) :=
- forall t : Time, (clcr dstart dend) t  -> (intvl) (f t).
+Definition inIntervalDuringInterval
+  (interval intervalT: interval)  (f : Time -> R) : Prop
+      :=
+ Cast (forall t : Time, intervalT t  -> (interval) (f t)).
   
 Require Export Coq.Unicode.Utf8.
 
-Definition SlowMotorQ (reactionTime : R) : @Device Event R :=
+Definition nextInterval (tstart : QTime) 
+    (nextMesgTime : option QTime) : interval :=
+match nextMesgTime with
+| Some tm => clcr (QT2R tstart) (QT2R tm)
+| None => closel (QT2R tstart)
+end.
+
+
+Definition nbdAround ( radius center : R) :=
+clcr (radius [-] center) (radius [+] center).
+
+Definition SlowMotorQ 
+  (reactionTime : Q) (accuracy : R)
+  (transitionValues : interval)
+   : @Device Event R :=
 fun  (velAtTime: Time -> R) (evs : nat -> option Event) 
   => (forall n:nat,
           let ovn := getVelFromMsg (evs n) in
           let otn := option_map eTime (evs n) in
           let otsn := option_map eTime (evs (S n)) in
-          match (ovn, otn, otsn) with
-          | (Some vn, Some tn , Some tsn) => exists  qt : Qpos,
-              forall t : Time,
-              
-                t [>] (Q2T qt)
-                -> t [<] tsn
-                -> velAtTime t = (Q2R vn)
+          match (ovn, otn) with
+          | (Some vn, Some tn) => exists  qt : QTime,
+              let Tintvl := nextInterval qt otsn in
+              tn < qt 
+              /\ qt < tn + reactionTime 
+              /\ (inIntervalDuringInterval 
+                          transitionValues
+                          (clcr (Q2R tn) (Q2R qt))
+                          velAtTime)
+              /\ (inIntervalDuringInterval 
+                          (nbdAround (Q2R vn) accuracy) 
+                          Tintvl
+                          velAtTime)
           | _ => True
           end).
 
@@ -153,14 +173,20 @@ Variable boundary : R.
 Definition rboundary : R := (boundary).
 Definition lboundary : R := ([0] [-] boundary).
 
-Variable reactionTime : R.
+Variable reactionTime : Q.
 Variable alertDist : R.
 Variable safeDist : R.
 Variable maxDelay : R.
+Variable velAccuracy : R.
 Variable hwidth : R. (* half of width *)
 
+Variable reactionTimeGap : reactionTime < minGap.
 Definition lEndPos (ts : TrainState) (t : Time) : R :=
 (getF (posX ts) t [-]  hwidth).
+
+Definition transitionInterval : interval :=
+(clcr ([0] [-] [1]) [1]).
+
 
 Definition rEndPos (ts : TrainState) (t : Time) : R :=
 (getF (posX ts) t [+]  hwidth).
@@ -171,7 +197,7 @@ match rl with
      {| topicInf:=
         (Build_TopicInfo (MOTOR::nil) nil);
         rnode := (inr  (existT  _ _ 
-                (SlowMotor reactionTime))) |}
+                (SlowMotorQ reactionTime velAccuracy transitionInterval))) |}
 | LEFTPSENSOR => 
      {| topicInf:=
           (Build_TopicInfo nil (PSENSOR::nil));
@@ -189,7 +215,7 @@ end.
 Instance rllllfjkfhsdakfsdakh : 
    @RosLocType _ _ _ Event TrainState RosLoc _.
 apply (Build_RosLocType _ _ _ 
-         locNode (fun srs dest => Some (N2T 1))).
+         locNode (fun srs dest => Some (N2QTime 1))).
  intros ts rl. remember rl as rll. destruct rll; simpl; try (exact tt);
   unfold TimeValuedPhysQType; simpl.
   - exact (getF (velX ts)).
@@ -212,6 +238,8 @@ Close Scope Q_scope.
 Add LoadPath "../../../nuprl/coq".
 Require Import UsefulTypes.
 (* Close Scope NupCoqScope. *)
+
+
 
 Open Scope R_scope.
 Close Scope Q_scope.
