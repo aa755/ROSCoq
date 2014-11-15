@@ -64,7 +64,6 @@ Class EventType (T: Type)
         -> Qabs ((eTime e1) - (eTime e2)) <=  minGap)
  }.
 
-
 End Event.
 
 Section DeviceAndLoc.
@@ -128,7 +127,28 @@ Context  (PhysicalEnvType : Type)
  `{etype : @EventType _ _ _ EV LocT minGap tdeq }
   `{rlct : @RosLocType _ _ _ EV PhysicalEnvType LocT ldeq}.
 
-Close Scope Q_scope.
+
+(** would fail if [QTime] is changed to [Time].
+    This should be definable, thanks to [minGap] *)
+Definition lastEvtIndex : LocT -> QTime -> nat.
+Admitted.
+
+Definition eTimeOp := 
+option_map eTime.
+
+
+Lemma lastEvtIndexCorrect :
+forall t loc m,
+  match eTimeOp (localEvts loc m) with
+  | Some tm =>
+    (m <= lastEvtIndex loc t
+         -> tm <= t)
+    /\ (m > lastEvtIndex loc t
+         -> tm > t)
+  | None => True
+  end.
+Admitted.
+
 
 Definition isSendEvt (ev: EV) :Prop :=
 match (eKind ev) with
@@ -149,6 +169,7 @@ Definition isSendOnTopic
 isSendEvt ev /\ 
 (opApPure property False (getPayLoad tp (eMesg ev))).
 
+Close Scope Q_scope.
 
 (** FIFO queue axiomatization *)
 Fixpoint CorrectFIFOQueueUpto   (upto : nat)
@@ -275,112 +296,7 @@ Definition CorrectSWNodeBehaviour
       end
   end.
 
-(** What does it mean for a physical quantity
-    to be controlled by an output device.
-    
-    [uptoTime] only makes sense if it is later than
-    the timestamp of the last event
- *)
-(*
-Fixpoint OutDevBehaviourCorrectUpto 
-    {Env : Type}
-    (physQ : Time -> Env)
-    (outDev : RosOutDevNode Env)
-    (processedEvts: list E)
-    (uptoTime : Time) :=
-  match processedEvts with
-  | nil => (fst (odev outDev)) _ (restrictTill physQ uptoTime)
-  | last :: rest =>  
-      let recUptoTime := (eTime last) in
-      let timeDiff := tdiff uptoTime recUptoTime in
-      let recProp := OutDevBehaviourCorrectUpto physQ outDev rest recUptoTime in
-      let restMsgs := map eMesg rest in
-      let outdBh := getRosOutDevBhv outDev restMsgs in
-      recProp /\ outdBh timeDiff 
-            (fastFwdAndRestrict physQ recUptoTime uptoTime)
-      (* physQ needs to be advanced *)
-  end.
-
   
-
-Definition OutDevBehaviourCorrect 
-    {Env : Type}
-    (physQ : Time -> Env)
-    (outDev : RosOutDevNode Env)
-    (locEvents : nat -> option E)
-    (lastEvtIndex : Time -> nat)
-     :=
-  forall (t : Time),
-    let lastIndex := lastEvtIndex t in
-    let prevProcEvents :=  prevProcessedEvents lastIndex locEvents in
-    OutDevBehaviourCorrectUpto physQ outDev prevProcEvents t.
-
-Definition noMessagesAfter 
-    (locEvents : nat -> option E)
-    (lastEvtIndex : Time -> nat)
-    (t : Time) : Prop :=
-    
-  let tIndex := lastEvtIndex t in
-  forall n:nat,
-     n > tIndex
-     -> locEvents n = None.
-
-Definition nextMessageAtTime 
-    (locEvents : nat -> option E)
-    (lastEvtIndex : Time -> nat)
-    (curTime : Time)
-    (mesgTime : Time)
-    (m : Message) : Prop :=
-    
-  let tIndex := lastEvtIndex curTime in
-  match locEvents tIndex with
-  | None => False
-  | Some ev  => (realV _ (eTime ev) = curTime [+] mesgTime) 
-                /\ (eMesg ev = m)
-  end.
-
-CoFixpoint InpDevBehaviourCorrectAux 
-    {Env : Type}
-    (physQ : Time -> Env)
-    (inpDev : RosInpDevNode Env)
-    (locEvents : nat -> option E)
-    (lastEvtIndex : Time -> nat)
-    (startTime : Time) : CoList Prop :=
-
-  let indev := getIDev (idev inpDev) in
-  match (indev (fastFwd physQ startTime)) with
-  | inl _ => 
-      ccons (noMessagesAfter 
-                  locEvents 
-                  lastEvtIndex 
-                  startTime)
-            (@cnil Prop)
-  | inr ((mesg, timeSent), newIdev) => 
-      ccons (nextMessageAtTime 
-                  locEvents 
-                  lastEvtIndex 
-                  startTime 
-                  timeSent 
-                  (makeTopicMesg mesg))
-            (InpDevBehaviourCorrectAux 
-                  physQ 
-                  ( substIDev inpDev newIdev )
-                  locEvents 
-                  lastEvtIndex 
-                  timeSent)
-  end.
-
-Definition InpDevBehaviourCorrect
-  {Env : Type}
-  (physQ : Time -> Env)
-  (inpDev : RosInpDevNode Env)
-  (locEvents : nat -> option E)
-  (lastEvtIndex : Time -> nat) :=
-
-  let props := InpDevBehaviourCorrectAux physQ inpDev locEvents lastEvtIndex 0 in
-  forall n, ConjL (initialSegment n props).
-
-*)    
 (*noSpamRecv *)
 
 Definition DeviceBehaviourCorrect
@@ -444,7 +360,6 @@ Record PossibleEventOrder  := {
     corrFIFO : CorrectFIFOQueue;
     corrNodes : AllNodeBehCorrect;
 
-
     (** the stuff below can probably be
       derived from the stuff above *)
 
@@ -453,8 +368,6 @@ Record PossibleEventOrder  := {
 }.
 
 
-Definition eTimeOp := 
-option_map eTime.
 
 Definition holdsUptoNextEvent (prp : Time -> R -> Prop)
   (phys : Time -> R)

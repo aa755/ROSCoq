@@ -109,6 +109,15 @@ end.
 Definition getVelFromMsg (oev : option Event) : option Q  :=
 (opBind getVel oev).
 
+Definition getVelAndTime (oev : option Event) 
+    : option (Q * QTime)  :=
+match oev with
+| Some ev => match getVel ev with
+             | Some vq => Some (vq, eTime ev)
+             | None => None
+             end
+| None => None
+end.
 
 Definition ProximitySensor (alertDist maxDelay: R) (side : bool)
   : @Device Event R :=
@@ -132,44 +141,74 @@ Definition inIntervalDuringInterval
   
 Require Export Coq.Unicode.Utf8.
 
+Variable reactionTime : Q.
+Variable velAccuracy : R.
+Variable initialVel : Q.
+Variable initialPos : Q.
+Variable transitionValues : interval.
+Definition correctVelDuring
+  (lastVel : Q) 
+  (lastTime: QTime)
+  (uptoTime : QTime) 
+  (velAtTime: Time -> R) :=
+    exists  qt : QTime, 
+      lastTime <= qt <= (lastTime + reactionTime)
+      /\(inIntervalDuringInterval 
+                          transitionValues
+                          (clcr (Q2R lastTime) (Q2R qt))
+                          velAtTime)
+      /\ (inIntervalDuringInterval 
+                          (nbdAround (Q2R lastVel) velAccuracy) 
+                          (clcr  (Q2R qt) (Q2R uptoTime))
+                          velAtTime).
+
+Close Scope Q_scope.
+
+
+(** let k geatest m much that m < n 
+   and (evs m) is a velocity message.
+   this returns the vlocity and time of (evs k) *)
+Fixpoint lastVelAndTimeAux (evs : nat -> option Event) 
+    (n : nat) : (Q * QTime):=
+match n with
+| 0 => (initialVel,N2QTime 0)
+| S n' => match getVelAndTime (evs n') with
+          | Some pr => pr
+          | None => lastVelAndTimeAux evs n'
+           end
+end.
+  
+
+Definition lastVelAndTime (evs : nat -> option Event)
+  (t : QTime) : (Q * QTime) :=
+lastVelAndTimeAux evs (lastEvtIndex evs t) .
+
+
+Definition corrSinceLastVel
+  (evs : nat -> option Event)
+  (uptoTime : QTime) 
+  (velAtTime: Time -> R) :=
+  let (lastVel, lastTime) := lastVelAndTime evs uptoTime in
+  correctVelDuring lastVel lastTime uptoTime velAtTime.
 
 
 Definition SlowMotorQ 
-  (reactionTime : Q) (accuracy : R)
-  (transitionValues : interval)
    : @Device Event R :=
 fun  (velAtTime: Time -> R) (evs : nat -> option Event) 
-  => (forall n:nat,
-          let ovn := getVelFromMsg (evs n) in
-          let otn := eTimeOp (evs n) in
-          let otsn := eTimeOp (evs (S n)) in
-          match (ovn, otn) with
-          | (Some vn, Some tn) => exists  qt : QTime,
-              let Tintvl := nextInterval qt otsn in
-              tn < qt 
-              /\ qt < tn + reactionTime 
-              /\ (inIntervalDuringInterval 
-                          transitionValues
-                          (clcr (Q2R tn) (Q2R qt))
-                          velAtTime)
-              /\ (inIntervalDuringInterval 
-                          (nbdAround (Q2R vn) accuracy) 
-                          Tintvl
-                          velAtTime)
-          | _ => True
-          end).
+  => forall t: QTime, corrSinceLastVel evs t velAtTime.
+
 
 Variable boundary : R.
 
 Definition rboundary : R := (boundary).
 Definition lboundary : R := ([0] [-] boundary).
 
-Variable reactionTime : Q.
 Variable alertDist : R.
 Variable safeDist : R.
 Variable maxDelay : R.
-Variable velAccuracy : R.
 Variable hwidth : R. (* half of width *)
+
+Open Scope Q_scope.
 
 Variable reactionTimeGap : reactionTime < minGap.
 Definition lEndPos (ts : TrainState) (t : Time) : R :=
@@ -188,7 +227,7 @@ match rl with
      {| topicInf:=
         (Build_TopicInfo (MOTOR::nil) nil);
         rnode := (inr  (existT  _ _ 
-                (SlowMotorQ reactionTime velAccuracy transitionInterval))) |}
+                (SlowMotorQ))) |}
 | LEFTPSENSOR => 
      {| topicInf:=
           (Build_TopicInfo nil (PSENSOR::nil));
