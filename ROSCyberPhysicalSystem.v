@@ -136,6 +136,13 @@ match (eKind ev) with
 | _ => False
 end.
 
+Definition isRecvEvt (ev: EV) :Prop :=
+match (eKind ev) with
+| enqEvt => True
+| deqEvt => True
+| _ => False
+end.
+
 
 Definition isSendOnTopic
   (tp: RosTopic) (property : (topicType tp) -> Prop) (ev: EV) : Prop :=
@@ -434,7 +441,8 @@ Record PossibleEventOrder  := {
           PossibleSendRecvPair Es Er
           /\ causedBy Es Er;
 
-    corr : CorrectFIFOQueue /\ AllNodeBehCorrect;
+    corrFIFO : CorrectFIFOQueue;
+    corrNodes : AllNodeBehCorrect;
 
 
     (** the stuff below can probably be
@@ -443,4 +451,21 @@ Record PossibleEventOrder  := {
     causalWf : well_founded _ causedBy
     
 }.
+
+
+Definition eTimeOp := 
+option_map eTime.
+
+Definition holdsUptoNextEvent (prp : Time -> R -> Prop)
+  (phys : Time -> R)
+  (evs : nat -> option EV) (n: nat) :=
+  let otn := eTimeOp (evs n) in
+  let otsn := eTimeOp (evs (S n)) in
+  match otn with
+  |  Some tn => 
+      let Tintvl := nextInterval tn otsn in
+      forall t: Time,  (Tintvl) t -> prp t (phys t)
+  | None => True
+  end.
+
 End EventProps.

@@ -132,16 +132,7 @@ Definition inIntervalDuringInterval
   
 Require Export Coq.Unicode.Utf8.
 
-Definition nextInterval (tstart : QTime) 
-    (nextMesgTime : option QTime) : interval :=
-match nextMesgTime with
-| Some tm => clcr (QT2R tstart) (QT2R tm)
-| None => closel (QT2R tstart)
-end.
 
-
-Definition nbdAround ( radius center : R) :=
-clcr (radius [-] center) (radius [+] center).
 
 Definition SlowMotorQ 
   (reactionTime : Q) (accuracy : R)
@@ -150,8 +141,8 @@ Definition SlowMotorQ
 fun  (velAtTime: Time -> R) (evs : nat -> option Event) 
   => (forall n:nat,
           let ovn := getVelFromMsg (evs n) in
-          let otn := option_map eTime (evs n) in
-          let otsn := option_map eTime (evs (S n)) in
+          let otn := eTimeOp (evs n) in
+          let otsn := eTimeOp (evs (S n)) in
           match (ovn, otn) with
           | (Some vn, Some tn) => exists  qt : QTime,
               let Tintvl := nextInterval qt otsn in
@@ -232,11 +223,19 @@ Definition  TrainSpec (t:Time) : Prop :=
     ((lEndPos tstate t) [-] safeDist [>=] lboundary )
     /\((rEndPos tstate t) [+] safeDist [<=] rboundary ).
 
+Definition motorEvents : nat -> option Event 
+   := localEvts BASEMOTOR.
 
 (** if there is no next event, then it holds forever *)
-Definition holdsUptoNextEvent (prp : Time -> R -> Prop)
-(evs : nat -> option Event) (n: nat) 
 
+Lemma velMessages : 
+  forall n : nat,
+     match getVelFromMsg (motorEvents n) with
+     | Some v => v = 1 \/ v = (0-1)
+     | None => False
+     end.
+Abort.
+  
 
 Close Scope R_scope.
 Close Scope Q_scope.
@@ -248,7 +247,6 @@ Require Import UsefulTypes.
 
 Open Scope R_scope.
 Close Scope Q_scope.
-
 
 
 

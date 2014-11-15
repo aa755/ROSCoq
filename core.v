@@ -317,3 +317,15 @@ match a with
 | Some a' => f a'
 | None => def
 end.
+
+
+Definition nextInterval (tstart : QTime) 
+    (nextMesgTime : option QTime) : interval :=
+match nextMesgTime with
+| Some tm => clcr (QT2R tstart) (QT2R tm)
+| None => closel (QT2R tstart)
+end.
+
+
+Definition nbdAround ( radius center : R) :=
+clcr (radius [-] center) (radius [+] center).
