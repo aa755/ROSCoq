@@ -233,6 +233,11 @@ Definition  TrainSpec (t:Time) : Prop :=
     /\((rEndPos tstate t) [+] safeDist [<=] rboundary ).
 
 
+(** if there is no next event, then it holds forever *)
+Definition holdsUptoNextEvent (prp : Time -> R -> Prop)
+(evs : nat -> option Event) (n: nat) 
+
+
 Close Scope R_scope.
 Close Scope Q_scope.
 Add LoadPath "../../../nuprl/coq".
