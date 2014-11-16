@@ -113,15 +113,20 @@ match m with
                   end
 end.
 
-
-CoFixpoint liftToMesg {InTopic OutTopic} 
+Definition liftToMesg {InTopic OutTopic} 
   (f : SimplePureProcess InTopic OutTopic) 
-    : Process Message (list Message) :=
-buildP ( fun inpMesg : Message => (liftToMesg f,
+    : Message -> (list Message) :=
+( fun inpMesg : Message => 
 match (getPayLoad InTopic inpMesg ) with
 | Some tmesg => cons (existT  _ _ (f tmesg)) nil
 | None => nil
-end)).
+end).
+
+(*
+Definition mkSimplePureRosProc {InTopic OutTopic} 
+  (f : SimplePureProcess InTopic OutTopic) 
+    : Process Message (list Message) :=
+*)
   
 (** There is no code to extract for devices
     These are here to model environment *)

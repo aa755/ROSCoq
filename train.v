@@ -55,7 +55,7 @@ fun side  => match side with
             end.
 
 Definition SwProcess := 
-  liftToMesg SwControllerProgram.
+  mkPureProcess (liftToMesg SwControllerProgram).
 
 Definition digiControllerTiming : 
   ProcessTiming (SwProcess) :=
