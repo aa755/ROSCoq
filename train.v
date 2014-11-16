@@ -265,15 +265,51 @@ Definition  TrainSpec (t:Time) : Prop :=
 Definition motorEvents : nat -> option Event 
    := localEvts BASEMOTOR.
 
-(** if there is no next event, then it holds forever *)
+(*
+Lemma motorOnlyReceives:
+  forall n : nat,
+  match motorEvents n with
+  | Some ev => isRecvEvt ev
+  | None => True
+  end.
+Proof.
+  intros n.
+  unfold motorEvents.
+  pose proof (corrNodes eo BASEMOTOR) as Hnc.
+  unfold NodeBehCorrect in Hnc.
+  simpl in Hnc.
+  unfold DeviceBehaviourCorrect in Hnc.
+  unfold SlowMotorQ in Hnc.
+*)  
+
+(** need to force deque events to happen
+    and also within acceptable time.
+    right now, the motor can disregard
+    all messages *)
 
 Lemma velMessages : 
   forall n : nat,
      match getVelFromMsg (motorEvents n) with
      | Some v => v = 1 \/ v = (0-1)
-     | None => False
+     | None => True
      end.
-Abort.
+Proof.
+  intros n.
+  unfold motorEvents.
+  unfold getVelFromMsg.
+  remember (localEvts BASEMOTOR n) as oev.
+  destruct oev as [ev|]; simpl; auto;[].
+  unfold opBind, getVel.
+  remember (eKind ev) as ek.
+  destruct ek; auto; [].
+  pose proof (corrFIFO eo) as Hfifo.
+  simpl in Hfifo.
+  Abort.
+
+
+
+  
+  
   
 
 Close Scope R_scope.

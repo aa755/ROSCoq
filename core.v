@@ -214,6 +214,22 @@ match rev l with
 | last :: rest => (Some last, rev rest)
 end.
 
+Lemma dequeueIn : forall {A : Type} (lq: list A),
+  let (el,_) := dequeue lq in
+  match el with
+  | Some ld => In ld lq
+  | None => True
+  end.
+Proof.
+  intros. unfold dequeue.
+  remember (rev lq) as lqr.
+  destruct lqr as [| lh ltl];[tauto|].
+  rewrite in_rev.
+  rewrite <- Heqlqr.
+  auto.
+Qed.
+
+
 Require Export CoRN.reals.Q_in_CReals.
 
 Definition Z2R  (n: Z) : R := (inj_Q IR  n).

@@ -103,6 +103,7 @@ Class RosLocType (PhysicalEnvType : Type) ( RosLoc: Type)
      {rldeq : DecEq RosLoc} :=
 {
    locNode: RosLoc -> RosNode;
+
    maxDeliveryDelay : RosLoc -> RosLoc -> option QTime;
    (** a location type should also provide out a way
       to access the way physical quantities
@@ -198,6 +199,132 @@ end.
 Definition CorrectFIFOQueue    :  Prop :=
 forall (l: LocT)
  (upto : nat), fst (CorrectFIFOQueueUpto upto (localEvts l)).
+
+Definition deqMesg (oev : option EV) : option Message :=
+match oev with
+| Some ev => match eKind ev with
+             | deqEvt => Some (eMesg ev)
+             | _ => None
+             end
+| None => None
+end.
+
+Definition enqMesg (oev : option EV) : option Message :=
+match oev with
+| Some ev => match eKind ev with
+             | enqEvt => Some (eMesg ev)
+             | _ => None
+             end
+| None => None
+end.
+
+Require Export Coq.Unicode.Utf8.
+
+Ltac parallelExist Hyp :=
+      match type of Hyp with
+      | exists _ : ?A, _   =>
+            match goal with
+            [ |- exists _ : A, _] =>
+              let xx := fresh "x" in
+              destruct Hyp as [xx Hyp]; exists xx
+             end
+      end.
+
+Ltac parallelForall Hyp :=
+      match type of Hyp with
+      | forall _ : ?A, _   =>
+            match goal with
+            [ |- forall _ : A, _] =>
+              let xx := fresh "x" in
+              intro xx; specialize (Hyp xx)
+             end
+      end.
+
+Ltac Parallel Hyp := 
+  repeat progress (parallelForall Hyp || parallelExist Hyp).
+
+Lemma queueContents : forall  (locEvts: nat -> option EV)
+     (upto : nat),
+   let (prp, queue) := CorrectFIFOQueueUpto upto locEvts  in
+   prp ->
+   forall m, In m queue -> exists n,
+   n< upto /\ (Some m = enqMesg (locEvts n)).
+Proof.
+  induction upto as [| upto' Hind];
+  [simpl; tauto| ].
+  simpl.
+  destruct (CorrectFIFOQueueUpto upto' locEvts)
+    as [prp queue].
+  remember (locEvts upto') as lev.
+  destruct lev as [ev|]; auto;  
+    [| Parallel Hind; destruct Hind; split; trivial; omega].
+  remember (eKind ev) as evk.
+  destruct evk; 
+    [Parallel Hind; destruct Hind; split; trivial; omega | |].
+  - parallelForall Hind. intros m Hin.
+    unfold enqueue.
+    simpl in Hin. destruct Hin as [Hin| Hin].
+    + exists upto'. rewrite <- Heqlev.
+      simpl. rewrite <- Heqevk. split; auto; try omega.
+      symmetry in Hin. rewrite Hin. reflexivity.
+    + apply Hind in Hin.
+      Parallel Hin; destruct Hin; split; trivial; omega.
+  - unfold dequeue. remember (rev queue) as revq.
+    destruct revq as [| revh revt]; intro Hf;
+        [contradiction|].
+    destruct Hf as [Hfp H99]. specialize (Hind Hfp).
+    clear H99. parallelForall Hind.
+    rewrite in_rev in Hind.
+    rewrite <- Heqrevq in Hind.
+    simpl in Hind.
+    intro Hin. rewrite <- in_rev  in Hin.
+    specialize (Hind (or_intror Hin)).
+    Parallel Hind; destruct Hind; split; trivial; omega.
+Qed.
+
+Lemma deqEnq : CorrectFIFOQueue
+  -> ∀ (l: LocT) (deqIndex : nat),
+    match deqMesg (localEvts l deqIndex) with
+    | None => True
+    | Some m => ∃ evEnq,(eLocIndex evEnq) < deqIndex ∧
+              (m = eMesg evEnq)
+     end.
+Proof.
+ intros Hc l dn. specialize (Hc l).
+ destruct dn.
+- specialize (Hc 1).
+  simpl in Hc.
+  destruct (localEvts l 0) as [ev|] ;auto.
+  unfold deqMesg. simpl.
+  destruct (eKind ev); simpl in Hc; tauto.
+- specialize (Hc (S (S dn))). 
+  remember (S dn) as sdn.
+  simpl in Hc.
+  pose proof  (queueContents (localEvts l) sdn) as Hdq.
+  destruct  (CorrectFIFOQueueUpto sdn (localEvts l))
+      as [prp que].
+  destruct (localEvts l sdn) as [ev|]; simpl;[|tauto].
+  destruct (eKind ev); try tauto;[].
+  pose proof (dequeueIn que) as Hqin.
+  destruct (dequeue que) as [oqm  ].
+  destruct oqm;simpl in Hc; [| contradiction].
+  destruct Hc as [Hcp Heq]. rewrite <- Heq.
+  specialize (Hdq Hcp m Hqin). clear Hqin.
+  clear Heq.
+  destruct Hdq as [n Hdq]. clear ev.
+  remember (localEvts l n) as oev.
+  destruct Hdq as [Hlt Heq].
+  unfold enqMesg in Heq.
+  destruct oev as [ev |];[| inversion Heq; fail].
+  exists ev.
+  destruct (eKind ev); inversion Heq as [Heqm]; 
+  clear Heq. split; auto.
+  symmetry in Heqoev.
+  apply locEvtIndex in Heqoev.
+  destruct Heqoev as [? Heqq].
+  rewrite  Heqq.
+  trivial.
+Qed.
 
 (** A node only receives meeages from subscribed topics *)
 
