@@ -287,7 +287,8 @@ Lemma deqEnq : CorrectFIFOQueue
     match deqMesg (localEvts l deqIndex) with
     | None => True
     | Some m => ∃ evEnq,(eLocIndex evEnq) < deqIndex ∧
-              (m = eMesg evEnq)
+              (m = eMesg evEnq) /\ eKind evEnq = enqEvt
+              /\ eLoc evEnq = l
      end.
 Proof.
  intros Hc l dn. specialize (Hc l).
@@ -317,11 +318,11 @@ Proof.
   unfold enqMesg in Heq.
   destruct oev as [ev |];[| inversion Heq; fail].
   exists ev.
-  destruct (eKind ev); inversion Heq as [Heqm]; 
-  clear Heq. split; auto.
   symmetry in Heqoev.
   apply locEvtIndex in Heqoev.
   destruct Heqoev as [? Heqq].
+  destruct (eKind ev); inversion Heq as [Heqm]; 
+  clear Heq. split; auto.
   rewrite  Heqq.
   trivial.
 Qed.

@@ -39,6 +39,15 @@ Definition getLastOutput  {In Out : Type}
   let procBeforeLast := getNewProcL p prefix in
   getOutput procBeforeLast last.
 
+Lemma getLastOutputPute : forall
+    {In Out : Type}
+    (p: Process In Out)
+    (prefix : list In)
+    (last : In) : Out :=
+  let procBeforeLast := getNewProcL p prefix in
+  getOutput procBeforeLast last.
+
+
 Definition getLastOutputL  {In Out : Type}
     (p: Process In (list Out)) 
     (allInputs : list In)  : list Out :=

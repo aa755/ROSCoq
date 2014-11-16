@@ -105,9 +105,11 @@ match (eKind e) with
 end.
 
 
-
 Definition getVelFromMsg (oev : option Event) : option Q  :=
-(opBind getVel oev).
+match (deqMesg oev) with
+| Some m => getVelM m
+| _ => None
+end.
 
 Definition getVelAndTime (oev : option Event) 
     : option (Q * QTime)  :=
@@ -282,6 +284,23 @@ Proof.
   unfold SlowMotorQ in Hnc.
 *)  
 
+
+Ltac TrimAndRHS Hyp :=
+let H99 := fresh "H99" in 
+destruct Hyp as [Hyp H99]; clear H99.
+
+Ltac TrimAndLHS Hyp :=
+let H99 := fresh "H99" in 
+destruct Hyp as [H99 Hyp]; clear H99.
+
+Ltac repnd :=
+  repeat match goal with
+           | [ H : _ /\ _ |- _ ] =>
+            let lname := fresh H "l" in 
+            let rname := fresh H "r" in 
+              destruct H as [lname rname]
+         end.
+
 (** need to force deque events to happen
     and also within acceptable time.
     right now, the motor can disregard
@@ -297,12 +316,87 @@ Proof.
   intros n.
   unfold motorEvents.
   unfold getVelFromMsg.
-  remember (localEvts BASEMOTOR n) as oev.
-  destruct oev as [ev|]; simpl; auto;[].
-  unfold opBind, getVel.
-  remember (eKind ev) as ek.
-  destruct ek; auto; [].
+  (** the message of this deque event must have come
+      from a prior enque event as evEnq*)
   pose proof (corrFIFO eo) as Hfifo.
+  pose proof (deqEnq Hfifo BASEMOTOR n) as Henq.
+  remember (deqMesg (localEvts BASEMOTOR n)) as om.
+  destruct om as [ sm| ];[| auto].
+  destruct Henq as [evEnq Henq].
+  clear Hfifo.
+  (** someone must have sent this message
+      which is contained in the receive (enque)
+      event evEnq. let the sent message
+      be [sm] and the corresponding event be [es] *)
+  pose proof (recvSend eo evEnq) as Hrecv.
+  destruct Hrecv as [es Hrecv].
+  TrimAndRHS Hrecv.
+  unfold PossibleSendRecvPair in Hrecv.
+  repnd.
+  rewrite Henqrrl in Hrecv.
+  rewrite Henqrrr in Hrecv.
+  rewrite <- Henqrl in Hrecv.
+  clear Henqrrl Henqrl Henqrrr.
+  remember (eKind es) as eks.
+  destruct eks; try contradiction;[].
+  simpl in Hrecv.
+  repnd. clear Hrecvrrr.
+  (** since [BASEMOTOR] only receives on [MOTOR]
+      topic, the message [sm] must have that topic *)
+  unfold validRecvMesg in Hrecvrl.
+  simpl in Hrecvrl.
+  unfold validSendMesg in Hrecvrrl.
+  destruct Hrecvrl as [Hmt | ?];[| contradiction].
+  rewrite Hrecvl in Hrecvrrl.
+  rewrite <- Hmt in Hrecvrrl.
+  remember (eLoc es) as sloc.
+  (** Only [SWCONTROLLER] sends on that topic *)
+  destruct sloc; simpl in Hrecvrrl;
+    try contradiction;
+    inversion Hrecvrrl; 
+    try discriminate;
+    try contradiction;[].
+  clear H Hrecvrrl.
+  
+Lemma swControllerMessages : 
+  forall es : Event,
+  SWCONTROLLER = eLoc es
+  -> sendEvt = eKind es
+  -> match getVelM (eMesg es) with
+     | Some v => v = 1 \/ v = (0-1)
+     | None => True
+     end.
+Proof.
+  intros es Hsw Hsend.
+  pose proof (locEvtIndex 
+                SWCONTROLLER 
+                (eLocIndex es) 
+                es) as Hiff.
+  TrimAndRHS Hiff.
+  symmetry in Hsw.
+  specialize (Hiff (conj Hsw eq_refl)).
+  pose proof (corrNodes 
+                  eo 
+                  SWCONTROLLER 
+                  (eLocIndex es)) as Hnc.
+  rewrite Hiff in Hnc.
+  rewrite <- Hsend in Hnc.
+  destruct 
+    (prevProcessedEvents 
+        (S (eLocIndex es)) 
+        (localEvts SWCONTROLLER)) 
+    as [|last procEvts];
+  simpl in Hnc; [contradiction|].
+
+
+ 
+  inversion Hrecvrrl.
+  
+  
+
+  destruct oev as [ev|]; [|simpl;auto; fail].
+  destruct ek; auto; [].
+
   simpl in Hfifo.
   Abort.
 
