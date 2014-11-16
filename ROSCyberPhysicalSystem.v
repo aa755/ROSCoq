@@ -404,18 +404,20 @@ Definition CorrectSWNodeBehaviour
       match (eKind ev) with
         | deqEvt =>  
             exists len, let sEvts := (futureSends (eLocIndex ev) len locEvts) in
-                        map eMesg sEvts = lastOutMsgs
-                        /\ match (rev sEvts) with
-                            | hsm :: _ => (eTime hsm <
-                                                   (eTime ev) +
-                                                        (pTiming swNode (eMesg ev)))
-                            | nil => True
-                            end
+                    map eMesg sEvts = lastOutMsgs
+                    /\ match (rev sEvts) with
+                        | hsm :: _ => 
+                                (eTime hsm <
+                                         (eTime ev) +
+                                              (pTiming swNode (eMesg ev)))
+                        | nil => True
+                        end
 
         | sendEvt => 
           match procEvts with
           | nil => False
-          | last :: _ => 
+          | last :: _ =>
+    (** NOT REQD; DERIVABLE*) In (eMesg ev) lastOutMsgs /\
               length (sendsInRange (eLocIndex last)  evIndex locEvts)
                  <= length lastOutMsgs 
           end

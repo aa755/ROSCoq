@@ -32,6 +32,19 @@ match linp with
 | hi::tli => getNewProc (getNewProcL p tli) hi
 end.
 
+Lemma getNewProcLPure : forall
+    {In Out : Type}
+    (f : In -> Out)
+    (prefix : list In),
+  getNewProcL (mkPureProcess f) prefix = (mkPureProcess f).
+Proof.
+  induction prefix; simpl;[ reflexivity| ].
+  rewrite IHprefix.
+  unfold getNewProc.
+  simpl. reflexivity.
+Qed.
+
+
 Definition getLastOutput  {In Out : Type}
     (p: Process In Out) 
     (prefix : list In) 
@@ -39,13 +52,19 @@ Definition getLastOutput  {In Out : Type}
   let procBeforeLast := getNewProcL p prefix in
   getOutput procBeforeLast last.
 
-Definition getLastOutputPure
+Lemma getLastOutputPure : forall
     {In Out : Type}
-    (p: Process In Out)
+    (f : In -> Out)
     (prefix : list In)
-    (last : In) : Out :=
-  let procBeforeLast := getNewProcL p prefix in
-  getOutput procBeforeLast last.
+    (last : In),
+  getLastOutput (mkPureProcess f) prefix last
+  = f last.
+Proof.
+  intros.
+  unfold getLastOutput.
+  rewrite getNewProcLPure.
+  reflexivity.
+Qed.
 
 
 Definition getLastOutputL  {In Out : Type}

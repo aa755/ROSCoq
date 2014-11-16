@@ -306,6 +306,48 @@ Ltac repnd :=
     right now, the motor can disregard
     all messages *)
 
+Lemma swControllerMessages : 
+  forall es : Event,
+  SWCONTROLLER = eLoc es
+  -> sendEvt = eKind es
+  -> match getVelM (eMesg es) with
+     | Some v => v = 1 \/ v = (0-1)
+     | None => True
+     end.
+Proof.
+  intros es Hsw Hsend.
+  pose proof (locEvtIndex 
+                SWCONTROLLER 
+                (eLocIndex es) 
+                es) as Hiff.
+  TrimAndRHS Hiff.
+  symmetry in Hsw.
+  specialize (Hiff (conj Hsw eq_refl)).
+  pose proof (corrNodes 
+                  eo 
+                  SWCONTROLLER 
+                  (eLocIndex es)) as Hnc.
+  rewrite Hiff in Hnc.
+  rewrite <- Hsend in Hnc.
+  remember 
+    (prevProcessedEvents 
+        (S (eLocIndex es)) 
+        (localEvts SWCONTROLLER)) 
+    as prevProcs.
+  destruct prevProcs as [|last procEvts];
+  simpl in Hnc; [contradiction|].
+  unfold SwProcess in Hnc.
+  rewrite getLastOutputPure in Hnc.
+  TrimAndRHS Hnc.
+  unfold SwControllerProgram in Hnc.
+  unfold liftToMesg in Hnc.
+  destruct (getPayLoad PSENSOR (eMesg last));
+    simpl in Hnc;[| contradiction].
+  destruct Hnc as [Hnc | ?]; [| contradiction].
+  rewrite <- Hnc.
+  simpl. destruct t;[right| left]; reflexivity.
+Qed.
+
 Lemma velMessages : 
   forall n : nat,
      match getVelFromMsg (motorEvents n) with
@@ -357,50 +399,10 @@ Proof.
     try discriminate;
     try contradiction;[].
   clear H Hrecvrrl.
-  
-Lemma swControllerMessages : 
-  forall es : Event,
-  SWCONTROLLER = eLoc es
-  -> sendEvt = eKind es
-  -> match getVelM (eMesg es) with
-     | Some v => v = 1 \/ v = (0-1)
-     | None => True
-     end.
-Proof.
-  intros es Hsw Hsend.
-  pose proof (locEvtIndex 
-                SWCONTROLLER 
-                (eLocIndex es) 
-                es) as Hiff.
-  TrimAndRHS Hiff.
-  symmetry in Hsw.
-  specialize (Hiff (conj Hsw eq_refl)).
-  pose proof (corrNodes 
-                  eo 
-                  SWCONTROLLER 
-                  (eLocIndex es)) as Hnc.
-  rewrite Hiff in Hnc.
-  rewrite <- Hsend in Hnc.
-  destruct 
-    (prevProcessedEvents 
-        (S (eLocIndex es)) 
-        (localEvts SWCONTROLLER)) 
-    as [|last procEvts];
-  simpl in Hnc; [contradiction|].
-
-
- 
-  inversion Hrecvrrl.
-  
-  
-
-  destruct oev as [ev|]; [|simpl;auto; fail].
-  destruct ek; auto; [].
-
-  simpl in Hfifo.
-  Abort.
-
-
+  apply swControllerMessages in Heqeks;
+    [| trivial].
+  rewrite <- Hrecvl. trivial.
+Qed.
 
   
   
