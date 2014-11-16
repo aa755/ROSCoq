@@ -47,22 +47,22 @@ Defined.
 (** it is a pure function that repeatedly
    reads a message from the [PSENSOR] topic
    and publish on the [MOTOR] *)
-Definition SwControllerProgram :
+Definition SwControllerProgram (speed : Q):
   SimplePureProcess PSENSOR MOTOR :=
 fun side  => match side with
-            | true => 0 - 1
-            | false => 1
+            | true => 0 - speed
+            | false => speed
             end.
 
-Definition SwProcess := 
-  mkPureProcess (liftToMesg SwControllerProgram).
+Definition SwProcess (speed : Q):= 
+  mkPureProcess (liftToMesg (SwControllerProgram speed)).
 
-Definition digiControllerTiming : 
-  ProcessTiming (SwProcess) :=
+Definition digiControllerTiming (speed : Q) : 
+  ProcessTiming (SwProcess speed) :=
  fun m => (N2QTime 1).
 
-Definition ControllerNodeAux : RosSwNode :=
-  Build_RosSwNode digiControllerTiming.
+Definition ControllerNodeAux (speed : Q): RosSwNode :=
+  Build_RosSwNode (digiControllerTiming speed).
 
 
  
@@ -87,10 +87,10 @@ Context
  `{etype : @EventType _ _ _ Event RosLoc minGap tdeq}.
 
 
-Definition ControllerNode :  @RosNode _ _ _ Event.
+Definition ControllerNode (speed : Q):  @RosNode _ _ _ Event.
   constructor.
   - exact (Build_TopicInfo (PSENSOR::nil) (MOTOR::nil)).
-  - left. exact ControllerNodeAux.
+  - left. exact (ControllerNodeAux speed).
 Defined.
 
 (** In some cases, the equations might invove transcendental 
@@ -209,6 +209,7 @@ Variable alertDist : R.
 Variable safeDist : R.
 Variable maxDelay : R.
 Variable hwidth : R. (* half of width *)
+Variable speed : Q.
 
 Open Scope Q_scope.
 
@@ -241,7 +242,7 @@ match rl with
            rnode := (inr  (existT  _ _ 
                (ProximitySensor alertDist maxDelay false)))|}
 
-| SWCONTROLLER => ControllerNode
+| SWCONTROLLER => ControllerNode speed
 end.
 
 Instance rllllfjkfhsdakfsdakh : 
@@ -311,7 +312,7 @@ Lemma swControllerMessages :
   SWCONTROLLER = eLoc es
   -> sendEvt = eKind es
   -> match getVelM (eMesg es) with
-     | Some v => v = 1 \/ v = (0-1)
+     | Some v => v = speed \/ v = (0-speed)
      | None => True
      end.
 Proof.
@@ -348,10 +349,10 @@ Proof.
   simpl. destruct t;[right| left]; reflexivity.
 Qed.
 
-Lemma velMessages : 
+Lemma velMessages:
   forall n : nat,
      match getVelFromMsg (motorEvents n) with
-     | Some v => v = 1 \/ v = (0-1)
+     | Some v => v = speed \/ v = (0-speed)
      | None => True
      end.
 Proof.
