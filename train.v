@@ -217,8 +217,14 @@ Variable reactionTimeGap : reactionTime < minGap.
 Definition lEndPos (ts : TrainState) (t : Time) : R :=
 (getF (posX ts) t [-]  hwidth).
 
+Definition velAtTime (ts : TrainState) (t : Time) : R :=
+(getF (velX ts) t).
+
+Definition velBound : interval :=
+(nbdAround [0] (Q2R speed [+] velAccuracy)).
+
 Definition transitionInterval : interval :=
-(clcr ([0] [-] [1]) [1]).
+  velBound.
 
 
 Definition rEndPos (ts : TrainState) (t : Time) : R :=
@@ -405,7 +411,15 @@ Proof.
   rewrite <- Hrecvl. trivial.
 Qed.
 
-  
+Lemma  TrainVelBounded : forall (t:QTime),
+   velBound (velAtTime tstate t).
+Proof.
+  intro t.
+  pose proof (corrNodes 
+                  eo 
+                  BASEMOTOR t) as Hnc.
+  unfold corrSinceLastVel in Hnc.
+Abort.
   
   
 
