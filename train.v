@@ -105,11 +105,12 @@ match (eKind e) with
 end.
 
 
-Definition getVelFromMsg (oev : option Event) : option Q  :=
-match (deqMesg oev) with
-| Some m => getVelM m
-| _ => None
-end.
+Definition getVelFromEv (oev : Event) : option Q  :=
+opBind getVelM (deqMesg oev).
+
+Definition getVelFromMsg : (option Event) ->  option Q  :=
+opBind getVelFromEv.
+
 
 Definition getVelAndTime (oev : option Event) 
     : option (Q * QTime)  :=
@@ -228,18 +229,22 @@ Variable reactionTimeGap : reactionTime < minGap.
 Definition lEndPos (ts : TrainState) (t : Time) : R :=
 (getF (posX ts) t [-]  hwidth).
 
+Definition rEndPos (ts : TrainState) (t : Time) : R :=
+  (getF (posX ts) t [+]  hwidth).
+
 Definition velAtTime (ts : TrainState) (t : Time) : R :=
-(getF (velX ts) t).
+  (getF (velX ts) t).
+
+Definition centerPosAtTime (ts : TrainState) (t : Time) : R :=
+  (getF (posX ts) t).
 
 Definition velBound : interval :=
-(nbdAround [0] (Q2R speed [+] velAccuracy)).
+  (nbdAround [0] (Q2R speed [+] velAccuracy)).
 
 Definition transitionInterval : interval :=
   velBound.
 
 
-Definition rEndPos (ts : TrainState) (t : Time) : R :=
-(getF (posX ts) t [+]  hwidth).
 
 Definition locNode (rl : RosLoc) : RosNode :=
 match rl with
@@ -376,12 +381,18 @@ Proof.
   intros n.
   unfold motorEvents.
   unfold getVelFromMsg.
+  unfold getVelFromEv.
   (** the message of this deque event must have come
       from a prior enque event as evEnq*)
   pose proof (corrFIFO eo) as Hfifo.
   pose proof (deqEnq Hfifo BASEMOTOR n) as Henq.
-  remember (deqMesg (localEvts BASEMOTOR n)) as om.
-  destruct om as [ sm| ];[| auto].
+  unfold deqMesgOp in Henq.
+  unfold opBind.
+  unfold opBind in Henq.
+  remember (localEvts BASEMOTOR n)  as oev.
+  destruct oev as [ ev| ]; [| auto; fail].
+  remember (deqMesg ev)  as om.
+  destruct om as [ sm| ]; [| auto; fail].
   destruct Henq as [evEnq Henq].
   clear Hfifo.
   (** someone must have sent this message
@@ -389,10 +400,11 @@ Proof.
       event evEnq. let the sent message
       be [sm] and the corresponding event be [es] *)
   pose proof (recvSend eo evEnq) as Hrecv.
-  destruct Hrecv as [es Hrecv].
+  repnd.
+  destruct Hrecv as [es Hrecv];
+    [unfold isRecvEvt; rewrite Henqrrl; auto |].
   TrimAndRHS Hrecv.
   unfold PossibleSendRecvPair in Hrecv.
-  repnd.
   rewrite Henqrrl in Hrecv.
   rewrite Henqrrr in Hrecv.
   rewrite <- Henqrl in Hrecv.
@@ -431,21 +443,56 @@ Proof.
                   BASEMOTOR t) as Hnc.
   unfold corrSinceLastVel in Hnc.
 Abort.
-  
+
+Definition MotorRecievesPositivVelAtLHS (ev : Event)  :=
+match (eLoc  ev) with
+| BASEMOTOR => match getVelFromEv ev with
+               | Some v => v = speed
+                  -> (centerPosAtTime tstate (eTime ev)) [<] [0]
+               | None => True
+               end
+| SWCONTROLLER => match getVelM (eMesg ev) with
+                  | Some q => match eKind ev with
+                              | sendEvt => 
+                                  (centerPosAtTime tstate (eTime ev)) [<] Z2R (0-2)
+                              | deqEvt => 
+                                  (centerPosAtTime tstate (eTime ev)) [<] Z2R (0-4)
+                              | _ => True
+                              end
+                  | None => True
+                  end
+| _ => True
+end.
+
+Lemma  PosVelAtNegPos : forall (ev : Event),
+          MotorRecievesPositivVelAtLHS ev.
+Proof.
+  induction ev as [ev Hind] using 
+    (@well_founded_induction_type Event (causedBy eo) (causalWf eo)) .
+  unfold MotorRecievesPositivVelAtLHS.
+  remember (eLoc ev) as evloc.
+  destruct evloc; simpl; auto.
+  - unfold getVelFromEv. unfold deqMesg.
+    remember (eKind ev) as eks.
+    destruct eks; simpl; auto;[].
+    
+
+Abort.  
+
+(*  
 Lemma  TrainVelBounded : forall (e : Event) (t: QTime),
     t <= (eTime e)
    -> velBound (velAtTime tstate t).
 Proof.
-  induction e using (@well_founded_induction_type Event (causedBy eo) (causalWf eo)).
-
-  induction e using (causalWf eo).
+  induction e using 
+    (@well_founded_induction_type Event (causedBy eo) (causalWf eo)).
 
   pose proof (corrNodes 
                   eo 
                   BASEMOTOR t) as Hnc.
   unfold corrSinceLastVel in Hnc.
 Abort.
-  
+*)  
 
 Close Scope R_scope.
 Close Scope Q_scope.
