@@ -121,19 +121,30 @@ match oev with
 | None => None
 end.
 
+
+(** [side] is just an identifier *)
 Definition ProximitySensor (alertDist maxDelay: R) (side : bool)
   : @Device Event R :=
 fun  (distanceAtTime : Time -> R)  
      (evs : nat -> option Event) 
     =>
       (forall t:Time,
-       Cast (distanceAtTime t  [>]  alertDist)
-       <-> exists n,
+         (distanceAtTime t  [>]  alertDist)
+         -> exists n,
+              match (evs n) with
+            | Some ev => Cast ((olcr t (t [+] maxDelay)) (Q2R (eTime ev)))
+                  /\ isSendOnTopic PSENSOR (fun b => b = side) ev
+            | None => False
+            end)
+      /\
+      (forall (n: nat),
             match (evs n) with
-          | Some ev => Cast (Q2R (eTime ev) [<] (t [+] maxDelay)) 
-                /\ isSendOnTopic PSENSOR (fun b => b = side) ev
-          | None => False
-          end).
+            | Some ev => isSendOnTopic PSENSOR (fun b => b = side) ev
+                         /\ exists (t : QTime),
+                              Cast ((olcr (Q2R t) ((Q2R t) [+] maxDelay)) (Q2R (eTime ev)))
+                         /\ Cast (distanceAtTime t  [>]  alertDist)
+            | None => False
+            end).
 
 
 Definition inIntervalDuringInterval
