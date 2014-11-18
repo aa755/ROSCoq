@@ -127,13 +127,13 @@ fun  (distanceAtTime : Time -> R)
      (evs : nat -> option Event) 
     =>
       (forall t:Time,
-       (distanceAtTime t  [>]  alertDist)
-       -> exists n,
+       Cast (distanceAtTime t  [>]  alertDist)
+       <-> exists n,
             match (evs n) with
-            | Some ev => Cast (Q2R (eTime ev) [<] (t [+] maxDelay)) 
-                  /\ isSendOnTopic PSENSOR (fun b => b = side) ev
-            | None => False
-            end).
+          | Some ev => Cast (Q2R (eTime ev) [<] (t [+] maxDelay)) 
+                /\ isSendOnTopic PSENSOR (fun b => b = side) ev
+          | None => False
+          end).
 
 
 Definition inIntervalDuringInterval
@@ -421,6 +421,19 @@ Proof.
   unfold corrSinceLastVel in Hnc.
 Abort.
   
+Lemma  TrainVelBounded : forall (e : Event) (t: QTime),
+    t <= (eTime e)
+   -> velBound (velAtTime tstate t).
+Proof.
+  induction e using (@well_founded_induction_type Event (causedBy eo) (causalWf eo)).
+
+  induction e using (causalWf eo).
+
+  pose proof (corrNodes 
+                  eo 
+                  BASEMOTOR t) as Hnc.
+  unfold corrSinceLastVel in Hnc.
+Abort.
   
 
 Close Scope R_scope.
