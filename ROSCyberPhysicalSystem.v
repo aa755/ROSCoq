@@ -159,7 +159,7 @@ end.
 
 Definition isRecvEvt (ev: EV) :Prop :=
 match (eKind ev) with
-| enqEvt => True
+| enqEvt => True (** !!FIX!! this should be False *)
 | deqEvt => True
 | _ => False
 end.
@@ -200,23 +200,30 @@ Definition CorrectFIFOQueue    :  Prop :=
 forall (l: LocT)
  (upto : nat), fst (CorrectFIFOQueueUpto upto (localEvts l)).
 
-Definition deqMesg (oev : option EV) : option Message :=
-match oev with
-| Some ev => match eKind ev with
-             | deqEvt => Some (eMesg ev)
-             | _ => None
-             end
-| None => None
+Definition deqMesg (ev : EV) : option Message :=
+match eKind ev with
+ | deqEvt => Some (eMesg ev)
+ | _ => None
 end.
 
-Definition enqMesg (oev : option EV) : option Message :=
-match oev with
-| Some ev => match eKind ev with
-             | enqEvt => Some (eMesg ev)
-             | _ => None
-             end
-| None => None
+Definition enqMesg (ev : EV) : option Message :=
+match eKind ev with
+| enqEvt => Some (eMesg ev)
+| _ => None
 end.
+
+Definition sentMesg (ev : EV) : option Message :=
+match eKind ev with
+| sendEvt => Some (eMesg ev)
+| _ => None
+end.
+
+(* these notations have to be defined again at the end of the section *)
+Definition deqMesgOp := (opBind deqMesg).
+Definition enqMesgOp := (opBind enqMesg).
+Definition sentMesgOp := (opBind sentMesg).
+
+
 
 Require Export Coq.Unicode.Utf8.
 
@@ -248,7 +255,7 @@ Lemma queueContents : forall  (locEvts: nat -> option EV)
    let (prp, queue) := CorrectFIFOQueueUpto upto locEvts  in
    prp ->
    forall m, In m queue -> exists n,
-   n< upto /\ (Some m = enqMesg (locEvts n)).
+   n< upto /\ (Some m = enqMesgOp (locEvts n)).
 Proof.
   induction upto as [| upto' Hind];
   [simpl; tauto| ].
@@ -265,7 +272,7 @@ Proof.
     unfold enqueue.
     simpl in Hin. destruct Hin as [Hin| Hin].
     + exists upto'. rewrite <- Heqlev.
-      simpl. rewrite <- Heqevk. split; auto; try omega.
+      simpl. unfold enqMesg. rewrite <- Heqevk. split; auto; try omega.
       symmetry in Hin. rewrite Hin. reflexivity.
     + apply Hind in Hin.
       Parallel Hin; destruct Hin; split; trivial; omega.
@@ -284,14 +291,14 @@ Qed.
 
 Lemma deqEnq : CorrectFIFOQueue
   -> ∀ (l: LocT) (deqIndex : nat),
-    match deqMesg (localEvts l deqIndex) with
+    match deqMesgOp (localEvts l deqIndex) with
     | None => True
     | Some m => ∃ evEnq,(eLocIndex evEnq) < deqIndex ∧
               (m = eMesg evEnq) /\ eKind evEnq = enqEvt
               /\ eLoc evEnq = l
      end.
 Proof.
- intros Hc l dn. specialize (Hc l).
+ intros Hc l dn. unfold deqMesgOp. specialize (Hc l).
  destruct dn.
 - specialize (Hc 1).
   simpl in Hc.
@@ -305,7 +312,7 @@ Proof.
   destruct  (CorrectFIFOQueueUpto sdn (localEvts l))
       as [prp que].
   destruct (localEvts l sdn) as [ev|]; simpl;[|tauto].
-  destruct (eKind ev); try tauto;[].
+  unfold deqMesg. destruct (eKind ev); try tauto;[].
   pose proof (dequeueIn que) as Hqin.
   destruct (dequeue que) as [oqm  ].
   destruct oqm;simpl in Hc; [| contradiction].
@@ -320,8 +327,8 @@ Proof.
   exists ev.
   symmetry in Heqoev.
   apply locEvtIndex in Heqoev.
-  destruct Heqoev as [? Heqq].
-  destruct (eKind ev); inversion Heq as [Heqm]; 
+  destruct Heqoev as [? Heqq]. simpl in Heq. unfold enqMesg in Heq.
+  destruct (eKind ev);  inversion Heq as [Heqm]; 
   clear Heq. split; auto.
   rewrite  Heqq.
   trivial.
@@ -456,6 +463,7 @@ Definition AllNodeBehCorrect : Prop:=
 Definition PossibleSendRecvPair
   (Es  Er : EV) : Prop :=
 match (eKind Es, eKind Er) with
+(** !!FIX!! this should be [enqEvt], [deqEvt] is just a temporary simplification *)
 | (sendEvt, enqEvt) =>
    (eMesg Es = eMesg Er)
    /\ (validRecvMesg (topicInf (locNode (eLoc Er))) (eMesg Er))
@@ -479,13 +487,17 @@ Record PossibleEventOrder  := {
         causedBy e1 e2
         -> eTime e1 < eTime e1;
 
-    eventualDelivery: forall (Es : EV), exists (Er : EV),
-          PossibleSendRecvPair Es Er
-          /\ causedBy Es Er;
+    eventualDelivery: forall (Es : EV),
+          isSendEvt Es
+          ->  exists (Er : EV),
+              PossibleSendRecvPair Es Er
+              /\ causedBy Es Er;
 
-    recvSend: forall (Er : EV), exists (Es : EV),
-          PossibleSendRecvPair Es Er
-          /\ causedBy Es Er;
+    recvSend: forall (Er : EV),
+          isRecvEvt Er
+          ->  exists (Es : EV),
+                  PossibleSendRecvPair Es Er
+                  /\ causedBy Es Er;
 
     corrFIFO : CorrectFIFOQueue;
     corrNodes : AllNodeBehCorrect;
