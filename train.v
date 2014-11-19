@@ -371,6 +371,8 @@ Proof.
   simpl. destruct t;[right| left]; reflexivity.
 Qed.
 
+
+(** this is a correct proof; only temporarily wrong *)
 Lemma velMessages:
   forall n : nat,
      match getVelFromMsg (motorEvents n) with
@@ -382,33 +384,21 @@ Proof.
   unfold motorEvents.
   unfold getVelFromMsg.
   unfold getVelFromEv.
-  (** the message of this deque event must have come
-      from a prior enque event as evEnq*)
-  pose proof (corrFIFO eo) as Hfifo.
-  pose proof (deqEnq Hfifo BASEMOTOR n) as Henq.
-  unfold deqMesgOp in Henq.
-  unfold opBind.
-  unfold opBind in Henq.
   remember (localEvts BASEMOTOR n)  as oev.
-  destruct oev as [ ev| ]; [| auto; fail].
+  destruct oev as [ ev| ]; simpl; [| auto; fail].
   remember (deqMesg ev)  as om.
-  destruct om as [ sm| ]; [| auto; fail].
-  destruct Henq as [evEnq Henq].
-  clear Hfifo.
+  destruct om as [ sm| ]; simpl; [| auto; fail].
   (** someone must have sent this message
       which is contained in the receive (enque)
       event evEnq. let the sent message
       be [sm] and the corresponding event be [es] *)
-  pose proof (recvSend eo evEnq) as Hrecv.
+  pose proof (recvSend eo ev) as Hrecv.
   repnd.
   destruct Hrecv as [es Hrecv];
-    [unfold isRecvEvt; rewrite Henqrrl; auto |].
+    [ apply (deqIsRecvEvt  _ Heqom) |].
   TrimAndRHS Hrecv.
   unfold PossibleSendRecvPair in Hrecv.
-  rewrite Henqrrl in Hrecv.
-  rewrite Henqrrr in Hrecv.
-  rewrite <- Henqrl in Hrecv.
-  clear Henqrrl Henqrl Henqrrr.
+  rewrite (deqMesgSome _ Heqom ) in Hrecv.
   remember (eKind es) as eks.
   destruct eks; try contradiction;[].
   simpl in Hrecv.
@@ -418,21 +408,22 @@ Proof.
   unfold validRecvMesg in Hrecvrl.
   simpl in Hrecvrl.
   unfold validSendMesg in Hrecvrrl.
-  destruct Hrecvrl as [Hmt | ?];[| contradiction].
   rewrite Hrecvl in Hrecvrrl.
-  rewrite <- Hmt in Hrecvrrl.
-  remember (eLoc es) as sloc.
+(*  remember (eLoc es) as sloc.
   (** Only [SWCONTROLLER] sends on that topic *)
   destruct sloc; simpl in Hrecvrrl;
     try contradiction;
     inversion Hrecvrrl; 
     try discriminate;
-    try contradiction;[].
+    try contradiction.
   clear H Hrecvrrl.
   apply swControllerMessages in Heqeks;
     [| trivial].
   rewrite <- Hrecvl. trivial.
 Qed.
+*)
+
+Abort.
 
 Lemma  TrainVelBounded : forall (t:QTime),
    velBound (velAtTime tstate t).
@@ -464,6 +455,41 @@ match (eLoc  ev) with
 | _ => True
 end.
 
+Lemma RemoveOrFalse : forall A , A \/ False <-> A.
+Proof.
+  tauto.
+Qed.
+
+
+Lemma MotorOnlyReceivesFromSw :   forall Es Er,
+  PossibleSendRecvPair Es Er
+  -> BASEMOTOR = eLoc Er
+  -> deqEvt = eKind Er
+  -> (eLoc Es) = SWCONTROLLER.
+Proof.
+  intros ? ? Hsendl Hl Heqeks.
+  unfold PossibleSendRecvPair in Hsendl.
+  rewrite <- Heqeks in Hsendl.
+  remember (eKind Es) as eKs.
+  destruct eKs; try contradiction;[].
+  repnd.
+  rewrite <- Hl in Hsendlrl.
+  simpl in Hsendlrl.
+  unfold validRecvMesg in Hsendlrl.
+  simpl in Hsendlrl.
+  rewrite RemoveOrFalse in Hsendlrl.
+  unfold validSendMesg in Hsendlrrl.
+  rewrite Hsendll in Hsendlrrl.
+  rewrite <- Hsendlrl in Hsendlrrl.
+  destruct (eLoc Es); simpl in Hsendlrrl;
+    try contradiction;
+    inversion Hsendlrrl; 
+    try discriminate;
+    try contradiction.
+  reflexivity.
+Qed.
+
+
 Lemma  PosVelAtNegPos : forall (ev : Event),
           MotorRecievesPositivVelAtLHS ev.
 Proof.
@@ -474,8 +500,24 @@ Proof.
   destruct evloc; simpl; auto.
   - unfold getVelFromEv. unfold deqMesg.
     remember (eKind ev) as eks.
-    destruct eks; simpl; auto;[].
+    destruct eks; simpl; auto.
+    pose proof (recvSend eo ev) as Hsend.
+    unfold isRecvEvt in Hsend.
+    rewrite <- Heqeks in Hsend.
+    specialize (Hsend I).
+    destruct Hsend as [Es Hsend].
+    repnd.
+    apply Hind in Hsendr. clear Hind.
+    unfold PossibleSendRecvPair in Hsendl.
+    rewrite <- Heqeks in Hsendl.
+    remember (eKind Es) as eKs.
+    destruct eKs; try contradiction;[].
+
+
     
+    
+    
+
 
 Abort.  
 

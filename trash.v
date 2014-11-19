@@ -104,3 +104,68 @@ Definition InpDevBehaviourCorrect
   forall n, ConjL (initialSegment n props).
 
 *)  
+
+
+(** this is a correct proof; only temporarily wrong *)
+Lemma velMessages:
+  forall n : nat,
+     match getVelFromMsg (motorEvents n) with
+     | Some v => v = speed \/ v = (0-speed)
+     | None => True
+     end.
+Proof.
+  intros n.
+  unfold motorEvents.
+  unfold getVelFromMsg.
+  unfold getVelFromEv.
+  (** the message of this deque event must have come
+      from a prior enque event as evEnq*)
+  pose proof (corrFIFO eo) as Hfifo.
+  pose proof (deqEnq Hfifo BASEMOTOR n) as Henq.
+  unfold deqMesgOp in Henq.
+  unfold opBind.
+  unfold opBind in Henq.
+  remember (localEvts BASEMOTOR n)  as oev.
+  destruct oev as [ ev| ]; [| auto; fail].
+  remember (deqMesg ev)  as om.
+  destruct om as [ sm| ]; [| auto; fail].
+  destruct Henq as [evEnq Henq].
+  clear Hfifo.
+  (** someone must have sent this message
+      which is contained in the receive (enque)
+      event evEnq. let the sent message
+      be [sm] and the corresponding event be [es] *)
+  pose proof (recvSend eo evEnq) as Hrecv.
+  repnd.
+  destruct Hrecv as [es Hrecv];
+    [unfold isRecvEvt; rewrite Henqrrl; auto |].
+  TrimAndRHS Hrecv.
+  unfold PossibleSendRecvPair in Hrecv.
+  rewrite Henqrrl in Hrecv.
+  rewrite Henqrrr in Hrecv.
+  rewrite <- Henqrl in Hrecv.
+  clear Henqrrl Henqrl Henqrrr.
+  remember (eKind es) as eks.
+  destruct eks; try contradiction;[].
+  simpl in Hrecv.
+  repnd. clear Hrecvrrr.
+  (** since [BASEMOTOR] only receives on [MOTOR]
+      topic, the message [sm] must have that topic *)
+  unfold validRecvMesg in Hrecvrl.
+  simpl in Hrecvrl.
+  unfold validSendMesg in Hrecvrrl.
+  destruct Hrecvrl as [Hmt | ?];[| contradiction].
+  rewrite Hrecvl in Hrecvrrl.
+  rewrite <- Hmt in Hrecvrrl.
+  remember (eLoc es) as sloc.
+  (** Only [SWCONTROLLER] sends on that topic *)
+  destruct sloc; simpl in Hrecvrrl;
+    try contradiction;
+    inversion Hrecvrrl; 
+    try discriminate;
+    try contradiction;[].
+  clear H Hrecvrrl.
+  apply swControllerMessages in Heqeks;
+    [| trivial].
+  rewrite <- Hrecvl. trivial.
+Qed.

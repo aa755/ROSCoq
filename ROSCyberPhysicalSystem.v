@@ -223,6 +223,27 @@ Definition deqMesgOp := (opBind deqMesg).
 Definition enqMesgOp := (opBind enqMesg).
 Definition sentMesgOp := (opBind sentMesg).
 
+Lemma deqMesgSome : forall ev sm,
+    Some sm = deqMesg ev
+    -> eKind ev = deqEvt.
+Proof.
+  intros ? ? Heq.
+  unfold deqMesg in Heq.
+  destruct (eKind ev); auto;
+  inversion Heq.
+Qed.
+
+Lemma deqIsRecvEvt : forall ev sm,
+    Some sm = deqMesg ev
+    -> isRecvEvt ev.
+Proof.
+  intros ? ? Heq.
+  unfold deqMesg in Heq.
+  unfold isRecvEvt.
+  destruct (eKind ev); auto;[].
+  inversion Heq.
+Qed.
+
 
 
 Require Export Coq.Unicode.Utf8.
@@ -464,7 +485,7 @@ Definition PossibleSendRecvPair
   (Es  Er : EV) : Prop :=
 match (eKind Es, eKind Er) with
 (** !!FIX!! this should be [enqEvt], [deqEvt] is just a temporary simplification *)
-| (sendEvt, enqEvt) =>
+| (sendEvt, deqEvt) =>
    (eMesg Es = eMesg Er)
    /\ (validRecvMesg (topicInf (locNode (eLoc Er))) (eMesg Er))
    /\ (validSendMesg (topicInf (locNode (eLoc Es))) (eMesg Es))
@@ -489,15 +510,15 @@ Record PossibleEventOrder  := {
 
     eventualDelivery: forall (Es : EV),
           isSendEvt Es
-          ->  exists (Er : EV),
+          ->  sig (fun Er : EV =>
               PossibleSendRecvPair Es Er
-              /\ causedBy Es Er;
+              /\ causedBy Es Er);
 
     recvSend: forall (Er : EV),
           isRecvEvt Er
-          ->  exists (Es : EV),
+          ->  sig (fun Es : EV => 
                   PossibleSendRecvPair Es Er
-                  /\ causedBy Es Er;
+                  /\ causedBy Es Er);
 
     corrFIFO : CorrectFIFOQueue;
     corrNodes : AllNodeBehCorrect;
