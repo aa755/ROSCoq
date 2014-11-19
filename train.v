@@ -67,7 +67,7 @@ Definition ControllerNodeAux (speed : Q): RosSwNode :=
 
  
 
-Record TrainState := mkSt {
+Record Train := mkSt {
   posX : TimeFun;
   velX : TimeFun;
   deriv : isDerivativeOf velX posX
@@ -78,7 +78,7 @@ Definition getVelM (m : Message ) : option Q :=
 getPayLoad MOTOR m.
 
 
-Section Train.
+Section TrainProofs.
 
 (** To define IO devices, we already need
     an Event type *)
@@ -226,16 +226,16 @@ Variable speed : Q.
 Open Scope Q_scope.
 
 Variable reactionTimeGap : reactionTime < minGap.
-Definition lEndPos (ts : TrainState) (t : Time) : R :=
+Definition lEndPos (ts : Train) (t : Time) : R :=
 (getF (posX ts) t [-]  hwidth).
 
-Definition rEndPos (ts : TrainState) (t : Time) : R :=
+Definition rEndPos (ts : Train) (t : Time) : R :=
   (getF (posX ts) t [+]  hwidth).
 
-Definition velAtTime (ts : TrainState) (t : Time) : R :=
+Definition velAtTime (ts : Train) (t : Time) : R :=
   (getF (velX ts) t).
 
-Definition centerPosAtTime (ts : TrainState) (t : Time) : R :=
+Definition centerPosAtTime (ts : Train) (t : Time) : R :=
   (getF (posX ts) t).
 
 Definition velBound : interval :=
@@ -268,7 +268,7 @@ match rl with
 end.
 
 Instance rllllfjkfhsdakfsdakh : 
-   @RosLocType _ _ _ Event TrainState RosLoc _.
+   @RosLocType _ _ _ Event Train RosLoc _.
 apply (Build_RosLocType _ _ _ 
          locNode (fun srs dest => Some (N2QTime 1))).
  intros ts rl. remember rl as rll. destruct rll; simpl; try (exact tt);
@@ -280,7 +280,7 @@ Defined.
 
 Open Scope R_scope.
 
-Variable tstate : TrainState.
+Variable tstate : Train.
 Variable eo : (@PossibleEventOrder _  tstate minGap _ _ _ _ _ _ _ _ _).
 
 Definition  TrainSpec (t:Time) : Prop :=
@@ -566,7 +566,7 @@ Close Scope Q_scope.
 
 
 
-End Train.
+End TrainProofs.
 
 (** To begin with, let the VelControl device control position
     make it exact if needed *)
