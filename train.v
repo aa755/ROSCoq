@@ -74,7 +74,7 @@ Definition ControllerNodeAux (speed : Q): RosSwNode :=
 
  
 
-Record Train := mkSt {
+Record Train : Type := {
   posX : TimeFun;
   velX : TimeFun;
   deriv : isDerivativeOf velX posX
