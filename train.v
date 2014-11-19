@@ -54,6 +54,12 @@ fun side  => match side with
             | false => speed
             end.
 
+Lemma SPP : SimplePureProcess PSENSOR MOTOR
+            = (bool -> Q).
+Proof.
+reflexivity.
+Qed.
+
 Definition SwProcess (speed : Q):= 
   mkPureProcess (liftToMesg (SwControllerProgram speed)).
 
