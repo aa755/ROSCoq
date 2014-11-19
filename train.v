@@ -60,7 +60,8 @@ Proof.
 reflexivity.
 Qed.
 
-Definition SwProcess (speed : Q):= 
+Definition SwProcess (speed : Q) 
+      : Process Message (list Message):= 
   mkPureProcess (liftToMesg (SwControllerProgram speed)).
 
 Definition digiControllerTiming (speed : Q) : 
