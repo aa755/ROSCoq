@@ -345,3 +345,26 @@ end.
 
 Definition nbdAround ( radius center : R) :=
 clcr (radius [-] center) (radius [+] center).
+
+Ltac parallelExist Hyp :=
+      match type of Hyp with
+      | exists _ : ?A, _   =>
+            match goal with
+            [ |- exists _ : A, _] =>
+              let xx := fresh "x" in
+              destruct Hyp as [xx Hyp]; exists xx
+             end
+      end.
+
+Ltac parallelForall Hyp :=
+      match type of Hyp with
+      | forall _ : ?A, _   =>
+            match goal with
+            [ |- forall _ : A, _] =>
+              let xx := fresh "x" in
+              intro xx; specialize (Hyp xx)
+             end
+      end.
+
+Ltac Parallel Hyp := 
+  repeat progress (parallelForall Hyp || parallelExist Hyp).

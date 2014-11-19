@@ -443,7 +443,9 @@ match (eLoc  ev) with
                | None => True
                end
 | SWCONTROLLER => match getVelM (eMesg ev) with
-                  | Some q => match eKind ev with
+                  | Some v => v = speed
+                              ->
+                              match eKind ev with
                               | sendEvt => 
                                   (centerPosAtTime tstate (eTime ev)) [<] Z2R (0-2)
                               | deqEvt => 
@@ -507,11 +509,26 @@ Proof.
     destruct Hsend as [Es Hsend].
     repnd.
     apply Hind in Hsendr. clear Hind.
+    (** topic subscrions and topology say that [Es] must have
+        happened at [SWCONTROLLER] *)
+    symmetry in Heqevloc.
+    pose proof  (MotorOnlyReceivesFromSw _ _ Hsendl Heqevloc) as Hsw.
     unfold PossibleSendRecvPair in Hsendl.
     rewrite <- Heqeks in Hsendl.
     remember (eKind Es) as eKs.
     destruct eKs; try contradiction;[].
-
+    repnd. clear Hsendlrrl Hsendlrl.
+    rewrite Heqevloc in Hsendlrrr.
+    rewrite Hsw in Hsendlrrr.
+    simpl in Hsendlrrr.
+    (** Now, lets unpack the induction hypothesis *)
+    unfold MotorRecievesPositivVelAtLHS in Hsendr.
+    rewrite Hsw in Hsendr.
+    rewrite <- HeqeKs  in Hsendr.
+    rewrite Hsendll in Hsendr.
+    destruct (getVelM (eMesg ev)) as [qv| ];[| auto].
+    parallelForall Hsendr.
+    
 
     
     
