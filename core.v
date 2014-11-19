@@ -278,23 +278,16 @@ Record TimeFun :=
 Definition getF  (f : TimeFun)  (t :Time ) : R :=
 f t ((definedOnNonNeg f) _ (realVPos _ t)).
 
+Notation "{ f }" := (getF f).
+
 
 Definition isDerivativeOf (F' F : TimeFun) : CProp :=
 Derivative (closel [0]) I F F'.
 
 Require Export CoRNMisc.
-Lemma TDerivativeUB :forall {F F' : TimeFun}
-   (ta tb : Time) (Hab : ta[<]tb) (c : R),
-   isDerivativeOf F' F
-   -> UBoundInCompInt Hab F' c
-   -> ((getF F) tb[-] (getF F) ta)[<=]c[*](tb[-]ta).
+Lemma timeIncluded : forall (ta tb : Time),
+  included (clcr ta tb) (closel [0]).
 Proof.
- intros ? ? ? ? ? ? Hisd Hub.
- unfold getF. 
- apply (AntiderivativeUB2 F F' ta tb Hab); auto.
- unfold isDerivativeOf in Hisd.
- apply Included_imp_Derivative with 
-   (I:=closel [0]) (pI := I); trivial;[].
  destruct ta as [ra pa].
  destruct tb as [rb pb].
  simpl. simpl in pa. simpl in pb.
@@ -302,6 +295,57 @@ Proof.
  simpl in Hlft.
  destruct Hlft. simpl.
  eauto using leEq_transitive.
+Qed.
+
+Lemma TDerivativeUB :forall {F F' : TimeFun}
+   (ta tb : Time) (Hab : ta[<]tb) (c : R),
+   isDerivativeOf F' F
+   -> UBoundInCompInt Hab F' c
+   -> ((getF F) tb[-] (getF F) ta)[<=]c[*](tb[-]ta).
+Proof.
+ intros ? ? ? ? ? ? Hisd Hub.
+ unfold getF.
+ apply (AntiderivativeUB2 F F' ta tb Hab); auto.
+ unfold isDerivativeOf in Hisd.
+ apply Included_imp_Derivative with 
+   (I:=closel [0]) (pI := I); trivial;[].
+ apply timeIncluded.
+Qed.
+
+Definition toTime (t : Time) (r : R) (p :t[<=]r) : Time.
+Proof.
+  exists r.
+  destruct t as [rt  pt].
+  simpl in pt.
+  simpl.
+  eauto using leEq_transitive.
+Defined.
+
+
+Lemma TDerivativeUB2 :forall {F F' : TimeFun}
+   (ta tb : Time) (Hab : ta[<]tb) (c : R),
+   isDerivativeOf F' F
+   -> (forall (t:Time), (clcr ta tb) t -> ({F'} t) [<=] c)
+   -> ({F} tb[-] {F} ta)[<=]c[*](tb[-]ta).
+Proof.
+  intros ? ? ? ? ? ? Hder Hub.
+  eapply TDerivativeUB with (Hab0 := Hab); eauto;[].
+  unfold UBoundInCompInt.
+  intros r Hc ?. unfold compact in Hc.
+  unfold getF in Hub.
+  destruct Hc as [Hca Hcb].
+  specialize (Hub (toTime _ _ Hca)).
+  unfold toTime in Hub.
+  destruct ta as [ra pa].
+  simpl in Hub.
+  pose proof (pfwdef _ F' r r Hx
+               (definedOnNonNeg F' r (leEq_transitive IR [0] ra r pa Hca))
+                (eq_reflexive _ _) ) 
+             as Hrwa.  
+  rewrite Hrwa.
+  clear Hrwa.
+  apply Hub.
+  split; auto.
 Qed.
 
 
