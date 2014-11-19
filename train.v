@@ -463,17 +463,16 @@ Qed.
 
 Lemma MotorOnlyReceivesFromSw :   forall Es Er,
   PossibleSendRecvPair Es Er
-  -> BASEMOTOR = eLoc Er
-  -> deqEvt = eKind Er
-  -> (eLoc Es) = SWCONTROLLER.
+  -> eLoc Er = BASEMOTOR
+  -> eLoc Es = SWCONTROLLER.
 Proof.
-  intros ? ? Hsendl Hl Heqeks.
+  intros ? ? Hsendl Hl.
   unfold PossibleSendRecvPair in Hsendl.
-  rewrite <- Heqeks in Hsendl.
   remember (eKind Es) as eKs.
   destruct eKs; try contradiction;[].
+  destruct (eKind Er); try contradiction;[].
   repnd.
-  rewrite <- Hl in Hsendlrl.
+  rewrite  Hl in Hsendlrl.
   simpl in Hsendlrl.
   unfold validRecvMesg in Hsendlrl.
   simpl in Hsendlrl.
