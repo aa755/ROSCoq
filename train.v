@@ -442,28 +442,6 @@ Proof.
   unfold corrSinceLastVel in Hnc.
 Abort.
 
-Definition MotorRecievesPositivVelAtLHS (ev : Event)  :=
-match (eLoc  ev) with
-| BASEMOTOR => match getVelFromEv ev with
-               | Some v => v = speed
-                  -> (centerPosAtTime tstate (eTime ev)) [<] [0]
-               | None => True
-               end
-| SWCONTROLLER => match getVelM (eMesg ev) with
-                  | Some v => v = speed
-                              ->
-                              match eKind ev with
-                              | sendEvt => 
-                                  (centerPosAtTime tstate (eTime ev)) [<] Z2R (0-2)
-                              | deqEvt => 
-                                  (centerPosAtTime tstate (eTime ev)) [<] Z2R (0-4)
-                              | _ => True
-                              end
-                  | None => True
-                  end
-| _ => True
-end.
-
 Lemma RemoveOrFalse : forall A , A \/ False <-> A.
 Proof.
   tauto.
@@ -497,6 +475,27 @@ Proof.
   reflexivity.
 Qed.
 
+Definition MotorRecievesPositivVelAtLHS (ev : Event)  :=
+match (eLoc  ev) with
+| BASEMOTOR => match getVelFromEv ev with
+               | Some v => v = speed
+                  -> (centerPosAtTime tstate (eTime ev)) [<] [0]
+               | None => True
+               end
+| SWCONTROLLER => match getVelM (eMesg ev) with
+                  | Some v => v = speed
+                              ->
+                              match eKind ev with
+                              | sendEvt => 
+                                  (centerPosAtTime tstate (eTime ev)) [<] Z2R (0-2)
+                              | deqEvt => 
+                                  (centerPosAtTime tstate (eTime ev)) [<] Z2R (0-4)
+                              | _ => True
+                              end
+                  | None => True
+                  end
+| _ => True
+end.
 
 Lemma  PosVelAtNegPos : forall (ev : Event),
           MotorRecievesPositivVelAtLHS ev.
