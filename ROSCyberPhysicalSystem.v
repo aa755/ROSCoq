@@ -484,7 +484,7 @@ Record PossibleEventOrder  := {
 
     globalCausal : forall (e1 e2 : EV),
         causedBy e1 e2
-        -> eTime e1 < eTime e1;
+        -> eTime e1 < eTime e2;
 
     eventualDelivery: forall (Es : EV),
           isSendEvt Es

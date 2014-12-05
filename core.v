@@ -322,7 +322,7 @@ Proof.
 Defined.
 
 
-Lemma TDerivativeUB2 :forall {F F' : TimeFun}
+Lemma TDerivativeUB2 :forall (F F' : TimeFun)
    (ta tb : Time) (Hab : ta[<]tb) (c : R),
    isDerivativeOf F' F
    -> (forall (t:Time), (clcr ta tb) t -> ({F'} t) [<=] c)
@@ -412,3 +412,22 @@ Ltac parallelForall Hyp :=
 
 Ltac Parallel Hyp := 
   repeat progress (parallelForall Hyp || parallelExist Hyp).
+
+Require Import Coq.QArith.Qfield.
+Require Import Coq.QArith.Qring.
+Lemma qSubLt : forall (qa qb diff: Q), 
+  qa < qb + diff
+  -> qa - qb < diff.
+Proof.
+  intros ? ? ? Hsendlrrr.
+  apply Q.Qplus_lt_r with (z:= (-qb))  in Hsendlrrr.
+  (* ring_simplify in Hsendlrrr. *)
+
+  rewrite Qplus_assoc in Hsendlrrr.
+  rewrite <- Qplus_comm in Hsendlrrr.
+  fold (Qminus qa qb) in Hsendlrrr.
+  rewrite <- (Qplus_comm qb (-qb)) in Hsendlrrr.
+  rewrite Qplus_opp_r in Hsendlrrr.
+  rewrite Qplus_0_l in Hsendlrrr.
+  trivial.
+Qed.

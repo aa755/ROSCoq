@@ -81,6 +81,17 @@ Record Train : Type := {
 }.
 
 
+Lemma VelPosUB :forall (tst : Train)
+   (ta tb : Time) (Hab : ta[<]tb) (c : R),
+   (forall (t:Time), (clcr ta tb) t -> ({velX tst} t) [<=] c)
+   -> ({posX tst} tb[-] {posX tst} ta)[<=]c[*](tb[-]ta).
+Proof.
+  intros. apply TDerivativeUB2 with (F' := (velX tst)); auto.
+  apply deriv.
+Qed.
+
+
+
 Definition getVelM (m : Message ) : option Q :=
 getPayLoad MOTOR m.
 
@@ -228,7 +239,7 @@ Variable alertDist : R.
 Variable safeDist : R.
 Variable maxDelay : R.
 Variable hwidth : R. (* half of width *)
-Variable speed : Q.
+Definition speed : Q := 1.
 
 Open Scope Q_scope.
 
@@ -497,6 +508,39 @@ match (eLoc  ev) with
 | _ => True
 end.
 
+(** Ideally, device specs should imply a bound like this.
+    For a fine grained analysis, this might be less useful *)
+Lemma velPos : forall (t : Time), 
+  ({velX tstate} t) [<=] Q2R speed.
+Admitted.
+
+
+Lemma centerPosChange : forall (ta tb : Time),
+  ta[<]tb
+  -> (centerPosAtTime tstate tb [-] centerPosAtTime tstate ta) [<=](tb[-]ta).
+Proof.
+  intros. unfold centerPosAtTime. rewrite <- (one_mult _ (tb[-]ta)).
+  apply VelPosUB;[ trivial |].
+  intros. rewrite <- inj_Q_One.
+  apply velPos.
+Qed.
+
+Lemma centerPosChangeQ : forall (ta tb : QTime),
+  ta < tb
+  -> (centerPosAtTime tstate tb [-] centerPosAtTime tstate ta) [<=] Q2R (tb -ta).
+Proof.
+  intros.
+Admitted.
+
+Require Import Ring. 
+Require Import CoRN.tactics.CornTac.
+Require Import CoRN.algebra.CRing_as_Ring.
+
+Add Ring IRisaRing: (CRing_Ring IR).
+Add Ring RisaRing: (CRing_Ring R).
+
+
+
 Lemma  PosVelAtNegPos : forall (ev : Event),
           MotorRecievesPositivVelAtLHS ev.
 Proof.
@@ -513,7 +557,7 @@ Proof.
     rewrite <- Heqeks in Hsend.
     specialize (Hsend I).
     destruct Hsend as [Es Hsend].
-    repnd.
+    repnd. pose proof (globalCausal _ _ _ Hsendr) as Htlt.
     apply Hind in Hsendr. clear Hind.
     (** topic subscrions and topology say that [Es] must have
         happened at [SWCONTROLLER] *)
@@ -534,13 +578,43 @@ Proof.
     rewrite Hsendll in Hsendr.
     destruct (getVelM (eMesg ev)) as [qv| ];[| auto].
     parallelForall Hsendr.
+    remember (eTime ev) as evt. clear Heqevt.
+    remember (eTime Es) as est. clear Heqest.
+    simpl in Hsendr. 
+    clear x Hsw Hsendll HeqeKs Heqeks Heqevloc ev Es eo reactionTimeGap
+      transitionValues velAccuracy boundary alertDist
+      safeDist maxDelay hwidth reactionTime initialVel
+      initialPos etype tdeq minGap Event qv.    
+    apply qSubLt in Hsendlrrr.
+    apply centerPosChangeQ in Htlt.
+    remember (centerPosAtTime tstate evt) as cpvt. clear Heqcpvt.
+    remember (centerPosAtTime tstate est) as cpst. clear Heqcpst.
+    apply inj_Q_less with (R1:=IR)  in Hsendlrrr.
+    unfold Q2R in Htlt.
+    apply (leEq_less_trans _ _ _ _ Htlt) in Hsendlrrr ; eauto.
+    clear Htlt.
+    unfold Z2R in Hsendr.
+    apply less_leEq in Hsendr.
+    eapply plus_resp_leEq_less in Hsendlrrr; eauto.
+    ring_simplify in Hsendlrrr.
+
+
+
+    
+    
+
+eauto with *.
+
+
+
+
+
 
     
 
     
     
     
-
 
 Abort.  
 
