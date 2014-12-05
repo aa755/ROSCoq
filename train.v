@@ -589,13 +589,25 @@ Proof.
     apply centerPosChangeQ in Htlt.
     remember (centerPosAtTime tstate evt) as cpvt. clear Heqcpvt.
     remember (centerPosAtTime tstate est) as cpst. clear Heqcpst.
-    apply inj_Q_less with (R1:=IR)  in Hsendlrrr.
+    apply inj_Q_less with (R1:=R)  in Hsendlrrr.
     unfold Q2R in Htlt.
     apply (leEq_less_trans _ _ _ _ Htlt) in Hsendlrrr ; eauto.
-    clear Htlt.
+    clear Htlt est evt.
     unfold Z2R in Hsendr.
     apply less_leEq in Hsendr.
     eapply plus_resp_leEq_less in Hsendlrrr; eauto.
+    clear Hsendr. unfold R in cpst. unfold R in cpvt.
+    unfold R in Hsendlrrr.
+    assert (cpst[+](cpvt[-]cpst)[<]inj_Q IR (-2)%Z[+]inj_Q IR 1).
+    assert (inj_Q IR (-2)%Z[+]inj_Q IR 1 [=] [1]) by admit.
+
+
+    rewrite H in Hsendlrrr.
+
+    
+
+
+
     ring_simplify in Hsendlrrr.
 
 
