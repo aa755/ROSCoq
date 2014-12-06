@@ -597,20 +597,13 @@ Proof.
     apply less_leEq in Hsendlrrr.
     eapply (plus_resp_leEq_both _ _ _ _ _ Hsendr) in Hsendlrrr; eauto.
     clear Hsendr. rename Hsendlrrr into hh.
-    rewrite <- inj_Q_plus in hh.
-    rewrite cg_minus_unfolded in hh.
-    rewrite cag_commutes in hh.
-    rewrite <- CSemiGroups.plus_assoc in hh.
-    rewrite (cag_commutes _ ([--]cpst) cpst) in hh.
-    rewrite  CSemiGroups.plus_assoc in hh.
-    rewrite <- cg_minus_unfolded in hh.
-    rewrite grp_inv_assoc in hh.
-    eapply leEq_transitive; eauto.
+    rewrite realCancel in hh.
+    eapply leEq_transitive; eauto. clear hh.
+    rewrite <- inj_Q_plus.
     rewrite <- inj_Q_Zero.
     apply inj_Q_leEq.
     simpl. unfold Qplus. simpl. info_eauto with *.
-    
-
+  - 
 Abort.  
 
 (*  

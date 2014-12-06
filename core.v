@@ -431,3 +431,19 @@ Proof.
   rewrite Qplus_0_l in Hsendlrrr.
   trivial.
 Qed.
+
+Lemma realCancel : forall (R: CReals) (cpvt cpst : R), 
+      (cpst[+](cpvt[-]cpst) [=] cpvt).
+Proof.
+  intros.
+  rewrite cg_minus_unfolded.
+  rewrite cag_commutes.
+  rewrite <- CSemiGroups.plus_assoc.
+  rewrite (cag_commutes _ ([--]cpst) cpst).
+  rewrite  CSemiGroups.plus_assoc.
+  rewrite <- cg_minus_unfolded.
+  rewrite grp_inv_assoc.
+  reflexivity.
+Qed.
+
+Hint Rewrite realCancel : CoRN.
