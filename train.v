@@ -455,10 +455,6 @@ Proof.
   unfold corrSinceLastVel in Hnc.
 Abort.
 
-Lemma RemoveOrFalse : forall A , A \/ False <-> A.
-Proof.
-  tauto.
-Qed.
 
 
 Lemma MotorOnlyReceivesFromSw :   forall Es Er,

@@ -453,3 +453,8 @@ Proof.
 Qed.
 
 Hint Rewrite realCancel : CoRN.
+
+Lemma RemoveOrFalse : forall A , A \/ False <-> A.
+Proof.
+  tauto.
+Qed.

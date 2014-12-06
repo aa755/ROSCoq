@@ -99,12 +99,17 @@ match (rnode rn) with
 | inr (existT PhysQ _) => Time -> PhysQ
 end.
 
+(** [PhysicalEnvType] would typically represent how physical
+    quantities like temperature, position, velocity
+     changed over time *)
 Class RosLocType (PhysicalEnvType : Type) ( RosLoc: Type) 
      {rldeq : DecEq RosLoc} :=
 {
    locNode: RosLoc -> RosNode;
 
    maxDeliveryDelay : RosLoc -> RosLoc -> option QTime;
+
+
    (** a location type should also provide out a way
       to access the way physical quantities
       measured/ controlled by devices changes *)
