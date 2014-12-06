@@ -93,8 +93,10 @@ Qed.
 
 
 Definition getVelM (m : Message ) : option Q :=
-getPayLoad MOTOR m.
+  getPayLoad MOTOR m.
 
+Definition getProxSide (m : Message) : option bool :=
+  getPayLoad PSENSOR m.
 
 Section TrainProofs.
 
@@ -488,23 +490,19 @@ Qed.
 
 Definition MotorRecievesPositivVelAtLHS (ev : Event)  :=
 match (eLoc  ev) with
-| BASEMOTOR => match getVelFromEv ev with
-               | Some v => v = speed
-                  -> (centerPosAtTime tstate (eTime ev)) [<=] [0]
-               | None => True
-               end
-| SWCONTROLLER => match getVelM (eMesg ev) with
-                  | Some v => v = speed
-                              ->
-                              match eKind ev with
-                              | sendEvt => 
-                                  (centerPosAtTime tstate (eTime ev)) [<=] Z2R (0-2)
-                              | deqEvt => 
-                                  (centerPosAtTime tstate (eTime ev)) [<=] Z2R (0-4)
-                              | _ => True
-                              end
-                  | None => True
-                  end
+| BASEMOTOR => 
+            getVelFromEv ev = Some speed
+               -> (centerPosAtTime tstate (eTime ev)) [<=] [0]
+| SWCONTROLLER => 
+            match eKind ev with
+            | sendEvt => 
+                getVelM (eMesg ev) = Some speed
+                -> (centerPosAtTime tstate (eTime ev)) [<=] Z2R (0-2)
+            | deqEvt => 
+                getProxSide (eMesg ev) = Some false
+                -> (centerPosAtTime tstate (eTime ev)) [<=] Z2R (0-2)
+            | _ => True
+            end
 | _ => True
 end.
 
@@ -552,7 +550,7 @@ Proof.
   destruct evloc; simpl; auto.
   - unfold getVelFromEv. unfold deqMesg.
     remember (eKind ev) as eks.
-    destruct eks; simpl; auto.
+    intros Heqks. destruct eks; simpl; inversion Heqks; [].
     pose proof (recvSend eo ev) as Hsend.
     unfold isRecvEvt in Hsend.
     rewrite <- Heqeks in Hsend.
@@ -576,16 +574,14 @@ Proof.
     unfold MotorRecievesPositivVelAtLHS in Hsendr.
     rewrite Hsw in Hsendr.
     rewrite <- HeqeKs  in Hsendr.
-    rewrite Hsendll in Hsendr.
-    destruct (getVelM (eMesg ev)) as [qv| ];[| auto].
-    parallelForall Hsendr.
+    rewrite Hsendll in Hsendr. specialize (Hsendr H0).
     remember (eTime ev) as evt. clear Heqevt.
     remember (eTime Es) as est. clear Heqest.
-    simpl in Hsendr. 
-    clear x Hsw Hsendll HeqeKs Heqeks Heqevloc ev Es eo reactionTimeGap
+    simpl in Hsendr.
+    clear Heqks H0 Hsw Hsendll HeqeKs Heqeks Heqevloc ev Es eo reactionTimeGap
       transitionValues velAccuracy boundary alertDist
       safeDist maxDelay hwidth reactionTime initialVel
-      initialPos etype tdeq minGap Event qv.    
+      initialPos etype tdeq minGap Event.
     apply qSubLt in Hsendlrrr.
     apply centerPosChangeQ in Htlt.
     remember (centerPosAtTime tstate evt) as cpvt. clear Heqcpvt.
@@ -605,9 +601,12 @@ Proof.
     apply inj_Q_leEq.
     simpl. unfold Qplus. simpl.
     lra.
-  - destruct (getVelM (eMesg ev)); [| auto; fail].
-    
-Abort.
+
+  - remember (eKind ev) as eks.
+    destruct eks; [|auto|].
+    + admit.
+    + admit.
+Qed.
 
 (*  
 Lemma  TrainVelBounded : forall (e : Event) (t: QTime),
