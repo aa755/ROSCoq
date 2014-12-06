@@ -245,7 +245,7 @@ Open Scope Q_scope.
 
 Variable reactionTimeGap : reactionTime < minGap.
 Definition lEndPos (ts : Train) (t : Time) : R :=
-(getF (posX ts) t [-]  hwidth).
+  (getF (posX ts) t [-]  hwidth).
 
 Definition rEndPos (ts : Train) (t : Time) : R :=
   (getF (posX ts) t [+]  hwidth).
@@ -538,6 +538,7 @@ Require Import CoRN.algebra.CRing_as_Ring.
 
 Add Ring IRisaRing: (CRing_Ring IR).
 Add Ring RisaRing: (CRing_Ring R).
+Require Import Psatz.
 
 
 
@@ -602,9 +603,11 @@ Proof.
     rewrite <- inj_Q_plus.
     rewrite <- inj_Q_Zero.
     apply inj_Q_leEq.
-    simpl. unfold Qplus. simpl. info_eauto with *.
-  - 
-Abort.  
+    simpl. unfold Qplus. simpl.
+    lra.
+  - destruct (getVelM (eMesg ev)); [| auto; fail].
+    
+Abort.
 
 (*  
 Lemma  TrainVelBounded : forall (e : Event) (t: QTime),

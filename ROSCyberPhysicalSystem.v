@@ -474,9 +474,12 @@ match (eKind Es, eKind Er) with
 | _ => False
 end.
 
+Require Import Coq.Relations.Relation_Definitions.
 
 Record PossibleEventOrder  := {
     causedBy : EV -> EV -> Prop;
+
+    (* causalTrans : transitive _ causedBy; *)
 
     localCausal : forall (e1 e2 : EV),
         (eLoc e1) = (eLoc e2)

@@ -415,21 +415,27 @@ Ltac Parallel Hyp :=
 
 Require Import Coq.QArith.Qfield.
 Require Import Coq.QArith.Qring.
+Require Import Psatz.
+
 Lemma qSubLt : forall (qa qb diff: Q), 
   qa < qb + diff
   -> qa - qb < diff.
 Proof.
   intros ? ? ? Hsendlrrr.
-  apply Q.Qplus_lt_r with (z:= (-qb))  in Hsendlrrr.
-  (* ring_simplify in Hsendlrrr. *)
+  lra.
 
-  rewrite Qplus_assoc in Hsendlrrr.
-  rewrite <- Qplus_comm in Hsendlrrr.
-  fold (Qminus qa qb) in Hsendlrrr.
-  rewrite <- (Qplus_comm qb (-qb)) in Hsendlrrr.
-  rewrite Qplus_opp_r in Hsendlrrr.
-  rewrite Qplus_0_l in Hsendlrrr.
-  trivial.
+  (*
+    apply Q.Qplus_lt_r with (z:= (-qb))  in Hsendlrrr.
+    (* ring_simplify in Hsendlrrr. *)
+
+    rewrite Qplus_assoc in Hsendlrrr.
+    rewrite <- Qplus_comm in Hsendlrrr.
+    fold (Qminus qa qb) in Hsendlrrr.
+    rewrite <- (Qplus_comm qb (-qb)) in Hsendlrrr.
+    rewrite Qplus_opp_r in Hsendlrrr.
+    rewrite Qplus_0_l in Hsendlrrr.
+    trivial. 
+*)
 Qed.
 
 Lemma realCancel : forall (R: CReals) (cpvt cpst : R), 
