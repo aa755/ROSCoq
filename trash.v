@@ -169,3 +169,114 @@ Proof.
     [| trivial].
   rewrite <- Hrecvl. trivial.
 Qed.
+
+
+(** A node only receives messeages from subscribed topics *)
+(*
+Definition noSpamRecv 
+    (locEvents : nat -> option EV)
+    (rnode :  @RosNode  _ _ _ EV) :=
+    
+    forall n, match (locEvents n) with
+              | Some rv => validRecvMesg (topicInf rnode) (eMesg rv)
+              | None => True
+              end.
+
+Definition noSpamSend 
+    (locEvents : nat -> option EV)
+    (rnode :  @RosNode  _ _ _ EV) :=    
+    forall n, match (locEvents n) with
+              | Some rv => validSendMesg (topicInf rnode) (eMesg rv)
+              | None => True
+              end.
+
+*)
+
+
+(** Some properties about events at a particular location. In the
+    next Coq Section, we formalize the interlocation properties. *)
+
+(** first event is innermost, last event is outermost *)
+Fixpoint prevProcessedEvents (m : nat)
+  (locEvents : nat -> option EV) : list EV :=
+  match m with
+  | 0 => nil
+  | S m' => (match locEvents m' with
+              | Some ev => match (eKind ev) with
+                            | deqEvt => (ev)::nil
+                            | _ => nil
+                            end
+              | None => nil (* this will never happen *)
+             end
+            )++ (prevProcessedEvents m' locEvents)
+  end.
+
+
+Fixpoint futureSends (start : nat) (len : nat)
+  (locEvents : nat -> option EV) : list EV :=
+  match len with
+  | 0 => nil
+  | S len' => 
+      match locEvents (start + len') with
+      | Some ev => 
+          match (eKind ev) with
+          | sendEvt => ev :: (futureSends (S start) len' locEvents)
+          | deqEvt => nil (* event processing is atomic, as of now*)
+          | enqEvt => (futureSends (S start) len' locEvents)
+          end
+      | None => nil (* this will never happen *)
+       end
+  end.
+
+Definition sendsInRange  (startIncl : nat) (endIncl : nat)
+  (locEvents : nat -> option EV) : list Message :=
+  map eMesg (futureSends startIncl (endIncl + 1 - startIncl) locEvents).
+
+Open Scope Q_scope.
+
+Definition CorrectSWNodeBehaviour 
+    (swNode : RosSwNode)
+    (locEvts: nat -> option EV) : Prop :=
+
+  forall n: nat,
+  match (locEvts n) with
+  | None  => True
+  | Some ev => 
+      let procEvts := prevProcessedEvents (S (eLocIndex ev))locEvts in
+      let procMsgs := map eMesg procEvts in
+      let lastOutMsgs := getLastOutputL (process swNode) procMsgs in
+      let evIndex := eLocIndex ev in
+
+      match (eKind ev) with
+        | deqEvt =>  
+            exists len, let sEvts := (futureSends (eLocIndex ev) len locEvts) in
+                    map eMesg sEvts = lastOutMsgs
+                    /\ match (rev sEvts) with
+                        | hsm :: _ => 
+                                (eTime hsm <
+                                         (eTime ev) +
+                                              (pTiming swNode (eMesg ev)))
+                        | nil => True
+                        end
+
+        | sendEvt => 
+          match procEvts with
+          | nil => False
+          | last :: _ =>
+    (** NOT REQD; DERIVABLE*) In (eMesg ev) lastOutMsgs /\
+              length (sendsInRange (eLocIndex last)  evIndex locEvts)
+                 <= length lastOutMsgs 
+          end
+
+        | enqEvt => True (* messages are always welcome. When modelling a finite sized mailbox,this may no longer be true *)
+      end
+  end.
+
+
+Definition DeviceBehaviourCorrect
+    {Env : Type}
+    (physQ : Time -> Env)
+    (inpDev : Device Env)
+    (locEvents : nat -> option EV) : Prop :=
+
+ inpDev physQ locEvents.
