@@ -490,7 +490,7 @@ Definition MotorRecievesPositivVelAtLHS (ev : Event)  :=
 match (eLoc  ev) with
 | BASEMOTOR => match getVelFromEv ev with
                | Some v => v = speed
-                  -> (centerPosAtTime tstate (eTime ev)) [<] [0]
+                  -> (centerPosAtTime tstate (eTime ev)) [<=] [0]
                | None => True
                end
 | SWCONTROLLER => match getVelM (eMesg ev) with
@@ -498,9 +498,9 @@ match (eLoc  ev) with
                               ->
                               match eKind ev with
                               | sendEvt => 
-                                  (centerPosAtTime tstate (eTime ev)) [<] Z2R (0-2)
+                                  (centerPosAtTime tstate (eTime ev)) [<=] Z2R (0-2)
                               | deqEvt => 
-                                  (centerPosAtTime tstate (eTime ev)) [<] Z2R (0-4)
+                                  (centerPosAtTime tstate (eTime ev)) [<=] Z2R (0-4)
                               | _ => True
                               end
                   | None => True
@@ -594,38 +594,21 @@ Proof.
     apply (leEq_less_trans _ _ _ _ Htlt) in Hsendlrrr ; eauto.
     clear Htlt est evt.
     unfold Z2R in Hsendr.
-    apply less_leEq in Hsendr.
-    eapply plus_resp_leEq_less in Hsendlrrr; eauto.
-    clear Hsendr. unfold R in cpst. unfold R in cpvt.
-    unfold R in Hsendlrrr.
-    assert (cpst[+](cpvt[-]cpst)[<]inj_Q IR (-2)%Z[+]inj_Q IR 1).
-    assert (inj_Q IR (-2)%Z[+]inj_Q IR 1 [=] [1]) by admit.
-
-
-    rewrite H in Hsendlrrr.
-
-    
-
-
-
-    ring_simplify in Hsendlrrr.
-
-
-
-    
-    
-
-eauto with *.
-
-
-
-
-
-
-    
-
-    
-    
+    apply less_leEq in Hsendlrrr.
+    eapply (plus_resp_leEq_both _ _ _ _ _ Hsendr) in Hsendlrrr; eauto.
+    clear Hsendr. rename Hsendlrrr into hh.
+    rewrite <- inj_Q_plus in hh.
+    rewrite cg_minus_unfolded in hh.
+    rewrite cag_commutes in hh.
+    rewrite <- CSemiGroups.plus_assoc in hh.
+    rewrite (cag_commutes _ ([--]cpst) cpst) in hh.
+    rewrite  CSemiGroups.plus_assoc in hh.
+    rewrite <- cg_minus_unfolded in hh.
+    rewrite grp_inv_assoc in hh.
+    eapply leEq_transitive; eauto.
+    rewrite <- inj_Q_Zero.
+    apply inj_Q_leEq.
+    simpl. unfold Qplus. simpl. info_eauto with *.
     
 
 Abort.  
