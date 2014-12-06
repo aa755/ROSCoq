@@ -28,8 +28,15 @@ Class EventType (T: Type)
       (minGap : Qpos) 
       {tdeq: DecEq T}  := {
   eLoc : T ->  Loc;
-  eMesg : T -> Message;
+  eMesg : T -> list Message;
   eKind : T -> EventKind;
+  
+  enQDeq1Mesg : forall t, match eKind t with
+                          | enqEvt => length (eMesg t) = 1%nat
+                          | deqEvt => length (eMesg t) = 1%nat
+                          | sendEvt => True
+                          end;
+
   eTime : T -> QTime;
   timeDistinct : forall (a b : T), 
     eTime a = eTime b
@@ -175,11 +182,12 @@ match (eKind ev) with
 | _ => False
 end.
 
-
+(*
 Definition isSendOnTopic
   (tp: RosTopic) (property : (topicType tp) -> Prop) (ev: EV) : Prop :=
 isSendEvt ev /\ 
 (opApPure property False (getPayLoad tp (eMesg ev))).
+*)
 
 Close Scope Q_scope.
 
@@ -195,12 +203,12 @@ match upto with
     | Some ev => 
           match (eKind ev) with
           | sendEvt => (pr,queue)
-          | enqEvt =>  (pr, enqueue (eMesg ev) queue)
+          | enqEvt =>  (pr, enqueueAll (eMesg ev) queue)
           | deqEvt => 
               let (el, newQueue) := dequeue queue in
               match el with
               | None => (False, queue)
-              | Some mesg => (pr /\ mesg = (eMesg ev), newQueue)
+              | Some mesg => (pr /\ (mesg::nil) = (eMesg ev), newQueue)
                end
           end
     end
@@ -213,26 +221,27 @@ forall (l: LocT)
 
 Definition deqMesg (ev : EV) : option Message :=
 match eKind ev with
- | deqEvt => Some (eMesg ev)
+ | deqEvt => head (eMesg ev)
+(** BTW, [(eMesg ev)] is supposed to be a singletop *)
  | _ => None
 end.
 
 Definition enqMesg (ev : EV) : option Message :=
 match eKind ev with
-| enqEvt => Some (eMesg ev)
+| enqEvt => head (eMesg ev)
 | _ => None
 end.
 
-Definition sentMesg (ev : EV) : option Message :=
+Definition sentMesg (ev : EV) : list Message :=
 match eKind ev with
-| sendEvt => Some (eMesg ev)
-| _ => None
+| sendEvt =>  (eMesg ev)
+| _ => nil
 end.
 
 (* these notations have to be defined again at the end of the section *)
 Definition deqMesgOp := (opBind deqMesg).
 Definition enqMesgOp := (opBind enqMesg).
-Definition sentMesgOp := (opBind sentMesg).
+(* Definition sentMesgOp := (opBind sentMesg). *)
 
 Lemma deqMesgSome : forall ev sm,
     Some sm = deqMesg ev
@@ -260,6 +269,22 @@ Qed.
 Require Export Coq.Unicode.Utf8.
 
 
+Lemma evEnqHead : forall ev m, 
+    enqEvt = eKind ev
+    -> In m (eMesg ev)
+    -> Some m = head (eMesg ev).
+Proof.
+  intros ? ? Heq Hin.
+  pose proof (enQDeq1Mesg ev) as XX.
+  rewrite <- Heq in XX.
+  eapply length1In in XX; eauto.
+  rewrite <- XX.
+  simpl.
+  reflexivity.
+Qed.
+
+
+
 Lemma queueContents : forall  (locEvts: nat -> option EV)
      (upto : nat),
    let (prp, queue) := CorrectFIFOQueueUpto upto locEvts  in
@@ -279,11 +304,12 @@ Proof.
   destruct evk; 
     [Parallel Hind; destruct Hind; split; trivial; omega | |].
   - parallelForall Hind. intros m Hin.
-    unfold enqueue.
-    simpl in Hin. destruct Hin as [Hin| Hin].
+    unfold enqueue, enqueueAll in Hin.
+    simpl in Hin. apply in_app_or in Hin.
+    destruct Hin as [Hin| Hin].
     + exists upto'. rewrite <- Heqlev.
       simpl. unfold enqMesg. rewrite <- Heqevk. split; auto; try omega.
-      symmetry in Hin. rewrite Hin. reflexivity.
+      eapply evEnqHead; eauto.
     + apply Hind in Hin.
       Parallel Hin; destruct Hin; split; trivial; omega.
   - unfold dequeue. remember (rev queue) as revq.
@@ -304,7 +330,7 @@ Lemma deqEnq : CorrectFIFOQueue
     match deqMesgOp (localEvts l deqIndex) with
     | None => True
     | Some m => ∃ evEnq,(eLocIndex evEnq) < deqIndex ∧
-              (m = eMesg evEnq) /\ eKind evEnq = enqEvt
+              (m::nil = eMesg evEnq) /\ eKind evEnq = enqEvt
               /\ eLoc evEnq = l
      end.
 Proof.
@@ -338,10 +364,13 @@ Proof.
   symmetry in Heqoev.
   apply locEvtIndex in Heqoev.
   destruct Heqoev as [? Heqq]. simpl in Heq. unfold enqMesg in Heq.
+  pose proof (enQDeq1Mesg ev) as XX.  
   destruct (eKind ev);  inversion Heq as [Heqm]; 
-  clear Heq. split; auto.
-  rewrite  Heqq.
-  trivial.
+  clear Heq. split; auto;[rewrite  Heqq; trivial|].
+  split; auto.
+  destruct (eMesg ev); simpl in XX; inversion XX.
+  destruct l1; inversion H1.
+  simpl in Heqm. inversion Heqm. reflexivity.
 Qed.
 
 Definition NodeBehCorrect (l : LocT) : Prop :=

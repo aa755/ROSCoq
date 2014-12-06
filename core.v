@@ -205,8 +205,12 @@ match b with
 end.
 
 Open Scope R_scope.
+
+Definition enqueueAll {A : Type} (lel : list A) (oldQueue : list A) : list A :=
+     lel ++ oldQueue.
+
 Definition enqueue {A : Type} (el : A) (oldQueue : list A) : list A :=
-     el :: oldQueue.
+     enqueueAll (el::nil)  oldQueue.
 
 Definition dequeue {A : Type} (l: list A) : option A * list A :=
 match rev l with
@@ -458,3 +462,19 @@ Lemma RemoveOrFalse : forall A , A \/ False <-> A.
 Proof.
   tauto.
 Qed.
+
+
+Lemma length1In : forall {A} (l : list A) (a: A),
+  In a l 
+  -> List.length l = 1%nat
+  -> a::nil = l.
+Proof.
+  intros ? ? ? Hin Hlen.
+  destruct l; simpl in Hlen; inversion Hlen as [ Hll].
+  destruct l; inversion Hll.
+  simpl in Hin. rewrite  RemoveOrFalse in Hin.
+  subst. reflexivity.
+Qed.
+
+
+  
