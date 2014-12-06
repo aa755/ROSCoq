@@ -280,3 +280,141 @@ Definition DeviceBehaviourCorrect
     (locEvents : nat -> option EV) : Prop :=
 
  inpDev physQ locEvents.
+
+
+(*
+Class RosMesgType (T : Type) {unm: UniqueNames T} := {
+    payLoadType : T -> Type
+}.
+  {unm : UniqueNames MT}
+  {rmt : RosMesgType MT}
+    masterAndName : RT -> TCP * string;
+    rtInj : InjectiveFun masterAndName;
+  {deqtcp : DecEq TCP}
+  {tcpad : TCPAddressType TCP} 
+
+Class TCPAddressType (T : Type) {deq : DecEq T}:= {
+}.
+
+*)
+
+
+(*
+Definition SimpleSwProc (inT outT : RosTopic) : Type :=
+Process (topicType inT) (list (topicType outT)).
+
+Definition SSimpleSwProc (inT outT : RosTopic) : Type :=
+Process (topicType inT) (topicType outT).
+
+Add LoadPath "../../../nuprl/coq".
+Require Import UsefulTypes.
+
+CoFixpoint makeSuperSimple {inT outT : RosTopic}
+  (sswp : SSimpleSwProc inT outT) : SimpleSwProc inT outT.
+  constructor. intro inp.
+  apply sswp in inp. repnd.
+  split; [ | exact [inp]; fail].
+  apply makeSuperSimple.
+  trivial.
+Defined.
+
+
+Coercion  makeSuperSimple : SSimpleSwProc >-> SimpleSwProc.
+*)
+
+
+(*
+Inductive RosNode : Type := 
+| rsw :> RosSwNode -> RosNode
+| rhi :> forall {Env : Type}, 
+        RosInpDevNode Env -> RosNode
+| rho :> forall {Env : Type}, 
+        RosOutDevNode Env -> RosNode.
+
+Open Scope list_scope.
+
+Definition SubscribeTopics  (rn : RosNode) : list RosTopic
+  :=
+match rn with
+| rsw rsn => subscribeTopics rsn
+| rhi _ _ => nil
+| rho _ rout =>  cons (inpTopic rout) nil
+end.
+
+Definition PublishTopics  (rn : RosNode) : list RosTopic
+  :=
+match rn with
+| rsw rsn => publishTopics rsn
+| rhi _ rinp => cons (outTopic rinp) nil
+| rho _ _ =>   nil
+end.
+
+Definition TimeValuedEnvType  (rn : RosNode) : Type
+  :=
+match rn with
+| rsw rsn => unit
+| rhi Env _ => Time -> Env
+| rho Env _ => Time -> Env
+end.
+
+
+
+*)
+
+
+(*
+Definition mkSimplePureRosProc {InTopic OutTopic} 
+  (f : SimplePureProcess InTopic OutTopic) 
+    : Process Message (list Message) :=
+*)
+  
+(** There is no code to extract for devices
+    These are here to model environment *)
+
+Record RosInpDevNode (Env : Type) :=
+{
+  (*  IDnodeName : string; *)
+    outTopic : RosTopic; 
+    idev :> InpDev Env  (topicType outTopic)
+}.
+
+
+Definition substIDev {Env : Type} (rid : RosInpDevNode Env)
+  (newd : InpDev Env ((topicType (outTopic rid))))
+  : RosInpDevNode Env :=
+Build_RosInpDevNode 
+                    (outTopic rid)
+                    newd.
+
+
+Record RosOutDevNode (Env : Type) :=
+{
+    (* ODMasterAddress : TCPAddress;
+    ODnodeName : string; *)
+    inpTopic : RosTopic;
+    odev :> OutDev Env ((topicType inpTopic))
+}.
+
+
+  
+(** Implementing this will need simplification of topic definitions.
+  We need decidable equality on topics, which is not currently true.
+  Also, one could have 2 topics with same string name and different
+  payload types
+
+ *)
+
+
+
+
+
+  
+Definition getRosOutDevBhv  {Env : Type}
+    (p: RosOutDevNode Env )
+    (allInputs : list Message)  : OutDevBehaviour Env :=
+    let filterMsgs := filterMegsByTopic allInputs (inpTopic p) in
+    match filterMsgs with
+    | nil => fst (odev p)
+    | last :: rest => getLastOutput (snd (odev p)) rest last
+    end.
+
