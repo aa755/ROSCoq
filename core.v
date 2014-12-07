@@ -360,6 +360,13 @@ match a with
 | None => None
 end. 
 
+Definition opBind2 {A B : Type}
+  (f : A-> B) (a : option A) : option B :=
+match a with
+| Some a' => Some (f a')
+| None => None
+end. 
+
 Definition opExtract {A : Type}
    (a : option A) (def: A ): A :=
 match a with

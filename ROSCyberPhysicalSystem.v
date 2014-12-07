@@ -175,12 +175,34 @@ match (eKind ev) with
 | _ => False
 end.
 
+Definition isSendEvtOp (ev: option EV) :Prop :=
+  opApPure isSendEvt False ev.
+
+
 Definition isRecvEvt (ev: EV) :Prop :=
 match (eKind ev) with
 | enqEvt => True (** !!FIX!! this should be False *)
 | deqEvt => True
 | _ => False
 end.
+
+Definition isDeqEvt (ev: EV) :Prop :=
+match (eKind ev) with
+| deqEvt => True
+| _ => False
+end.
+
+Definition isDeqEvtOp (ev: option EV) :Prop :=
+  opApPure isDeqEvt False ev.
+
+Definition isEnqEvt (ev: EV) :Prop :=
+match (eKind ev) with
+| enqEvt => True 
+| _ => False
+end.
+
+Definition isEnqEvtOp (ev: option EV) :Prop :=
+  opApPure isEnqEvt False ev.
 
 (*
 Definition isSendOnTopic
@@ -330,7 +352,7 @@ Lemma deqEnq : CorrectFIFOQueue
     match deqMesgOp (localEvts l deqIndex) with
     | None => True
     | Some m => ∃ evEnq,(eLocIndex evEnq) < deqIndex ∧
-              (m::nil = eMesg evEnq) /\ eKind evEnq = enqEvt
+              (m::nil = eMesg evEnq) ∧ eKind evEnq = enqEvt
               /\ eLoc evEnq = l
      end.
 Proof.
@@ -372,6 +394,52 @@ Proof.
   destruct l1; inversion H1.
   simpl in Heqm. inversion Heqm. reflexivity.
 Qed.
+
+
+(** first event is innermost, last event is outermost.
+    only events earleir than m^th are elegible *)
+Fixpoint prevProcessedEvents (m : nat)
+  (locEvents : nat -> option EV) : list EV :=
+  match m with
+  | 0 => nil
+  | S m' => (match locEvents m' with
+              | Some ev => match (eKind ev) with
+                            | deqEvt => (ev)::nil
+                            | _ => nil
+                            end
+              | None => nil (* this will never happen *)
+             end
+            )++ (prevProcessedEvents m' locEvents)
+  end.
+
+Definition getDeqOutput (proc: Process Message (list Message))
+  (ev : option EV) : option (list Message) :=
+  opBind2 (getOutput proc) (deqMesgOp ev).
+
+Open Scope Q_scope.
+
+  
+(** assuming all outgoing messages resulting from processing
+    an event happen in a single send event (send once) *)
+Definition possibleDeqSendOncePair
+  (swNode : RosSwNode)
+  (locEvts: nat -> option EV)
+  (nd ns: nat) := 
+  match (locEvts nd, locEvts ns) with
+  | (Some evd, Some evs) => 
+    isDeqEvt evd ∧ isSendEvt evs ∧ nd < ns
+    ∧ (forall n: nat, nd < n < ns -> isEnqEvtOp (locEvts n))
+    ∧ (eTime evs <(eTime evd) + (pTiming swNode))
+    ∧ let procEvts := prevProcessedEvents nd locEvts in
+      let procMsgs := flat_map eMesg procEvts in
+      let lastProc := getNewProcL (process swNode) procMsgs in
+      (getDeqOutput lastProc (locEvts nd)) = opBind2 eMesg (locEvts ns)
+  
+  | _ => False
+  end.
+
+      
+ 
 
 Definition NodeBehCorrect (l : LocT) : Prop :=
   (locNode l) physics (localEvts l).

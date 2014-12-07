@@ -26,8 +26,16 @@ Definition Message := sigT topicType.
 
 Require Export Process.
 
+(*
 Definition ProcessTiming 
   (p : Process Message (list Message)) :=
+  Message -> QTime.
+*)
+
+(** needs to be made more general. 
+    previously it used to depend on a proces
+    but a process will change to sth else in next step *)
+Definition ProcessTiming :=
   Message -> QTime.
 
 Set Implicit Arguments.
@@ -46,7 +54,7 @@ Record RosSwNode :=
     (** The following is only for reasoning purposes
       and will not be extracted *)
 
-    pTiming : ProcessTiming process
+    pTiming : QTime
   
 }.
 
