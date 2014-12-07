@@ -438,8 +438,14 @@ Definition possibleDeqSendOncePair
   | _ => False
   end.
 
-      
- 
+Definition RSwNodeSemanticsAux
+  (swn : RosSwNode)
+  (locEvts: nat -> option EV) :=
+  ∀ n : nat, 
+      (isSendEvtOp (locEvts n) 
+          -> ∃ m: nat, possibleDeqSendOncePair swn locEvts m n)
+    ∧ (isDeqEvtOp (locEvts n) 
+          -> ∃ m: nat, possibleDeqSendOncePair swn locEvts n m).
 
 Definition NodeBehCorrect (l : LocT) : Prop :=
   (locNode l) physics (localEvts l).
