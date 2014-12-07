@@ -504,3 +504,6 @@ Ltac repnd :=
               destruct H as [lname rname]
          end.
   
+Definition subset {A} (la lb : list A) : Prop :=
+  forall a:A, In a la -> In a lb.
+

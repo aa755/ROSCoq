@@ -372,7 +372,7 @@ Qed.
 Lemma velMessages:
   forall n : nat,
      match getVelFromMsg (motorEvents n) with
-     | Some v => v = speed \/ v = (0-speed)
+     | Some v => v = speed \/ v = (-speed)
      | None => True
      end.
 Proof.
@@ -389,6 +389,7 @@ Proof.
       event evEnq. let the sent message
       be [sm] and the corresponding event be [es] *)
   pose proof (recvSend eo ev) as Hrecv.
+(* 
   repnd.
   destruct Hrecv as [es Hrecv];
     [ apply (deqIsRecvEvt  _ Heqom) |].
@@ -405,7 +406,7 @@ Proof.
   simpl in Hrecvrl.
   unfold validSendMesg in Hrecvrrl.
   rewrite Hrecvl in Hrecvrrl.
-(*  remember (eLoc es) as sloc.
+ remember (eLoc es) as sloc.
   (** Only [SWCONTROLLER] sends on that topic *)
   destruct sloc; simpl in Hrecvrrl;
     try contradiction;
@@ -442,15 +443,26 @@ Proof.
   unfold PossibleSendRecvPair in Hsendl.
   remember (eKind Es) as eKs.
   destruct eKs; try contradiction;[].
-  destruct (eKind Er); try contradiction;[].
+  remember (eKind Er) as ekr.
+  destruct ekr; try contradiction.
+  rewrite Hl in Hsendl.
+  simpl in Hsendl.
   repnd.
-  rewrite  Hl in Hsendlrl.
-  simpl in Hsendlrl.
   unfold validRecvMesg in Hsendlrl.
   simpl in Hsendlrl.
+  pose proof (deqSingleMessage Er) as XX.
+  unfold isDeqEvt in XX.
+  rewrite <- Heqekr in XX.
+  specialize (XX I).
+  destruct XX as [m XX].
+  repnd. rewrite <- XXl in Hsendlrl.
+  rewrite <- Hsendll in XXl.
+  rewrite <- XXl in Hsendlrrl.
+  specialize (Hsendlrl _ (or_introl eq_refl)).
   rewrite RemoveOrFalse in Hsendlrl.
   unfold validSendMesg in Hsendlrrl.
-  rewrite Hsendll in Hsendlrrl.
+  simpl in Hsendlrrl.
+  specialize (Hsendlrrl _ (or_introl eq_refl)).
   rewrite <- Hsendlrl in Hsendlrrl.
   destruct (eLoc Es); simpl in Hsendlrrl;
     try contradiction;
