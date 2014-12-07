@@ -89,74 +89,16 @@ Definition Device `{EventType Event } (PhysQ : Type ) : Type :=
 
 End Event.
 
-Section DeviceAndLoc.
-(** [PhysicalEnvType] would typically represent how physical
-    quantities like temperature, position, velocity
-     changed over time *)
+Section EvtProps.
 
-Context  {PhysicalEnvEvolutionType : Type}
-    `{rtopic : RosTopicType RosTopic}
-    `{evt : @EventType _ _ _ Event LocT minG tdeq}.
-
-
-
-
-   (** When one uses a device in a CPS, they must provide
-      a way to extract from the system's [PhysicalEnvType]
-      a function that represents the way physical quantity
-      measured/ controlled by devices changes.
-      
-      For example, if the system's [PhysicalEnvType] records
-      a train's center's position, the proximity sensor on its
-      RHS end sees [rightPlatformBoundary -(trainCenterPos + trainWidth/2)]
-
-    *)
-   
-Definition DeviceView (PhysQ : Type) :=
-    PhysicalEnvEvolutionType
-    ->  (Time -> PhysQ).
-
-
-Definition NodeSemantics  :=
-  PhysicalEnvEvolutionType
-  -> (nat -> option Event)
-  -> Prop.
-
-Definition DeviceSemantics
-    {PhysQ : Type}
-    (dview : DeviceView PhysQ)
-    (inpDev : Device PhysQ)
-     : NodeSemantics :=
- (fun penv evts => inpDev (dview penv) evts).
-
-Class RosLocType (RosLoc: Type) 
-     {rldeq : DecEq RosLoc} :=
-{
-   locNode: RosLoc -> NodeSemantics;
-
-   validTopics : RosLoc -> (@TopicInfo RosTopic);
-
-   maxDeliveryDelay : RosLoc -> RosLoc -> option QTime
-}.
-
-
-End DeviceAndLoc.
-
-Set Implicit Arguments.
-
-
-Section EventProps.
-Context  (PhysicalEnvType : Type)
-  (physics : PhysicalEnvType)
-  (minGap : Qpos)
+Context  
   `{rtopic : RosTopicType RosTopic} 
   `{dteq : Deq RosTopic}
- `{etype : @EventType _ _ _ EV LocT minGap tdeq }
-  `{rlct : @RosLocType PhysicalEnvType RosTopic EV LocT ldeq}.
-
+ `{etype : @EventType _ _ _ EV LocT minGap tdeq }.
 
 (** would fail if [QTime] is changed to [Time].
     This should be definable, thanks to [minGap] *)
+
 Definition lastEvtIndex : LocT -> QTime -> nat.
 Admitted.
 
@@ -211,13 +153,6 @@ end.
 
 Definition isEnqEvtOp (ev: option EV) :Prop :=
   opApPure isEnqEvt False ev.
-
-(*
-Definition isSendOnTopic
-  (tp: RosTopic) (property : (topicType tp) -> Prop) (ev: EV) : Prop :=
-isSendEvt ev /\ 
-(opApPure property False (getPayLoad tp (eMesg ev))).
-*)
 
 Close Scope Q_scope.
 
@@ -454,14 +389,96 @@ Definition RSwNodeSemanticsAux
     ∧ (isDeqEvtOp (locEvts n) 
           -> ∃ m: nat, possibleDeqSendOncePair swn locEvts n m).
 
+
+
+
+End EvtProps.
+(*
+Definition isSendOnTopic
+  (tp: RosTopic) (property : (topicType tp) -> Prop) (ev: EV) : Prop :=
+isSendEvt ev /\ 
+(opApPure property False (getPayLoad tp (eMesg ev))).
+*)
+
+Close Scope Q_scope.
+
+Section DeviceAndLoc.
+(** [PhysicalEnvType] would typically represent how physical
+    quantities like temperature, position, velocity
+     changed over time *)
+
+Context  {PhysicalEnvEvolutionType : Type}
+    `{rtopic : RosTopicType RosTopic}
+    `{evt : @EventType _ _ _ Event LocT minG tdeq}.
+
+
+
+
+   (** When one uses a device in a CPS, they must provide
+      a way to extract from the system's [PhysicalEnvType]
+      a function that represents the way physical quantity
+      measured/ controlled by devices changes.
+      
+      For example, if the system's [PhysicalEnvType] records
+      a train's center's position, the proximity sensor on its
+      RHS end sees [rightPlatformBoundary -(trainCenterPos + trainWidth/2)]
+
+    *)
+   
+Definition DeviceView (PhysQ : Type) :=
+    PhysicalEnvEvolutionType
+    ->  (Time -> PhysQ).
+
+
+Definition NodeSemantics  :=
+  PhysicalEnvEvolutionType
+  -> (nat -> option Event)
+  -> Prop.
+
+Definition DeviceSemantics
+    {PhysQ : Type}
+    (dview : DeviceView PhysQ)
+    (inpDev : Device PhysQ)
+     : NodeSemantics :=
+ (fun penv evts => inpDev (dview penv) evts).
+
+Definition RSwSemantics
+    (swn : RosSwNode)
+       : NodeSemantics :=
+ (fun penv evts => RSwNodeSemanticsAux swn evts).
+
+Class RosLocType (RosLoc: Type) 
+     {rldeq : DecEq RosLoc} :=
+{
+   locNode: RosLoc -> NodeSemantics;
+
+   validTopics : RosLoc -> (@TopicInfo RosTopic);
+
+   maxDeliveryDelay : RosLoc -> RosLoc -> option QTime
+}.
+
+
+End DeviceAndLoc.
+
+Set Implicit Arguments.
+
+
+Section Global.
+Context  (PhysicalEnvType : Type)
+  (physics : PhysicalEnvType)
+  (minGap : Qpos)
+  `{rtopic : RosTopicType RosTopic} 
+  `{dteq : Deq RosTopic}
+ `{etype : @EventType _ _ _ EV LocT minGap tdeq }
+  `{rlct : @RosLocType PhysicalEnvType RosTopic EV LocT ldeq}.
+
+Open Scope Q_scope.
+
 Definition NodeBehCorrect (l : LocT) : Prop :=
   (locNode l) physics (localEvts l).
 
 Definition AllNodeBehCorrect : Prop:= 
   forall l,  NodeBehCorrect l.
-
-
-Open Scope Q_scope.
 
 Definition PossibleSendRecvPair
   (Es  Er : EV) : Prop :=
@@ -477,6 +494,8 @@ match (eKind Es, eKind Er) with
       end)
 | _ => False
 end.
+
+
 
 Require Import Coq.Relations.Relation_Definitions.
 
@@ -529,4 +548,4 @@ Definition holdsUptoNextEvent (prp : Time -> R -> Prop)
   | None => True
   end.
 
-End EventProps.
+End Global.

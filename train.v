@@ -43,6 +43,7 @@ Instance rldeqdsjfklsajlk : DecEq RosLoc.
 constructor. exact RosLoc_eq_dec.
 Defined.
 
+Open Scope Q_scope.
 
 (** it is a pure function that repeatedly
    reads a message from the [PSENSOR] topic
@@ -67,6 +68,8 @@ Definition SwProcess (speed : Q)
 Definition digiControllerTiming (speed : Q) : 
   QTime :=  (N2QTime 1).
  
+Definition ControllerNode (speed : Q): RosSwNode :=
+  Build_RosSwNode (SwProcess speed) (digiControllerTiming speed).
 
 Record Train : Type := {
   posX : TimeFun;
@@ -246,25 +249,27 @@ Definition transitionInterval : interval :=
 
 
 
-Definition locNode (rl : RosLoc) : RosNode :=
+Definition locNode (rl : RosLoc) : NodeSemantics :=
+match rl with
+| BASEMOTOR => DeviceSemantics (fun ts => getF (velX ts)) SlowMotorQ
+| LEFTPSENSOR => DeviceSemantics
+                    (fun ts t => AbsIR ((lEndPos ts t) [-] lboundary))
+                    (ProximitySensor alertDist maxDelay true)
+| RIGHTPSENSOR => DeviceSemantics
+                    (fun ts t => AbsIR ((rEndPos ts t) [-] rboundary))
+                    (ProximitySensor alertDist maxDelay false)
+| SWCONTROLLER => RSwSemantics (ControllerNode speed)
+end.
+
+Definition locTopics (rl : RosLoc) : TopicInfo :=
 match rl with
 | BASEMOTOR =>
-     {| topicInf:=
-        (Build_TopicInfo (MOTOR::nil) nil);
-        rnode := (inr  (existT  _ _ 
-                (SlowMotorQ))) |}
+        (Build_TopicInfo (MOTOR::nil) nil)
 | LEFTPSENSOR => 
-     {| topicInf:=
-          (Build_TopicInfo nil (PSENSOR::nil));
-           rnode := (inr  (existT  _ _ 
-               (ProximitySensor alertDist maxDelay true)))|}
+          (Build_TopicInfo nil (PSENSOR::nil))
 | RIGHTPSENSOR => 
-     {| topicInf:=
-          (Build_TopicInfo nil (PSENSOR::nil));
-           rnode := (inr  (existT  _ _ 
-               (ProximitySensor alertDist maxDelay false)))|}
-
-| SWCONTROLLER => ControllerNode speed
+          (Build_TopicInfo nil (PSENSOR::nil))
+| SWCONTROLLER => (Build_TopicInfo (PSENSOR::nil) (MOTOR::nil))
 end.
 
 Instance rllllfjkfhsdakfsdakh : 
