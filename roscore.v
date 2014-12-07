@@ -40,11 +40,12 @@ Definition ProcessTiming :=
 
 Set Implicit Arguments.
 
-Record TopicInfo :=
-{
-    subscribeTopics : list RosTopic;
-    publishTopics : list RosTopic
-}.
+Require Export Coq.Unicode.Utf8.
+
+Definition TopicInfo := (list RosTopic) × (list RosTopic).
+
+Definition  subscribeTopics (t: TopicInfo ):= fst t.
+Definition  publishTopics (t: TopicInfo ):= snd t.
 
 Record RosSwNode :=
 {
@@ -88,7 +89,6 @@ end).
 Definition mtopic (m : Message) :=
 (proj1_sigT _ _ m).
 
-Require Export Coq.Unicode.Utf8.
 
 Definition validRecvMesg (rn : TopicInfo) (lm : list Message) :=
 ∀ m, In m lm -> In (mtopic m) (subscribeTopics rn).

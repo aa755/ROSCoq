@@ -9,6 +9,7 @@ Require Export CoRN.ftc.MoreIntervals.
 
 (* Definition N2Q (n: nat) : Q := n. *)
 
+Notation "x × y" := (prod x y) (at level 80, right associativity) : type_scope.
 
 (* Coercion N2Q : nat >-> Q. *)
 
@@ -487,4 +488,19 @@ Proof.
 Qed.
 
 
+Ltac TrimAndRHS Hyp :=
+let H99 := fresh "H99" in 
+destruct Hyp as [Hyp H99]; clear H99.
+
+Ltac TrimAndLHS Hyp :=
+let H99 := fresh "H99" in 
+destruct Hyp as [H99 Hyp]; clear H99.
+
+Ltac repnd :=
+  repeat match goal with
+           | [ H : _ /\ _ |- _ ] =>
+            let lname := fresh H "l" in 
+            let rname := fresh H "r" in 
+              destruct H as [lname rname]
+         end.
   

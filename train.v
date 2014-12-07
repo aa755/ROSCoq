@@ -263,25 +263,19 @@ end.
 
 Definition locTopics (rl : RosLoc) : TopicInfo :=
 match rl with
-| BASEMOTOR =>
-        (Build_TopicInfo (MOTOR::nil) nil)
-| LEFTPSENSOR => 
-          (Build_TopicInfo nil (PSENSOR::nil))
-| RIGHTPSENSOR => 
-          (Build_TopicInfo nil (PSENSOR::nil))
-| SWCONTROLLER => (Build_TopicInfo (PSENSOR::nil) (MOTOR::nil))
+| BASEMOTOR => ((MOTOR::nil), nil)
+| LEFTPSENSOR => (nil, (PSENSOR::nil))
+| RIGHTPSENSOR => (nil, (PSENSOR::nil))
+| SWCONTROLLER => ((PSENSOR::nil), (MOTOR::nil))
 end.
 
-Instance rllllfjkfhsdakfsdakh : 
-   @RosLocType _ _ _ Event Train RosLoc _.
-apply (Build_RosLocType _ _ _ 
-         locNode (fun srs dest => Some (N2QTime 1))).
- intros ts rl. remember rl as rll. destruct rll; simpl; try (exact tt);
-  unfold TimeValuedPhysQType; simpl.
-  - exact (getF (velX ts)).
-  - intro t. exact (AbsIR ((lEndPos ts t) [-] lboundary)).
-  - intro t. exact (AbsIR ((rEndPos ts t) [-] rboundary)).
+Instance rllllfjkfhsdakfsdakh : @RosLocType Train Topic Event  RosLoc _.
+  apply Build_RosLocType.
+  - exact locNode.
+  - exact locTopics.
+  - exact (fun srs dest => Some (N2QTime 1)).
 Defined.
+
 
 Open Scope R_scope.
 
@@ -312,22 +306,6 @@ Proof.
   unfold SlowMotorQ in Hnc.
 *)  
 
-
-Ltac TrimAndRHS Hyp :=
-let H99 := fresh "H99" in 
-destruct Hyp as [Hyp H99]; clear H99.
-
-Ltac TrimAndLHS Hyp :=
-let H99 := fresh "H99" in 
-destruct Hyp as [H99 Hyp]; clear H99.
-
-Ltac repnd :=
-  repeat match goal with
-           | [ H : _ /\ _ |- _ ] =>
-            let lname := fresh H "l" in 
-            let rname := fresh H "r" in 
-              destruct H as [lname rname]
-         end.
 
 (** need to force deque events to happen
     and also within acceptable time.
