@@ -88,14 +88,16 @@ end).
 Definition mtopic (m : Message) :=
 (proj1_sigT _ _ m).
 
-Definition validRecvMesg (rn : TopicInfo) (m : Message) :=
-In (mtopic m) (subscribeTopics rn).
+Require Export Coq.Unicode.Utf8.
 
-Definition validSendMesg (rn : TopicInfo) (m : Message) :=
-In (mtopic m) (publishTopics rn).
+Definition validRecvMesg (rn : TopicInfo) (lm : list Message) :=
+∀ m, In m lm -> In (mtopic m) (subscribeTopics rn).
+
+Definition validSendMesg (rn : TopicInfo) (lm : list Message) :=
+∀ m, In m lm -> In (mtopic m) (publishTopics rn).
 
 
-Definition makeTopicMesg {outTopic : RosTopic}
+Definition makeTopicMesg (outTopic : RosTopic)
   (payload : ( (topicType outTopic))) : Message.
 econstructor; eauto. 
   (* in this context, there is only one possible message *)

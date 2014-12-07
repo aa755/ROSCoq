@@ -65,13 +65,7 @@ Definition SwProcess (speed : Q)
   mkPureProcess (liftToMesg (SwControllerProgram speed)).
 
 Definition digiControllerTiming (speed : Q) : 
-  ProcessTiming (SwProcess speed) :=
- fun m => (N2QTime 1).
-
-Definition ControllerNodeAux (speed : Q): RosSwNode :=
-  Build_RosSwNode (digiControllerTiming speed).
-
-
+  QTime :=  (N2QTime 1).
  
 
 Record Train : Type := {
@@ -107,22 +101,13 @@ Context
  `{etype : @EventType _ _ _ Event RosLoc minGap tdeq}.
 
 
-Definition ControllerNode (speed : Q):  @RosNode _ _ _ Event.
-  constructor.
-  - exact (Build_TopicInfo (PSENSOR::nil) (MOTOR::nil)).
-  - left. exact (ControllerNodeAux speed).
-Defined.
-
 (** In some cases, the equations might invove transcendental 
   functions like sine, cos which can output 
   irrationals even on rational *)
 
 
 Definition getVel (e : Event) : option Q :=
-match (eKind e) with
-| deqEvt => getVelM (eMesg e)
-| _ => None
-end.
+opBind getVelM (deqMesg e).
 
 
 Definition getVelFromEv (oev : Event) : option Q  :=
@@ -142,38 +127,33 @@ match oev with
 | None => None
 end.
 
+Definition ProxPossibleTimeEvPair 
+  (maxDelay: R) (side : bool)
+  (t: Time) (ev: Event) 
+  :=
+  Cast ((olcr t (t [+] maxDelay)) (Q2R (eTime ev)))
+  /\ (eMesg ev) = (makeTopicMesg PSENSOR side)::nil.
 
 (** [side] is just an identifier *)
 Definition ProximitySensor (alertDist maxDelay: R) (side : bool)
-  : @Device Event R :=
-fun  (distanceAtTime : Time -> R)  
+  : Device R :=
+fun  (distanceAtTime : Time -> R)
      (evs : nat -> option Event) 
-    =>
-      (forall t:Time,
-         (distanceAtTime t  [>]  alertDist)
-         -> exists n,
-              match (evs n) with
-            | Some ev => Cast ((olcr t (t [+] maxDelay)) (Q2R (eTime ev)))
-                  /\ isSendOnTopic PSENSOR (fun b => b = side) ev
-            | None => False
-            end)
-      /\
-      (forall (n: nat),
-            match (evs n) with
-            | Some ev => isSendOnTopic PSENSOR (fun b => b = side) ev
-                         /\ exists (t : QTime),
-                              Cast ((olcr (Q2R t) ((Q2R t) [+] maxDelay)) (Q2R (eTime ev)))
-                         /\ Cast (distanceAtTime t  [>]  alertDist)
-            | None => False
-            end).
-
+  =>
+    (∀ t:Time,
+       (distanceAtTime t  [>]  alertDist)
+       -> ∃ n, opLiftF (ProxPossibleTimeEvPair maxDelay side t) (evs n))
+    /\
+    (∀ (n: nat), 
+        isSendEvtOp (evs n)
+        -> ∃ t : Time,  Cast (distanceAtTime t  [>]  alertDist)
+                /\ opLiftF (ProxPossibleTimeEvPair maxDelay side t) (evs n)).
 
 Definition inIntervalDuringInterval
   (interval intervalT: interval)  (f : Time -> R) : Prop
       :=
  Cast (forall t : Time, intervalT t  -> (interval) (f t)).
   
-Require Export Coq.Unicode.Utf8.
 
 Variable reactionTime : Q.
 Variable velAccuracy : R.
@@ -227,7 +207,7 @@ Definition corrSinceLastVel
 
 
 Definition SlowMotorQ 
-   : @Device Event R :=
+   : Device R :=
 fun  (velAtTime: Time -> R) (evs : nat -> option Event) 
   => forall t: QTime, corrSinceLastVel evs t velAtTime.
 

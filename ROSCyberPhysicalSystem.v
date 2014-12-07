@@ -122,11 +122,19 @@ Definition NodeSemantics  :=
   -> (nat -> option Event)
   -> Prop.
 
+Definition DeviceSemantics
+    {PhysQ : Type}
+    (dview : DeviceView PhysQ)
+    (inpDev : Device PhysQ)
+     : NodeSemantics :=
+ (fun penv evts => inpDev (dview penv) evts).
 
 Class RosLocType (RosLoc: Type) 
      {rldeq : DecEq RosLoc} :=
 {
    locNode: RosLoc -> NodeSemantics;
+
+   validTopics : RosLoc -> (@TopicInfo RosTopic);
 
    maxDeliveryDelay : RosLoc -> RosLoc -> option QTime
 }.
@@ -144,7 +152,7 @@ Context  (PhysicalEnvType : Type)
   `{rtopic : RosTopicType RosTopic} 
   `{dteq : Deq RosTopic}
  `{etype : @EventType _ _ _ EV LocT minGap tdeq }
-  `{rlct : @RosLocType PhysicalEnvType EV LocT ldeq}.
+  `{rlct : @RosLocType PhysicalEnvType RosTopic EV LocT ldeq}.
 
 
 (** would fail if [QTime] is changed to [Time].
@@ -288,7 +296,6 @@ Qed.
 
 
 
-Require Export Coq.Unicode.Utf8.
 
 
 Lemma evEnqHead : forall ev m, 
@@ -453,9 +460,7 @@ Definition NodeBehCorrect (l : LocT) : Prop :=
 Definition AllNodeBehCorrect : Prop:= 
   forall l,  NodeBehCorrect l.
 
-(*   /\ (validRecvMesg (topicInf (locNode (eLoc Er))) (eMesg Er))
-   /\ (validSendMesg (topicInf (locNode (eLoc Es))) (eMesg Es))
-*)
+
 Open Scope Q_scope.
 
 Definition PossibleSendRecvPair
@@ -464,9 +469,11 @@ match (eKind Es, eKind Er) with
 (** !!FIX!! this should be [enqEvt], [deqEvt] is just a temporary simplification *)
 | (sendEvt, deqEvt) =>
    (eMesg Es = eMesg Er)
+   /\ (validRecvMesg (validTopics (eLoc Er)) (eMesg Er))
+   /\ (validSendMesg (validTopics (eLoc Es)) (eMesg Es))
    /\ (match (maxDeliveryDelay  (eLoc Es) (eLoc Er)) with
-      | Some td => (eTime Er <  eTime Es + td)
-      | None => True
+      | Some td => (eTime Es < eTime Er <  eTime Es + td)
+      | None => True (* None stands for infinity *)
       end)
 | _ => False
 end.

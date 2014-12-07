@@ -389,6 +389,9 @@ match a with
 | None => def
 end.
 
+Definition opLiftF {A : Type}
+  (f : A-> Prop) (a : option A) 
+  : Prop := opApPure f False a.
 
 Definition nextInterval (tstart : QTime) 
     (nextMesgTime : option QTime) : interval :=
