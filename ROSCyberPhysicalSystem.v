@@ -142,6 +142,8 @@ match (eKind ev) with
 | _ => False
 end.
 
+
+
 Definition isDeqEvtOp (ev: option EV) :Prop :=
   opApPure isDeqEvt False ev.
 
@@ -190,6 +192,20 @@ match eKind ev with
 (** BTW, [(eMesg ev)] is supposed to be a singletop *)
  | _ => None
 end.
+
+Lemma deqSingleMessage : forall evD,
+  isDeqEvt evD
+  -> {m : Message | m::nil = eMesg evD /\ (deqMesg evD = Some m)}.
+Proof.
+  intros ? Hd.
+  pose proof (enQDeq1Mesg evD) as XX.
+  unfold isDeqEvt in Hd.
+  unfold deqMesg. 
+  destruct (eKind evD) ;try contradiction.
+  destruct ((eMesg evD)); inversion XX.
+  destruct l; inversion H0.
+  eexists; eauto.
+Defined.
 
 Definition enqMesg (ev : EV) : option Message :=
 match eKind ev with
@@ -494,7 +510,7 @@ match (eKind Es, eKind Er) with
       end)
 | _ => False
 end.
-
+    
 
 
 Require Import Coq.Relations.Relation_Definitions.
@@ -530,8 +546,11 @@ Record PossibleEventOrder  := {
     (** the stuff below can probably be
       derived from the stuff above *)
 
-    causalWf : well_founded _ causedBy
-    
+    causalWf : well_founded _ causedBy;
+
+    noSpamRecv : forall ev, 
+      isDeqEvt ev -> validRecvMesg (validTopics (eLoc ev)) (eMesg ev)
+      (** !FIX! change above to [isEnqEvt] *)
 }.
 
 

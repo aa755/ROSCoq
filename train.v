@@ -51,7 +51,7 @@ Open Scope Q_scope.
 Definition SwControllerProgram (speed : Q):
   SimplePureProcess PSENSOR MOTOR :=
 fun side  => match side with
-            | true => 0 - speed
+            | true => -speed
             | false => speed
             end.
 
@@ -316,10 +316,8 @@ Lemma swControllerMessages :
   forall es : Event,
   SWCONTROLLER = eLoc es
   -> sendEvt = eKind es
-  -> match getVelM (eMesg es) with
-     | Some v => v = speed \/ v = (0-speed)
-     | None => True
-     end.
+  -> (eMesg es) = (makeTopicMesg MOTOR speed)::nil
+      \/ (eMesg es) = (makeTopicMesg MOTOR (-speed))::nil.
 Proof.
   intros es Hsw Hsend.
   pose proof (locEvtIndex 
@@ -334,24 +332,39 @@ Proof.
                   SWCONTROLLER 
                   (eLocIndex es)) as Hnc.
   rewrite Hiff in Hnc.
+  TrimAndRHS Hnc. unfold isSendEvtOp in Hnc.
+  unfold opApPure, isSendEvt in Hnc.
   rewrite <- Hsend in Hnc.
-  remember 
-    (prevProcessedEvents 
-        (S (eLocIndex es)) 
-        (localEvts SWCONTROLLER)) 
-    as prevProcs.
-  destruct prevProcs as [|last procEvts];
-  simpl in Hnc; [contradiction|].
-  unfold SwProcess in Hnc.
-  rewrite getLastOutputPure in Hnc.
-  TrimAndRHS Hnc.
-  unfold SwControllerProgram in Hnc.
-  unfold liftToMesg in Hnc.
-  destruct (getPayLoad PSENSOR (eMesg last));
-    simpl in Hnc;[| contradiction].
-  destruct Hnc as [Hnc | ?]; [| contradiction].
-  rewrite <- Hnc.
-  simpl. destruct t;[right| left]; reflexivity.
+  specialize (Hnc I). destruct Hnc as [mDeq  Hnc].
+  unfold possibleDeqSendOncePair in Hnc.
+  rewrite Hiff in Hnc.
+  remember (localEvts SWCONTROLLER mDeq) as oevD.
+  destruct oevD as [evD |]; [| contradiction].
+  destruct Hnc as [Hdeq  Hnc].
+  repeat(TrimAndLHS Hnc).
+  pose proof (noSpamRecv eo _ Hdeq) as Hvr.
+  symmetry in HeqoevD.
+  rewrite <- locEvtIndex in HeqoevD.
+  TrimAndRHS HeqoevD.
+  rewrite HeqoevD in Hvr.
+  simpl in Hvr. unfold validRecvMesg in Hvr.
+  unfold ControllerNode, SwProcess in Hnc.
+  simpl in Hnc.
+  rewrite getNewProcLPure in Hnc.
+  pose proof (deqSingleMessage _ Hdeq) as Hmm.
+  destruct Hmm as [mm Hmm]. repnd.
+  rewrite <- Hmml in Hvr.
+  simpl in Hvr. specialize (Hvr _ (or_introl  eq_refl)).
+  unfold getDeqOutput in Hnc.
+  simpl in Hnc. rewrite Hmmr in Hnc.
+  simpl in Hnc.
+  rewrite RemoveOrFalse in Hvr.
+  unfold liftToMesg, getPayLoad in Hnc.
+  destruct mm as [mt mp].
+  simpl in Hvr. destruct mt; inversion Hvr.
+  simpl in Hnc. simpl in mp.
+  destruct mp;[right | left];
+  simpl in Hnc; inversion Hnc; reflexivity.
 Qed.
 
 
