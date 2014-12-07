@@ -531,23 +531,21 @@ Proof.
     unfold isRecvEvt in Hsend.
     parallelForall Hsend. rename x into Hdeqx.
     destruct Hsend as [Es Hsend].
-    repnd. pose proof (globalCausal _ _ _ Hsendr) as Htlt.
-    apply Hind in Hsendr. clear Hind.
+    repnd. pose proof (globalCausal _ _ _ Hsendrl) as Htlt.
+    apply Hind in Hsendrl. clear Hind.
     (** topic subscrions and topology say that [Es] must have
         happened at [SWCONTROLLER] *)
     symmetry in Heqevloc.
-    pose proof  (MotorOnlyReceivesFromSw _ _ Hsendl Heqevloc) as Hsw.
+    pose proof  (MotorOnlyReceivesFromSw _ _ 
+        Hsendrr Hdeqx Hsendl Heqevloc) as Hsw.
     unfold PossibleSendRecvPair in Hsendl.
-    rewrite <- Heqeks in Hsendl.
-    remember (eKind Es) as eKs.
-    destruct eKs; try contradiction;[].
     repnd. clear Hsendlrrl Hsendlrl.
     rewrite Heqevloc in Hsendlrrr.
     rewrite Hsw in Hsendlrrr.
     simpl in Hsendlrrr.
     (** Now, lets unpack the induction hypothesis *)
-    unfold MotorRecievesPositivVelAtLHS in Hsendr.
-    rewrite Hsw in Hsendr.
+    unfold MotorRecievesPositivVelAtLHS in Hsendrl.
+    rewrite Hsw in Hsendrl.
     rewrite <- HeqeKs  in Hsendr.
     rewrite Hsendll in Hsendr. specialize (Hsendr H0).
     remember (eTime ev) as evt. clear Heqevt.
