@@ -435,30 +435,24 @@ Abort.
 
 
 Lemma MotorOnlyReceivesFromSw :   forall Es Er,
-  PossibleSendRecvPair Es Er
+  isSendEvt Es
+  -> isRecvEvt Er
+  -> PossibleSendRecvPair Es Er
   -> eLoc Er = BASEMOTOR
   -> eLoc Es = SWCONTROLLER.
 Proof.
-  intros ? ? Hsendl Hl.
+  intros ? ? Hs Hr Hsendl Hl.
   unfold PossibleSendRecvPair in Hsendl.
-  remember (eKind Es) as eKs.
-  destruct eKs; try contradiction;[].
-  remember (eKind Er) as ekr.
-  destruct ekr; try contradiction.
-  rewrite Hl in Hsendl.
-  simpl in Hsendl.
-  repnd.
+  repnd. clear Hsendlrrr.
   unfold validRecvMesg in Hsendlrl.
-  simpl in Hsendlrl.
-  pose proof (deqSingleMessage Er) as XX.
-  unfold isDeqEvt in XX.
-  rewrite <- Heqekr in XX.
-  specialize (XX I).
+  pose proof (deqSingleMessage _ Hr) as XX.
   destruct XX as [m XX].
   repnd. rewrite <- XXl in Hsendlrl.
   rewrite <- Hsendll in XXl.
   rewrite <- XXl in Hsendlrrl.
   specialize (Hsendlrl _ (or_introl eq_refl)).
+  rewrite Hl in Hsendlrl.
+  simpl in Hsendlrl.
   rewrite RemoveOrFalse in Hsendlrl.
   unfold validSendMesg in Hsendlrrl.
   simpl in Hsendlrrl.
@@ -475,15 +469,16 @@ Qed.
 Definition MotorRecievesPositivVelAtLHS (ev : Event)  :=
 match (eLoc  ev) with
 | BASEMOTOR => 
-            getVelFromEv ev = Some speed
-               -> (centerPosAtTime tstate (eTime ev)) [<=] [0]
+            isDeqEvt ev
+              -> (eMesg ev) = (makeTopicMesg MOTOR speed)::nil
+              -> (centerPosAtTime tstate (eTime ev)) [<=] [0]
 | SWCONTROLLER => 
             match eKind ev with
             | sendEvt => 
-                getVelM (eMesg ev) = Some speed
+                (eMesg ev) = (makeTopicMesg MOTOR speed)::nil
                 -> (centerPosAtTime tstate (eTime ev)) [<=] Z2R (0-2)
             | deqEvt => 
-                getProxSide (eMesg ev) = Some false
+                (eMesg ev) = (makeTopicMesg PSENSOR false)::nil
                 -> (centerPosAtTime tstate (eTime ev)) [<=] Z2R (0-2)
             | _ => True
             end
@@ -532,13 +527,9 @@ Proof.
   unfold MotorRecievesPositivVelAtLHS.
   remember (eLoc ev) as evloc.
   destruct evloc; simpl; auto.
-  - unfold getVelFromEv. unfold deqMesg.
-    remember (eKind ev) as eks.
-    intros Heqks. destruct eks; simpl; inversion Heqks; [].
-    pose proof (recvSend eo ev) as Hsend.
+  - pose proof (recvSend eo ev) as Hsend.
     unfold isRecvEvt in Hsend.
-    rewrite <- Heqeks in Hsend.
-    specialize (Hsend I).
+    parallelForall Hsend. rename x into Hdeqx.
     destruct Hsend as [Es Hsend].
     repnd. pose proof (globalCausal _ _ _ Hsendr) as Htlt.
     apply Hind in Hsendr. clear Hind.

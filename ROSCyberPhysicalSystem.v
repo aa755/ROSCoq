@@ -129,12 +129,6 @@ Definition isSendEvtOp (ev: option EV) :Prop :=
   opApPure isSendEvt False ev.
 
 
-Definition isRecvEvt (ev: EV) :Prop :=
-match (eKind ev) with
-| enqEvt => True (** !!FIX!! this should be False *)
-| deqEvt => True
-| _ => False
-end.
 
 Definition isDeqEvt (ev: EV) :Prop :=
 match (eKind ev) with
@@ -155,6 +149,9 @@ end.
 
 Definition isEnqEvtOp (ev: option EV) :Prop :=
   opApPure isEnqEvt False ev.
+
+(** !!FIX!! this should be [isEnqEvt] *)
+Definition isRecvEvt := isDeqEvt.
 
 Close Scope Q_scope.
 
@@ -240,8 +237,8 @@ Lemma deqIsRecvEvt : forall ev sm,
 Proof.
   intros ? ? Heq.
   unfold deqMesg in Heq.
-  unfold isRecvEvt.
-  destruct (eKind ev); auto;[].
+  unfold isRecvEvt, isDeqEvt.
+  destruct (eKind ev); auto;
   inversion Heq.
 Qed.
 
@@ -498,18 +495,13 @@ Definition AllNodeBehCorrect : Prop:=
 
 Definition PossibleSendRecvPair
   (Es  Er : EV) : Prop :=
-match (eKind Es, eKind Er) with
-(** !!FIX!! this should be [enqEvt], [deqEvt] is just a temporary simplification *)
-| (sendEvt, deqEvt) =>
    (eMesg Es = eMesg Er)
    /\ (validRecvMesg (validTopics (eLoc Er)) (eMesg Er))
    /\ (validSendMesg (validTopics (eLoc Es)) (eMesg Es))
    /\ (match (maxDeliveryDelay  (eLoc Es) (eLoc Er)) with
       | Some td => (eTime Es < eTime Er <  eTime Es + td)
       | None => True (* None stands for infinity *)
-      end)
-| _ => False
-end.
+      end).
     
 
 
@@ -532,13 +524,13 @@ Record PossibleEventOrder  := {
           isSendEvt Es
           ->  sig (fun Er : EV =>
               PossibleSendRecvPair Es Er
-              /\ causedBy Es Er);
+              /\ causedBy Es Er /\ isRecvEvt Er);
 
     recvSend: forall (Er : EV),
           isRecvEvt Er
           ->  sig (fun Es : EV => 
                   PossibleSendRecvPair Es Er
-                  /\ causedBy Es Er);
+                  /\ causedBy Es Er /\ isSendEvt Es);
 
     corrFIFO : CorrectFIFOQueue;
     corrNodes : AllNodeBehCorrect;
