@@ -335,14 +335,14 @@ Proof.
   TrimAndRHS Hnc. unfold isSendEvtOp in Hnc.
   unfold opApPure, isSendEvt in Hnc.
   rewrite <- Hsend in Hnc.
-  specialize (Hnc I). destruct Hnc as [mDeq  Hnc].
+  specialize (Hnc eq_refl). destruct Hnc as [mDeq  Hnc].
   unfold possibleDeqSendOncePair in Hnc.
   rewrite Hiff in Hnc.
   remember (localEvts SWCONTROLLER mDeq) as oevD.
   destruct oevD as [evD |]; [| contradiction].
   destruct Hnc as [Hdeq  Hnc].
   repeat(TrimAndLHS Hnc).
-  pose proof (noSpamRecv eo _ Hdeq) as Hvr.
+  pose proof (noSpamRecv eo Hdeq) as Hvr.
   symmetry in HeqoevD.
   rewrite <- locEvtIndex in HeqoevD.
   TrimAndRHS HeqoevD.
@@ -388,8 +388,8 @@ Proof.
       which is contained in the receive (enque)
       event evEnq. let the sent message
       be [sm] and the corresponding event be [es] *)
-  pose proof (recvSend eo ev) as Hrecv.
 (* 
+  pose proof (recvSend eo ev) as Hrecv.
   repnd.
   destruct Hrecv as [es Hrecv];
     [ apply (deqIsRecvEvt  _ Heqom) |].
@@ -527,9 +527,7 @@ Proof.
   unfold MotorRecievesPositivVelAtLHS.
   remember (eLoc ev) as evloc.
   destruct evloc; simpl; auto.
-  - pose proof (recvSend eo ev) as Hsend.
-    unfold isRecvEvt in Hsend.
-    parallelForall Hsend. rename x into Hdeqx.
+  - intro Hdeqx. pose proof (recvSend eo Hdeqx) as Hsend.
     destruct Hsend as [Es Hsend].
     repnd. pose proof (globalCausal _ _ _ Hsendrl) as Htlt.
     apply Hind in Hsendrl. clear Hind.
@@ -546,27 +544,30 @@ Proof.
     (** Now, lets unpack the induction hypothesis *)
     unfold MotorRecievesPositivVelAtLHS in Hsendrl.
     rewrite Hsw in Hsendrl.
-    rewrite <- HeqeKs  in Hsendr.
-    rewrite Hsendll in Hsendr. specialize (Hsendr H0).
+    rewrite Hsendrr in Hsendrl.
+    rewrite Hsendll in Hsendrl.
+    parallelForall Hsendrl. clear x.
     remember (eTime ev) as evt. clear Heqevt.
     remember (eTime Es) as est. clear Heqest.
-    simpl in Hsendr.
-    clear Heqks H0 Hsw Hsendll HeqeKs Heqeks Heqevloc ev Es eo reactionTimeGap
+    simpl in Hsendrl.
+    clear dependent Event.
+    clear  reactionTimeGap
       transitionValues velAccuracy boundary alertDist
       safeDist maxDelay hwidth reactionTime initialVel
-      initialPos etype tdeq minGap Event.
-    apply qSubLt in Hsendlrrr.
+      initialPos minGap. repnd. clear Hsendlrrrl.
+    apply qSubLt in Hsendlrrrr.
+    rename Hsendlrrrr into Hqlt.
     apply centerPosChangeQ in Htlt.
     remember (centerPosAtTime tstate evt) as cpvt. clear Heqcpvt.
     remember (centerPosAtTime tstate est) as cpst. clear Heqcpst.
-    apply inj_Q_less with (R1:=R)  in Hsendlrrr.
+    apply inj_Q_less with (R1:=R)  in Hqlt.
     unfold Q2R in Htlt.
-    apply (leEq_less_trans _ _ _ _ Htlt) in Hsendlrrr ; eauto.
+    apply (leEq_less_trans _ _ _ _ Htlt) in Hqlt ; eauto.
     clear Htlt est evt.
-    unfold Z2R in Hsendr.
-    apply less_leEq in Hsendlrrr.
-    eapply (plus_resp_leEq_both _ _ _ _ _ Hsendr) in Hsendlrrr; eauto.
-    clear Hsendr. rename Hsendlrrr into hh.
+    unfold Z2R in Hsendrl.
+    apply less_leEq in Hqlt.
+    eapply (plus_resp_leEq_both _ _ _ _ _ Hsendrl) in Hqlt; eauto.
+    clear Hsendrl. rename Hqlt into hh.
     rewrite realCancel in hh.
     eapply leEq_transitive; eauto. clear hh.
     rewrite <- inj_Q_plus.

@@ -120,10 +120,7 @@ Admitted.
 
 
 Definition isSendEvt (ev: EV) :Prop :=
-match (eKind ev) with
-| sendEvt => True
-| _ => False
-end.
+ eKind ev = sendEvt.
 
 Definition isSendEvtOp (ev: option EV) :Prop :=
   opApPure isSendEvt False ev.
@@ -131,21 +128,14 @@ Definition isSendEvtOp (ev: option EV) :Prop :=
 
 
 Definition isDeqEvt (ev: EV) :Prop :=
-match (eKind ev) with
-| deqEvt => True
-| _ => False
-end.
-
+eKind ev = deqEvt.
 
 
 Definition isDeqEvtOp (ev: option EV) :Prop :=
   opApPure isDeqEvt False ev.
 
 Definition isEnqEvt (ev: EV) :Prop :=
-match (eKind ev) with
-| enqEvt => True 
-| _ => False
-end.
+eKind ev = enqEvt.
 
 Definition isEnqEvtOp (ev: option EV) :Prop :=
   opApPure isEnqEvt False ev.
@@ -197,8 +187,7 @@ Proof.
   intros ? Hd.
   pose proof (enQDeq1Mesg evD) as XX.
   unfold isDeqEvt in Hd.
-  unfold deqMesg. 
-  destruct (eKind evD) ;try contradiction.
+  unfold deqMesg. rewrite Hd in XX. rewrite Hd.
   destruct ((eMesg evD)); inversion XX.
   destruct l; inversion H0.
   eexists; eauto.
