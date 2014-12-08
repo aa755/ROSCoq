@@ -336,35 +336,18 @@ Proof.
   unfold opApPure, isSendEvt in Hnc.
   rewrite <- Hsend in Hnc.
   specialize (Hnc eq_refl). destruct Hnc as [mDeq  Hnc].
-  unfold possibleDeqSendOncePair in Hnc.
-  rewrite Hiff in Hnc.
-  remember (localEvts SWCONTROLLER mDeq) as oevD.
-  destruct oevD as [evD |]; [| contradiction].
-  destruct Hnc as [Hdeq  Hnc].
-  repeat(TrimAndLHS Hnc).
-  pose proof (noSpamRecv eo Hdeq) as Hvr.
-  symmetry in HeqoevD.
-  rewrite <- locEvtIndex in HeqoevD.
-  TrimAndRHS HeqoevD.
-  rewrite HeqoevD in Hvr.
-  simpl in Hvr. unfold validRecvMesg in Hvr.
-  unfold ControllerNode, SwProcess in Hnc.
-  simpl in Hnc.
-  rewrite getNewProcLPure in Hnc.
-  pose proof (deqSingleMessage _ Hdeq) as Hmm.
-  destruct Hmm as [mm Hmm]. repnd.
-  rewrite <- Hmml in Hvr.
-  simpl in Hvr. specialize (Hvr _ (or_introl  eq_refl)).
-  unfold getDeqOutput in Hnc.
-  simpl in Hnc. rewrite Hmmr in Hnc.
-  simpl in Hnc.
-  rewrite RemoveOrFalse in Hvr.
-  unfold liftToMesg, getPayLoad in Hnc.
-  destruct mm as [mt mp].
-  simpl in Hvr. destruct mt; inversion Hvr.
-  simpl in Hnc. simpl in mp.
-  destruct mp;[right | left];
-  simpl in Hnc; inversion Hnc; reflexivity.
+  apply PureProcDeqSendOncePair in Hnc.
+  simpl in Hnc. exrepd.
+  rewrite  H1 in Hiff. inversion Hiff as [Heq]. clear Hiff.
+  subst.
+  pose proof (noSpamRecv eo H) as Hvr.
+  rewrite <- locEvtIndex in H0.
+  TrimAndRHS H0. rewrite H0 in Hvr.
+  simpl in Hvr. 
+  specialize (H2 Hvr). clear Hvr.
+  exrepd.
+  destruct dmp;[right | left];
+  simpl in H3; inversion H3; reflexivity.
 Qed.
 
 

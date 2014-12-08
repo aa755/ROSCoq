@@ -539,7 +539,7 @@ Lemma PureProcDeqSendOncePair : forall ns nd TI TO qt loc
     (sp : SimplePureProcess TI TO),
   let sproc := mkPureProcess (liftToMesg sp)in
   possibleDeqSendOncePair (Build_RosSwNode sproc qt) (localEvts loc) nd ns
-  -> {es : EV | {ed : EV |
+  -> {es : EV | {ed : EV | isDeqEvt ed ∧
         localEvts loc nd = Some ed ∧ localEvts loc ns = Some es ∧ 
           (validRecvMesg (TI::nil,nil) (eMesg ed)
            ->  exists dmp : topicType TI,  eMesg ed = ((mkMesg _ dmp)::nil)
@@ -554,6 +554,7 @@ Proof.
   destruct Hnc as [Hdeq  Hnc].
   repeat(TrimAndLHS Hnc). 
   exists evS. exists evD. 
+  split; [trivial |].
   split; [reflexivity |].
   split; [reflexivity |].
   unfold validRecvMesg. simpl.

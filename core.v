@@ -517,3 +517,22 @@ Proof.
   apply UIP_dec.
   destruct deq. auto.
 Qed.
+
+Ltac exrepd :=
+   repeat match goal with
+           | [ H : _ /\ _ |- _ ] => destruct H
+           | [ H : prod _ _ |- _ ] => destruct H
+           | [ H : exists v : _,_ |- _ ] =>
+               let name := fresh v in
+               let Hname := fresh v in
+               destruct H as [name Hname]
+           | [ H : { v : _ | _ } |- _ ] =>
+               let name := fresh v in
+               let Hname := fresh v in
+               destruct H as [name Hname]
+           | [ H : { v : _ | _ & _ } |- _ ] =>
+               let name := fresh v in
+               let Hname := fresh v in
+               destruct H as [name Hname]
+         end.
+
