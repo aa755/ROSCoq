@@ -48,7 +48,7 @@ Class EventType (T: Type)
     -> a = b;
   timeIndexConsistent : forall (a b : T),
     eLocIndex a < eLocIndex b
-    -> eTime a < eTime b;
+    <-> eTime a < eTime b;
 
   localEvts : Loc -> (nat -> option T);
 
@@ -371,9 +371,9 @@ Definition possibleDeqSendOncePair
   (nd ns: nat) := 
   match (locEvts nd, locEvts ns) with
   | (Some evd, Some evs) => 
-    isDeqEvt evd ∧ isSendEvt evs ∧ nd < ns
+    isDeqEvt evd ∧ isSendEvt evs ∧ nd < ns (** the last bit is redundant because of time *)
     ∧ (forall n: nat, nd < n < ns -> isEnqEvtOp (locEvts n))
-    ∧ (eTime evs <(eTime evd) + (pTiming swNode))
+    ∧ (eTime evd < eTime evs < (eTime evd) + (pTiming swNode))
     ∧ let procEvts := prevProcessedEvents nd locEvts in
       let procMsgs := flat_map eMesg procEvts in
       let lastProc := getNewProcL (process swNode) procMsgs in
@@ -542,7 +542,7 @@ Lemma PureProcDeqSendOncePair : forall ns nd TI TO qt loc
   -> {es : EV | {ed : EV | isDeqEvt ed ∧ isSendEvt es
           ∧ (nd < ns)%Q
             ∧ (∀ n : nat, (nd < n)%Q ∧ (n < ns)%Q → isEnqEvtOp (localEvts loc n))
-              ∧ (eTime es < eTime ed + qt)%Q
+              ∧ (eTime ed <eTime es < eTime ed + qt)%Q
         ∧ localEvts loc nd = Some ed ∧ localEvts loc ns = Some es ∧ 
           (validRecvMesg (TI::nil,nil) (eMesg ed)
            ->  exists dmp : topicType TI,  eMesg ed = ((mkMesg _ dmp)::nil)
@@ -555,7 +555,9 @@ Proof.
   remember (localEvts loc ns) as oevS.
   destruct oevS as [evS |]; [| contradiction].
   destruct Hnc as [Hdeq  Hnc].
-  exists evS. exists evD. repnd.
+  exists evS. exists evD.  simpl in Hnc.
+  remember (eTime evD < eTime evS ∧ eTime evS < eTime evD + qt) as dontSplit.
+  repnd.
   split; [trivial |].
   split; [trivial |].
   split; [trivial |].

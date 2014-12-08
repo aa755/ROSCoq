@@ -317,7 +317,7 @@ Lemma DeqSendOncePair : forall ns nd sp,
   -> {es : Event | {ed : Event | isDeqEvt ed ∧ isSendEvt es
           ∧ (nd < ns)%Q
             ∧ (∀ n : nat, (nd < n)%Q ∧ (n < ns)%Q → isEnqEvtOp (localEvts SWCONTROLLER n))
-              ∧ (eTime es < eTime ed + digiControllerTiming sp)%Q
+              ∧ (eTime ed < eTime es < eTime ed + digiControllerTiming sp)%Q
         ∧
         localEvts SWCONTROLLER nd = Some ed 
         ∧ localEvts SWCONTROLLER ns = Some es ∧ 
@@ -326,9 +326,14 @@ Lemma DeqSendOncePair : forall ns nd sp,
 Proof.
   intros ? ? ? Hnc.
   apply PureProcDeqSendOncePair in Hnc.
-  simpl in Hnc. exrepd.
-  pose proof (noSpamRecv eo H) as Hvr.
+  simpl in Hnc.
+  destruct Hnc as [es Hnc].
+  destruct Hnc as [ed Hnc].
   exists es. exists ed.
+  remember (eTime ed < eTime es
+               ∧ eTime es < eTime ed + digiControllerTiming sp) as dontSPlit.
+  exrepd.
+  pose proof (noSpamRecv eo H) as Hvr.
   split;[ trivial |].
   split;[ trivial |].
   split;[ trivial |].
@@ -369,15 +374,11 @@ Proof.
   rewrite <- Hsend in Hnc.
   specialize (Hnc eq_refl). destruct Hnc as [mDeq  Hnc].
   apply DeqSendOncePair in Hnc.
-  simpl in Hnc. exrepd. clear H0 H1 H2 H3.
-  rename H4 into H0.
-  rename H5 into H1.
-  rename H6 into H2.
-  rename H7 into H3.
-  rewrite  H1 in Hiff. inversion Hiff as [Heq]. clear Hiff.
+  simpl in Hnc. exrepd. 
+  rewrite  H5 in Hiff. inversion Hiff as [Heq]. clear Hiff.
   subst.
   destruct dmp;[right | left];
-  simpl in H3; inversion H3; reflexivity.
+  simpl in H8; inversion H8; reflexivity.
 Qed.
 
 
@@ -640,14 +641,20 @@ Proof.
     specialize (Hnc Heqeks).
     destruct Hnc as [m Hnc].
     apply DeqSendOncePair in Hnc.
-    simpl in Hnc. exrepd. clear H2.
+    simpl in Hnc. 
+    destruct Hnc as [es0 Hnc].
+    destruct Hnc as [ed Hnc].
+    remember (eTime ed < eTime es0
+               ∧ eTime es0 < eTime ed + digiControllerTiming speed) as dontSplit.
+
+    exrepd. clear H2.
     pose proof (sameLocCausal eo _ _ _ H4 H5 H1) as Hcaus.
     clear H1.
     pose proof (locEvtIndex SWCONTROLLER (eLocIndex es) es) as Hiff.
     TrimAndRHS Hiff.
     rewrite Hiff in H5; auto;[].
     inversion H5 as [Heqs].  clear H5.
-    symmetry in Heqs. subst. 
+    symmetry in Heqs. subst es0.
     rewrite <- H7. intro Heq. clear H7.
     inversion Heq as [Heqq]. clear Heq.
     apply (f_equal getVelM) in Heqq.
@@ -662,8 +669,8 @@ Proof.
     unfold digiControllerTiming in H3.
     clear H0 H Heqeks Heqevloc eo reactionTimeGap transitionValues velAccuracy boundary 
       alertDist safeDist maxDelay hwidth reactionTime initialVel initialPos.
+    subst dontSplit.
     eapply centerPosUB2; eauto.
-
 
   + admit.
 Qed.
