@@ -34,8 +34,11 @@ Instance  ttttt : @RosTopicType Topic _.
   constructor. exact topic2Type.
 Defined.
 
+Definition left := false.
+Definition right := false.
+
 Inductive RosLoc := 
- BASEMOTOR | LEFTPSENSOR | RIGHTPSENSOR | SWCONTROLLER.
+ BASEMOTOR | PROXSENSOR (b:bool) | SWCONTROLLER.
 
 Scheme Equality for RosLoc.
 
@@ -252,20 +255,17 @@ Definition transitionInterval : interval :=
 Definition locNode (rl : RosLoc) : NodeSemantics :=
 match rl with
 | BASEMOTOR => DeviceSemantics (fun ts => getF (velX ts)) SlowMotorQ
-| LEFTPSENSOR => DeviceSemantics
+| PROXSENSOR  side=> DeviceSemantics
                     (fun ts t => AbsIR ((lEndPos ts t) [-] lboundary))
-                    (ProximitySensor alertDist maxDelay true)
-| RIGHTPSENSOR => DeviceSemantics
-                    (fun ts t => AbsIR ((rEndPos ts t) [-] rboundary))
-                    (ProximitySensor alertDist maxDelay false)
+                    (ProximitySensor alertDist maxDelay side)
 | SWCONTROLLER => RSwSemantics (ControllerNode speed)
 end.
+
 
 Definition locTopics (rl : RosLoc) : TopicInfo :=
 match rl with
 | BASEMOTOR => ((MOTOR::nil), nil)
-| LEFTPSENSOR => (nil, (PSENSOR::nil))
-| RIGHTPSENSOR => (nil, (PSENSOR::nil))
+| PROXSENSOR _ => (nil, (PSENSOR::nil))
 | SWCONTROLLER => ((PSENSOR::nil), (MOTOR::nil))
 end.
 
@@ -486,7 +486,7 @@ Lemma SwOnlyRecievesFromSensor :   forall Es Er,
   -> isRecvEvt Er
   -> PossibleSendRecvPair Es Er
   -> eLoc Er = SWCONTROLLER
-  -> eLoc Es = LEFTPSENSOR ∨ eLoc Es = RIGHTPSENSOR.
+  -> {side: bool | eLoc Es = PROXSENSOR side}.
 Proof.
   intros ? ? Hs Hr Hsendl Hl.
   unfold PossibleSendRecvPair in Hsendl.
@@ -507,11 +507,10 @@ Proof.
   rewrite <- Hsendlrl in Hsendlrrl.
   destruct (eLoc Es); simpl in Hsendlrrl;
     try contradiction;
-    inversion Hsendlrrl; 
+    try rewrite  RemoveOrFalse in Hsendlrrl; 
     try discriminate;
     try contradiction.
-  left; reflexivity.
-  right; reflexivity.
+  exists b. reflexivity.
 Qed.
 
 Definition MotorRecievesPositivVelAtLHS (ev : Event)  :=
@@ -713,16 +712,27 @@ Proof.
     symmetry in Heqevloc.
     pose proof  (SwOnlyRecievesFromSensor _ _ 
       Hsendrr Heqeks Hsendl Heqevloc) as Hsw.
+    exrepd.
     unfold PossibleSendRecvPair in Hsendl.
     repnd. clear Hsendlrrl Hsendlrl.
     rewrite Heqevloc in Hsendlrrr.
     rewrite <- Hsendll. intros Hmd.
-  pose proof (corrNodes 
+    pose proof (corrNodes 
                   eo 
-                  LEFTPSENSOR ) as Hnc.
+                  (PROXSENSOR side)) as Hnc.
     simpl in Hnc.
     unfold DeviceSemantics, ProximitySensor in Hnc.
     unfold ProxPossibleTimeEvPair in Hnc.
+    TrimAndLHS Hnc.
+    pose proof (locEvtIndex (PROXSENSOR side) (eLocIndex Es) Es) as Hx.
+    TrimAndRHS Hx.
+    specialize (Hnc (eLocIndex Es)).
+    rewrite Hx in Hnc; [| auto]. clear Hx.
+    simpl in Hnc.
+    specialize (Hnc Hsendrr).
+    
+    
+
 
     rewrite Hsw in Hsendlrrr.
     simpl in Hsendlrrr.
