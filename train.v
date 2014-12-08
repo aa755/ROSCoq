@@ -480,6 +480,40 @@ Proof.
   reflexivity.
 Qed.
 
+(** except the last 2 lines, the proof is same as the above *)
+Lemma SwOnlyRecievesFromSensor :   forall Es Er,
+  isSendEvt Es
+  -> isRecvEvt Er
+  -> PossibleSendRecvPair Es Er
+  -> eLoc Er = SWCONTROLLER
+  -> eLoc Es = LEFTPSENSOR ∨ eLoc Es = RIGHTPSENSOR.
+Proof.
+  intros ? ? Hs Hr Hsendl Hl.
+  unfold PossibleSendRecvPair in Hsendl.
+  repnd. clear Hsendlrrr.
+  unfold validRecvMesg in Hsendlrl.
+  pose proof (deqSingleMessage _ Hr) as XX.
+  destruct XX as [m XX].
+  repnd. rewrite <- XXl in Hsendlrl.
+  rewrite <- Hsendll in XXl.
+  rewrite <- XXl in Hsendlrrl.
+  specialize (Hsendlrl _ (or_introl eq_refl)).
+  rewrite Hl in Hsendlrl.
+  simpl in Hsendlrl.
+  rewrite RemoveOrFalse in Hsendlrl.
+  unfold validSendMesg in Hsendlrrl.
+  simpl in Hsendlrrl.
+  specialize (Hsendlrrl _ (or_introl eq_refl)).
+  rewrite <- Hsendlrl in Hsendlrrl.
+  destruct (eLoc Es); simpl in Hsendlrrl;
+    try contradiction;
+    inversion Hsendlrrl; 
+    try discriminate;
+    try contradiction.
+  left; reflexivity.
+  right; reflexivity.
+Qed.
+
 Definition MotorRecievesPositivVelAtLHS (ev : Event)  :=
 match (eLoc  ev) with
 | BASEMOTOR => 
@@ -672,7 +706,29 @@ Proof.
     subst dontSplit.
     eapply centerPosUB2; eauto.
 
-  + admit.
+  + clear Hind. symmetry in Heqeks. rename es into ed.
+    pose proof (recvSend eo Heqeks) as Hsend.
+    destruct Hsend as [Es Hsend].
+    repnd. pose proof (globalCausal _ _ _ Hsendrl) as Htlt.
+    symmetry in Heqevloc.
+    pose proof  (SwOnlyRecievesFromSensor _ _ 
+      Hsendrr Heqeks Hsendl Heqevloc) as Hsw.
+    unfold PossibleSendRecvPair in Hsendl.
+    repnd. clear Hsendlrrl Hsendlrl.
+    rewrite Heqevloc in Hsendlrrr.
+    rewrite <- Hsendll. intros Hmd.
+  pose proof (corrNodes 
+                  eo 
+                  LEFTPSENSOR ) as Hnc.
+    simpl in Hnc.
+    unfold DeviceSemantics, ProximitySensor in Hnc.
+    unfold ProxPossibleTimeEvPair in Hnc.
+
+    rewrite Hsw in Hsendlrrr.
+    simpl in Hsendlrrr.
+    (** Now, lets unpack the induction hypothesis *)
+    unfold MotorRecievesPositivVelAtLHS in Hsendrl.
+    rewrite Hsw in Hsendrl.
 Qed.
 
 (*
