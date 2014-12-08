@@ -539,8 +539,11 @@ Lemma PureProcDeqSendOncePair : forall ns nd TI TO qt loc
     (sp : SimplePureProcess TI TO),
   let sproc := mkPureProcess (liftToMesg sp)in
   possibleDeqSendOncePair (Build_RosSwNode sproc qt) (localEvts loc) nd ns
-  -> {es : EV | {ed : EV | isDeqEvt ed ∧
-        localEvts loc nd = Some ed ∧ localEvts loc ns = Some es ∧ 
+  -> {es : EV | {ed : EV | isDeqEvt ed ∧ isSendEvt es
+          ∧ (nd < ns)%Q
+            ∧ (∀ n : nat, (nd < n)%Q ∧ (n < ns)%Q → isEnqEvtOp (localEvts loc n))
+              ∧ (eTime es < eTime ed + qt)%Q
+        ∧ localEvts loc nd = Some ed ∧ localEvts loc ns = Some es ∧ 
           (validRecvMesg (TI::nil,nil) (eMesg ed)
            ->  exists dmp : topicType TI,  eMesg ed = ((mkMesg _ dmp)::nil)
                   ∧ (mkMesg TO (sp dmp) )::nil = (eMesg es) ) }}.
@@ -552,11 +555,16 @@ Proof.
   remember (localEvts loc ns) as oevS.
   destruct oevS as [evS |]; [| contradiction].
   destruct Hnc as [Hdeq  Hnc].
-  repeat(TrimAndLHS Hnc). 
-  exists evS. exists evD. 
+  exists evS. exists evD. repnd.
+  split; [trivial |].
+  split; [trivial |].
+  split; [trivial |].
+  split; [trivial |].
   split; [trivial |].
   split; [reflexivity |].
   split; [reflexivity |].
+  clear Hncrrrl Hncrrl Hncrl Hncl.
+  rename Hncrrrr into Hnc.
   unfold validRecvMesg. simpl.
   intro Hsub.
   apply deqSingleMessage in Hdeq.

@@ -314,7 +314,11 @@ Proof.
 
 Lemma DeqSendOncePair : forall ns nd sp,
   possibleDeqSendOncePair (ControllerNode sp) (localEvts SWCONTROLLER) nd ns
-  -> {es : Event | {ed : Event | isDeqEvt ed ∧
+  -> {es : Event | {ed : Event | isDeqEvt ed ∧ isSendEvt es
+          ∧ (nd < ns)%Q
+            ∧ (∀ n : nat, (nd < n)%Q ∧ (n < ns)%Q → isEnqEvtOp (localEvts SWCONTROLLER n))
+              ∧ (eTime es < eTime ed + digiControllerTiming sp)%Q
+        ∧
         localEvts SWCONTROLLER nd = Some ed 
         ∧ localEvts SWCONTROLLER ns = Some es ∧ 
          exists dmp : bool,  eMesg ed = ((mkMesg PSENSOR dmp)::nil)
@@ -328,6 +332,12 @@ Proof.
   split;[ trivial |].
   split;[ trivial |].
   split;[ trivial |].
+  split;[ trivial |].
+  split;[ trivial |].
+  split;[ trivial |].
+  split;[ trivial |]. clear H0 H1 H2 H3 H5.
+  rename H4 into H0.
+  rename H6 into H2.
   rewrite <- locEvtIndex in H0.
   TrimAndRHS H0. rewrite H0 in Hvr.
   simpl in Hvr. 
@@ -359,7 +369,11 @@ Proof.
   rewrite <- Hsend in Hnc.
   specialize (Hnc eq_refl). destruct Hnc as [mDeq  Hnc].
   apply DeqSendOncePair in Hnc.
-  simpl in Hnc. exrepd.
+  simpl in Hnc. exrepd. clear H0 H1 H2 H3.
+  rename H4 into H0.
+  rename H5 into H1.
+  rename H6 into H2.
+  rename H7 into H3.
   rewrite  H1 in Hiff. inversion Hiff as [Heq]. clear Hiff.
   subst.
   destruct dmp;[right | left];
@@ -588,28 +602,27 @@ Proof.
       simpl  in Hnc. TrimAndRHS Hnc. clear Hxx.
       specialize (Hnc Heqeks).
       destruct Hnc as [m Hnc].
-      pose proof Hnc as Hncp. 
       apply DeqSendOncePair in Hnc.
-      simpl in Hnc. exrepd.
+      simpl in Hnc. exrepd. clear H2.
       pose proof (locEvtIndex SWCONTROLLER (eLocIndex es) es) as Hiff.
       TrimAndRHS Hiff.
-      rewrite Hiff in H1; auto;[].
-      inversion H1 as [Heqs].  clear H1.
+      rewrite Hiff in H5; auto;[].
+      inversion H5 as [Heqs].  clear H5.
       symmetry in Heqs. subst. 
-      rewrite <- H3. intro Heq. clear H3.
+      rewrite <- H7. intro Heq. clear H7.
       inversion Heq as [Heqq]. clear Heq.
       apply (f_equal getVelM) in Heqq.
       simpl in Heqq. inversion Heqq as [Heq]. clear Heqq.
       unfold speed in Heq.
       destruct dmp; simpl in Heq;[inversion Heq; fail| clear Heq].
       specialize (Hind ed). clear Hiff.
-      apply locEvtIndex in H0.
-      TrimAndRHS H0.
+      apply locEvtIndex in H4. repnd. subst m. 
       unfold MotorRecievesPositivVelAtLHS in Hind.
-      rewrite H0 in Hind. clear H0. rewrite H in Hind.
+      rewrite H4l in Hind. clear H4l. rewrite H in Hind.
       simpl in Hind.
-      specialize (fun x => Hind x H2).
-      clear H2. admit.
+      specialize (fun x => Hind x H6).
+      clear H6. unfold digiControllerTiming in H3.
+      
 
     + admit.
 Qed.
