@@ -580,24 +580,11 @@ Proof.
   simpl. split;[reflexivity|].
   destruct (eqdec dmt dmt) as [Heq| Hneq];
     [| apply False_rect; apply Hneq; reflexivity].
-  destruct Heq.
 
-  
-
-  special
-  rewrite <- Hdeq in Hnc.
-
-
-  remember  as dmp.
-  destruct Hsub.
-
-  rewrite <- Hsub in Heqdmp.
-
-
-  pose proof (noSpamRecv eo Hdeq) as Hvr.
-  symmetry in HeqoevD.
-  rewrite <- locEvtIndex in HeqoevD.
-  TrimAndRHS HeqoevD.
+  pose proof (@UIPReflDeq RosTopic _ _ Heq) as Heqr.
+  rewrite Heqr.
+  simpl. reflexivity.
+Qed.
   
 
 Definition holdsUptoNextEvent (prp : Time -> R -> Prop)

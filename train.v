@@ -135,7 +135,7 @@ Definition ProxPossibleTimeEvPair
   (t: Time) (ev: Event) 
   :=
   Cast ((olcr t (t [+] maxDelay)) (Q2R (eTime ev)))
-  /\ (eMesg ev) = (makeTopicMesg PSENSOR side)::nil.
+  /\ (eMesg ev) = (mkMesg PSENSOR side)::nil.
 
 (** [side] is just an identifier *)
 Definition ProximitySensor (alertDist maxDelay: R) (side : bool)
@@ -316,8 +316,8 @@ Lemma swControllerMessages :
   forall es : Event,
   SWCONTROLLER = eLoc es
   -> sendEvt = eKind es
-  -> (eMesg es) = (makeTopicMesg MOTOR speed)::nil
-      \/ (eMesg es) = (makeTopicMesg MOTOR (-speed))::nil.
+  -> (eMesg es) = (mkMesg MOTOR speed)::nil
+      \/ (eMesg es) = (mkMesg MOTOR (-speed))::nil.
 Proof.
   intros es Hsw Hsend.
   pose proof (locEvtIndex 
@@ -470,15 +470,15 @@ Definition MotorRecievesPositivVelAtLHS (ev : Event)  :=
 match (eLoc  ev) with
 | BASEMOTOR => 
             isDeqEvt ev
-              -> (eMesg ev) = (makeTopicMesg MOTOR speed)::nil
+              -> (eMesg ev) = (mkMesg MOTOR speed)::nil
               -> (centerPosAtTime tstate (eTime ev)) [<=] [0]
 | SWCONTROLLER => 
             match eKind ev with
             | sendEvt => 
-                (eMesg ev) = (makeTopicMesg MOTOR speed)::nil
+                (eMesg ev) = (mkMesg MOTOR speed)::nil
                 -> (centerPosAtTime tstate (eTime ev)) [<=] Z2R (-2)
             | deqEvt => 
-                (eMesg ev) = (makeTopicMesg PSENSOR false)::nil
+                (eMesg ev) = (mkMesg PSENSOR false)::nil
                 -> (centerPosAtTime tstate (eTime ev)) [<=] Z2R (-4)
             | _ => True
             end

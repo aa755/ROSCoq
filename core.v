@@ -507,3 +507,13 @@ Ltac repnd :=
 Definition subset {A} (la lb : list A) : Prop :=
   forall a:A, In a la -> In a lb.
 
+Require Import Coq.Logic.Eqdep_dec.
+
+Lemma UIPReflDeq: forall { A : Type} (deq : DecEq A)
+  (a: A) (p: a=a), p= eq_refl.
+Proof.
+  intros.
+  remember (@eq_refl A a) as eqr.
+  apply UIP_dec.
+  destruct deq. auto.
+Qed.
