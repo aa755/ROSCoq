@@ -476,10 +476,10 @@ match (eLoc  ev) with
             match eKind ev with
             | sendEvt => 
                 (eMesg ev) = (makeTopicMesg MOTOR speed)::nil
-                -> (centerPosAtTime tstate (eTime ev)) [<=] Z2R (0-2)
+                -> (centerPosAtTime tstate (eTime ev)) [<=] Z2R (-2)
             | deqEvt => 
                 (eMesg ev) = (makeTopicMesg PSENSOR false)::nil
-                -> (centerPosAtTime tstate (eTime ev)) [<=] Z2R (0-2)
+                -> (centerPosAtTime tstate (eTime ev)) [<=] Z2R (-4)
             | _ => True
             end
 | _ => True
@@ -576,9 +576,27 @@ Proof.
     simpl. unfold Qplus. simpl.
     lra.
 
-  - remember (eKind ev) as eks.
+  - rename ev into es. remember (eKind es) as eks.
     destruct eks; [|auto|].
-    + admit.
+    + symmetry in Heqeks.
+      pose proof (corrNodes 
+                  eo 
+                  SWCONTROLLER 
+                  (eLocIndex es)) as Hnc.
+      
+      pose proof (locEvtIndex SWCONTROLLER (eLocIndex es) es) as Hxx.
+      TrimAndRHS Hxx. rewrite Hxx in Hnc;[| split; auto; fail].
+      simpl  in Hnc. TrimAndRHS Hnc.
+      specialize (Hnc Heqeks).
+      destruct Hnc as [m Hnc].
+      unfold possibleDeqSendOncePair in Hnc.
+      rewrite Hxx in Hnc;[| split; auto; fail].
+      clear Hxx. remember (localEvts SWCONTROLLER m) as oed.
+      destruct oed as [ed |];[| contradiction].
+      simpl in Hnc. unfold digiControllerTiming in Hnc.
+      repnd. admit.
+      
+
     + admit.
 Qed.
 
