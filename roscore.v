@@ -89,6 +89,8 @@ end).
 Definition mtopic (m : Message) :=
 (proj1_sigT _ _ m).
 
+Definition mPayLoad (m : Message) : topicType (mtopic m) :=
+(proj2_sigT _ _ m).
 
 Definition validRecvMesg (rn : TopicInfo) (lm : list Message) :=
 ∀ m, In m lm -> In (mtopic m) (subscribeTopics rn).
@@ -97,7 +99,7 @@ Definition validSendMesg (rn : TopicInfo) (lm : list Message) :=
 ∀ m, In m lm -> In (mtopic m) (publishTopics rn).
 
 
-Definition makeTopicMesg (outTopic : RosTopic)
+Definition mkMesg (outTopic : RosTopic)
   (payload : ( (topicType outTopic))) : Message.
 econstructor; eauto. 
   (* in this context, there is only one possible message *)

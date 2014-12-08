@@ -535,6 +535,70 @@ Record PossibleEventOrder  := {
 }.
 
 
+Lemma PureProcDeqSendOncePair : forall ns nd TI TO qt loc
+    (sp : SimplePureProcess TI TO),
+  let sproc := mkPureProcess (liftToMesg sp)in
+  possibleDeqSendOncePair (Build_RosSwNode sproc qt) (localEvts loc) nd ns
+  -> {es : EV | {ed : EV |
+        localEvts loc nd = Some ed ∧ localEvts loc ns = Some es ∧ 
+          (validRecvMesg (TI::nil,nil) (eMesg ed)
+           ->  exists dmp : topicType TI,  eMesg ed = ((mkMesg _ dmp)::nil)
+                  ∧ (mkMesg TO (sp dmp) )::nil = (eMesg es) ) }}.
+Proof.
+  intros ? ? ? ? ? ? ?. simpl. intro Hnc.
+  unfold possibleDeqSendOncePair in Hnc.
+  remember (localEvts loc nd) as oevD.
+  destruct oevD as [evD |]; [| contradiction].
+  remember (localEvts loc ns) as oevS.
+  destruct oevS as [evS |]; [| contradiction].
+  destruct Hnc as [Hdeq  Hnc].
+  repeat(TrimAndLHS Hnc). 
+  exists evS. exists evD. 
+  split; [reflexivity |].
+  split; [reflexivity |].
+  unfold validRecvMesg. simpl.
+  intro Hsub.
+  apply deqSingleMessage in Hdeq.
+  clear HeqoevD.
+  clear HeqoevS.
+  destruct Hdeq as [dm Hdeq]. repnd.
+  rewrite <- Hdeql in Hsub.
+  specialize (Hsub _ (or_introl  eq_refl)).
+  rewrite RemoveOrFalse in Hsub.
+  symmetry in Hsub.
+  exists (transport Hsub (mPayLoad dm)).
+  unfold getDeqOutput in Hnc.
+  simpl in Hnc. rewrite Hdeqr in Hnc.
+  simpl in Hnc.
+  rewrite getNewProcLPure in Hnc.
+  rewrite <- Hdeql.
+  clear Hdeql Hdeqr. 
+  simpl. inversion Hnc as [Hncc]. clear Hnc Hncc.
+  unfold liftToMesg. unfold getPayLoad.
+  destruct dm as [dmt dmp].
+  simpl in Hsub.  destruct Hsub.
+  simpl. split;[reflexivity|].
+  destruct (eqdec dmt dmt) as [Heq| Hneq];
+    [| apply False_rect; apply Hneq; reflexivity].
+  destruct Heq.
+
+  
+
+  special
+  rewrite <- Hdeq in Hnc.
+
+
+  remember  as dmp.
+  destruct Hsub.
+
+  rewrite <- Hsub in Heqdmp.
+
+
+  pose proof (noSpamRecv eo Hdeq) as Hvr.
+  symmetry in HeqoevD.
+  rewrite <- locEvtIndex in HeqoevD.
+  TrimAndRHS HeqoevD.
+  
 
 Definition holdsUptoNextEvent (prp : Time -> R -> Prop)
   (phys : Time -> R)

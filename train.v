@@ -600,7 +600,7 @@ Proof.
     + admit.
 Qed.
 
-(*  
+(*
 Lemma  TrainVelBounded : forall (e : Event) (t: QTime),
     t <= (eTime e)
    -> velBound (velAtTime tstate t).
