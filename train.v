@@ -312,6 +312,28 @@ Proof.
     right now, the motor can disregard
     all messages *)
 
+Lemma DeqSendOncePair : forall ns nd sp,
+  possibleDeqSendOncePair (ControllerNode sp) (localEvts SWCONTROLLER) nd ns
+  -> {es : Event | {ed : Event | isDeqEvt ed ∧
+        localEvts SWCONTROLLER nd = Some ed 
+        ∧ localEvts SWCONTROLLER ns = Some es ∧ 
+         exists dmp : bool,  eMesg ed = ((mkMesg PSENSOR dmp)::nil)
+                  ∧ (mkMesg MOTOR ((SwControllerProgram sp) dmp))::nil = (eMesg es) }}.
+Proof.
+  intros ? ? ? Hnc.
+  apply PureProcDeqSendOncePair in Hnc.
+  simpl in Hnc. exrepd.
+  pose proof (noSpamRecv eo H) as Hvr.
+  exists es. exists ed.
+  split;[ trivial |].
+  split;[ trivial |].
+  split;[ trivial |].
+  rewrite <- locEvtIndex in H0.
+  TrimAndRHS H0. rewrite H0 in Hvr.
+  simpl in Hvr. 
+  specialize (H2 Hvr). clear Hvr. trivial.
+Qed.
+
 Lemma swControllerMessages : 
   forall es : Event,
   SWCONTROLLER = eLoc es
@@ -336,16 +358,10 @@ Proof.
   unfold opApPure, isSendEvt in Hnc.
   rewrite <- Hsend in Hnc.
   specialize (Hnc eq_refl). destruct Hnc as [mDeq  Hnc].
-  apply PureProcDeqSendOncePair in Hnc.
+  apply DeqSendOncePair in Hnc.
   simpl in Hnc. exrepd.
   rewrite  H1 in Hiff. inversion Hiff as [Heq]. clear Hiff.
   subst.
-  pose proof (noSpamRecv eo H) as Hvr.
-  rewrite <- locEvtIndex in H0.
-  TrimAndRHS H0. rewrite H0 in Hvr.
-  simpl in Hvr. 
-  specialize (H2 Hvr). clear Hvr.
-  exrepd.
   destruct dmp;[right | left];
   simpl in H3; inversion H3; reflexivity.
 Qed.
@@ -569,16 +585,31 @@ Proof.
       
       pose proof (locEvtIndex SWCONTROLLER (eLocIndex es) es) as Hxx.
       TrimAndRHS Hxx. rewrite Hxx in Hnc;[| split; auto; fail].
-      simpl  in Hnc. TrimAndRHS Hnc.
+      simpl  in Hnc. TrimAndRHS Hnc. clear Hxx.
       specialize (Hnc Heqeks).
       destruct Hnc as [m Hnc].
-      unfold possibleDeqSendOncePair in Hnc.
-      rewrite Hxx in Hnc;[| split; auto; fail].
-      clear Hxx. remember (localEvts SWCONTROLLER m) as oed.
-      destruct oed as [ed |];[| contradiction].
-      simpl in Hnc. unfold digiControllerTiming in Hnc.
-      repnd. admit.
-      
+      pose proof Hnc as Hncp. 
+      apply DeqSendOncePair in Hnc.
+      simpl in Hnc. exrepd.
+      pose proof (locEvtIndex SWCONTROLLER (eLocIndex es) es) as Hiff.
+      TrimAndRHS Hiff.
+      rewrite Hiff in H1; auto;[].
+      inversion H1 as [Heqs].  clear H1.
+      symmetry in Heqs. subst. 
+      rewrite <- H3. intro Heq. clear H3.
+      inversion Heq as [Heqq]. clear Heq.
+      apply (f_equal getVelM) in Heqq.
+      simpl in Heqq. inversion Heqq as [Heq]. clear Heqq.
+      unfold speed in Heq.
+      destruct dmp; simpl in Heq;[inversion Heq; fail| clear Heq].
+      specialize (Hind ed). clear Hiff.
+      apply locEvtIndex in H0.
+      TrimAndRHS H0.
+      unfold MotorRecievesPositivVelAtLHS in Hind.
+      rewrite H0 in Hind. clear H0. rewrite H in Hind.
+      simpl in Hind.
+      specialize (fun x => Hind x H2).
+      clear H2. admit.
 
     + admit.
 Qed.
