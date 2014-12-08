@@ -604,6 +604,8 @@ Proof.
       destruct Hnc as [m Hnc].
       apply DeqSendOncePair in Hnc.
       simpl in Hnc. exrepd. clear H2.
+      pose proof (sameLocCausal eo _ _ _ H4 H5 H1) as Hcaus.
+      clear H1.
       pose proof (locEvtIndex SWCONTROLLER (eLocIndex es) es) as Hiff.
       TrimAndRHS Hiff.
       rewrite Hiff in H5; auto;[].
@@ -615,13 +617,14 @@ Proof.
       simpl in Heqq. inversion Heqq as [Heq]. clear Heqq.
       unfold speed in Heq.
       destruct dmp; simpl in Heq;[inversion Heq; fail| clear Heq].
-      specialize (Hind ed). clear Hiff.
-      apply locEvtIndex in H4. repnd. subst m. 
+      specialize (Hind ed Hcaus). clear Hiff. clear Hcaus.
       unfold MotorRecievesPositivVelAtLHS in Hind.
+      apply locEvtIndex in H4. repnd. subst m. 
       rewrite H4l in Hind. clear H4l. rewrite H in Hind.
-      simpl in Hind.
-      specialize (fun x => Hind x H6).
-      clear H6. unfold digiControllerTiming in H3.
+      specialize (Hind H6). clear H6.
+      unfold digiControllerTiming in H3.
+      clear H0 H Heqeks Heqevloc eo reactionTimeGap transitionValues velAccuracy boundary 
+        alertDist safeDist maxDelay hwidth reactionTime initialVel initialPos.
       
 
     + admit.

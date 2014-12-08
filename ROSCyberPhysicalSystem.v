@@ -503,7 +503,7 @@ Record PossibleEventOrder  := {
 
     localCausal : forall (e1 e2 : EV),
         (eLoc e1) = (eLoc e2)
-        -> (causedBy e1 e2 <-> eLocIndex e1 < eLocIndex e1);
+        -> (causedBy e1 e2 <-> eLocIndex e1 < eLocIndex e2);
 
     globalCausal : forall (e1 e2 : EV),
         causedBy e1 e2
@@ -594,7 +594,35 @@ Proof.
   rewrite Heqr.
   simpl. reflexivity.
 Qed.
-  
+
+Lemma  sameELoc : forall loc nd ns ed es,
+  localEvts loc nd = Some ed 
+  -> localEvts loc ns = Some es
+  -> eLoc ed = eLoc es.
+Proof.
+  intros ? ? ? ? ? H1l H2l.
+  apply locEvtIndex in H1l.
+  apply locEvtIndex in H2l.
+  repnd. congruence.
+Qed.
+
+Lemma  sameLocCausal : forall eo loc nd ns ed es,
+  localEvts loc nd = Some ed 
+  -> localEvts loc ns = Some es
+  -> nd < ns
+  -> causedBy eo ed es.
+Proof.
+  intros ? ? ? ? ? ? H1l H2l Hlt.
+  pose proof H2l as H2lb.
+  eapply (sameELoc _ nd ns) in H2l; eauto.
+  apply (localCausal eo) in H2l.
+  apply H2l.
+  apply locEvtIndex in H1l.
+  apply locEvtIndex in H2lb.
+  repnd. congruence.
+Qed.
+
+    
 
 Definition holdsUptoNextEvent (prp : Time -> R -> Prop)
   (phys : Time -> R)
