@@ -568,6 +568,15 @@ Proof.
       transitionValues velAccuracy boundary alertDist
       safeDist maxDelay hwidth reactionTime initialVel
       initialPos minGap. repnd. clear Hsendlrrrl.
+
+Open Scope Q_scope.
+
+Lemma centerPosUB : forall (ts tf td : QTime) (ps : R),
+  ts < tf < ts + td
+  -> centerPosAtTime tstate ts[<=] ps
+  -> centerPosAtTime tstate tf[<=] (ps [+] Q2R td).
+
+
     apply qSubLt in Hsendlrrrr.
     rename Hsendlrrrr into Hqlt.
     apply centerPosChangeQ in Htlt.
