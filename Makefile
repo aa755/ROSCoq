@@ -32,3 +32,6 @@ CoRNMisc.vo : CoRNMisc.v
 %.tex: %.v
 	coqc $<
 	coqdoc   -l --latex --interpolate --body-only $< -o $(@)	
+
+clean:
+	rm *.vo *.glob
