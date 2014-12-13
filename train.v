@@ -95,6 +95,9 @@ Qed.
 Definition getVelM (m : Message ) : option Q :=
   getPayLoad MOTOR m.
 
+Definition getSensorSide (m : Message ) : option bool :=
+  getPayLoad PSENSOR m.
+
 Definition getProxSide (m : Message) : option bool :=
   getPayLoad PSENSOR m.
 
@@ -147,12 +150,12 @@ fun  (distanceAtTime : Time -> R)
      (evs : nat -> option Event) 
   =>
     (∀ t:Time,
-       (distanceAtTime t  [>]  alertDist)
+       (distanceAtTime t  [<]  alertDist)
        -> ∃ n, opLiftF (ProxPossibleTimeEvPair maxDelay side t) (evs n))
     /\
     (∀ (n: nat), 
         isSendEvtOp (evs n)
-        -> ∃ t : Time,  Cast (distanceAtTime t  [>]  alertDist)
+        -> ∃ t : Time,  Cast (distanceAtTime t  [<]  alertDist)
                 /\ opLiftF (ProxPossibleTimeEvPair maxDelay side t) (evs n)).
 
 Definition inIntervalDuringInterval
@@ -251,12 +254,18 @@ Definition transitionInterval : interval :=
   velBound.
 
 
+Definition proxView (side :bool) :=
+match side with
+| true => (fun ts t => AbsIR ((lEndPos ts t) [-] lboundary))
+| false => (fun ts t => AbsIR ((rEndPos ts t) [-] rboundary))
+end.
+
 
 Definition locNode (rl : RosLoc) : NodeSemantics :=
 match rl with
 | BASEMOTOR => DeviceSemantics (fun ts => getF (velX ts)) SlowMotorQ
 | PROXSENSOR  side=> DeviceSemantics
-                    (fun ts t => AbsIR ((lEndPos ts t) [-] lboundary))
+                    (proxView side)
                     (ProximitySensor alertDist maxDelay side)
 | SWCONTROLLER => RSwSemantics (ControllerNode speed)
 end.
@@ -730,7 +739,16 @@ Proof.
     rewrite Hx in Hnc; [| auto]. clear Hx.
     simpl in Hnc.
     specialize (Hnc Hsendrr).
-    
+    destruct Hnc as [t Hnc].
+    repnd.
+    rewrite Hncrr in Hmd.
+    apply (f_equal (hd (mkMesg PSENSOR false))) in Hmd.
+    simpl in Hmd.
+    apply (f_equal getSensorSide) in Hmd.
+    simpl in Hmd. 
+
+
+
     
 
 
