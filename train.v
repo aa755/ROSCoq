@@ -170,15 +170,21 @@ Variable initialPos : Q.
 Variable transitionValues : interval.
 Coercion Q2R : Q >-> st_car.
 
+
+(**
+exists  (qt : QTime), 
+      lastTime <= qt <= (lastTime + reactionTime)
+      /\ (inIntervalDuring transitionValues lastTime qt velAtTime)
+      /\ (inIntervalDuring (nbdAround lastVel velAccuracy) qt uptoTime velAtTime).
+*)
+
 Definition correctVelDuring
   (lastVel : Q) 
   (lastTime: QTime)
   (uptoTime : QTime) 
   (velAtTime: Time -> R) :=
-    exists  (qt : QTime), 
-      lastTime <= qt <= (lastTime + reactionTime)
-      /\ (inIntervalDuring transitionValues lastTime qt velAtTime)
-      /\ (inIntervalDuring (nbdAround lastVel velAccuracy) qt uptoTime velAtTime).
+
+  (inIntervalDuring (nbdAround lastVel velAccuracy) lastTime uptoTime velAtTime).
 
 Close Scope Q_scope.
 
