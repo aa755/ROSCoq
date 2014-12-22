@@ -256,8 +256,8 @@ Definition transitionInterval : interval :=
 
 Definition proxView (side :bool) :=
 match side with
-| true => (fun ts t => AbsIR ((lEndPos ts t) [-] lboundary))
-| false => (fun ts t => AbsIR ((rEndPos ts t) [-] rboundary))
+| true => (fun ts t => AbsIR ((rEndPos ts t) [-] rboundary))
+| false => (fun ts t => AbsIR ((lEndPos ts t) [-] lboundary))
 end.
 
 
@@ -629,6 +629,11 @@ Proof.
 Qed.
 *)
 
+Lemma concreteValues : hwidth = Z2R 2 
+                       /\ boundary = Z2R 100 
+                       /\ alertDist = Z2R 1.
+Admitted.
+
 Lemma  PosVelAtNegPos : forall (ev : Event),
           MotorRecievesPositivVelAtLHS ev.
 Proof.
@@ -725,6 +730,7 @@ Proof.
     unfold PossibleSendRecvPair in Hsendl.
     repnd. clear Hsendlrrl Hsendlrl.
     rewrite Heqevloc in Hsendlrrr.
+    rewrite side0 in Hsendlrrr. simpl in Hsendlrrr.
     rewrite <- Hsendll. intros Hmd.
     pose proof (corrNodes 
                   eo 
@@ -746,7 +752,23 @@ Proof.
     simpl in Hmd.
     apply (f_equal getSensorSide) in Hmd.
     simpl in Hmd. 
+    apply (f_equal (fun op => opExtract op false)) in Hmd.
+    simpl in Hmd.
+    subst.
+    simpl in Hncl.
+    unfold lEndPos, lboundary in Hncl.
+    pose proof concreteValues as Hcon.
+    repnd. subst.
+Require Export Coq.Program.Tactics.
+Require Export LibTactics.
+inverts Hncl as Hncl.
+    unfold ABSIR in Hncl.
+    apply (less_leEq_trans _ _ _ _ _ (lft_leEq_MAX _ _)) in Hncl.
+ eauto using lft_leEq_MAX.
 
+
+
+unfold Z2R in Hncl. simpl in Hncl. 
 
 
     
