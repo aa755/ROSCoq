@@ -772,7 +772,9 @@ Require Export LibTactics.
     simpl in Hmd.
     inverts Hncl as Hncl.
     subst. unfold proxView in Hncl.
-    apply AbsIR_str_bnd in Hncl.
+    apply less_leEq in Hncl.
+    rewrite AbsIR_minus in Hncl.
+    apply AbsIR_bnd in Hncl.
     unfold lEndPos, lboundary in Hncl.
     pose proof concreteValues as Hcon.
     repnd. subst.
@@ -783,6 +785,17 @@ Require Export LibTactics.
     clear Hconrrr Hconrrl Hconrl Hconl tstate reactionTimeGap 
         maxDelay transitionValues velAccuracy boundary safeDist 
         hwidth  reactionTime initialVel initialPos alertDist minGap.
+    apply shift_leEq_plus in Hncl.
+    eapply leEq_transitive; eauto. clear dependent cpt.
+    rewrite <- inj_Q_Zero.
+    unfold Q2R, Z2R.
+    rewrite <- inj_Q_minus.
+    rewrite <- inj_Q_plus.
+    rewrite <- inj_Q_plus.
+    apply inj_Q_leEq.
+    simpl. unfold cg_minus. simpl.
+    simpl. unfold N2QTime. unfold QT2Q.
+    simpl. unfold inject_Z. simpl. lra.
 Qed.
 
 (*
