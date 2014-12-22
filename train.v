@@ -804,15 +804,14 @@ Abort.
 (** While this method works, a better one is also constructive *)
 
 
-Lemma motorLastPosVel : forall (t : QTime),
+Lemma motorLastPosVel : forall (n:nat) (t : QTime),
   (centerPosAtTime tstate t) [>] 0
-  ->  forall (n:nat),
-      n = numPrevEvts (localEvts BASEMOTOR) t
-      -> exists (m:nat),
-          m < n /\ (option_map eMesg (localEvts BASEMOTOR m)) = Some ((mkMesg MOTOR speed)::nil).
+  -> n = numPrevEvts (localEvts BASEMOTOR) t
+  -> exists (m:nat),
+       m < n /\ (option_map eMesg (localEvts BASEMOTOR m)) = Some ((mkMesg MOTOR speed)::nil).
 Proof.
-  intros ? Hcent ?.
-  induction n as [|n Hind]; intros Heq.
+  intro.
+  induction n as [|n Hind]; intros ? Hcent Heq.
 - simpl. 
   pose proof (corrNodes 
                 eo 
@@ -824,7 +823,13 @@ Proof.
   repnd. clear Hinitrrrl Hinitrrl Hinitrl Hinitl. subst.
   (** [Hm] and [Hcent] are contradictory *)
   admit.
-- 
+- (** check if nth event is +1 Deq . if so, exists n. else
+    it is a -1 and centerpos at (eTime (nth event)) is negative since
+    it has been going left since nth event and is still at LHS at time t*)
+  assert (exists ev, localEvts BASEMOTOR n = Some ev)  as Hp by admit.
+  exrepd. specialize (Hind (eTime ev)).
+
+
 
 
 Lemma RHSSafe : forall t: QTime,  (centerPosAtTime tstate t) [<=] Z2R 95.
