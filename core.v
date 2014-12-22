@@ -3,8 +3,6 @@ Require Import Coq.QArith.Qabs.
 Require Import Coq.QArith.QOrderedType.
 
 
-Add LoadPath "../../../ssrcorn" as CoRN.
-Add LoadPath "../../../ssrcorn/math-classes/src" as MathClasses.
 Require Export CoRN.ftc.MoreIntervals.
 
 (* Definition N2Q (n: nat) : Q := n. *)
@@ -24,7 +22,8 @@ Definition Q2R  (q: Q) : R := (inj_Q IR q).
 
 Definition N2R  (n: nat) : R := (inj_Q IR  n).
 
-(* Coercion Q2R : Q >-> IR. *)
+Coercion Q2R : Q >-> st_car.
+
 
 (** Time is modeled as a real number. One is allowed to make non-deterministic
    decisions on time *)
@@ -151,7 +150,7 @@ Defined.
 
 Definition QT2R (q: QTime) : R.
   destruct q.
-  exact (Q2R x).
+  exact (x).
 Defined.
 
 Coercion N2T : nat >-> Time.
@@ -244,7 +243,7 @@ Qed.
 
 Require Export CoRN.reals.Q_in_CReals.
 
-Definition Z2R  (n: Z) : R := (inj_Q IR  n).
+Definition Z2R  (n: Z) : R := (inj_Q IR  (inject_Z n)).
 
 Definition overApproximate (t: R) : { z:  Z | t  [<] Z2R z}.
   remember (start_of_sequence _ t).
@@ -549,3 +548,9 @@ Ltac dands :=
            | [ |- prod _ _ ] => split
          end.
 
+Definition inBetween (l m r: Q) := l < m < r.
+
+Lemma inBetweenFold : forall (l m r: Q),
+   l < m < r <-> (inBetween l m r).
+Proof. intros. reflexivity.
+Qed.

@@ -150,12 +150,12 @@ fun  (distanceAtTime : Time -> R)
      (evs : nat -> option Event) 
   =>
     (∀ t:QTime,
-       (distanceAtTime t  [<] Q2R alertDist)
+       (distanceAtTime t  [<] alertDist)
        -> ∃ n, opLiftF (ProxPossibleTimeEvPair maxDelay side t) (evs n))
     /\
     (∀ (n: nat), 
         isSendEvtOp (evs n)
-        -> ∃ t : QTime,  Cast (distanceAtTime t  [<]  Q2R alertDist)
+        -> ∃ t : QTime,  Cast (distanceAtTime t  [<]  alertDist)
                 /\ opLiftF (ProxPossibleTimeEvPair maxDelay side t) (evs n)).
 
 Definition inIntervalDuring
@@ -168,7 +168,6 @@ Variable velAccuracy : Q.
 Variable initialVel : Q.
 Variable initialPos : Q.
 Variable transitionValues : interval.
-Coercion Q2R : Q >-> st_car.
 
 
 (**
@@ -249,7 +248,7 @@ Definition centerPosAtTime (ts : Train) (t : Time) : R :=
   (getF (posX ts) t).
 
 Definition velBound : interval :=
-  (nbdAround [0] (Q2R speed [+] velAccuracy)).
+  (nbdAround [0] (speed [+] velAccuracy)).
 
 Definition transitionInterval : interval :=
   velBound.
@@ -539,7 +538,7 @@ end.
 (** Ideally, device specs should imply a bound like this.
     For a fine grained analysis, this might be less useful *)
 Lemma velPos : forall (t : Time), 
-  ({velX tstate} t) [<=] Q2R speed.
+  ({velX tstate} t) [<=] speed.
 Admitted.
 
 
@@ -555,7 +554,7 @@ Qed.
 
 Lemma centerPosChangeQ : forall (ta tb : QTime),
   ta < tb
-  -> (centerPosAtTime tstate tb [-] centerPosAtTime tstate ta) [<=] Q2R (tb -ta).
+  -> (centerPosAtTime tstate tb [-] centerPosAtTime tstate ta) [<=] (tb -ta).
 Proof.
   intros.
 Admitted.
@@ -574,7 +573,7 @@ Open Scope Q_scope.
 Lemma centerPosUB : forall (ts tf : QTime) (td : Q) (ps : R),
   ts < tf < ts + td
   -> centerPosAtTime tstate ts[<=] ps
-  -> centerPosAtTime tstate tf[<=] (ps [+] Q2R td).
+  -> centerPosAtTime tstate tf[<=] (ps [+] td).
 Proof.
   intros ? ? ? ? Hint Hcs.
   repnd.
@@ -598,8 +597,8 @@ Qed.
 
 Lemma centerPosUB2 : forall (ts tf : QTime) (td : Q) (pf: Q),
   (ts < tf < (ts + td))
-  -> centerPosAtTime tstate ts[<=] (Q2R (pf-td))
-  -> centerPosAtTime tstate tf[<=] (Q2R pf).
+  -> centerPosAtTime tstate ts[<=] (pf-td)
+  -> centerPosAtTime tstate tf[<=] pf.
 Proof.
   intros ? ? ? ?  Hint Hcs.
   apply centerPosUB with (td:= (td)) (tf:=tf) in Hcs; [| trivial; fail].
@@ -612,7 +611,7 @@ Qed.
 (*
 Lemma centerPosUB3 : forall (ts tf td : QTime) (pf: R),
   (ts < tf < (ts + td))
-  -> centerPosAtTime tstate ts[<=] (pf [-] Q2R (td))
+  -> centerPosAtTime tstate ts[<=] (pf [-] td)
   -> centerPosAtTime tstate tf[<=] pf.
 Proof.
   intros ? ? ? ?  Hint Hcs.
@@ -623,13 +622,6 @@ Proof.
   simpl. lra.
 Qed.
 *)
-
-Definition inBetween (l m r: Q) := l < m < r.
-
-Lemma inBetweenFold : forall (l m r: Q),
-   l < m < r <-> (inBetween l m r).
-Proof. intros. reflexivity.
-Qed.
 
   
 Lemma concreteValues : hwidth = Z2R 2 
@@ -812,7 +804,7 @@ Lemma motorLastPosVel : forall (n:nat) (t : QTime),
 Proof.
   intro.
   induction n as [|n Hind]; intros ? Hcent Heq.
-- simpl. 
+- simpl. assert False;[| contradiction].
   pose proof (corrNodes 
                 eo 
                 BASEMOTOR t) as Hm.
@@ -820,14 +812,23 @@ Proof.
   unfold corrSinceLastVel, lastVelAndTime, correctVelDuring in Hm.
   rewrite <- Heq in Hm. simpl in Hm.
   pose proof concreteValues as Hinit.
-  repnd. clear Hinitrrrl Hinitrrl Hinitrl Hinitl. subst.
+  repnd.  subst initialVel. 
+  repeat match goal with
+  [H : _ = _ |- _ ] => clear H
+  end.
+  unfold inIntervalDuring in Hm.
+  inverts Hm as Hm.
+
+  
   (** [Hm] and [Hcent] are contradictory *)
   admit.
 - (** check if nth event is +1 Deq . if so, exists n. else
-    it is a -1 and centerpos at (eTime (nth event)) is negative since
-    it has been going left since nth event and is still at LHS at time t*)
+      it is a -1 and centerpos at (eTime (nth event)) is negative since
+      it has been going left since nth event and is still at LHS at time t*)
   assert (exists ev, localEvts BASEMOTOR n = Some ev)  as Hp by admit.
   exrepd. specialize (Hind (eTime ev)).
+Abort.
+
 
 
 
