@@ -1,6 +1,8 @@
 Add LoadPath "../../../ssrcorn" as CoRN.
 Add LoadPath "../../../ssrcorn/math-classes/src" as MathClasses.
 Add LoadPath "../../../nuprl/coq".
+Require Export Coq.Program.Tactics.
+Require Export LibTactics.
 
 Require Export ROSCyberPhysicalSystem.
 Require Export String.
@@ -75,7 +77,7 @@ Definition ControllerNode (speed : Q): RosSwNode :=
   Build_RosSwNode (SwProcess speed) (digiControllerTiming).
 
 Record Train : Type := {
-  posX : TimeFun;
+  posX :> TimeFun;
   velX : TimeFun;
   deriv : isDerivativeOf velX posX
 }.
@@ -174,7 +176,7 @@ Definition correctVelDuring
   (lastTime: QTime)
   (uptoTime : QTime) 
   (velAtTime: Time -> R) :=
-    exists  qt : QTime, 
+    exists  (qt : QTime), 
       lastTime <= qt <= (lastTime + reactionTime)
       /\(inIntervalDuringInterval 
                           transitionValues
@@ -330,7 +332,7 @@ Lemma DeqSendOncePair : forall ns nd sp,
         ∧
         localEvts SWCONTROLLER nd = Some ed 
         ∧ localEvts SWCONTROLLER ns = Some es ∧ 
-         exists dmp : bool,  eMesg ed = ((mkMesg PSENSOR dmp)::nil)
+         exists (dmp : bool),  eMesg ed = ((mkMesg PSENSOR dmp)::nil)
                   ∧ (mkMesg MOTOR ((SwControllerProgram sp) dmp))::nil = (eMesg es) }}.
 Proof.
   intros ? ? ? Hnc.
@@ -753,8 +755,6 @@ Proof.
     eapply centerPosUB2; eauto.
     clear Hncrl.
     rewrite Hncrr in Hmd.
-Require Export Coq.Program.Tactics.
-Require Export LibTactics.
     apply (f_equal (hd (mkMesg PSENSOR false))) in Hmd.
     simpl in Hmd.
     apply (f_equal getSensorSide) in Hmd.
@@ -789,6 +789,27 @@ Require Export LibTactics.
     simpl. unfold inject_Z. simpl. lra.
 Qed.
 
+Lemma RHSSafe : forall t: QTime,  (centerPosAtTime tstate t) [<=] Z2R 95.
+Proof.
+  intros.
+  pose proof (less_cotransitive_unfolded _ (Z2R 94) (Z2R 95)) as Hdi.
+  lapply Hdi; [clear Hdi; intro Hdi
+                |apply inj_Q_less; unfold inject_Z; simpl; lra; fail].
+  match goal with
+  [|- ?l [<=] ?r] => specialize (Hdi l)
+  end.
+  destruct Hdi;[|apply less_leEq].
+  assert False;[| contradiction].
+Abort.
+(** While this method works, a better one is also constructive *)
+
+Lemma RHSSafe : forall t: QTime,  (centerPosAtTime tstate t) [<=] Z2R 95.
+Proof.
+  intros. apply leEq_def. intros Hc.
+  
+
+
+
 (*
 Lemma  TrainVelBounded : forall (e : Event) (t: QTime),
     t <= (eTime e)
@@ -803,6 +824,7 @@ Proof.
   unfold corrSinceLastVel in Hnc.
 Abort.
 *)  
+
 
 Close Scope R_scope.
 Close Scope Q_scope.
