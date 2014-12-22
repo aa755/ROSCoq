@@ -137,25 +137,25 @@ match oev with
 end.
 
 Definition ProxPossibleTimeEvPair 
-  (maxDelay: R) (side : bool)
-  (t: Time) (ev: Event) 
+  (maxDelay: QTime) (side : bool)
+  (t: QTime) (ev: Event) 
   :=
-  Cast ((olcr t (t [+] maxDelay)) (Q2R (eTime ev)))
+   t < (eTime ev) < (t + maxDelay) 
   /\ (eMesg ev) = (mkMesg PSENSOR side)::nil.
 
 (** [side] is just an identifier *)
-Definition ProximitySensor (alertDist maxDelay: R) (side : bool)
+Definition ProximitySensor (alertDist : Q) (maxDelay: QTime) (side : bool)
   : Device R :=
 fun  (distanceAtTime : Time -> R)
      (evs : nat -> option Event) 
   =>
-    (∀ t:Time,
-       (distanceAtTime t  [<]  alertDist)
+    (∀ t:QTime,
+       (distanceAtTime t  [<] Q2R alertDist)
        -> ∃ n, opLiftF (ProxPossibleTimeEvPair maxDelay side t) (evs n))
     /\
     (∀ (n: nat), 
         isSendEvtOp (evs n)
-        -> ∃ t : Time,  Cast (distanceAtTime t  [<]  alertDist)
+        -> ∃ t : QTime,  Cast (distanceAtTime t  [<]  Q2R alertDist)
                 /\ opLiftF (ProxPossibleTimeEvPair maxDelay side t) (evs n)).
 
 Definition inIntervalDuringInterval
@@ -226,9 +226,9 @@ Variable boundary : R.
 Definition rboundary : R := (boundary).
 Definition lboundary : R := ([0] [-] boundary).
 
-Variable alertDist : R.
+Variable alertDist : Q.
 Variable safeDist : R.
-Variable maxDelay : R.
+Variable maxDelay : QTime.
 Variable hwidth : R. (* half of width *)
 Definition speed : Q := 1.
 
@@ -629,9 +629,18 @@ Proof.
 Qed.
 *)
 
+Definition inBetween (l m r: Q) := l < m < r.
+
+Lemma inBetweenFold : forall (l m r: Q),
+   l < m < r <-> (inBetween l m r).
+Proof. intros. reflexivity.
+Qed.
+
+  
 Lemma concreteValues : hwidth = Z2R 2 
                        /\ boundary = Z2R 100 
-                       /\ alertDist = Z2R 1.
+                       /\ alertDist =  1
+                      /\ maxDelay = N2QTime 1.
 Admitted.
 
 Lemma  PosVelAtNegPos : forall (ev : Event),
@@ -732,6 +741,8 @@ Proof.
     rewrite Heqevloc in Hsendlrrr.
     rewrite side0 in Hsendlrrr. simpl in Hsendlrrr.
     rewrite <- Hsendll. intros Hmd.
+    eapply centerPosUB2; eauto.
+    clear Hsendlrrr.
     pose proof (corrNodes 
                   eo 
                   (PROXSENSOR side)) as Hnc.
@@ -746,39 +757,32 @@ Proof.
     simpl in Hnc.
     specialize (Hnc Hsendrr).
     destruct Hnc as [t Hnc].
-    repnd.
+    rewrite inBetweenFold in Hnc.
+    repnd. unfold inBetween in Hncrl.
+    eapply centerPosUB2; eauto.
+    clear Hncrl.
     rewrite Hncrr in Hmd.
+Require Export Coq.Program.Tactics.
+Require Export LibTactics.
     apply (f_equal (hd (mkMesg PSENSOR false))) in Hmd.
     simpl in Hmd.
     apply (f_equal getSensorSide) in Hmd.
     simpl in Hmd. 
     apply (f_equal (fun op => opExtract op false)) in Hmd.
     simpl in Hmd.
-    subst.
-    simpl in Hncl.
+    inverts Hncl as Hncl.
+    subst. unfold proxView in Hncl.
+    apply AbsIR_str_bnd in Hncl.
     unfold lEndPos, lboundary in Hncl.
     pose proof concreteValues as Hcon.
     repnd. subst.
-Require Export Coq.Program.Tactics.
-Require Export LibTactics.
-inverts Hncl as Hncl.
-    unfold ABSIR in Hncl.
-    apply (less_leEq_trans _ _ _ _ _ (lft_leEq_MAX _ _)) in Hncl.
- eauto using lft_leEq_MAX.
-
-
-
-unfold Z2R in Hncl. simpl in Hncl. 
-
-
-    
-
-
-    rewrite Hsw in Hsendlrrr.
-    simpl in Hsendlrrr.
-    (** Now, lets unpack the induction hypothesis *)
-    unfold MotorRecievesPositivVelAtLHS in Hsendrl.
-    rewrite Hsw in Hsendrl.
+    unfold centerPosAtTime.
+    remember ({posX tstate} t) as cpt.
+    clear dependent t.
+    clear dependent Event.
+    clear Hconrrr Hconrrl Hconrl Hconl tstate reactionTimeGap 
+        maxDelay transitionValues velAccuracy boundary safeDist 
+        hwidth  reactionTime initialVel initialPos alertDist minGap.
 Qed.
 
 (*
