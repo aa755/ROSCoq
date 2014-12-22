@@ -552,13 +552,6 @@ Proof.
   apply velPos.
 Qed.
 
-Lemma centerPosChangeQ : forall (ta tb : QTime),
-  ta < tb
-  -> (centerPosAtTime tstate tb [-] centerPosAtTime tstate ta) [<=] (tb -ta).
-Proof.
-  intros.
-Admitted.
-
 Require Import Ring. 
 Require Import CoRN.tactics.CornTac.
 Require Import CoRN.algebra.CRing_as_Ring.
@@ -566,6 +559,23 @@ Require Import CoRN.algebra.CRing_as_Ring.
 Add Ring IRisaRing: (CRing_Ring IR).
 Add Ring RisaRing: (CRing_Ring R).
 Require Import Psatz.
+Require Import Setoid.
+
+
+Lemma centerPosChangeQ : forall (ta tb : QTime),
+  ta < tb
+  -> (centerPosAtTime tstate tb [-] centerPosAtTime tstate ta) [<=] (tb - ta).
+Proof.
+  intros ? ? Hlt.
+  pose proof (centerPosChange ta tb) as Hcc.
+  destruct ta as [qta  ap].
+  destruct tb as [qtb  bp].
+  lapply Hcc; [clear Hcc; intro Hcc |apply inj_Q_less;trivial].
+  eapply leEq_transitive; eauto.
+  trivial. unfold Q2R. rewrite inj_Q_minus. simpl. unfold Q2R. simpl.
+  apply leEq_reflexive.
+Qed.
+
 
 
 
