@@ -1,5 +1,3 @@
-Add LoadPath "../../../ssrcorn" as CoRN.
-Add LoadPath "../../../ssrcorn/math-classes/src" as MathClasses.
 Add LoadPath "../../../nuprl/coq".
 Require Export Coq.Program.Tactics.
 Require Export LibTactics.
@@ -160,17 +158,18 @@ fun  (distanceAtTime : Time -> R)
         -> ∃ t : QTime,  Cast (distanceAtTime t  [<]  Q2R alertDist)
                 /\ opLiftF (ProxPossibleTimeEvPair maxDelay side t) (evs n)).
 
-Definition inIntervalDuringInterval
-  (interval intervalT: interval)  (f : Time -> R) : Prop
-      :=
- Cast (forall t : Time, intervalT t  -> (interval) (f t)).
+Definition inIntervalDuring
+  (interval: interval) (tStart tEnd : QTime)  (f : Time -> R) : Prop :=
+ Cast (forall t : QTime, ( tStart < t < tEnd   -> (interval) (f t))).
   
 
 Variable reactionTime : Q.
-Variable velAccuracy : R.
+Variable velAccuracy : Q.
 Variable initialVel : Q.
 Variable initialPos : Q.
 Variable transitionValues : interval.
+Coercion Q2R : Q >-> st_car.
+
 Definition correctVelDuring
   (lastVel : Q) 
   (lastTime: QTime)
@@ -178,35 +177,29 @@ Definition correctVelDuring
   (velAtTime: Time -> R) :=
     exists  (qt : QTime), 
       lastTime <= qt <= (lastTime + reactionTime)
-      /\(inIntervalDuringInterval 
-                          transitionValues
-                          (clcr (Q2R lastTime) (Q2R qt))
-                          velAtTime)
-      /\ (inIntervalDuringInterval 
-                          (nbdAround (Q2R lastVel) velAccuracy) 
-                          (clcr  (Q2R qt) (Q2R uptoTime))
-                          velAtTime).
+      /\ (inIntervalDuring transitionValues lastTime qt velAtTime)
+      /\ (inIntervalDuring (nbdAround lastVel velAccuracy) qt uptoTime velAtTime).
 
 Close Scope Q_scope.
 
 
-(** let k geatest m much that m < n 
+(** let k be the geatest m much that m < n 
    and (evs m) is a velocity message.
    this returns the vlocity and time of (evs k) *)
 Fixpoint lastVelAndTimeAux (evs : nat -> option Event) 
-    (n : nat) : (Q * QTime):=
-match n with
+    (numPrevEvts : nat) : (Q * QTime):=
+match numPrevEvts with
 | 0 => (initialVel,mkQTime 0 I)
-| S n' => match getVelAndTime (evs n') with
+| S numPrevEvts' => match getVelAndTime (evs numPrevEvts') with
           | Some pr => pr
-          | None => lastVelAndTimeAux evs n'
+          | None => lastVelAndTimeAux evs numPrevEvts'
            end
 end.
   
 
 Definition lastVelAndTime (evs : nat -> option Event)
   (t : QTime) : (Q * QTime) :=
-lastVelAndTimeAux evs (lastEvtIndex evs t) .
+lastVelAndTimeAux evs (numPrevEvts evs t) .
 
 
 Definition corrSinceLastVel
@@ -636,7 +629,8 @@ Qed.
 Lemma concreteValues : hwidth = Z2R 2 
                        /\ boundary = Z2R 100 
                        /\ alertDist =  1
-                      /\ maxDelay = mkQTime 1 I.
+                      /\ maxDelay = mkQTime 1 I
+                      /\ initialVel = (0-1).
 Admitted.
 
 Lemma  PosVelAtNegPos : forall (ev : Event),
@@ -768,12 +762,12 @@ Proof.
     apply AbsIR_bnd in Hncl.
     unfold lEndPos, lboundary in Hncl.
     pose proof concreteValues as Hcon.
-    repnd. subst.
+    repnd. clear Hconrrrr. subst.
     unfold centerPosAtTime.
     remember ({posX tstate} t) as cpt.
     clear dependent t.
     clear dependent Event.
-    clear Hconrrr Hconrrl Hconrl Hconl tstate reactionTimeGap 
+    clear Hconrrrl Hconrrl Hconrl Hconl tstate reactionTimeGap 
         maxDelay transitionValues velAccuracy boundary safeDist 
         hwidth  reactionTime initialVel initialPos alertDist minGap.
     apply shift_leEq_plus in Hncl.
@@ -806,6 +800,8 @@ Abort.
 Lemma RHSSafe : forall t: QTime,  (centerPosAtTime tstate t) [<=] Z2R 95.
 Proof.
   intros. apply leEq_def. intros Hc.
+Abort.
+  
   
 
 

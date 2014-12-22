@@ -1,5 +1,3 @@
-Add LoadPath "../../../ssrcorn" as CoRN.
-Add LoadPath "../../../ssrcorn/math-classes/src" as MathClasses.
 Add LoadPath "../../../nuprl/coq".
 
 Require Export roscore.
@@ -97,22 +95,25 @@ Context
  `{etype : @EventType _ _ _ EV LocT minGap tdeq }.
 
 (** would fail if [QTime] is changed to [Time].
-    This should be definable, thanks to [minGap] *)
+    This should be definable, thanks to [minGap].
+    if the returned value is is [n], the indices of prev events are less than
+    [n]. see [numPrevEvtsCorrect]
+ *)
 
-Definition lastEvtIndex : LocT -> QTime -> nat.
+Definition numPrevEvts : LocT -> QTime -> nat.
 Admitted.
 
 Definition eTimeOp := 
 option_map eTime.
 
 
-Lemma lastEvtIndexCorrect :
+Lemma numPrevEvtsCorrect :
 forall t loc m,
   match eTimeOp (localEvts loc m) with
   | Some tm =>
-    (m <= lastEvtIndex loc t
+    (S m <= numPrevEvts loc t
          -> tm <= t)
-    /\ (m > lastEvtIndex loc t
+    /\ (S m > numPrevEvts loc t
          -> tm > t)
   | None => True
   end.

@@ -1,36 +1,38 @@
+COQC = coqc -R /media/abhishek/Data/ssrcorn/math-classes/src -as MathClasses -R /media/abhishek/Data/ssrcorn -as CoRN
+
 train.vo : train.v ROSCyberPhysicalSystem.vo
-	coqc $<
+	$(COQC) $<
 
 
 ROSCyberPhysicalSystem.vo : ROSCyberPhysicalSystem.v roscore.vo CoList.vo
-	coqc $<
+	$(COQC) $<
 
 
 CoList.vo : CoList.v
-	coqc $<
+	$(COQC) $<
 	
 trainDevs.vo : trainDevs.v Process.vo
-	coqc $<
+	$(COQC) $<
 	
 
 roscore.vo : roscore.v Process.vo
-	coqc $<
+	$(COQC) $<
 
 Process.vo : Process.v core.vo
-	coqc $<
+	$(COQC) $<
 
 
 ADC.vo : ADC.v core.vo
-	coqc $<
+	$(COQC) $<
 
 core.vo : core.v CoRNMisc.vo
-	coqc $<
+	$(COQC) $<
 
 CoRNMisc.vo : CoRNMisc.v
-	coqc $<
+	$(COQC) $<
 
 %.tex: %.v
-	coqc $<
+	$(COQC) $<
 	coqdoc   -l --latex --interpolate --body-only $< -o $(@)	
 
 clean:
