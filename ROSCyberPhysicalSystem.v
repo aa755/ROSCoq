@@ -92,7 +92,7 @@ Section EvtProps.
 Context  
   `{rtopic : RosTopicType RosTopic} 
   `{dteq : Deq RosTopic}
- `{etype : @EventType _ _ _ EV LocT minGap tdeq }.
+  `{etype : @EventType _ _ _ EV LocT minGap tdeq }.
 
 (** would fail if [QTime] is changed to [Time].
     This should be definable, thanks to [minGap].

@@ -803,6 +803,30 @@ Proof.
 Abort.
 (** While this method works, a better one is also constructive *)
 
+
+Lemma motorLastPosVel : forall (t : QTime),
+  (centerPosAtTime tstate t) [>] 0
+  ->  forall (n:nat),
+      n = numPrevEvts (localEvts BASEMOTOR) t
+      -> exists (m:nat),
+          m < n /\ (option_map eMesg (localEvts BASEMOTOR m)) = Some ((mkMesg MOTOR speed)::nil).
+Proof.
+  intros ? Hcent ?.
+  induction n as [|n Hind]; intros Heq.
+- simpl. 
+  pose proof (corrNodes 
+                eo 
+                BASEMOTOR t) as Hm.
+  simpl in Hm.
+  unfold corrSinceLastVel, lastVelAndTime, correctVelDuring in Hm.
+  rewrite <- Heq in Hm. simpl in Hm.
+  pose proof concreteValues as Hinit.
+  repnd. clear Hinitrrrl Hinitrrl Hinitrl Hinitl. subst.
+  (** [Hm] and [Hcent] are contradictory *)
+  admit.
+- 
+
+
 Lemma RHSSafe : forall t: QTime,  (centerPosAtTime tstate t) [<=] Z2R 95.
 Proof.
   intros. apply leEq_def. intros Hc.
