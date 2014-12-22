@@ -68,11 +68,11 @@ Definition SwProcess (speed : Q)
       : Process Message (list Message):= 
   mkPureProcess (liftToMesg (SwControllerProgram speed)).
 
-Definition digiControllerTiming (speed : Q) : 
-  QTime :=  (N2QTime 1).
+Definition digiControllerTiming  : 
+  QTime :=  (mkQTime 1 I).
  
 Definition ControllerNode (speed : Q): RosSwNode :=
-  Build_RosSwNode (SwProcess speed) (digiControllerTiming speed).
+  Build_RosSwNode (SwProcess speed) (digiControllerTiming).
 
 Record Train : Type := {
   posX : TimeFun;
@@ -194,7 +194,7 @@ Close Scope Q_scope.
 Fixpoint lastVelAndTimeAux (evs : nat -> option Event) 
     (n : nat) : (Q * QTime):=
 match n with
-| 0 => (initialVel,N2QTime 0)
+| 0 => (initialVel,mkQTime 0 I)
 | S n' => match getVelAndTime (evs n') with
           | Some pr => pr
           | None => lastVelAndTimeAux evs n'
@@ -282,7 +282,7 @@ Instance rllllfjkfhsdakfsdakh : @RosLocType Train Topic Event  RosLoc _.
   apply Build_RosLocType.
   - exact locNode.
   - exact locTopics.
-  - exact (fun srs dest => Some (N2QTime 1)).
+  - exact (fun srs dest => Some (mkQTime 1 I)).
 Defined.
 
 
@@ -326,7 +326,7 @@ Lemma DeqSendOncePair : forall ns nd sp,
   -> {es : Event | {ed : Event | isDeqEvt ed ∧ isSendEvt es
           ∧ (nd < ns)%Q
             ∧ (∀ n : nat, (nd < n)%Q ∧ (n < ns)%Q → isEnqEvtOp (localEvts SWCONTROLLER n))
-              ∧ (eTime ed < eTime es < eTime ed + digiControllerTiming sp)%Q
+              ∧ (eTime ed < eTime es < eTime ed + digiControllerTiming)%Q
         ∧
         localEvts SWCONTROLLER nd = Some ed 
         ∧ localEvts SWCONTROLLER ns = Some es ∧ 
@@ -338,18 +338,12 @@ Proof.
   simpl in Hnc.
   destruct Hnc as [es Hnc].
   destruct Hnc as [ed Hnc].
-  exists es. exists ed.
-  remember (eTime ed < eTime es
-               ∧ eTime es < eTime ed + digiControllerTiming sp) as dontSPlit.
-  exrepd.
+  exists es. exists ed.  simpl.
+  exrepd. 
   pose proof (noSpamRecv eo H) as Hvr.
-  split;[ trivial |].
-  split;[ trivial |].
-  split;[ trivial |].
-  split;[ trivial |].
-  split;[ trivial |].
-  split;[ trivial |].
-  split;[ trivial |]. clear H0 H1 H2 H3 H5.
+  dands; trivial.
+
+  clear H0 H1 H2 H3 H5.
   rename H4 into H0.
   rename H6 into H2.
   rewrite <- locEvtIndex in H0.
@@ -576,7 +570,7 @@ Require Import Psatz.
 
 
 Open Scope Q_scope.
-Lemma centerPosUB : forall (ts tf td : QTime) (ps : R),
+Lemma centerPosUB : forall (ts tf : QTime) (td : Q) (ps : R),
   ts < tf < ts + td
   -> centerPosAtTime tstate ts[<=] ps
   -> centerPosAtTime tstate tf[<=] (ps [+] Q2R td).
@@ -601,7 +595,7 @@ Proof.
   unfold Q2R. apply leEq_reflexive.
 Qed.
 
-Lemma centerPosUB2 : forall (ts tf td : QTime) (pf: Q),
+Lemma centerPosUB2 : forall (ts tf : QTime) (td : Q) (pf: Q),
   (ts < tf < (ts + td))
   -> centerPosAtTime tstate ts[<=] (Q2R (pf-td))
   -> centerPosAtTime tstate tf[<=] (Q2R pf).
@@ -640,7 +634,7 @@ Qed.
 Lemma concreteValues : hwidth = Z2R 2 
                        /\ boundary = Z2R 100 
                        /\ alertDist =  1
-                      /\ maxDelay = N2QTime 1.
+                      /\ maxDelay = mkQTime 1 I.
 Admitted.
 
 Lemma  PosVelAtNegPos : forall (ev : Event),
@@ -700,9 +694,7 @@ Proof.
     simpl in Hnc. 
     destruct Hnc as [es0 Hnc].
     destruct Hnc as [ed Hnc].
-    remember (eTime ed < eTime es0
-               ∧ eTime es0 < eTime ed + digiControllerTiming speed) as dontSplit.
-
+    rewrite inBetweenFold in Hnc.
     exrepd. clear H2.
     pose proof (sameLocCausal eo _ _ _ H4 H5 H1) as Hcaus.
     clear H1.
@@ -725,7 +717,6 @@ Proof.
     unfold digiControllerTiming in H3.
     clear H0 H Heqeks Heqevloc eo reactionTimeGap transitionValues velAccuracy boundary 
       alertDist safeDist maxDelay hwidth reactionTime initialVel initialPos.
-    subst dontSplit.
     eapply centerPosUB2; eauto.
 
   + clear Hind. symmetry in Heqeks. rename es into ed.
@@ -794,7 +785,7 @@ Require Export LibTactics.
     rewrite <- inj_Q_plus.
     apply inj_Q_leEq.
     simpl. unfold cg_minus. simpl.
-    simpl. unfold N2QTime. unfold QT2Q.
+    simpl.  unfold QT2Q.
     simpl. unfold inject_Z. simpl. lra.
 Qed.
 

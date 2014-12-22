@@ -126,20 +126,27 @@ Defined.
  Defined.
 
 
-Definition QNNeg := {q : Q | 0 <= q}.
+Definition QNNeg : Type := {q : Q | (if Qlt_le_dec q 0 then False else True) : Prop}.
 Definition QTime := QNNeg.
 
+(** if [q] is a closed non-negative rational, then p:=I is guaranteed to work *)
+Definition mkQTime (q:Q) (p: (if Qlt_le_dec q 0 then False else True)) : QTime
+:= exist _ q p.
 
-Definition QT2Q (t : QTime) : Q := (proj1_sig t).
+
+
+Definition QT2Q (t : QTime) : Q := let (x, _) := t in x.
+
 Coercion QT2Q : QTime >-> Q.
 
 Definition QT2T (q: QTime) : Time.
-  destruct q.
-  exists (Q2R x). simpl.
+  destruct q as [q qp].
+  exists (Q2R q). simpl.
   unfold Q2R.
   rewrite <- inj_Q_Zero.
-  apply inj_Q_leEq.
-  trivial.
+  apply inj_Q_leEq. simpl.
+  destruct (Qlt_le_dec q 0); auto.
+  contradiction.
 Defined.
 
 Definition QT2R (q: QTime) : R.
@@ -152,13 +159,13 @@ Coercion N2T : nat >-> Time.
 
 Coercion QT2T : QTime >-> Time.
 
+(*
 Definition N2QTime (n: nat) : QTime.
-  exists (n). unfold iprop.
-  apply Q.inject_Z_nonneg.
-  apply Nat2Z.is_nonneg.
+  exists (n). destruct n; simpl; auto.
 Defined.
-
 Coercion N2QTime : nat >-> QTime.
+*)
+
 
 (*
 Definition fastFwdAndRestrict {A}
@@ -534,5 +541,11 @@ Ltac exrepd :=
                let name := fresh v in
                let Hname := fresh v in
                destruct H as [name Hname]
+         end.
+
+Ltac dands :=
+  repeat match goal with
+           | [ |- _ /\ _ ] => split
+           | [ |- prod _ _ ] => split
          end.
 
