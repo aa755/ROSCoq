@@ -1,4 +1,4 @@
-COQC = coqc -R /media/abhishek/Data/ssrcorn/math-classes/src -as MathClasses -R /media/abhishek/Data/ssrcorn -as CoRN
+COQC = coqc -R ../../../ssrcorn/math-classes/src -as MathClasses -R ../../../ssrcorn -as CoRN
 
 train.vo : train.v ROSCyberPhysicalSystem.vo
 	$(COQC) $<

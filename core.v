@@ -5,18 +5,7 @@ Require Import Coq.QArith.QOrderedType.
 
 Require Export CoRN.ftc.MoreIntervals.
 
-Definition Q2R  (q: Q) : IR := (inj_Q IR q).
-Coercion  Q2R : Q >-> st_car.
 
-Lemma ContFunQR : forall (f : PartIR)  (a b : Q) (c : IR)
-(pi: included (clcr a b) (Dom f)),
-Continuous (clcr a b) f
--> (forall (t:Q) (p: (clcr a b) t), (f t (pi _ p) [<=] c))
--> (forall (t:IR) (p: (clcr a b) t), (f t (pi _ p) [<=] c)).
-Proof.
-  intros.
-  apply leEq_def.
-  intros Hc.
   
 (* Definition N2Q (n: nat) : Q := n. *)
 
@@ -32,7 +21,7 @@ Definition R := IR.
 Require Export Coq.ZArith.ZArith.
 
 
-Definition N2R  (n: nat) : R := (inj_Q IR  n).
+Definition N2R  (n: nat) : IR := (inj_Q IR  n).
 
 Coercion Q2R : Q >-> st_car.
 
