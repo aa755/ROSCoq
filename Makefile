@@ -2,6 +2,8 @@ COQC = coqc -R /media/abhishek/Data/ssrcorn/math-classes/src -as MathClasses -R 
 
 train.vo : train.v ROSCyberPhysicalSystem.vo
 	$(COQC) $<
+Everything.vo  : Everything.v
+	$(COQC) $<
 
 
 ROSCyberPhysicalSystem.vo : ROSCyberPhysicalSystem.v roscore.vo CoList.vo

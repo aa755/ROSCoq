@@ -1,9 +1,3 @@
-Add LoadPath "../../../ssrcorn" as CoRN.
-Add LoadPath "../../../ssrcorn/math-classes/src" as MathClasses.
-
-
-
-
 Require Export CoRN.ode.FromMetric2.
 Require Export CoRN.ode.AbstractIntegration.
 Require Export CoRN.ode.BanachFixpoint.
