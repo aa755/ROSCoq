@@ -1,6 +1,3 @@
-
-Add LoadPath "../../../ssrcorn" as CoRN.
-Add LoadPath "../../../ssrcorn/math-classes/src" as MathClasses.
 Require Export CoRN.ftc.Derivative.   
 Require Export CoRN.ftc.Integral.
 Require Export CoRN.ftc.FTC.
@@ -180,3 +177,97 @@ Proof.
   apply lb_integral.
  exact Hlub.
 Qed.
+
+Definition Q2R  (q: Q) : IR := (inj_Q IR q).
+Coercion  Q2R : Q >-> st_car.
+
+Require Import Coq.QArith.Qfield.
+Require Import Coq.QArith.Qring.
+Require Import Psatz.
+
+Require Import Ring. 
+Require Import CoRN.tactics.CornTac.
+Require Import CoRN.algebra.CRing_as_Ring.
+
+Add Ring IRisaRing: (CRing_Ring IR).
+Require Import Psatz.
+Require Import Setoid.
+
+Lemma ContFunQR : forall (f : PartIR)  (a b : Q) (c : IR)
+(cc : Continuous (clcr a b) f),
+(forall (t:Q) (p: (clcr a b) t), (f t ((fst cc) _ p) [<=] c))
+-> (forall (t:IR) (p: (clcr a b) t), (f t ((fst cc) _ p) [<=] c)).
+Proof.
+  intros ? ? ? ? ? Hq ? ?.
+  apply leEq_def.
+  intros Hc.
+  unfold Continuous in cc.
+  pose proof (Qlt_le_dec b a) as Hd.
+  destruct Hd as [Hd | Hd].
+- simpl in p. destruct p as [pl pr].
+  assert ((Q2R a) [<=] (Q2R b)) as Hqq by 
+  eauto using leEq_transitive.
+  apply leEq_inj_Q in Hqq.
+  simpl in Hqq. lra.
+- destruct cc as [HI  HC].
+  simpl in Hq. apply (inj_Q_leEq IR) in Hd.
+  simpl in Hc.
+  specialize (HC _ _ Hd).
+  unfold compact in HC. simpl in HC.
+  lapply HC;[clear HC; intro HC
+            |intros x Hx; simpl; tauto].
+  unfold  Continuous_I in HC.
+  apply snd in HC. pose proof Hc as Hcb.
+  apply shift_zero_less_minus in Hc.
+  remember ((f t (HI t p)) [-] c) as eps.
+  apply pos_div_two in Hc.
+  specialize (HC _ Hc).
+  destruct HC as [d Hdp HC].
+  specialize (HC t (Min (t[+]d) b)).
+  subst.
+  destruct p as [pl pr].
+  unfold compact in HC.
+  lapply HC;[clear HC; intro HC|split; auto].
+  pose proof (plus_resp_leEq_both _ _ _ _ _  
+          pl (less_leEq _ _ _ Hdp)) as Hp.
+  ring_simplify in Hp.
+  match type of HC with
+  ?l -> _ => assert l as Hcp by
+    (split; 
+          [apply leEq_Min | apply Min_leEq_rht]; auto)
+  end.
+  specialize (HC Hcp (HI _ (pl,pr)) (HI _ Hcp)).
+  lapply HC.
+  Focus 2.
+  rewrite AbsIR_minus.
+  rewrite AbsIR_eq_x.
+
+  eapply leEq_transitive;[apply triangle_IR_minus|].
+
+  
+  Focus 2.
+
+
+  
+
+  unfold compact. simpl. 
+estruct Hx as [Hxl Hxr].
+  split; auto.
+
+
+
+apply HC in Hd.
+
+
+  apply inj_Q_leEq in Hqq.
+
+  simpl in Hqq.
+
+
+
+  eapply.
+
+
+by eauto with *.
+
+
