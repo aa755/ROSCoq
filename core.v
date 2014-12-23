@@ -5,6 +5,19 @@ Require Import Coq.QArith.QOrderedType.
 
 Require Export CoRN.ftc.MoreIntervals.
 
+Definition Q2R  (q: Q) : IR := (inj_Q IR q).
+Coercion  Q2R : Q >-> st_car.
+
+Lemma ContFunQR : forall (f : PartIR)  (a b : Q) (c : IR)
+(pi: included (clcr a b) (Dom f)),
+Continuous (clcr a b) f
+-> (forall (t:Q) (p: (clcr a b) t), (f t (pi _ p) [<=] c))
+-> (forall (t:IR) (p: (clcr a b) t), (f t (pi _ p) [<=] c)).
+Proof.
+  intros.
+  apply leEq_def.
+  intros Hc.
+  
 (* Definition N2Q (n: nat) : Q := n. *)
 
 Notation "x × y" := (prod x y) (at level 80, right associativity) : type_scope.
@@ -18,7 +31,6 @@ Definition R := IR.
 
 Require Export Coq.ZArith.ZArith.
 
-Definition Q2R  (q: Q) : R := (inj_Q IR q).
 
 Definition N2R  (n: nat) : R := (inj_Q IR  n).
 
@@ -554,3 +566,12 @@ Lemma inBetweenFold : forall (l m r: Q),
    l < m < r <-> (inBetween l m r).
 Proof. intros. reflexivity.
 Qed.
+
+
+Lemma TimeFunR2QCompactInt : forall (tf : TimeFun)  (ta tb : QTime) (c : R),
+(forall (t:QTime), (ta <= t <= tb) -> ({tf} t) [<=] c)
+-> (forall (t:Time), ((clcr ta tb) t) -> ({tf} t) [<=] c).
+Proof.
+  intros ? ? ? ? Hq ? Hint.
+Admitted.
+

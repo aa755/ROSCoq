@@ -90,7 +90,34 @@ Proof.
   apply deriv.
 Qed.
 
+Lemma QVelPosUB :forall (tst : Train)
+   (ta tb : QTime) (Hab : ta<tb) (c : Q),
+   (forall (t:QTime), (ta < t < tb) -> ({velX tst} t) [<=] c)
+   -> ({posX tst} tb[-] {posX tst} ta)[<=] c*(tb-ta).
+Proof.
 
+
+  intros ? ? ? ? ? Hvel.
+  pose proof (fun Hab => VelPosUB tst ta tb Hab c) as Hcc.
+  destruct ta as [qta  ap].
+  destruct tb as [qtb  bp].
+  lapply Hcc;[clear Hcc; intro Hcc|apply inj_Q_less;trivial].
+  lapply Hcc;[clear Hcc; intro Hcc|].
+  Focus 2. intros. simpl. simpl in Hvel. (*apply Hvel. 
+  eapply leEq_transitive; eauto.
+  trivial. unfold Q2R. rewrite inj_Q_minus. simpl. unfold Q2R. simpl.
+  apply leEq_reflexive.
+  intros. 
+
+
+apply .
+
+
+apply TDerivativeUB2 with (F' := (velX tst)); auto.
+  apply deriv.
+Qed.
+*)
+Abort.
 
 Definition getVelM (m : Message ) : option Q :=
   getPayLoad MOTOR m.
@@ -828,7 +855,7 @@ Proof.
   end.
   unfold inIntervalDuring in Hm.
   inverts Hm as Hm.
-
+  
   
   (** [Hm] and [Hcent] are contradictory *)
   admit.
