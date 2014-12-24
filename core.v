@@ -20,10 +20,10 @@ Definition R := IR.
 
 Require Export Coq.ZArith.ZArith.
 
+Require Export CoRNMisc.
 
-Definition N2R  (n: nat) : IR := (inj_Q IR  n).
 
-Coercion Q2R : Q >-> st_car.
+Definition N2R  (n: nat) : IR := (inj_Q IR  (inject_Z n)).
 
 
 (** Time is modeled as a real number. One is allowed to make non-deterministic
@@ -101,16 +101,17 @@ Definition tdiff (t tl : Time) : Time.
   unfold iprop. apply AbsIR_nonneg.
 Defined.
 
- 
+Hint Resolve plus_resp_nonneg : CoRN. 
  Definition tadd (t tl : Time) : Time.
    exists (tl [+] t).
    unfold iprop. destruct t. destruct tl.
    simpl. unfold iprop in realVPos0.
    unfold iprop in realVPos1.
-   eauto with *.
-(*   exists (tl + t). destruct t, tl. simpl.
-  apply Q.Qplus_nonneg; auto. 
-*)
+   eauto using plus_resp_nonneg.
+
+   (*   exists (tl + t). destruct t, tl. simpl.
+      apply Q.Qplus_nonneg; auto. 
+      *)
  Defined.
 
  Lemma N2RNonNeg : forall n, [0][<=]N2R n.
@@ -296,7 +297,6 @@ Notation "{ f }" := (getF f).
 Definition isDerivativeOf (F' F : TimeFun) : CProp :=
 Derivative (closel [0]) I F F'.
 
-Require Export CoRNMisc.
 Lemma timeIncluded : forall (ta tb : Time),
   included (clcr ta tb) (closel [0]).
 Proof.
@@ -562,5 +562,6 @@ Lemma TimeFunR2QCompactInt : forall (tf : TimeFun)  (ta tb : QTime) (c : R),
 -> (forall (t:Time), ((clcr ta tb) t) -> ({tf} t) [<=] c).
 Proof.
   intros ? ? ? ? Hq ? Hint.
+
 Admitted.
 

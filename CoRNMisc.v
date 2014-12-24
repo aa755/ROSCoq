@@ -218,7 +218,7 @@ forall (a b : IR),
   trivial.
 Qed.
 
-Lemma ContFunQRLe : forall (f : PartIR)  (a b : Q) (c : IR)
+Lemma ContFunQRLeAux : forall (f : PartIR)  (a b : Q) (c : IR)
 (cc : Continuous (clcr a b) f),
 (forall (t:Q) (p: (clcr a b) t), (f t ((fst cc) _ p) [<=] c))
 -> (forall (t:IR) (p: (clcr a b) t), (f t ((fst cc) _ p) [<=] c)).
@@ -287,21 +287,26 @@ Proof.
   lapply HC;[clear HC; intro HC|split; auto].
   specialize (HC (HI _ (pl,pr)) (HI _ (Haq, Hqb))).
   rewrite AbsIR_minus in HC. unfold Q2R in HC.
-  rewrite AbsIR_eq_x in HC;[|info_eauto 4 using 
+  rewrite AbsIR_eq_x in HC;[|eauto 4 using 
         shift_zero_leEq_minus, less_leEq].
   lapply HC;[ clear HC; intro HC | 
     apply shift_minus_leEq;
-    rewrite cag_commutes_unfolded; (eauto 4 with CoRN)].
+    rewrite cag_commutes_unfolded; (eauto using
+        less_leEq,leEq_less_trans,leEq_reflexive,
+        less_leEq_trans,Min_leEq_lft
+  )].
   clear Hql Hqr Hmlt Hcc Hdp.
   subst eps. clear Hc.
   remember (f t (HI t (pl, pr))) as ft.
   clear Heqft. unfold Q2R in Hq.
   remember (f (inj_Q IR q) (HI (inj_Q IR q) (Haq, Hqb))) as fq.
   clear Heqfq.
-  apply shift_mult_leEq' in HC; [|eauto 1 with CoRN].
-  assert (fq[<]ft) as Hlqt by eauto with CoRN.
+  apply shift_mult_leEq' in HC; [|apply pos_two].
+  assert (fq[<]ft) as Hlqt by eauto using leEq_less_trans.
   (** Now we need to prove ft[<=]fq *)
-  rewrite AbsIR_eq_x in HC;[|eauto with CoRN].
+  rewrite AbsIR_eq_x in HC;[|eauto using 
+      shift_zero_leEq_minus,
+      less_leEq].
   apply (plus_resp_leEq_both _ _ _ _ _ HC) in Hq.
   rewrite <- cg_cancel_mixed in Hq.
   rewrite <- x_plus_x in Hq.
@@ -315,3 +320,12 @@ Proof.
   apply leEq_def in Hq.
   unfold Not in Hq. tauto.
 Qed.
+(** It might be possible to do this proof 
+    using AbsIR_approach_zero *)
+
+(*
+Lemma ContFunQRLeAux : forall (f : PartIR)  (a b : Q) (c : IR)
+(cc : Continuous (clcr a b) f) Ht,
+(forall (t:Q) (, (f t ((fst cc) _ p) [<=] c))
+-> (forall (t:IR) (p: (clcr a b) t), (f t ((fst cc) _ p) [<=] c)).
+*)
