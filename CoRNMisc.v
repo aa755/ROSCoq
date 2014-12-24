@@ -240,7 +240,15 @@ Proof.
   lapply HC.
   Focus 2.
   rewrite AbsIR_minus.
-  rewrite AbsIR_eq_x.
+  rewrite AbsIR_eq_x; 
+    [apply shift_minus_leEq; rewrite cag_commutes_unfolded; apply Min_leEq_lft|].
+  apply  shift_zero_leEq_minus.
+  apply leEq_Min.
+  remember (t [+] d).
+  rewrite <-cm_lft_unit_unfolded. subst.
+
+
+  eauto with *.
 
   eapply leEq_transitive;[apply triangle_IR_minus|].
 
