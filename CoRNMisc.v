@@ -193,7 +193,32 @@ Add Ring IRisaRing: (CRing_Ring IR).
 Require Import Psatz.
 Require Import Setoid.
 
-Lemma ContFunQR : forall (f : PartIR)  (a b : Q) (c : IR)
+
+Hint Resolve less_leEq_trans leEq_less_trans plus_resp_less_leEq
+plus_resp_leEq_less minus_resp_less_leEq plus_resp_pos_nonneg
+leEq_inj_Q leEq_wdr leEq_wdr leEq_reflexive eq_imp_leEq
+leEq_imp_eq leEq_imp_eq leEq_transitive (leEq_inj_Q IR) less_leEq
+Min_leEq_rht Min_leEq_lft
+shift_zero_leEq_minus shift_minus_leEq
+pos_two: CoRN.
+
+Lemma leAddRhs :
+forall (a b : IR), 
+    [0][<=]b -> a[<=]a[+]b.
+Abort.
+
+Lemma ltAddRhs :
+forall (a b : IR), 
+    [0][<]b -> a[<]a[+]b.
+  intros ? ? Hlt.
+  pose proof (leEq_reflexive _ a) as Hr.
+  apply (plus_resp_less_leEq _ _ _ _ _ Hlt) in Hr.
+  eapply less_wdl in Hr;[|apply cm_lft_unit_unfolded].
+  eapply less_wdr;[| apply cag_commutes_unfolded].
+  trivial.
+Qed.
+
+Lemma ContFunQRLe : forall (f : PartIR)  (a b : Q) (c : IR)
 (cc : Continuous (clcr a b) f),
 (forall (t:Q) (p: (clcr a b) t), (f t ((fst cc) _ p) [<=] c))
 -> (forall (t:IR) (p: (clcr a b) t), (f t ((fst cc) _ p) [<=] c)).
@@ -210,7 +235,8 @@ Proof.
   apply leEq_inj_Q in Hqq.
   simpl in Hqq. lra.
 - destruct cc as [HI  HC].
-  simpl in Hq. apply (inj_Q_leEq IR) in Hd.
+  simpl in Hq. pose proof Hd as Hdb.
+  apply (inj_Q_leEq IR) in Hd.
   simpl in Hc.
   specialize (HC _ _ Hd).
   unfold compact in HC. simpl in HC.
@@ -223,59 +249,69 @@ Proof.
   apply pos_div_two in Hc.
   specialize (HC _ Hc).
   destruct HC as [d Hdp HC].
-  specialize (HC t (Min (t[+]d) b)).
-  subst.
-  destruct p as [pl pr].
+  (** need to come up with a rational (say [q]) [d]-close 
+    to [t] and also in [(clcr a b)].
+    Then we can use [Hq q] and [HC t q)] to get a contradiction
+    [q] can be on either side of [t].
+    Lets focus on RHS.
+    so, [q] must lie in (olor t (Min (t[+]d) b))
+    Since rationals are dense in reals, it suffices
+    to prove that t < (Min (t[+]d) b)
+ *)
+  pose proof (leEq_less_or_equal _ _ _ (snd p)) as Heq.
+  apply Heq. intros Hcc. simpl in Hq. clear Heq.
+  pose proof (Hq b (Hd,leEq_reflexive _ _)) as Hqb.
+  destruct Hcc as [Hcc| Hcc];
+  [ | pose proof (pfwdef _ _ _ _ (HI t p) 
+                (HI b (Hd, leEq_reflexive IR b)) Hcc) as Hr;
+      rewrite <- Hr in Hqb;
+      apply leEq_def in Hqb;
+      unfold Not in Hqb; tauto].
+  clear Hqb.
+  pose proof (less_Min _ _ _ (ltAddRhs t d Hdp) Hcc) as Hmlt.
+  pose proof (Q_dense_in_CReals' _ _ _ Hmlt) as Hqr.
+  destruct Hqr as [q Hqr Hql].
+  specialize (Hq q).
+  simpl in p. unfold Q2R in p. destruct p as [pl pr].
+  assert (inj_Q _ a[<=]inj_Q IR q) as Haq by (eauto using
+        less_leEq, leEq_less_trans).
+  assert (inj_Q IR q[<=] inj_Q _ b) as Hqb by (eauto using
+      less_leEq,
+      less_leEq_trans,
+      Min_leEq_rht).
+  
+  specialize (Hq (Haq, Hqb)).
+  specialize (HC t q).
   unfold compact in HC.
   lapply HC;[clear HC; intro HC|split; auto].
-  pose proof (plus_resp_leEq_both _ _ _ _ _  
-          pl (less_leEq _ _ _ Hdp)) as Hp.
-  ring_simplify in Hp.
-  match type of HC with
-  ?l -> _ => assert l as Hcp by
-    (split; 
-          [apply leEq_Min | apply Min_leEq_rht]; auto)
-  end.
-  specialize (HC Hcp (HI _ (pl,pr)) (HI _ Hcp)).
-  lapply HC.
-  Focus 2.
-  rewrite AbsIR_minus.
-  rewrite AbsIR_eq_x; 
-    [apply shift_minus_leEq; rewrite cag_commutes_unfolded; apply Min_leEq_lft|].
-  apply  shift_zero_leEq_minus.
-  apply leEq_Min.
-  remember (t [+] d).
-  rewrite <-cm_lft_unit_unfolded. subst.
-
-
-  eauto with *.
-
-  eapply leEq_transitive;[apply triangle_IR_minus|].
-
-  
-  Focus 2.
-
-
-  
-
-  unfold compact. simpl. 
-estruct Hx as [Hxl Hxr].
-  split; auto.
-
-
-
-apply HC in Hd.
-
-
-  apply inj_Q_leEq in Hqq.
-
-  simpl in Hqq.
-
-
-
-  eapply.
-
-
-by eauto with *.
-
-
+  lapply HC;[clear HC; intro HC|split; auto].
+  specialize (HC (HI _ (pl,pr)) (HI _ (Haq, Hqb))).
+  rewrite AbsIR_minus in HC. unfold Q2R in HC.
+  rewrite AbsIR_eq_x in HC;[|info_eauto 4 using 
+        shift_zero_leEq_minus, less_leEq].
+  lapply HC;[ clear HC; intro HC | 
+    apply shift_minus_leEq;
+    rewrite cag_commutes_unfolded; (eauto 4 with CoRN)].
+  clear Hql Hqr Hmlt Hcc Hdp.
+  subst eps. clear Hc.
+  remember (f t (HI t (pl, pr))) as ft.
+  clear Heqft. unfold Q2R in Hq.
+  remember (f (inj_Q IR q) (HI (inj_Q IR q) (Haq, Hqb))) as fq.
+  clear Heqfq.
+  apply shift_mult_leEq' in HC; [|eauto 1 with CoRN].
+  assert (fq[<]ft) as Hlqt by eauto with CoRN.
+  (** Now we need to prove ft[<=]fq *)
+  rewrite AbsIR_eq_x in HC;[|eauto with CoRN].
+  apply (plus_resp_leEq_both _ _ _ _ _ HC) in Hq.
+  rewrite <- cg_cancel_mixed in Hq.
+  rewrite <- x_plus_x in Hq.
+  apply shift_leEq_minus in Hq.
+  remember (ft[-]fq) as ftmx.
+  apply shift_leEq_minus in Hq.
+  rewrite cg_minus_correct in Hq.
+  subst ftmx.
+  apply shift_leEq_plus in Hq.
+  ring_simplify in Hq.
+  apply leEq_def in Hq.
+  unfold Not in Hq. tauto.
+Qed.
