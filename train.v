@@ -90,34 +90,38 @@ Proof.
   apply deriv.
 Qed.
 
+Lemma QT2T_Q2R : forall (qt:QTime),
+  inj_Q IR (QT2Q qt) = realV _ (QT2T qt).
+Proof.
+  intros. destruct qt as [q p].
+  unfold QT2T, QT2Q, QT2R.
+  simpl. reflexivity.
+Qed.
+
 Lemma QVelPosUB :forall (tst : Train)
    (ta tb : QTime) (Hab : ta<tb) (c : Q),
-   (forall (t:QTime), (ta < t < tb) -> ({velX tst} t) [<=] c)
+   (forall (t:QTime), (ta <= t <= tb) -> ({velX tst} t) [<=] c)
    -> ({posX tst} tb[-] {posX tst} ta)[<=] c*(tb-ta).
 Proof.
-
-
   intros ? ? ? ? ? Hvel.
-  pose proof (fun Hab => VelPosUB tst ta tb Hab c) as Hcc.
-  destruct ta as [qta  ap].
-  destruct tb as [qtb  bp].
-  lapply Hcc;[clear Hcc; intro Hcc|apply inj_Q_less;trivial].
-  lapply Hcc;[clear Hcc; intro Hcc|].
-  Focus 2. intros. simpl. simpl in Hvel. (*apply Hvel. 
-  eapply leEq_transitive; eauto.
-  trivial. unfold Q2R. rewrite inj_Q_minus. simpl. unfold Q2R. simpl.
-  apply leEq_reflexive.
-  intros. 
-
-
-apply .
-
-
-apply TDerivativeUB2 with (F' := (velX tst)); auto.
-  apply deriv.
+  unfold Q2R.
+  rewrite inj_Q_mult.
+  rewrite inj_Q_minus.
+  trivial.
+  rewrite QT2T_Q2R.
+  rewrite QT2T_Q2R.
+  apply VelPosUB; auto;
+    [ rewrite <- QT2T_Q2R;
+      rewrite <- QT2T_Q2R;
+      apply inj_Q_less; exact Hab|].
+  
+  trivial.
+  rewrite <- QT2T_Q2R.
+  rewrite <- QT2T_Q2R.
+  apply TimeFunR2QCompactInt.
+  exact Hvel.
 Qed.
-*)
-Abort.
+
 
 Definition getVelM (m : Message ) : option Q :=
   getPayLoad MOTOR m.
