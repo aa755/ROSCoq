@@ -74,11 +74,17 @@ Definition digiControllerTiming  :
 Definition ControllerNode (speed : Q): RosSwNode :=
   Build_RosSwNode (SwProcess speed) (digiControllerTiming).
 
+Variable initialVel : Q.
+Variable initialPos : Q.
+
 Record Train : Type := {
   posX :> TimeFun;
   velX : TimeFun;
   deriv : isDerivativeOf velX posX;
-  initV : {velX} (mkQTime 0 I)  = (Q2R (-1%Z))
+    (** this probably already implies continuity, which is now
+        explicitly put in TimeFun *)
+  initVel : {velX} (mkQTime 0 I)  = initialVel;
+  initPos : {posX} (mkQTime 0 I)  = initialPos
 }.
 
 
@@ -180,8 +186,6 @@ Definition isEqualDuring
 
 Variable reactionTime : Q.
 Variable velAccuracy : Q.
-Variable initialVel : Q.
-Variable initialPos : Q.
 Variable transitionValues : interval.
 
 (*
@@ -657,7 +661,8 @@ Lemma concreteValues : hwidth = Z2R 2
                        /\ alertDist =  1
                       /\ maxDelay = mkQTime 1 I
                       /\ reactionTime = 1
-                      /\ initialVel = (-1%Z).
+                      /\ initialVel = (-1%Z)
+                      /\ initialPos = 0.
 Admitted.
 
 Lemma  PosVelAtNegPos : forall (ev : Event),
@@ -695,8 +700,8 @@ Proof.
   clear dependent Event.
   clear  reactionTimeGap
     transitionValues velAccuracy boundary alertDist
-    safeDist maxDelay hwidth reactionTime initialVel
-    initialPos minGap. repnd. clear Hsendlrrrl.
+    safeDist maxDelay hwidth reactionTime
+    minGap. repnd. clear Hsendlrrrl.
   rewrite <- inj_Q_Zero.
   eapply centerPosUB2; eauto.
 
@@ -739,7 +744,7 @@ Proof.
     specialize (Hind H6). clear H6.
     unfold digiControllerTiming in H3.
     clear H0 H Heqeks Heqevloc eo reactionTimeGap transitionValues velAccuracy boundary 
-      alertDist safeDist maxDelay hwidth reactionTime initialVel initialPos.
+      alertDist safeDist maxDelay hwidth reactionTime.
     eapply centerPosUB2; eauto.
 
   + clear Hind. symmetry in Heqeks. rename es into ed.
@@ -805,7 +810,7 @@ Close Scope nat_scope.
     clear dependent Event.
     clear tstate reactionTimeGap 
         maxDelay transitionValues velAccuracy boundary safeDist 
-        hwidth  reactionTime initialVel initialPos alertDist minGap.
+        hwidth  reactionTime  alertDist minGap.
     apply shift_leEq_plus in Hncl.
     eapply leEq_transitive; eauto. clear dependent cpt.
     rewrite <- inj_Q_Zero.
@@ -835,7 +840,7 @@ Abort.
 
 
 Lemma motorLastPosVel : forall (n:nat) (t : QTime),
-  (centerPosAtTime tstate t) [>] 0
+  (Q2R 1) [<=] (centerPosAtTime tstate t)
   -> n = numPrevEvts (localEvts BASEMOTOR) t
   -> exists (m:nat),
        m < n /\ (option_map eMesg (localEvts BASEMOTOR m)) = Some ((mkMesg MOTOR speed)::nil).
@@ -854,11 +859,12 @@ Proof.
 Open Scope nat_scope.
   AndProjN 4 Hinit as Hrt.
   AndProjN 5 Hinit as Hv.
+  AndProjN 6 Hinit as Hp.
 Close Scope nat_scope.
   clear Hinit.
-  subst. clear Hrt Hv.
-  rewrite (initV tstate) in Hm.
-  destruct Hm as [qt Hm]. repnd.
+  subst. clear Hrt Heq.
+  rewrite (initVel tstate) in Hm.
+  destruct Hm as [qtrans Hm]. repnd.
   
 Lemma QVelPosLe :forall (tst : Train)
    (ta tb : QTime) (Hab : ta<=tb),
@@ -868,29 +874,39 @@ Admitted.
 
 Lemma QVelPosLeIf :forall (tst : Train) (c : IR)
    (ta tb : QTime) (Hab : ta<=tb),
-   (forall (t:QTime), (ta <= t <= tb) -> ({velX tst} t) [<=] [0])
-   -> {posX tst} tb [<=] c
-   -> {posX tst} ta [<=] c.
+   (forall (t:QTime), (ta <= t <= tb) -> ({velX tst} t) [<=] Q2R 0)
+   -> c [<=] {posX tst} tb
+   -> c [<=] {posX tst} ta.
 Admitted.
+  eapply QVelPosLeIf with (ta:=(mkQTime 0 I)) in Hcent; auto;
+    [|apply qtimePos|].
+  + rewrite initPos in Hcent.
+    rewrite Hp in Hcent.
+    unfold Q2R in Hcent.
+    apply leEq_inj_Q in Hcent.
+    simpl in Hcent.
+    lra.
+  + intros qt H0t. 
+    pose proof (Qlt_le_dec qt qtrans) as Hd.
+    destruct Hd as [Hd|Hd];[clear Hmrl | clear Hmrr].
+    apply Qlt_le_weak in Hd.
+    * rewrite Hv in Hmrr. specialize (Hmrr qt (conj (proj1 H0t) Hd)).
+      unfold between in Hmrr.
+      apply proj2 in Hmrr.
+      eapply leEq_transitive; eauto.
+      apply inj_Q_leEq.
+      simpl. unfold inject_Z. simpl. lra.
 
-  
-  
-  (** [Hm] and [Hcent] are contradictory *)
-  admit.
+    * rewrite Hv in Hmrl. specialize (Hmrl qt (conj Hd (proj2 H0t))).
+      rewrite Hmrl.
+      apply inj_Q_leEq.
+      simpl. unfold inject_Z. simpl. lra.
 - (** check if nth event is +1 Deq . if so, exists n. else
       it is a -1. if not, by a lemma similar to PosVelAtNegPos,
       we can prove that centerpos at (eTime (nth event)) >=50
       . hence it is >0, hence, apply induction nyp with 
       t:=(eTime (nth event)) 
-
-      (not needed *)
- let [qt] be the corresponding time when transition
-      to new velocity is complete, i.e. vel is -1 after qt.
-      If [qt <= t], centerpos at qt is negative since
-      it has been going left since nth event and is still at LHS at time t
-
-      If not, [(eTime (nth event)) <= t <= reactionTime]
-*)
+    *)
   assert (exists ev, localEvts BASEMOTOR n = Some ev)  as Hp by admit.
   exrepd. specialize (Hind (eTime ev)).
 Abort.

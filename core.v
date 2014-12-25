@@ -698,3 +698,9 @@ Tactic Notation "AndProjN" constr(n) ident(H) "as " ident(Hn) :=
   pose proof H as Hn;
   AndProjNAux n  Hn.
 
+Lemma qtimePos : forall t:QTime, 0 <= t.
+Proof.
+  intros t. destruct t. simpl.
+  apply QTimeD. trivial.
+Qed.
+
