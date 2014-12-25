@@ -78,7 +78,7 @@ Record Train : Type := {
   posX :> TimeFun;
   velX : TimeFun;
   deriv : isDerivativeOf velX posX;
-  initV : {velX} (mkQTime 0 I)  [=] (Q2R (-1%Z))
+  initV : {velX} (mkQTime 0 I)  = (Q2R (-1%Z))
 }.
 
 
@@ -89,14 +89,6 @@ Lemma VelPosUB :forall (tst : Train)
 Proof.
   intros. apply TDerivativeUB2 with (F' := (velX tst)); auto.
   apply deriv.
-Qed.
-
-Lemma QT2T_Q2R : forall (qt:QTime),
-  inj_Q IR (QT2Q qt) = realV _ (QT2T qt).
-Proof.
-  intros. destruct qt as [q p].
-  unfold QT2T, QT2Q, QT2R.
-  simpl. reflexivity.
 Qed.
 
 Lemma QVelPosUB :forall (tst : Train)
@@ -676,7 +668,8 @@ Lemma concreteValues : hwidth = Z2R 2
                        /\ boundary = Z2R 100 
                        /\ alertDist =  1
                       /\ maxDelay = mkQTime 1 I
-                      /\ initialVel = (0-1).
+                      /\ reactionTime = 1
+                      /\ initialVel = (-1%Z).
 Admitted.
 
 Lemma  PosVelAtNegPos : forall (ev : Event),
@@ -808,12 +801,21 @@ Proof.
     apply AbsIR_bnd in Hncl.
     unfold lEndPos, lboundary in Hncl.
     pose proof concreteValues as Hcon.
-    repnd. clear Hconrrrr. subst.
+
+
+Open Scope nat_scope.
+    AndProjN 0 Hcon as Hhw.
+    AndProjN 1 Hcon as Hbb.
+    AndProjN 2 Hcon as Hal.
+    AndProjN 3 Hcon as Hmd.
+Close Scope nat_scope.
+
     unfold centerPosAtTime.
+    clear Hcon. subst. clear Hmd Hal Hbb Hhw.
     remember ({posX tstate} t) as cpt.
     clear dependent t.
     clear dependent Event.
-    clear Hconrrrl Hconrrl Hconrl Hconl tstate reactionTimeGap 
+    clear tstate reactionTimeGap 
         maxDelay transitionValues velAccuracy boundary safeDist 
         hwidth  reactionTime initialVel initialPos alertDist minGap.
     apply shift_leEq_plus in Hncl.
@@ -858,9 +860,43 @@ Proof.
                 BASEMOTOR t) as Hm.
   simpl in Hm.
   unfold corrSinceLastVel, lastVelAndTime, correctVelDuring in Hm.
-  rewrite <- Heq in Hm. simpl in Hm.
+  rewrite <- Heq in Hm.
+  unfold lastVelAndTimeAux in Hm.
   pose proof concreteValues as Hinit.
-  repnd.  subst initialVel. 
+Open Scope nat_scope.
+  AndProjN 4 Hinit as Hrt.
+  AndProjN 5 Hinit as Hv.
+Close Scope nat_scope.
+  clear Hinit.
+  subst.
+  rewrite (initV tstate) in Hm.
+  destruct Hm as [qt Hm]. repnd.
+  
+Lemma QVelPosUB :forall (tst : Train)
+   (ta tb : QTime) (Hab : ta<tb),
+   (forall (t:QTime), (ta <= t <= tb) -> ({velX tst} t) [<=] [0])
+   -> ({posX tst} tb[-] {posX tst} ta)[<=] c*(tb-ta).
+Proof.
+  intros ? ? ? ? ? Hvel.
+  unfold Q2R.
+  rewrite inj_Q_mult.
+  rewrite inj_Q_minus.
+  trivial.
+  rewrite QT2T_Q2R.
+  rewrite QT2T_Q2R.
+  apply VelPosUB; auto;
+    [ rewrite <- QT2T_Q2R;
+      rewrite <- QT2T_Q2R;
+      apply inj_Q_less; exact Hab|].
+  
+  trivial.
+  rewrite <- QT2T_Q2R.
+  rewrite <- QT2T_Q2R.
+  apply TimeFunR2QCompactInt.
+  exact Hvel.
+Qed.
+  
+
   repeat match goal with
   [H : _ = _ |- _ ] => clear H
   end.

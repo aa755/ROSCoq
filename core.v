@@ -654,3 +654,20 @@ Proof.
 Qed.
 
 
+Ltac AndProjNAux n H :=
+match n with
+| O => try (apply proj1 in H)
+| S ?n' =>  apply proj2 in H; AndProjNAux n' H
+end.
+
+Tactic Notation "AndProjN" constr(n) ident(H) "as " ident(Hn) :=
+  pose proof H as Hn;
+  AndProjNAux n  Hn.
+
+Lemma QT2T_Q2R : forall (qt:QTime),
+  inj_Q IR (QT2Q qt) = realV _ (QT2T qt).
+Proof.
+  intros. destruct qt as [q p].
+  unfold QT2T, QT2Q, QT2R.
+  simpl. reflexivity.
+Qed.
