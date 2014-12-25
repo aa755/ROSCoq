@@ -285,8 +285,11 @@ Close Scope R_scope.
   [PartIR] ensures functionality, unlike  [Time -> R] *)
 Record TimeFun := 
  { f :> PartIR ;
-  definedOnNonNeg : included (closel [0]) (pfdom _ f)
+  continTF :  Continuous (closel [0]) f
 }.
+
+Definition definedOnNonNeg (tf: TimeFun) : included (closel [0]) (pfdom _ tf)
+  := (fst (continTF tf)).
 
 Definition getF  (f : TimeFun)  (t :Time ) : R :=
 f t ((definedOnNonNeg f) _ (realVPos _ t)).
@@ -307,6 +310,61 @@ Proof.
  simpl in Hlft.
  destruct Hlft. simpl.
  eauto using leEq_transitive.
+Qed.
+
+Lemma Qlt_le_decLeft {T} : forall (a b : Q)(x y : T),
+   (a <= b) 
+  -> (if Qlt_le_dec b a then x else y) =y.
+Proof.
+  intros ? ? ? ?  Hlt.
+  destruct (Qlt_le_dec b a); [|reflexivity].
+  apply Qlt_not_le in q.
+  tauto.
+Defined.
+
+
+Definition mkQTimeSnd  (t : Q ) (p: 0 <= t) : 
+    (if Qlt_le_dec t 0 then False else True).
+Proof.
+  intros. rewrite Qlt_le_decLeft; trivial.
+Defined.
+
+Definition QTimeD {t : Q} (tp : (if Qlt_le_dec t 0 then False else True)) 
+    : 0<= t .
+  destruct (Qlt_le_dec t 0);[contradiction| trivial].
+Defined.
+
+
+Definition mkQTime1  (t : Q) (tl: QTime) (p: tl <= t) : QTime.
+  exists t.
+  apply mkQTimeSnd.
+  destruct tl as [tq tp].
+  simpl in p.
+  apply QTimeD in tp.
+  eauto using Qle_trans.
+Defined.
+
+Definition mkQTimeInj  (t : Q) (tl: QTime) (p: Q2R tl [<=] Q2R t) : QTime.
+  eapply mkQTime1.
+  apply leEq_inj_Q in p.
+  apply p.
+Defined.
+
+
+Lemma timeIncludedQ : forall (ta tb : QTime),
+  included (clcr ta tb) (closel [0]).
+Proof.
+  destruct ta as [ra pa].
+  destruct tb as [rb pb].
+  simpl. simpl in pa. simpl in pb.
+  unfold included. intros ? Hlft.
+  simpl in Hlft.
+  destruct Hlft. simpl.
+  apply QTimeD in pa.
+  apply QTimeD in pb.
+  apply (inj_Q_leEq IR) in pa.
+  rewrite inj_Q_Zero in pa.
+  eauto using leEq_transitive.
 Qed.
 
 Lemma TDerivativeUB :forall {F F' : TimeFun}
@@ -557,11 +615,41 @@ Proof. intros. reflexivity.
 Qed.
 
 
+
+
+
+Lemma Q2RClCr : forall (a b c : Q), 
+  (clcr a c) b
+  -> a <= b <=c.
+Proof.
+  intros ? ? ? pr.
+  simpl in pr.
+  destruct pr as [pl pr].
+  split; apply (leEq_inj_Q IR); trivial.
+Defined.
+
+Lemma contTfQ : forall (tf : TimeFun) (ta tb : QTime), 
+    Continuous  (clcr ta tb) tf.
+Proof.
+  intros ? ? ?.
+  pose proof (continTF tf) as Hc.
+  eapply Included_imp_Continuous; eauto.
+  apply timeIncludedQ.
+Qed.
+
 Lemma TimeFunR2QCompactInt : forall (tf : TimeFun)  (ta tb : QTime) (c : R),
 (forall (t:QTime), (ta <= t <= tb) -> ({tf} t) [<=] c)
 -> (forall (t:Time), ((clcr ta tb) t) -> ({tf} t) [<=] c).
 Proof.
   intros ? ? ? ? Hq ? Hint.
+  apply ContFunQRLe with (a:=ta) (b:=tb); trivial;
+  [apply contTfQ|].
+  intros tq ? pp.
+  specialize (Hq (mkQTimeInj _ _ (fst pp))).
+  specialize (Hq (Q2RClCr _ _ _ pp)).
+  unfold getF in Hq.
+  simpl in Hq.
+  erewrite pfwdef; eauto using leEq_imp_eq,leEq_reflexive.
+Qed.
 
-Admitted.
 

@@ -323,9 +323,15 @@ Qed.
 (** It might be possible to do this proof 
     using AbsIR_approach_zero *)
 
-(*
-Lemma ContFunQRLeAux : forall (f : PartIR)  (a b : Q) (c : IR)
-(cc : Continuous (clcr a b) f) Ht,
-(forall (t:Q) (, (f t ((fst cc) _ p) [<=] c))
--> (forall (t:IR) (p: (clcr a b) t), (f t ((fst cc) _ p) [<=] c)).
-*)
+Lemma ContFunQRLe : forall (f : PartIR)  (a b : Q) (c : IR),
+Continuous (clcr a b) f
+->(forall (t:Q) pD, ((clcr a b) t) -> (f t pD [<=] c))
+-> (forall (t:IR) pD, ((clcr a b) t)-> (f t pD [<=] c)).
+Proof.
+  intros ? ? ? ? cc Hq ? ? pab.
+  rewrite (pfwdef _ _ _ _ pD ((fst cc) _ pab));[|eauto 2 with CoRN].
+  apply ContFunQRLeAux.
+  intros  q  p.
+  specialize (Hq q (fst cc _ p)).
+  tauto.
+Qed.
