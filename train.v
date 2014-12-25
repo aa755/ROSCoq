@@ -92,27 +92,15 @@ Proof.
 Qed.
 
 Lemma QVelPosUB :forall (tst : Train)
-   (ta tb : QTime) (Hab : ta<tb) (c : Q),
+   (ta tb : QTime) (Hab : ta<=tb) (c : Q),
    (forall (t:QTime), (ta <= t <= tb) -> ({velX tst} t) [<=] c)
    -> ({posX tst} tb[-] {posX tst} ta)[<=] c*(tb-ta).
 Proof.
-  intros ? ? ? ? ? Hvel.
-  unfold Q2R.
+  intros. unfold Q2R.
   rewrite inj_Q_mult.
   rewrite inj_Q_minus.
-  trivial.
-  rewrite QT2T_Q2R.
-  rewrite QT2T_Q2R.
-  apply VelPosUB; auto;
-    [ rewrite <- QT2T_Q2R;
-      rewrite <- QT2T_Q2R;
-      apply inj_Q_less; exact Hab|].
-  
-  trivial.
-  rewrite <- QT2T_Q2R.
-  rewrite <- QT2T_Q2R.
-  apply TimeFunR2QCompactInt.
-  exact Hvel.
+  apply TDerivativeUBQ with (F' := (velX tst)); auto.
+  apply deriv.
 Qed.
 
 
@@ -872,36 +860,15 @@ Close Scope nat_scope.
   rewrite (initV tstate) in Hm.
   destruct Hm as [qt Hm]. repnd.
   
-Lemma QVelPosUB :forall (tst : Train)
+Lemma QVelPosLe :forall (tst : Train)
    (ta tb : QTime) (Hab : ta<tb),
    (forall (t:QTime), (ta <= t <= tb) -> ({velX tst} t) [<=] [0])
-   -> ({posX tst} tb[-] {posX tst} ta)[<=] c*(tb-ta).
-Proof.
-  intros ? ? ? ? ? Hvel.
-  unfold Q2R.
-  rewrite inj_Q_mult.
-  rewrite inj_Q_minus.
-  trivial.
-  rewrite QT2T_Q2R.
-  rewrite QT2T_Q2R.
-  apply VelPosUB; auto;
-    [ rewrite <- QT2T_Q2R;
-      rewrite <- QT2T_Q2R;
-      apply inj_Q_less; exact Hab|].
-  
-  trivial.
-  rewrite <- QT2T_Q2R.
-  rewrite <- QT2T_Q2R.
-  apply TimeFunR2QCompactInt.
-  exact Hvel.
-Qed.
-  
+   -> ({posX tst} tb[-] {posX tst} ta)[<=] (tb-ta).
+Abort.  
 
   repeat match goal with
   [H : _ = _ |- _ ] => clear H
   end.
-  unfold inIntervalDuring in Hm.
-  inverts Hm as Hm.
   
   
   (** [Hm] and [Hcent] are contradictory *)

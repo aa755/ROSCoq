@@ -153,6 +153,11 @@ Proof.
  apply AntiderivativeUB; auto.
 Qed.
 
+(** it is not possible to change [<] to [<=] in [Hab] because
+    unlike continuity, definitions of 
+    derivative ([Derivative] and [Derivative_I])
+    require a proper interval *)
+    
 Definition LBoundInCompInt {a b} (Hab : a [<]b)
  (F : PartIR) (lb : IR) 
    :=

@@ -419,7 +419,6 @@ Proof.
   split; auto.
 Qed.
 
-
 Definition opBind {A B : Type}
   (f : A-> option B) (a : option A) : option B :=
 match a with
@@ -652,7 +651,42 @@ Proof.
   simpl in Hq.
   erewrite pfwdef; eauto using leEq_imp_eq,leEq_reflexive.
 Qed.
+Lemma QT2T_Q2R : forall (qt:QTime),
+  inj_Q IR (QT2Q qt) = realV _ (QT2T qt).
+Proof.
+  intros. destruct qt as [q p].
+  unfold QT2T, QT2Q, QT2R.
+  simpl. reflexivity.
+Qed.
 
+Lemma TDerivativeUBQ :forall (F F' : TimeFun)
+   (ta tb : QTime) (Hab : ta <= tb) (c : R),
+   isDerivativeOf F' F
+   -> (forall (t:QTime), ta <= t <= tb -> ({F'} t) [<=] c)
+   -> ({F} tb[-] {F} ta)[<=]c[*](tb[-]ta).
+Proof.
+  intros ? ? ? ? ? ? Hder Hub.
+  apply Qle_lteq in Hab.
+  destruct Hab as [Hlt| Heq].
+- unfold Q2R.
+  rewrite QT2T_Q2R.
+  rewrite QT2T_Q2R.
+  eapply TDerivativeUB2; eauto;
+    [ rewrite <- QT2T_Q2R;
+      rewrite <- QT2T_Q2R;
+      apply inj_Q_less; trivial|].
+  rewrite <- QT2T_Q2R.
+  rewrite <- QT2T_Q2R.
+  apply TimeFunR2QCompactInt.
+  trivial.
+- symmetry in Heq. apply (inj_Q_wd IR) in Heq.
+  unfold Q2R.
+  rewrite x_minus_x;
+    [rewrite x_minus_x; trivial|];
+    [rewrite cring_mult_zero; apply leEq_reflexive|].
+  apply pfwdef.  rewrite <- QT2T_Q2R. rewrite <- QT2T_Q2R.
+  trivial.
+Qed.
 
 Ltac AndProjNAux n H :=
 match n with
@@ -664,10 +698,3 @@ Tactic Notation "AndProjN" constr(n) ident(H) "as " ident(Hn) :=
   pose proof H as Hn;
   AndProjNAux n  Hn.
 
-Lemma QT2T_Q2R : forall (qt:QTime),
-  inj_Q IR (QT2Q qt) = realV _ (QT2T qt).
-Proof.
-  intros. destruct qt as [q p].
-  unfold QT2T, QT2Q, QT2R.
-  simpl. reflexivity.
-Qed.
