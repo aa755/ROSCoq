@@ -77,7 +77,8 @@ Definition ControllerNode (speed : Q): RosSwNode :=
 Record Train : Type := {
   posX :> TimeFun;
   velX : TimeFun;
-  deriv : isDerivativeOf velX posX
+  deriv : isDerivativeOf velX posX;
+  initV : {velX} (mkQTime 0 I)  [=] (Q2R (-1%Z))
 }.
 
 
@@ -191,8 +192,11 @@ fun  (distanceAtTime : Time -> R)
 
 Definition inIntervalDuring
   (interval: interval) (tStart tEnd : QTime)  (f : Time -> R) : Prop :=
- Cast (forall t : QTime, ( tStart < t < tEnd   -> (interval) (f t))).
+  Cast (forall t : QTime, ( tStart <= t <= tEnd   -> (interval) (f t))).
   
+Definition isEqualDuring
+  (vel: Q) (tStart tEnd : QTime)  (f : Time -> R) : Prop :=
+  (forall t : QTime, ( tStart <= t <= tEnd   -> (f t) [=] vel)).
 
 Variable reactionTime : Q.
 Variable velAccuracy : Q.
@@ -200,13 +204,12 @@ Variable initialVel : Q.
 Variable initialPos : Q.
 Variable transitionValues : interval.
 
-
-(**
-exists  (qt : QTime), 
-      lastTime <= qt <= (lastTime + reactionTime)
-      /\ (inIntervalDuring transitionValues lastTime qt velAtTime)
-      /\ (inIntervalDuring (nbdAround lastVel velAccuracy) qt uptoTime velAtTime).
+(*
+Notation "a <== b <== c" := ((a [<=] b) /\ (b [<=] c)) 
+  (at level 201,left associativity).
 *)
+
+Definition between (b a c : IR) := ((a [<=] b) /\ (b [<=] c)) .
 
 Definition correctVelDuring
   (lastVel : Q) 
@@ -214,8 +217,12 @@ Definition correctVelDuring
   (uptoTime : QTime) 
   (velAtTime: Time -> R) :=
 
-  (inIntervalDuring (nbdAround lastVel velAccuracy) lastTime uptoTime velAtTime).
-
+exists  (qt : QTime), 
+  lastTime <= qt <= (lastTime + reactionTime)
+  /\ ((forall t : QTime, (qt <= t <= uptoTime -> (velAtTime t) [=] lastVel)))
+  /\ (forall t : QTime, (lastTime <= t <= qt)  
+          -> (between (velAtTime t) (velAtTime lastTime) lastVel)).
+  
 Close Scope Q_scope.
 
 

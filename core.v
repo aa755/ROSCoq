@@ -35,9 +35,10 @@ Notation "a < b < c" := (Qlt a  b /\  Qlt b  c) : Q_scope .
 
 
 Notation "A & B" := (prod A B)  (at level 80, right associativity).
-Notation "a < b < c" := (a [<] b &  b [<] c) : R_scope.
-Notation "a <= b <= c" := (a [<=] b &  b [<=] c) : R_scope.
-
+(*
+Notation "a [<] b [<] c" := (a [<] b &  b [<] c) : R_scope.
+Notation "a [<=] b [<=] c" := (a [<=] b &  b [<=] c) : R_scope.
+*)
 
 
 Record RInInterval (intvl : interval)  := {
