@@ -132,6 +132,9 @@ Proof.
  exact Hlub.
 Qed.
 
+(** See [core.TDerivativeUBQ]
+    for a stronger version for rationals,
+    Basically, Hab will have type [a <= b] *)
 Lemma AntiderivativeUB2 : 
 forall (F F': PartFunct IR) (a b : IR) (Hab : a[<]b)
      (derivF : Derivative (clcr a b) Hab F F') (c : IR)

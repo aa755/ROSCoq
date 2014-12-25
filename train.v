@@ -856,26 +856,41 @@ Open Scope nat_scope.
   AndProjN 5 Hinit as Hv.
 Close Scope nat_scope.
   clear Hinit.
-  subst.
+  subst. clear Hrt Hv.
   rewrite (initV tstate) in Hm.
   destruct Hm as [qt Hm]. repnd.
   
 Lemma QVelPosLe :forall (tst : Train)
-   (ta tb : QTime) (Hab : ta<tb),
+   (ta tb : QTime) (Hab : ta<=tb),
    (forall (t:QTime), (ta <= t <= tb) -> ({velX tst} t) [<=] [0])
-   -> ({posX tst} tb[-] {posX tst} ta)[<=] (tb-ta).
-Abort.  
+   -> ({posX tst} tb[<=] {posX tst} ta).
+Admitted.
 
-  repeat match goal with
-  [H : _ = _ |- _ ] => clear H
-  end.
+Lemma QVelPosLeIf :forall (tst : Train) (c : IR)
+   (ta tb : QTime) (Hab : ta<=tb),
+   (forall (t:QTime), (ta <= t <= tb) -> ({velX tst} t) [<=] [0])
+   -> {posX tst} tb [<=] c
+   -> {posX tst} ta [<=] c.
+Admitted.
+
   
   
   (** [Hm] and [Hcent] are contradictory *)
   admit.
 - (** check if nth event is +1 Deq . if so, exists n. else
-      it is a -1 and centerpos at (eTime (nth event)) is negative since
-      it has been going left since nth event and is still at LHS at time t*)
+      it is a -1. if not, by a lemma similar to PosVelAtNegPos,
+      we can prove that centerpos at (eTime (nth event)) >=50
+      . hence it is >0, hence, apply induction nyp with 
+      t:=(eTime (nth event)) 
+
+      (not needed *)
+ let [qt] be the corresponding time when transition
+      to new velocity is complete, i.e. vel is -1 after qt.
+      If [qt <= t], centerpos at qt is negative since
+      it has been going left since nth event and is still at LHS at time t
+
+      If not, [(eTime (nth event)) <= t <= reactionTime]
+*)
   assert (exists ev, localEvts BASEMOTOR n = Some ev)  as Hp by admit.
   exrepd. specialize (Hind (eTime ev)).
 Abort.
