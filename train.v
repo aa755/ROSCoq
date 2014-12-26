@@ -580,15 +580,15 @@ match (eLoc  ev) with
 | BASEMOTOR => 
             isDeqEvt ev
               -> (eMesg ev) = posVelMeg
-              -> (centerPosAtTime tstate (eTime ev)) [<=] [0]
+              -> (centerPosAtTime tstate (eTime ev)) [<=]  Z2R (-91)
 | SWCONTROLLER => 
             match eKind ev with
             | sendEvt => 
                 (eMesg ev) = posVelMeg
-                -> (centerPosAtTime tstate (eTime ev)) [<=] Z2R (-1)
+                -> (centerPosAtTime tstate (eTime ev)) [<=] Z2R (-92)
             | deqEvt => 
                 (eMesg ev) = (mkMesg PSENSOR false)::nil
-                -> (centerPosAtTime tstate (eTime ev)) [<=] Z2R (-2)
+                -> (centerPosAtTime tstate (eTime ev)) [<=] Z2R (-93)
             | _ => True
             end
 | _ => True
@@ -739,8 +739,11 @@ Proof.
     transitionValues velAccuracy boundary alertDist
     safeDist maxDelay hwidth reactionTime
     minGap. repnd. clear Hsendlrrrl.
-  rewrite <- inj_Q_Zero.
   eapply centerPosUB2; eauto.
+
+
+
+
 
 - rename ev into es. remember (eKind es) as eks.
   destruct eks; [|auto|].
