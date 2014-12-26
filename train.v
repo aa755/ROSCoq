@@ -320,6 +320,33 @@ Definition  TrainSpec (t:Time) : Prop :=
 Definition motorEvents : nat -> option Event 
    := localEvts BASEMOTOR.
 
+Lemma QVelPosLe :forall (tst : Train)
+   (ta tb : QTime) (Hab : ta<=tb),
+   (forall (t:QTime), (ta <= t <= tb) -> ({velX tst} t) [<=] Q2R 0)
+   -> ({posX tst} tb[<=] {posX tst} ta).
+Proof.
+  intros ? ? ? ?  Hq.
+  apply QVelPosUB in Hq; auto.
+  unfold Q2R in Hq.
+  rewrite inj_Q_mult in Hq.
+  rewrite inj_Q_Zero in Hq.
+  rewrite cring_mult_zero_op in Hq.
+  apply shift_leEq_plus in Hq.
+  rewrite cm_lft_unit_unfolded in Hq.
+  trivial.
+Qed.
+
+Lemma QVelPosLeIf :forall (tst : Train) (c : IR)
+   (ta tb : QTime) (Hab : ta<=tb),
+   (forall (t:QTime), (ta <= t <= tb) -> ({velX tst} t) [<=] Q2R 0)
+   -> c [<=] {posX tst} tb
+   -> c [<=] {posX tst} ta.
+Proof.
+  intros ? ? ? ? ? Hq Hc.
+  apply QVelPosLe in Hq; auto.
+  eauto using leEq_transitive.
+Qed.
+
 (*
 Lemma motorOnlyReceives:
   forall n : nat,
@@ -839,6 +866,8 @@ Abort.
 (** While this method works, a better one is also constructive *)
 
 
+
+
 Lemma motorLastPosVel : forall (n:nat) (t : QTime),
   (Q2R 1) [<=] (centerPosAtTime tstate t)
   -> n = numPrevEvts (localEvts BASEMOTOR) t
@@ -866,18 +895,6 @@ Close Scope nat_scope.
   rewrite (initVel tstate) in Hm.
   destruct Hm as [qtrans Hm]. repnd.
   
-Lemma QVelPosLe :forall (tst : Train)
-   (ta tb : QTime) (Hab : ta<=tb),
-   (forall (t:QTime), (ta <= t <= tb) -> ({velX tst} t) [<=] [0])
-   -> ({posX tst} tb[<=] {posX tst} ta).
-Admitted.
-
-Lemma QVelPosLeIf :forall (tst : Train) (c : IR)
-   (ta tb : QTime) (Hab : ta<=tb),
-   (forall (t:QTime), (ta <= t <= tb) -> ({velX tst} t) [<=] Q2R 0)
-   -> c [<=] {posX tst} tb
-   -> c [<=] {posX tst} ta.
-Admitted.
   eapply QVelPosLeIf with (ta:=(mkQTime 0 I)) in Hcent; auto;
     [|apply qtimePos|].
   + rewrite initPos in Hcent.
