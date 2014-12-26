@@ -210,8 +210,9 @@ exists  (qt : QTime),
 Close Scope Q_scope.
 
 
-(** all velocity messages whose index  < n .
-    the second item is the 1 based index
+(** all velocity messages whose index  < numPrevEvts .
+    the second item is the time that messsage was dequed.
+    last message, if any  is the outermost (head)
     Even though just the last message is needed,
     this list is handy for reasoning; it is a convenient
     thing to do induction over
@@ -232,8 +233,7 @@ velocityMessagesAux evs (numPrevEvts evs t).
 
 Definition lastVelAndTime (evs : nat -> option Event)
   (t : QTime) : (Q * QTime) :=
-Coq.Lists.List.last (velocityMessages evs t) 
-                    (initialVel,mkQTime 0 I)  .
+hd (initialVel,mkQTime 0 I) (velocityMessages evs t) .
 
 
 Definition corrSinceLastVel
@@ -879,6 +879,35 @@ Abort.
 Definition latestEvt (P : Event -> Prop) (ev : Event) :=
   P ev /\ (forall ev':Event, P ev' -> (eTime ev) <= (eTime ev')).
 
+Lemma velocityMessagesMsg: forall m t,
+  member m (velocityMessages (localEvts BASEMOTOR) t)
+  -> {fst m  = speed} + {fst m = (-speed)}.
+Admitted.
+
+Lemma velocityMessagesEv : forall m t,
+  member m (velocityMessages (localEvts BASEMOTOR) t)
+  -> sig (fun ev=> (eMesg ev) = ((mkMesg MOTOR (fst m))::nil)
+                /\ eTime ev < t
+                /\ eTime ev = (snd m)
+                /\ eLoc ev = BASEMOTOR).
+Admitted.
+
+Lemma latestEvtStr: forall  (PS P : Event -> Prop) (ev : Event),
+   PS ev
+   -> (forall ev, PS ev -> P ev)
+   -> latestEvt P ev
+   -> latestEvt PS ev.
+Admitted.
+
+Lemma velocityMessagesLatest : forall m lm  t,
+   (m::lm = velocityMessages (localEvts BASEMOTOR) t)
+  -> sig (fun ev=> (eMesg ev) = ((mkMesg MOTOR (fst m))::nil)
+                /\ latestEvt (fun ev' => eTime ev' < t) ev
+                /\ eTime ev = (snd m)
+                /\ lm = velocityMessages (localEvts BASEMOTOR) (snd m)
+                /\ eLoc ev = BASEMOTOR).
+Admitted.
+
 
 Lemma motorLastPosVel : forall (lm : list (Q * QTime)) (t : QTime),
   (Q2R 1) [<=] (centerPosAtTime tstate t)
@@ -888,7 +917,7 @@ Lemma motorLastPosVel : forall (lm : list (Q * QTime)) (t : QTime),
                           /\  eLoc ev = BASEMOTOR)).
 Proof.
   intro.
-  induction lm as [|n Hind]; intros ? Hcent Heq.
+  induction lm as [|hlm tlm Hind]; intros ? Hcent Heq.
 - simpl. assert False;[| contradiction].
   pose proof (corrNodes 
                 eo 
@@ -902,8 +931,8 @@ Open Scope nat_scope.
   AndProjN 5 Hinit as Hv.
   AndProjN 6 Hinit as Hp.
 Close Scope nat_scope.
-  clear Hinit.
-  subst. clear Hrt Heq.
+  clear Hinit. 
+  subst. clear Hrt Heq. unfold hd in Hm.
   rewrite (initVel tstate) in Hm.
   destruct Hm as [qtrans Hm]. repnd.
   
@@ -942,11 +971,37 @@ Close Scope nat_scope.
   simpl in Hm.
   unfold corrSinceLastVel, lastVelAndTime, correctVelDuring in Hm.
   rewrite <- Heq in Hm.
-  simpl in Hm.
-  unfold lastVelAndTimeAux in Hm.
-  pose proof concreteValues as Hinit.
-  assert (exists ev, localEvts BASEMOTOR n = Some ev)  as Hp by admit.
-  exrepd. specialize (Hind (eTime ev)).
+  match type of Heq with
+  | ?h::_ = ?r => assert (member h r) as Hvm;
+      [rewrite <- Heq; simpl; right; reflexivity|]
+  end.
+  apply velocityMessagesMsg in Hvm.
+  pose proof Heq as Hlat.
+  apply velocityMessagesLatest in Hlat.
+  destruct Hlat as [ev Hlat].
+  destruct Hvm as [Hvm | Hvm].
+  + clear Hm Hind. 
+    exists ev.
+    rewrite Hvm in Hlat.
+    fold (posVelMeg) in Hlat. repnd.
+    apply latestEvtStr with (P:= (λ ev' : Event, eTime ev' < t));
+      dands; auto;[|tauto].
+    exact (proj1 Hlatrl).
+
+  + unfold hd in Hm.
+    destruct hlm as [hq ht].
+    simpl in Hvm. simpl in Hlat.
+    simpl in Hlat. repnd.
+    specialize (fun gt => Hind ht gt Hlatrrrl).
+    lapply Hind;[clear Hind; intros Hind|].
+    * destruct Hind as [evInd Hind]. exists evInd.
+      unfold latestEvt in Hlatrl, Hind. repnd.
+      rewrite Hlatrrl in Hlatrll.
+      split; [dands; auto; eauto using Qlt_trans|].
+      (* use Heq and Hvm *) admit.
+
+    * trivial. (* use Hvm and something like [PosVelAtNegPos] *)
+      admit.
 Abort.
 
 
