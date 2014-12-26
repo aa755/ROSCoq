@@ -210,23 +210,30 @@ exists  (qt : QTime),
 Close Scope Q_scope.
 
 
-(** let k be the geatest m much that m < n 
-   and (evs m) is a velocity message.
-   this returns the vlocity and time of (evs k) *)
-Fixpoint lastVelAndTimeAux (evs : nat -> option Event) 
-    (numPrevEvts : nat) : (Q * QTime):=
+(** all velocity messages whose index  < n .
+    the second item is the 1 based index
+    Even though just the last message is needed,
+    this list is handy for reasoning; it is a convenient
+    thing to do induction over
+ *)
+Fixpoint velocityMessagesAux (evs : nat -> option Event) 
+    (numPrevEvts : nat) : list (Q * QTime):=
 match numPrevEvts with
-| 0 => (initialVel,mkQTime 0 I)
+| 0 => nil
 | S numPrevEvts' => match getVelAndTime (evs numPrevEvts') with
-          | Some pr => pr
-          | None => lastVelAndTimeAux evs numPrevEvts'
+          | Some pr => pr::(velocityMessagesAux evs numPrevEvts')
+          | None => velocityMessagesAux evs numPrevEvts'
            end
 end.
   
+Definition velocityMessages
+  (evs : nat -> option Event) (t : QTime) : list (Q * QTime):=
+velocityMessagesAux evs (numPrevEvts evs t).
 
 Definition lastVelAndTime (evs : nat -> option Event)
   (t : QTime) : (Q * QTime) :=
-lastVelAndTimeAux evs (numPrevEvts evs t) .
+Coq.Lists.List.last (velocityMessages evs t) 
+                    (initialVel,mkQTime 0 I)  .
 
 
 Definition corrSinceLastVel
@@ -565,16 +572,19 @@ Proof.
   exists b. reflexivity.
 Qed.
 
+Definition posVelMeg : list Message :=
+  (mkMesg MOTOR speed)::nil.
+
 Definition MotorRecievesPositivVelAtLHS (ev : Event)  :=
 match (eLoc  ev) with
 | BASEMOTOR => 
             isDeqEvt ev
-              -> (eMesg ev) = (mkMesg MOTOR speed)::nil
+              -> (eMesg ev) = posVelMeg
               -> (centerPosAtTime tstate (eTime ev)) [<=] [0]
 | SWCONTROLLER => 
             match eKind ev with
             | sendEvt => 
-                (eMesg ev) = (mkMesg MOTOR speed)::nil
+                (eMesg ev) = posVelMeg
                 -> (centerPosAtTime tstate (eTime ev)) [<=] Z2R (-1)
             | deqEvt => 
                 (eMesg ev) = (mkMesg PSENSOR false)::nil
@@ -866,24 +876,26 @@ Abort.
 (** While this method works, a better one is also constructive *)
 
 
+Definition latestEvt (P : Event -> Prop) (ev : Event) :=
+  P ev /\ (forall ev':Event, P ev' -> (eTime ev) <= (eTime ev')).
 
 
-Lemma motorLastPosVel : forall (n:nat) (t : QTime),
+Lemma motorLastPosVel : forall (lm : list (Q * QTime)) (t : QTime),
   (Q2R 1) [<=] (centerPosAtTime tstate t)
-  -> n = numPrevEvts (localEvts BASEMOTOR) t
-  -> exists (m:nat),
-       m < n /\ (option_map eMesg (localEvts BASEMOTOR m)) = Some ((mkMesg MOTOR speed)::nil).
+  -> lm = velocityMessages (localEvts BASEMOTOR) t
+  -> sig (latestEvt 
+              (fun ev =>  eTime ev < t /\ (eMesg ev = posVelMeg) 
+                          /\  eLoc ev = BASEMOTOR)).
 Proof.
   intro.
-  induction n as [|n Hind]; intros ? Hcent Heq.
+  induction lm as [|n Hind]; intros ? Hcent Heq.
 - simpl. assert False;[| contradiction].
   pose proof (corrNodes 
                 eo 
                 BASEMOTOR t) as Hm.
   simpl in Hm.
   unfold corrSinceLastVel, lastVelAndTime, correctVelDuring in Hm.
-  rewrite <- Heq in Hm.
-  unfold lastVelAndTimeAux in Hm.
+  rewrite <- Heq in Hm. unfold last in Hm.
   pose proof concreteValues as Hinit.
 Open Scope nat_scope.
   AndProjN 4 Hinit as Hrt.
@@ -924,6 +936,15 @@ Close Scope nat_scope.
       . hence it is >0, hence, apply induction nyp with 
       t:=(eTime (nth event)) 
     *)
+  pose proof (corrNodes 
+                eo 
+                BASEMOTOR t) as Hm.
+  simpl in Hm.
+  unfold corrSinceLastVel, lastVelAndTime, correctVelDuring in Hm.
+  rewrite <- Heq in Hm.
+  simpl in Hm.
+  unfold lastVelAndTimeAux in Hm.
+  pose proof concreteValues as Hinit.
   assert (exists ev, localEvts BASEMOTOR n = Some ev)  as Hp by admit.
   exrepd. specialize (Hind (eTime ev)).
 Abort.
