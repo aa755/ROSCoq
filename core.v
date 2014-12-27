@@ -383,6 +383,21 @@ Proof.
  apply timeIncluded.
 Qed.
 
+Lemma TDerivativeLB :forall {F F' : TimeFun}
+   (ta tb : Time) (Hab : ta[<]tb) (c : R),
+   isDerivativeOf F' F
+   -> LBoundInCompInt Hab F' c
+   -> c[*](tb[-]ta) [<=] ((getF F) tb[-] (getF F) ta).
+Proof.
+ intros ? ? ? ? ? ? Hisd Hub.
+ unfold getF.
+ apply (AntiderivativeLB2 F F' ta tb Hab); auto.
+ unfold isDerivativeOf in Hisd.
+ apply Included_imp_Derivative with 
+   (I:=closel [0]) (pI := I); trivial;[].
+ apply timeIncluded.
+Qed.
+
 Definition toTime (t : Time) (r : R) (p :t[<=]r) : Time.
 Proof.
   exists r.
@@ -401,6 +416,32 @@ Lemma TDerivativeUB2 :forall (F F' : TimeFun)
 Proof.
   intros ? ? ? ? ? ? Hder Hub.
   eapply TDerivativeUB with (Hab0 := Hab); eauto;[].
+  unfold UBoundInCompInt.
+  intros r Hc ?. unfold compact in Hc.
+  unfold getF in Hub.
+  destruct Hc as [Hca Hcb].
+  specialize (Hub (toTime _ _ Hca)).
+  unfold toTime in Hub.
+  destruct ta as [ra pa].
+  simpl in Hub.
+  pose proof (pfwdef _ F' r r Hx
+               (definedOnNonNeg F' r (leEq_transitive IR [0] ra r pa Hca))
+                (eq_reflexive _ _) ) 
+             as Hrwa.  
+  rewrite Hrwa.
+  clear Hrwa.
+  apply Hub.
+  split; auto.
+Qed.
+
+Lemma TDerivativeLB2 :forall (F F' : TimeFun)
+   (ta tb : Time) (Hab : ta[<]tb) (c : R),
+   isDerivativeOf F' F
+   -> (forall (t:Time), (clcr ta tb) t -> c [<=] ({F'} t))
+   -> c[*](tb[-]ta) [<=] ({F} tb[-] {F} ta).
+Proof.
+  intros ? ? ? ? ? ? Hder Hub.
+  eapply TDerivativeLB with (Hab0 := Hab); eauto;[].
   unfold UBoundInCompInt.
   intros r Hc ?. unfold compact in Hc.
   unfold getF in Hub.
@@ -651,6 +692,22 @@ Proof.
   simpl in Hq.
   erewrite pfwdef; eauto using leEq_imp_eq,leEq_reflexive.
 Qed.
+
+Lemma TimeFunR2QCompactIntGe : forall (tf : TimeFun)  (ta tb : QTime) (c : R),
+(forall (t:QTime), (ta <= t <= tb) -> c [<=] ({tf} t))
+-> (forall (t:Time), ((clcr ta tb) t) -> c [<=] ({tf} t)).
+Proof.
+  intros ? ? ? ? Hq ? Hint.
+  apply ContFunQRGe with (a:=ta) (b:=tb); trivial;
+  [apply contTfQ|].
+  intros tq ? pp.
+  specialize (Hq (mkQTimeInj _ _ (fst pp))).
+  specialize (Hq (Q2RClCr _ _ _ pp)).
+  unfold getF in Hq.
+  simpl in Hq.
+  erewrite pfwdef; eauto using leEq_imp_eq,leEq_reflexive.
+Qed.
+
 Lemma QT2T_Q2R : forall (qt:QTime),
   inj_Q IR (QT2Q qt) = realV _ (QT2T qt).
 Proof.
@@ -683,6 +740,35 @@ Proof.
   unfold Q2R.
   rewrite x_minus_x;
     [rewrite x_minus_x; trivial|];
+    [rewrite cring_mult_zero; apply leEq_reflexive|].
+  apply pfwdef.  rewrite <- QT2T_Q2R. rewrite <- QT2T_Q2R.
+  trivial.
+Qed.
+
+Lemma TDerivativeLBQ :forall (F F' : TimeFun)
+   (ta tb : QTime) (Hab : ta <= tb) (c : R),
+   isDerivativeOf F' F
+   -> (forall (t:QTime), ta <= t <= tb -> c [<=] ({F'} t))
+   -> c[*](tb[-]ta)[<=]({F} tb[-] {F} ta).
+Proof.
+  intros ? ? ? ? ? ? Hder Hub.
+  apply Qle_lteq in Hab.
+  destruct Hab as [Hlt| Heq].
+- unfold Q2R.
+  rewrite QT2T_Q2R.
+  rewrite QT2T_Q2R.
+  eapply TDerivativeLB2; eauto;
+    [ rewrite <- QT2T_Q2R;
+      rewrite <- QT2T_Q2R;
+      apply inj_Q_less; trivial|].
+  rewrite <- QT2T_Q2R.
+  rewrite <- QT2T_Q2R.
+  apply TimeFunR2QCompactIntGe.
+  trivial.
+- symmetry in Heq. apply (inj_Q_wd IR) in Heq.
+  unfold Q2R.
+  rewrite x_minus_x;
+    [rewrite x_minus_x|]; trivial;
     [rewrite cring_mult_zero; apply leEq_reflexive|].
   apply pfwdef.  rewrite <- QT2T_Q2R. rewrite <- QT2T_Q2R.
   trivial.

@@ -572,38 +572,26 @@ Proof.
   exists b. reflexivity.
 Qed.
 
-Definition posVelMeg : list Message :=
-  (mkMesg MOTOR speed)::nil.
-
-Definition MotorRecievesPositivVelAtLHS (ev : Event)  :=
-match (eLoc  ev) with
-| BASEMOTOR => 
-            isDeqEvt ev
-              -> (eMesg ev) = posVelMeg
-              -> (centerPosAtTime tstate (eTime ev)) [<=]  Z2R (-91)
-| SWCONTROLLER => 
-            match eKind ev with
-            | sendEvt => 
-                (eMesg ev) = posVelMeg
-                -> (centerPosAtTime tstate (eTime ev)) [<=] Z2R (-92)
-            | deqEvt => 
-                (eMesg ev) = (mkMesg PSENSOR false)::nil
-                -> (centerPosAtTime tstate (eTime ev)) [<=] Z2R (-93)
-            | _ => True
-            end
-| _ => True
-end.
-
 (** Ideally, device specs should imply a bound like this.
     For a fine grained analysis, this might be less useful *)
 Lemma velPos : forall (t : Time), 
-  ({velX tstate} t) [<=] speed.
+  Q2R (-speed) [<=] ({velX tstate} t) /\ ({velX tstate} t) [<=] speed.
 Admitted.
 
 
 Lemma centerPosChange : forall (ta tb : Time),
   ta[<]tb
   -> (centerPosAtTime tstate tb [-] centerPosAtTime tstate ta) [<=](tb[-]ta).
+Proof.
+  intros. unfold centerPosAtTime. rewrite <- (one_mult _ (tb[-]ta)).
+  apply VelPosUB;[ trivial |].
+  intros. rewrite <- inj_Q_One.
+  apply velPos.
+Qed.
+
+Lemma centerPosChangeLB : forall (ta tb : Time),
+  ta[<]tb
+  -> (centerPosAtTime tstate tb [-] centerPosAtTime tstate ta) [>=](tb[-]ta).
 Proof.
   intros. unfold centerPosAtTime. rewrite <- (one_mult _ (tb[-]ta)).
   apply VelPosUB;[ trivial |].
@@ -702,7 +690,31 @@ Lemma concreteValues : hwidth = Z2R 2
                       /\ initialPos = 0.
 Admitted.
 
-Lemma  PosVelAtNegPos : forall (ev : Event),
+Definition posVelMeg : list Message :=
+  (mkMesg MOTOR speed)::nil.
+
+Definition MotorRecievesPositivVelAtLHS (ev : Event)  :=
+match (eLoc  ev) with
+| BASEMOTOR => 
+            isDeqEvt ev
+              -> (eMesg ev) = posVelMeg
+              -> (centerPosAtTime tstate (eTime ev)) [<=]  Z2R (-91)
+| SWCONTROLLER => 
+            match eKind ev with
+            | sendEvt => 
+                (eMesg ev) = posVelMeg
+                -> (centerPosAtTime tstate (eTime ev)) [<=] Z2R (-92)
+            | deqEvt => 
+                (eMesg ev) = (mkMesg PSENSOR false)::nil
+                -> (centerPosAtTime tstate (eTime ev)) [<=] Z2R (-93)
+            | _ => True
+            end
+| _ => True
+end.
+
+
+
+Lemma  PosVelAtNegLHS : forall (ev : Event),
           MotorRecievesPositivVelAtLHS ev.
 Proof.
   induction ev as [ev Hind] using 
@@ -741,9 +753,186 @@ Proof.
     minGap. repnd. clear Hsendlrrrl.
   eapply centerPosUB2; eauto.
 
+- rename ev into es. remember (eKind es) as eks.
+  destruct eks; [|auto|].
+  + symmetry in Heqeks.
+    pose proof (corrNodes 
+                eo 
+                SWCONTROLLER 
+                (eLocIndex es)) as Hnc.
+
+    pose proof (locEvtIndex SWCONTROLLER (eLocIndex es) es) as Hxx.
+    TrimAndRHS Hxx. rewrite Hxx in Hnc;[| split; auto; fail].
+    simpl  in Hnc. TrimAndRHS Hnc. clear Hxx.
+    specialize (Hnc Heqeks).
+    destruct Hnc as [m Hnc].
+    apply DeqSendOncePair in Hnc.
+    simpl in Hnc. 
+    destruct Hnc as [es0 Hnc].
+    destruct Hnc as [ed Hnc].
+    rewrite inBetweenFold in Hnc.
+    exrepd. clear H2.
+    pose proof (sameLocCausal eo _ _ _ H4 H5 H1) as Hcaus.
+    clear H1.
+    pose proof (locEvtIndex SWCONTROLLER (eLocIndex es) es) as Hiff.
+    TrimAndRHS Hiff.
+    rewrite Hiff in H5; auto;[].
+    inversion H5 as [Heqs].  clear H5.
+    symmetry in Heqs. subst es0.
+    rewrite <- H7. intro Heq. clear H7.
+    inversion Heq as [Heqq]. clear Heq.
+    apply (f_equal getVelM) in Heqq.
+    simpl in Heqq. inversion Heqq as [Heq]. clear Heqq.
+    unfold speed in Heq.
+    destruct dmp; simpl in Heq;[inversion Heq; fail| clear Heq].
+    specialize (Hind ed Hcaus). clear Hiff. clear Hcaus.
+    unfold MotorRecievesPositivVelAtLHS in Hind.
+    apply locEvtIndex in H4. repnd. subst m. 
+    rewrite H4l in Hind. clear H4l. rewrite H in Hind.
+    specialize (Hind H6). clear H6.
+    unfold digiControllerTiming in H3.
+    clear H0 H Heqeks Heqevloc eo reactionTimeGap transitionValues velAccuracy boundary 
+      alertDist safeDist maxDelay hwidth reactionTime.
+    eapply centerPosUB2; eauto.
+
+  + clear Hind. symmetry in Heqeks. rename es into ed.
+    pose proof (recvSend eo Heqeks) as Hsend.
+    destruct Hsend as [Es Hsend].
+    repnd. pose proof (globalCausal _ _ _ Hsendrl) as Htlt.
+    symmetry in Heqevloc.
+    pose proof  (SwOnlyRecievesFromSensor _ _ 
+      Hsendrr Heqeks Hsendl Heqevloc) as Hsw.
+    exrepd.
+    unfold PossibleSendRecvPair in Hsendl.
+    repnd. clear Hsendlrrl Hsendlrl.
+    rewrite Heqevloc in Hsendlrrr.
+    rewrite side0 in Hsendlrrr. simpl in Hsendlrrr.
+    rewrite <- Hsendll. intros Hmd.
+    eapply centerPosUB2; eauto.
+    clear Hsendlrrr.
+    pose proof (corrNodes 
+                  eo 
+                  (PROXSENSOR side)) as Hnc.
+    simpl in Hnc.
+    unfold DeviceSemantics, ProximitySensor in Hnc.
+    unfold ProxPossibleTimeEvPair in Hnc.
+    TrimAndLHS Hnc.
+    pose proof (locEvtIndex (PROXSENSOR side) (eLocIndex Es) Es) as Hx.
+    TrimAndRHS Hx.
+    specialize (Hnc (eLocIndex Es)).
+    rewrite Hx in Hnc; [| auto]. clear Hx.
+    simpl in Hnc.
+    specialize (Hnc Hsendrr).
+    destruct Hnc as [t Hnc].
+    rewrite inBetweenFold in Hnc.
+    repnd. unfold inBetween in Hncrl.
+    eapply centerPosUB2; eauto.
+    clear Hncrl.
+    rewrite Hncrr in Hmd.
+    apply (f_equal (hd (mkMesg PSENSOR false))) in Hmd.
+    simpl in Hmd.
+    apply (f_equal getSensorSide) in Hmd.
+    simpl in Hmd. 
+    apply (f_equal (fun op => opExtract op false)) in Hmd.
+    simpl in Hmd.
+    inverts Hncl as Hncl.
+    subst. unfold proxView in Hncl.
+    apply less_leEq in Hncl.
+    rewrite AbsIR_minus in Hncl.
+    apply AbsIR_bnd in Hncl.
+    unfold lEndPos, lboundary in Hncl.
+    pose proof concreteValues as Hcon.
 
 
+Open Scope nat_scope.
+    AndProjN 0 Hcon as Hhw.
+    AndProjN 1 Hcon as Hbb.
+    AndProjN 2 Hcon as Hal.
+    AndProjN 3 Hcon as Hmd.
+Close Scope nat_scope.
 
+    unfold centerPosAtTime.
+    clear Hcon. subst. clear Hmd Hal Hbb Hhw.
+    remember ({posX tstate} t) as cpt.
+    clear dependent t.
+    clear dependent Event.
+    clear tstate reactionTimeGap 
+        maxDelay transitionValues velAccuracy boundary safeDist 
+        hwidth  reactionTime  alertDist minGap.
+    apply shift_leEq_plus in Hncl.
+    eapply leEq_transitive; eauto. clear dependent cpt.
+    rewrite <- inj_Q_Zero.
+    unfold Q2R, Z2R.
+    rewrite <- inj_Q_minus.
+    rewrite <- inj_Q_plus.
+    rewrite <- inj_Q_plus.
+    apply inj_Q_leEq.
+    simpl. unfold cg_minus. simpl.
+    simpl.  unfold QT2Q.
+    simpl. unfold inject_Z. simpl. lra.
+Qed.
+
+Definition negVelMeg : list Message :=
+  (mkMesg MOTOR (-speed))::nil.
+
+Definition MotorRecievesNegVelAtRHS (ev : Event)  :=
+match (eLoc  ev) with
+| BASEMOTOR => 
+            isDeqEvt ev
+              -> (eMesg ev) = negVelMeg
+              -> (centerPosAtTime tstate (eTime ev)) [>=]  Z2R (91)
+| SWCONTROLLER => 
+            match eKind ev with
+            | sendEvt => 
+                (eMesg ev) = negVelMeg
+                -> (centerPosAtTime tstate (eTime ev)) [>=] Z2R (92)
+            | deqEvt => 
+                (eMesg ev) = (mkMesg PSENSOR true)::nil
+                -> (centerPosAtTime tstate (eTime ev)) [>=] Z2R (93)
+            | _ => True
+            end
+| _ => True
+end.
+
+Lemma  NegVelAtNegRHS : forall (ev : Event),
+          MotorRecievesNegVelAtRHS ev.
+Proof.
+  induction ev as [ev Hind] using 
+    (@well_founded_induction_type Event (causedBy eo) (causalWf eo)).
+  unfold MotorRecievesNegVelAtRHS.
+  remember (eLoc ev) as evloc.
+  destruct evloc; simpl; auto.
+
+
+- intro Hdeqx. pose proof (recvSend eo Hdeqx) as Hsend.
+  destruct Hsend as [Es Hsend].
+  repnd. pose proof (globalCausal _ _ _ Hsendrl) as Htlt.
+  apply Hind in Hsendrl. clear Hind.
+  (** topic subscrions and topology say that [Es] must have
+      happened at [SWCONTROLLER] *)
+  symmetry in Heqevloc.
+  pose proof  (MotorOnlyReceivesFromSw _ _ 
+      Hsendrr Hdeqx Hsendl Heqevloc) as Hsw.
+  unfold PossibleSendRecvPair in Hsendl.
+  repnd. clear Hsendlrrl Hsendlrl.
+  rewrite Heqevloc in Hsendlrrr.
+  rewrite Hsw in Hsendlrrr.
+  simpl in Hsendlrrr.
+  (** Now, lets unpack the induction hypothesis *)
+  unfold MotorRecievesNegVelAtRHS in Hsendrl.
+  rewrite Hsw in Hsendrl.
+  rewrite Hsendrr in Hsendrl.
+  rewrite Hsendll in Hsendrl.
+  parallelForall Hsendrl. clear x.
+  remember (eTime ev) as evt. clear Heqevt.
+  remember (eTime Es) as est. clear Heqest.
+  simpl in Hsendrl.
+  clear dependent Event.
+  clear  reactionTimeGap
+    transitionValues velAccuracy boundary alertDist
+    safeDist maxDelay hwidth reactionTime
+    minGap. repnd. clear Hsendlrrrl.
+  eapply centerPosUB2; eauto.
 
 - rename ev into es. remember (eKind es) as eks.
   destruct eks; [|auto|].
@@ -1004,6 +1193,7 @@ Close Scope nat_scope.
       (* use Heq and Hvm *) admit.
 
     * trivial. (* use Hvm and something like [PosVelAtNegPos] *)
+      subst hq ht. 
       admit.
 Abort.
 
