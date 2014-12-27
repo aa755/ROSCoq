@@ -100,7 +100,7 @@ Context
     [n]. see [numPrevEvtsCorrect]
  *)
 
-Definition numPrevEvts : LocT -> QTime -> nat.
+Definition numPrevEvts : (nat -> option EV) -> QTime -> nat.
 Admitted.
 
 Definition eTimeOp := 
@@ -111,9 +111,9 @@ Lemma numPrevEvtsCorrect :
 forall t loc m,
   match eTimeOp (localEvts loc m) with
   | Some tm =>
-    (S m <= numPrevEvts loc t
+    (S m <= numPrevEvts (localEvts loc) t
          -> tm <= t)
-    /\ (S m > numPrevEvts loc t
+    /\ (S m > numPrevEvts (localEvts loc) t
          -> tm > t)
   | None => True
   end.
@@ -262,6 +262,40 @@ Proof.
   simpl.
   reflexivity.
 Qed.
+
+Definition getPayloadFromEv (tp : RosTopic) (ev : EV) 
+  : option (topicType tp)  :=
+opBind (getPayLoad tp) (deqMesg ev).
+
+Definition getPayloadFromEvOp (tp : RosTopic) 
+  : (option EV) ->  option (topicType tp)  :=
+opBind (getPayloadFromEv tp).
+
+
+Definition getPayloadAndTime  (tp : RosTopic) (oev : option EV) 
+    : option ((topicType tp) * QTime)  :=
+match oev with
+| Some ev => match getPayloadFromEv tp ev with
+             | Some vq => Some (vq, eTime ev)
+             | None => None
+             end
+| None => None
+end.
+
+Fixpoint filterPayloadsUptoIndex (tp : RosTopic) (evs : nat -> option EV) 
+    (numPrevEvts : nat) : list ((topicType tp) * QTime):=
+match numPrevEvts with
+| 0 => nil
+| S numPrevEvts' => match getPayloadAndTime tp (evs numPrevEvts') with
+          | Some pr => pr::(filterPayloadsUptoIndex tp evs numPrevEvts')
+          | None => filterPayloadsUptoIndex tp evs numPrevEvts'
+           end
+end.
+
+Definition filterPayloadsUptoTime (tp : RosTopic)
+  (evs : nat -> option EV) (t : QTime) : list ((topicType tp) * QTime):=
+filterPayloadsUptoIndex tp evs (numPrevEvts evs t).
+
 
 
 

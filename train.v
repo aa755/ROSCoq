@@ -130,8 +130,8 @@ Proof.
   apply deriv.
 Qed.
 
-Definition getVelM (m : Message ) : option Q :=
-  getPayLoad MOTOR m.
+Definition getVelM  : Message -> option Q :=
+  getPayLoad MOTOR.
 
 Definition getSensorSide (m : Message ) : option bool :=
   getPayLoad PSENSOR m.
@@ -153,26 +153,18 @@ Context
   irrationals even on rational *)
 
 
-Definition getVel (e : Event) : option Q :=
-opBind getVelM (deqMesg e).
 
+Definition getVelEv (e : Event) : option Q  :=
+  getPayloadFromEv MOTOR e.
 
-Definition getVelFromEv (oev : Event) : option Q  :=
-opBind getVelM (deqMesg oev).
-
-Definition getVelFromMsg : (option Event) ->  option Q  :=
-opBind getVelFromEv.
+Definition getVelOEv : (option Event) ->  option Q  :=
+getPayloadFromEvOp MOTOR.
 
 
 Definition getVelAndTime (oev : option Event) 
     : option (Q * QTime)  :=
-match oev with
-| Some ev => match getVel ev with
-             | Some vq => Some (vq, eTime ev)
-             | None => None
-             end
-| None => None
-end.
+getPayloadAndTime MOTOR oev.
+
 
 Definition ProxPossibleTimeEvPair 
   (maxDelay: QTime) (side : bool)
@@ -237,23 +229,13 @@ Close Scope Q_scope.
     this list is handy for reasoning; it is a convenient
     thing to do induction over
  *)
-Fixpoint velocityMessagesAux (evs : nat -> option Event) 
-    (numPrevEvts : nat) : list (Q * QTime):=
-match numPrevEvts with
-| 0 => nil
-| S numPrevEvts' => match getVelAndTime (evs numPrevEvts') with
-          | Some pr => pr::(velocityMessagesAux evs numPrevEvts')
-          | None => velocityMessagesAux evs numPrevEvts'
-           end
-end.
-  
-Definition velocityMessages
-  (evs : nat -> option Event) (t : QTime) : list (Q * QTime):=
-velocityMessagesAux evs (numPrevEvts evs t).
+
+Definition velocityMessages (t : QTime) :=
+  (filterPayloadsUptoTime MOTOR (localEvts BASEMOTOR) t).
 
 Definition lastVelAndTime (evs : nat -> option Event)
   (t : QTime) : (Q * QTime) :=
-hd (initialVel,mkQTime 0 I) (velocityMessages evs t) .
+hd (initialVel,mkQTime 0 I) (velocityMessages t) .
 
 
 Definition corrSinceLastVel
@@ -460,15 +442,13 @@ Qed.
 (** this is a correct proof; only temporarily wrong *)
 Lemma velMessages:
   forall n : nat,
-     match getVelFromMsg (motorEvents n) with
+     match getVelOEv (motorEvents n) with
      | Some v => {v = speed} + {v = (-speed)}
      | None => True
      end.
 Proof.
   intros n.
-  unfold motorEvents.
-  unfold getVelFromMsg.
-  unfold getVelFromEv.
+  unfold motorEvents,getVelOEv, getPayloadFromEvOp, getPayloadFromEv.
   remember (localEvts BASEMOTOR n)  as oev.
   destruct oev as [ ev| ]; simpl; [| auto; fail].
   remember (deqMesg ev)  as om.
@@ -1151,15 +1131,18 @@ Definition latestEvt (P : Event -> Prop) (ev : Event) :=
   P ev /\ (forall ev':Event, P ev' -> (eTime ev) <= (eTime ev')).
 
 Lemma velocityMessagesAuxMsg: forall upto mt,
-  member mt (velocityMessagesAux (localEvts BASEMOTOR) upto)
+  member mt (filterPayloadsUptoIndex MOTOR (localEvts BASEMOTOR) upto)
   -> {fst mt  = speed} + {fst mt = (-speed)}.
 Proof.
   induction upto as [ | upt Hind]; simpl; intros mt Hmem;[contradiction|].
   pose proof (velMessages upt) as Hvm.
-  unfold getVelAndTime, getVel in Hmem.
-  unfold getVelFromMsg, getVelFromEv, motorEvents in Hvm.
+  unfold getPayloadAndTime, getPayloadFromEv in Hmem.
+  unfold getVelOEv, getPayloadFromEvOp, 
+    getPayloadFromEv, motorEvents in Hvm. simpl in Hvm.
+  simpl in Hmem.
   destruct (localEvts BASEMOTOR upt) as [ev|]; simpl in Hvm, Hmem;
     [| auto; fail].
+  fold (getVelM) in Hvm, Hmem.
   destruct (opBind getVelM (deqMesg ev)) as [vel|];
     [| auto; fail].
   simpl in Hmem.
@@ -1168,18 +1151,19 @@ Proof.
 Qed.
 
 
+
 Lemma velocityMessagesMsg: forall m t,
-  member m (velocityMessages (localEvts BASEMOTOR) t)
+  member m (velocityMessages t)
   -> {fst m  = speed} + {fst m = (-speed)}.
 Proof.
-  intros mt t. revert mt.
-  unfold velocityMessages.
-  
-  
-Admitted.
+  intros ? ? Hmem.
+  apply velocityMessagesAuxMsg in Hmem.
+  trivial.
+Qed.
+
 
 Lemma velocityMessagesEv : forall m t,
-  member m (velocityMessages (localEvts BASEMOTOR) t)
+  member m (velocityMessages t)
   -> sig (fun ev=> (eMesg ev) = ((mkMesg MOTOR (fst m))::nil)
                 /\ eTime ev < t
                 /\ eTime ev = (snd m)
@@ -1195,11 +1179,11 @@ Lemma latestEvtStr: forall  (PS P : Event -> Prop) (ev : Event),
 Admitted.
 
 Lemma velocityMessagesLatest : forall m lm  t,
-   (m::lm = velocityMessages (localEvts BASEMOTOR) t)
+   (m::lm = velocityMessages t)
   -> sig (fun ev=> (eMesg ev) = ((mkMesg MOTOR (fst m))::nil)
                 /\ latestEvt (fun ev' => eTime ev' < t) ev
                 /\ eTime ev = (snd m)
-                /\ lm = velocityMessages (localEvts BASEMOTOR) (snd m)
+                /\ lm = velocityMessages  (snd m)
                 /\ eLoc ev = BASEMOTOR
                 /\ isDeqEvt ev).
 Admitted.
@@ -1207,7 +1191,7 @@ Admitted.
 
 Lemma motorLastPosVel : forall (lm : list (Q * QTime)) (t : QTime),
   (Q2R 1) [<=] (centerPosAtTime tstate t)
-  -> lm = velocityMessages (localEvts BASEMOTOR) t
+  -> lm = velocityMessages t
   -> sig (latestEvt 
               (fun ev =>  eTime ev < t /\ (eMesg ev = posVelMeg) 
                           /\  eLoc ev = BASEMOTOR)).
