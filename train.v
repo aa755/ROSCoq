@@ -1166,7 +1166,8 @@ Lemma velocityMessagesEv : forall m t,
   -> sig (fun ev=> (eMesg ev) = ((mkMesg MOTOR (fst m))::nil)
                 /\ eTime ev < t
                 /\ eTime ev = (snd m)
-                /\ eLoc ev = BASEMOTOR).
+                /\ eLoc ev = BASEMOTOR
+                /\ isDeqEvt ev).
 Admitted.
 
 Lemma latestEvtStr: forall  (PS P : Event -> Prop) (ev : Event),
@@ -1182,7 +1183,8 @@ Lemma velocityMessagesLatest : forall m lm  t,
                 /\ latestEvt (fun ev' => eTime ev' < t) ev
                 /\ eTime ev = (snd m)
                 /\ lm = velocityMessages (localEvts BASEMOTOR) (snd m)
-                /\ eLoc ev = BASEMOTOR).
+                /\ eLoc ev = BASEMOTOR
+                /\ isDeqEvt ev).
 Admitted.
 
 
@@ -1278,9 +1280,17 @@ Close Scope nat_scope.
       (* use Heq and Hvm *) admit.
 
     * trivial. (* use Hvm and something like [PosVelAtNegPos] *)
-      subst hq ht. 
-      admit.
-Abort.
+      subst hq ht.
+      pose proof (NegVelAtNegRHS ev) as Hev.
+      unfold MotorRecievesNegVelAtRHS in Hev.
+      rewrite Hlatrrrrl  in Hev.
+      specialize (Hev Hlatrrrrr Hlatl).
+      eapply leEq_transitive;[ | apply Hev].
+      unfold Z2R, Q2R.
+      apply inj_Q_leEq.
+      unfold inject_Z. simpl.
+      lra.
+Qed.
 
 
 
