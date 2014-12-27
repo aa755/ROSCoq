@@ -97,6 +97,15 @@ Proof.
   apply deriv.
 Qed.
 
+Lemma VelPosLB :forall (tst : Train)
+   (ta tb : Time) (Hab : ta[<]tb) (c : R),
+   (forall (t:Time), (clcr ta tb) t -> c [<=] ({velX tst} t))
+   -> c[*](tb[-]ta)[<=] ({posX tst} tb[-] {posX tst} ta).
+Proof.
+  intros. apply TDerivativeLB2 with (F' := (velX tst)); auto.
+  apply deriv.
+Qed.
+
 Lemma QVelPosUB :forall (tst : Train)
    (ta tb : QTime) (Hab : ta<=tb) (c : Q),
    (forall (t:QTime), (ta <= t <= tb) -> ({velX tst} t) [<=] c)
@@ -109,6 +118,17 @@ Proof.
   apply deriv.
 Qed.
 
+Lemma QVelPosLB :forall (tst : Train)
+   (ta tb : QTime) (Hab : ta<=tb) (c : Q),
+   (forall (t:QTime), (ta <= t <= tb) -> Q2R c [<=] ({velX tst} t))
+   -> Q2R (c*(tb-ta))[<=] ({posX tst} tb[-] {posX tst} ta).
+Proof.
+  intros. unfold Q2R.
+  rewrite inj_Q_mult.
+  rewrite inj_Q_minus.
+  apply TDerivativeLBQ with (F' := (velX tst)); auto.
+  apply deriv.
+Qed.
 
 Definition getVelM (m : Message ) : option Q :=
   getPayLoad MOTOR m.
@@ -591,11 +611,14 @@ Qed.
 
 Lemma centerPosChangeLB : forall (ta tb : Time),
   ta[<]tb
-  -> (centerPosAtTime tstate tb [-] centerPosAtTime tstate ta) [>=](tb[-]ta).
+  -> (ta[-]tb) [<=] (centerPosAtTime tstate tb [-] centerPosAtTime tstate ta).
 Proof.
-  intros. unfold centerPosAtTime. rewrite <- (one_mult _ (tb[-]ta)).
-  apply VelPosUB;[ trivial |].
+  intros. unfold centerPosAtTime.
+  rewrite <- minusInvR.
+  rewrite <- mult_minus1.
+  apply VelPosLB;[ trivial |].
   intros. rewrite <- inj_Q_One.
+  rewrite <- inj_Q_inv.
   apply velPos.
 Qed.
 
@@ -623,6 +646,19 @@ Proof.
   apply leEq_reflexive.
 Qed.
 
+Lemma centerPosChangeLBQ : forall (ta tb : QTime),
+  ta < tb
+  -> Q2R (ta - tb) [<=] (centerPosAtTime tstate tb [-] centerPosAtTime tstate ta).
+Proof.
+  intros ? ? Hlt.
+  pose proof (centerPosChangeLB ta tb) as Hcc.
+  destruct ta as [qta  ap].
+  destruct tb as [qtb  bp].
+  lapply Hcc; [clear Hcc; intro Hcc |apply inj_Q_less;trivial].
+  eapply leEq_transitive; eauto.
+  trivial. unfold Q2R. rewrite inj_Q_minus. simpl. unfold Q2R. simpl.
+  apply leEq_reflexive.
+Qed.
 
 
 
@@ -652,6 +688,45 @@ Proof.
   unfold Q2R. apply leEq_reflexive.
 Qed.
 
+Lemma minusInvQ : forall a b:Q, [--](a[-]b)[=](b[-]a).
+Proof.
+  intros. unfold cg_minus.
+  simpl. ring.
+Qed.
+
+Lemma centerPosLB : forall (ts tf : QTime) (td : Q) (ps : R),
+  ts < tf < ts + td
+  -> ps [<=] centerPosAtTime tstate ts
+  -> (ps [-] td) [<=] centerPosAtTime tstate tf.
+Proof.
+  intros ? ? ? ? Hint Hcs.
+  repnd.
+  apply qSubLt in Hintr.
+  rename Hintl into Htlt.
+  apply centerPosChangeLBQ in Htlt.
+  remember (centerPosAtTime tstate tf) as cpvt. clear Heqcpvt.
+  remember (centerPosAtTime tstate ts) as cpst. clear Heqcpst.
+  rename Hintr into Hqlt.
+  apply inj_Q_less with (R1:=IR)  in Hqlt.
+  unfold Q2R in Htlt.
+  apply inv_resp_leEq in Htlt.
+  rewrite minusInvR in Htlt.
+  rewrite inj_Q_minus in Htlt.
+  rewrite minusInvR in Htlt.
+  rewrite <- inj_Q_minus in Htlt.
+  apply (leEq_less_trans _ _ _ _ Htlt) in Hqlt ; eauto.
+  clear Htlt ts tf.
+  apply less_leEq in Hqlt.
+  apply inv_resp_leEq in Hqlt.
+  rewrite minusInvR in Hqlt.
+  eapply (plus_resp_leEq_both _ _ _ _ _ Hcs) in Hqlt; eauto.
+  clear Hcs. rename Hqlt into hh.
+  rewrite realCancel in hh.
+  eapply leEq_transitive; eauto. clear hh.
+  unfold Q2R. apply leEq_reflexive.
+Qed.
+
+
 Lemma centerPosUB2 : forall (ts tf : QTime) (td : Q) (pf: Q),
   (ts < tf < (ts + td))
   -> centerPosAtTime tstate ts[<=] (pf-td)
@@ -663,6 +738,19 @@ Proof.
   unfold Q2R. rewrite <- inj_Q_plus.
   apply inj_Q_leEq.
   simpl. lra.
+Qed.
+
+Lemma centerPosLB2 : forall (ts tf : QTime) (td : Q) (pf: Q),
+  (ts < tf < (ts + td))
+  -> Q2R (pf+td) [<=] centerPosAtTime tstate ts
+  -> Q2R pf [<=] centerPosAtTime tstate tf.
+Proof.
+  intros ? ? ? ?  Hint Hcs.
+  apply centerPosLB with (td:= (td)) (tf:=tf) in Hcs; [| trivial; fail].
+  eapply leEq_transitive; eauto. clear Hcs Hint.
+  unfold Q2R. rewrite <- inj_Q_minus.
+  apply inj_Q_leEq.
+  unfold cg_minus. simpl. lra.
 Qed.
 
 (*
@@ -880,15 +968,15 @@ match (eLoc  ev) with
 | BASEMOTOR => 
             isDeqEvt ev
               -> (eMesg ev) = negVelMeg
-              -> (centerPosAtTime tstate (eTime ev)) [>=]  Z2R (91)
+              -> Z2R (91) [<=]  (centerPosAtTime tstate (eTime ev))
 | SWCONTROLLER => 
             match eKind ev with
             | sendEvt => 
                 (eMesg ev) = negVelMeg
-                -> (centerPosAtTime tstate (eTime ev)) [>=] Z2R (92)
+                -> Z2R (92) [<=] (centerPosAtTime tstate (eTime ev))
             | deqEvt => 
                 (eMesg ev) = (mkMesg PSENSOR true)::nil
-                -> (centerPosAtTime tstate (eTime ev)) [>=] Z2R (93)
+                -> Z2R (93) [<=] (centerPosAtTime tstate (eTime ev))
             | _ => True
             end
 | _ => True
@@ -932,7 +1020,7 @@ Proof.
     transitionValues velAccuracy boundary alertDist
     safeDist maxDelay hwidth reactionTime
     minGap. repnd. clear Hsendlrrrl.
-  eapply centerPosUB2; eauto.
+  eapply centerPosLB2; eauto.
 
 - rename ev into es. remember (eKind es) as eks.
   destruct eks; [|auto|].
@@ -965,16 +1053,16 @@ Proof.
     apply (f_equal getVelM) in Heqq.
     simpl in Heqq. inversion Heqq as [Heq]. clear Heqq.
     unfold speed in Heq.
-    destruct dmp; simpl in Heq;[inversion Heq; fail| clear Heq].
+    destruct dmp; simpl in Heq;[clear Heq| inversion Heq; fail].
     specialize (Hind ed Hcaus). clear Hiff. clear Hcaus.
-    unfold MotorRecievesPositivVelAtLHS in Hind.
+    unfold MotorRecievesNegVelAtRHS in Hind.
     apply locEvtIndex in H4. repnd. subst m. 
     rewrite H4l in Hind. clear H4l. rewrite H in Hind.
     specialize (Hind H6). clear H6.
     unfold digiControllerTiming in H3.
     clear H0 H Heqeks Heqevloc eo reactionTimeGap transitionValues velAccuracy boundary 
       alertDist safeDist maxDelay hwidth reactionTime.
-    eapply centerPosUB2; eauto.
+    eapply centerPosLB2; eauto.
 
   + clear Hind. symmetry in Heqeks. rename es into ed.
     pose proof (recvSend eo Heqeks) as Hsend.
@@ -989,7 +1077,7 @@ Proof.
     rewrite Heqevloc in Hsendlrrr.
     rewrite side0 in Hsendlrrr. simpl in Hsendlrrr.
     rewrite <- Hsendll. intros Hmd.
-    eapply centerPosUB2; eauto.
+    eapply centerPosLB2; eauto.
     clear Hsendlrrr.
     pose proof (corrNodes 
                   eo 
@@ -1007,7 +1095,7 @@ Proof.
     destruct Hnc as [t Hnc].
     rewrite inBetweenFold in Hnc.
     repnd. unfold inBetween in Hncrl.
-    eapply centerPosUB2; eauto.
+    eapply centerPosLB2; eauto.
     clear Hncrl.
     rewrite Hncrr in Hmd.
     apply (f_equal (hd (mkMesg PSENSOR false))) in Hmd.
@@ -1019,11 +1107,9 @@ Proof.
     inverts Hncl as Hncl.
     subst. unfold proxView in Hncl.
     apply less_leEq in Hncl.
-    rewrite AbsIR_minus in Hncl.
     apply AbsIR_bnd in Hncl.
-    unfold lEndPos, lboundary in Hncl.
+    unfold rEndPos, rboundary in Hncl.
     pose proof concreteValues as Hcon.
-
 
 Open Scope nat_scope.
     AndProjN 0 Hcon as Hhw.
@@ -1040,17 +1126,16 @@ Close Scope nat_scope.
     clear tstate reactionTimeGap 
         maxDelay transitionValues velAccuracy boundary safeDist 
         hwidth  reactionTime  alertDist minGap.
-    apply shift_leEq_plus in Hncl.
+    rewrite <- plus_assoc_unfolded in Hncl.
+    apply shift_minus_leEq in Hncl.
     eapply leEq_transitive; eauto. clear dependent cpt.
-    rewrite <- inj_Q_Zero.
+    unfold Z2R. unfold inject_Z.
     unfold Q2R, Z2R.
+    rewrite <- inj_Q_plus.
     rewrite <- inj_Q_minus.
-    rewrite <- inj_Q_plus.
-    rewrite <- inj_Q_plus.
     apply inj_Q_leEq.
     simpl. unfold cg_minus. simpl.
-    simpl.  unfold QT2Q.
-    simpl. unfold inject_Z. simpl. lra.
+     lra.
 Qed.
 
 Lemma RHSSafe : forall t: QTime,  (centerPosAtTime tstate t) [<=] Z2R 95.

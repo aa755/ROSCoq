@@ -242,7 +242,6 @@ Qed.
 
 
 
-
 Hint Resolve less_leEq_trans leEq_less_trans plus_resp_less_leEq
 plus_resp_leEq_less minus_resp_less_leEq plus_resp_pos_nonneg
 leEq_inj_Q leEq_wdr leEq_wdr leEq_reflexive eq_imp_leEq
