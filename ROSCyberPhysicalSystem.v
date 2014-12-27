@@ -92,7 +92,7 @@ Section EvtProps.
 Context  
   `{rtopic : RosTopicType RosTopic} 
   `{dteq : Deq RosTopic}
-  `{etype : @EventType _ _ _ EV LocT minGap tdeq }.
+  `{etype : @EventType _ _ _ Event LocT minGap tdeq }.
 
 (** would fail if [QTime] is changed to [Time].
     This should be definable, thanks to [minGap].
@@ -100,7 +100,7 @@ Context
     [n]. see [numPrevEvtsCorrect]
  *)
 
-Definition numPrevEvts : (nat -> option EV) -> QTime -> nat.
+Definition numPrevEvts : (nat -> option Event) -> QTime -> nat.
 Admitted.
 
 Definition eTimeOp := 
@@ -120,25 +120,25 @@ forall t loc m,
 Admitted.
 
 
-Definition isSendEvt (ev: EV) :Prop :=
+Definition isSendEvt (ev: Event) :Prop :=
  eKind ev = sendEvt.
 
-Definition isSendEvtOp (ev: option EV) :Prop :=
+Definition isSendEvtOp (ev: option Event) :Prop :=
   opApPure isSendEvt False ev.
 
 
 
-Definition isDeqEvt (ev: EV) :Prop :=
+Definition isDeqEvt (ev: Event) :Prop :=
 eKind ev = deqEvt.
 
 
-Definition isDeqEvtOp (ev: option EV) :Prop :=
+Definition isDeqEvtOp (ev: option Event) :Prop :=
   opApPure isDeqEvt False ev.
 
-Definition isEnqEvt (ev: EV) :Prop :=
+Definition isEnqEvt (ev: Event) :Prop :=
 eKind ev = enqEvt.
 
-Definition isEnqEvtOp (ev: option EV) :Prop :=
+Definition isEnqEvtOp (ev: option Event) :Prop :=
   opApPure isEnqEvt False ev.
 
 (** !!FIX!! this should be [isEnqEvt] *)
@@ -148,7 +148,7 @@ Close Scope Q_scope.
 
 (** FIFO queue axiomatization *)
 Fixpoint CorrectFIFOQueueUpto   (upto : nat)
-    (locEvts: nat -> option EV) :  Prop * list Message :=
+    (locEvts: nat -> option Event) :  Prop * list Message :=
 match upto with
 | 0 => (True, nil)
 | S upto' =>
@@ -174,7 +174,7 @@ Definition CorrectFIFOQueue    :  Prop :=
 forall (l: LocT)
  (upto : nat), fst (CorrectFIFOQueueUpto upto (localEvts l)).
 
-Definition deqMesg (ev : EV) : option Message :=
+Definition deqMesg (ev : Event) : option Message :=
 match eKind ev with
  | deqEvt => head (eMesg ev)
 (** BTW, [(eMesg ev)] is supposed to be a singletop *)
@@ -216,13 +216,13 @@ Proof.
   congruence.
 Defined.
 
-Definition enqMesg (ev : EV) : option Message :=
+Definition enqMesg (ev : Event) : option Message :=
 match eKind ev with
 | enqEvt => head (eMesg ev)
 | _ => None
 end.
 
-Definition sentMesg (ev : EV) : list Message :=
+Definition sentMesg (ev : Event) : list Message :=
 match eKind ev with
 | sendEvt =>  (eMesg ev)
 | _ => nil
@@ -263,16 +263,16 @@ Proof.
   reflexivity.
 Qed.
 
-Definition getPayloadFromEv (tp : RosTopic) (ev : EV) 
+Definition getPayloadFromEv (tp : RosTopic) (ev : Event) 
   : option (topicType tp)  :=
 opBind (getPayLoad tp) (deqMesg ev).
 
 Definition getPayloadFromEvOp (tp : RosTopic) 
-  : (option EV) ->  option (topicType tp)  :=
+  : (option Event) ->  option (topicType tp)  :=
 opBind (getPayloadFromEv tp).
 
 
-Definition getPayloadAndTime  (tp : RosTopic) (oev : option EV) 
+Definition getPayloadAndTime  (tp : RosTopic) (oev : option Event) 
     : option ((topicType tp) * QTime)  :=
 match oev with
 | Some ev => match getPayloadFromEv tp ev with
@@ -282,7 +282,7 @@ match oev with
 | None => None
 end.
 
-Fixpoint filterPayloadsUptoIndex (tp : RosTopic) (evs : nat -> option EV) 
+Fixpoint filterPayloadsUptoIndex (tp : RosTopic) (evs : nat -> option Event) 
     (numPrevEvts : nat) : list ((topicType tp) * QTime):=
 match numPrevEvts with
 | 0 => nil
@@ -293,13 +293,18 @@ match numPrevEvts with
 end.
 
 Definition filterPayloadsUptoTime (tp : RosTopic)
-  (evs : nat -> option EV) (t : QTime) : list ((topicType tp) * QTime):=
+  (evs : nat -> option Event) (t : QTime) : list ((topicType tp) * QTime):=
 filterPayloadsUptoIndex tp evs (numPrevEvts evs t).
 
+Open Scope Q_scope.
+
+Definition latestEvt (P : Event -> Prop) (ev : Event) :=
+  P ev /\ (forall ev':Event, P ev' -> (eTime ev) <= (eTime ev')).
+
+Close Scope Q_scope.
 
 
-
-Lemma queueContents : forall  (locEvts: nat -> option EV)
+Lemma queueContents : forall  (locEvts: nat -> option Event)
      (upto : nat),
    let (prp, queue) := CorrectFIFOQueueUpto upto locEvts  in
    prp ->
@@ -391,7 +396,7 @@ Qed.
 (** first event is innermost, last event is outermost.
     only events earleir than m^th are elegible *)
 Fixpoint prevProcessedEvents (m : nat)
-  (locEvents : nat -> option EV) : list EV :=
+  (locEvents : nat -> option Event) : list Event :=
   match m with
   | 0 => nil
   | S m' => (match locEvents m' with
@@ -405,7 +410,7 @@ Fixpoint prevProcessedEvents (m : nat)
   end.
 
 Definition getDeqOutput (proc: Process Message (list Message))
-  (ev : option EV) : option (list Message) :=
+  (ev : option Event) : option (list Message) :=
   opBind2 (getOutput proc) (deqMesgOp ev).
 
 Open Scope Q_scope.
@@ -415,7 +420,7 @@ Open Scope Q_scope.
     an event happen in a single send event (send once) *)
 Definition possibleDeqSendOncePair
   (swNode : RosSwNode)
-  (locEvts: nat -> option EV)
+  (locEvts: nat -> option Event)
   (nd ns: nat) := 
   match (locEvts nd, locEvts ns) with
   | (Some evd, Some evs) => 
@@ -432,7 +437,7 @@ Definition possibleDeqSendOncePair
 
 Definition RSwNodeSemanticsAux
   (swn : RosSwNode)
-  (locEvts: nat -> option EV) :=
+  (locEvts: nat -> option Event) :=
   ∀ n : nat, 
       (isSendEvtOp (locEvts n) 
           -> {m: nat | possibleDeqSendOncePair swn locEvts m n})
@@ -445,7 +450,7 @@ Definition RSwNodeSemanticsAux
 End EvtProps.
 (*
 Definition isSendOnTopic
-  (tp: RosTopic) (property : (topicType tp) -> Prop) (ev: EV) : Prop :=
+  (tp: RosTopic) (property : (topicType tp) -> Prop) (ev: Event) : Prop :=
 isSendEvt ev /\ 
 (opApPure property False (getPayLoad tp (eMesg ev))).
 *)
@@ -519,8 +524,8 @@ Context  (PhysicalEnvType : Type)
   (minGap : Qpos)
   `{rtopic : RosTopicType RosTopic} 
   `{dteq : Deq RosTopic}
- `{etype : @EventType _ _ _ EV LocT minGap tdeq }
-  `{rlct : @RosLocType PhysicalEnvType RosTopic EV LocT ldeq}.
+ `{etype : @EventType _ _ _ Event LocT minGap tdeq }
+  `{rlct : @RosLocType PhysicalEnvType RosTopic Event LocT ldeq}.
 
 Open Scope Q_scope.
 
@@ -531,7 +536,7 @@ Definition AllNodeBehCorrect : Type:=
   forall l,  NodeBehCorrect l.
 
 Definition PossibleSendRecvPair
-  (Es  Er : EV) : Prop :=
+  (Es  Er : Event) : Prop :=
    (eMesg Es = eMesg Er)
    /\ (validRecvMesg (validTopics (eLoc Er)) (eMesg Er))
    /\ (validSendMesg (validTopics (eLoc Es)) (eMesg Es))
@@ -545,27 +550,27 @@ Definition PossibleSendRecvPair
 Require Import Coq.Relations.Relation_Definitions.
 
 Record PossibleEventOrder  := {
-    causedBy : EV -> EV -> Prop;
+    causedBy : Event -> Event -> Prop;
 
     (* causalTrans : transitive _ causedBy; *)
 
-    localCausal : forall (e1 e2 : EV),
+    localCausal : forall (e1 e2 : Event),
         (eLoc e1) = (eLoc e2)
         -> (causedBy e1 e2 <-> eLocIndex e1 < eLocIndex e2);
 
-    globalCausal : forall (e1 e2 : EV),
+    globalCausal : forall (e1 e2 : Event),
         causedBy e1 e2
         -> eTime e1 < eTime e2;
 
-    eventualDelivery: forall (Es : EV),
+    eventualDelivery: forall (Es : Event),
           isSendEvt Es
-          ->  {Er: EV |
+          ->  {Er: Event |
               PossibleSendRecvPair Es Er
               /\ causedBy Es Er /\ isRecvEvt Er};
 
-    recvSend: forall (Er : EV),
+    recvSend: forall (Er : Event),
           isRecvEvt Er
-          ->  {Es : EV |
+          ->  {Es : Event |
                   PossibleSendRecvPair Es Er
                   /\ causedBy Es Er /\ isSendEvt Es};
 
@@ -587,7 +592,7 @@ Lemma PureProcDeqSendOncePair : forall ns nd TI TO qt loc
     (sp : SimplePureProcess TI TO),
   let sproc := mkPureProcess (liftToMesg sp)in
   possibleDeqSendOncePair (Build_RosSwNode sproc qt) (localEvts loc) nd ns
-  -> {es : EV | {ed : EV | isDeqEvt ed & isSendEvt es
+  -> {es : Event | {ed : Event | isDeqEvt ed & isSendEvt es
           & (nd < ns)%Q
             & (∀ n : nat, (nd < n)%Q ∧ (n < ns)%Q → isEnqEvtOp (localEvts loc n))
               & (eTime ed <eTime es < eTime ed + qt)%Q
@@ -677,7 +682,7 @@ Qed.
 
 Definition holdsUptoNextEvent (prp : Time -> R -> Prop)
   (phys : Time -> R)
-  (evs : nat -> option EV) (n: nat) :=
+  (evs : nat -> option Event) (n: nat) :=
   let otn := eTimeOp (evs n) in
   let otsn := eTimeOp (evs (S n)) in
   match otn with

@@ -1127,8 +1127,6 @@ Qed.
 
 
 
-Definition latestEvt (P : Event -> Prop) (ev : Event) :=
-  P ev /\ (forall ev':Event, P ev' -> (eTime ev) <= (eTime ev')).
 
 Lemma velocityMessagesAuxMsg: forall upto mt,
   member mt (filterPayloadsUptoIndex MOTOR (localEvts BASEMOTOR) upto)
