@@ -194,6 +194,28 @@ Proof.
   eexists; eauto.
 Defined.
 
+Lemma deqMesgSome : forall ev sm,
+    Some sm = deqMesg ev
+    -> eKind ev = deqEvt.
+Proof.
+  intros ? ? Heq.
+  unfold deqMesg in Heq.
+  destruct (eKind ev); auto;
+  inversion Heq.
+Qed.
+
+Lemma deqSingleMessage2 : forall evD m,
+  Some m = deqMesg evD
+  -> m::nil = eMesg evD.
+Proof.
+  intros ? ? Hd. pose proof Hd as Hdb.
+  apply deqMesgSome in Hd.
+  apply deqSingleMessage in Hd.
+  destruct Hd as [m' Hd].
+  repnd.
+  congruence.
+Defined.
+
 Definition enqMesg (ev : EV) : option Message :=
 match eKind ev with
 | enqEvt => head (eMesg ev)
@@ -211,15 +233,6 @@ Definition deqMesgOp := (opBind deqMesg).
 Definition enqMesgOp := (opBind enqMesg).
 (* Definition sentMesgOp := (opBind sentMesg). *)
 
-Lemma deqMesgSome : forall ev sm,
-    Some sm = deqMesg ev
-    -> eKind ev = deqEvt.
-Proof.
-  intros ? ? Heq.
-  unfold deqMesg in Heq.
-  destruct (eKind ev); auto;
-  inversion Heq.
-Qed.
 
 Lemma deqIsRecvEvt : forall ev sm,
     Some sm = deqMesg ev

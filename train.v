@@ -477,43 +477,52 @@ Proof.
   destruct oev as [ ev| ]; simpl; [| auto; fail].
   remember (deqMesg ev)  as om.
   destruct om as [ sm| ]; simpl; [| auto; fail].
+  pose proof Heqom as Hem.
+  apply deqSingleMessage2  in Hem.
+  apply deqIsRecvEvt in Heqom.
+  
   (** someone must have sent this message
       which is contained in the receive (enque)
       event evEnq. let the sent message
       be [sm] and the corresponding event be [es] *)
-(* 
-  pose proof (recvSend eo ev) as Hrecv.
+  pose proof (recvSend eo Heqom) as Hrecv.
   repnd.
-  destruct Hrecv as [es Hrecv];
-    [ apply (deqIsRecvEvt  _ Heqom) |].
+  destruct Hrecv as [es Hrecv].
+  pose proof (proj2 (proj2 Hrecv)) as Hsend.
   TrimAndRHS Hrecv.
   unfold PossibleSendRecvPair in Hrecv.
-  rewrite (deqMesgSome _ Heqom ) in Hrecv.
-  remember (eKind es) as eks.
-  destruct eks; try contradiction;[].
   simpl in Hrecv.
-  repnd. clear Hrecvrrr.
+  repnd. symmetry in Heqoev. 
+  apply locEvtIndex in Heqoev.
+  repnd. rewrite Heqoevl in Hrecvrl.
   (** since [BASEMOTOR] only receives on [MOTOR]
       topic, the message [sm] must have that topic *)
   unfold validRecvMesg in Hrecvrl.
   simpl in Hrecvrl.
+  rewrite <- Hem in Hrecvrl.
+  specialize (Hrecvrl _ (or_introl eq_refl)).
+  rewrite  RemoveOrFalse in Hrecvrl.
   unfold validSendMesg in Hrecvrrl.
   rewrite Hrecvl in Hrecvrrl.
- remember (eLoc es) as sloc.
+  remember (eLoc es) as sloc.
+  rewrite <- Hem in Hrecvrrl.
+  specialize (Hrecvrrl _ (or_introl eq_refl)).
+  rewrite <- Hrecvrl in Hrecvrrl.
   (** Only [SWCONTROLLER] sends on that topic *)
   destruct sloc; simpl in Hrecvrrl;
+  try rewrite RemoveOrFalse in Hrecvrrl.
     try contradiction;
-    inversion Hrecvrrl; 
-    try discriminate;
-    try contradiction.
-  clear H Hrecvrrl.
-  apply swControllerMessages in Heqeks;
-    [| trivial].
-  rewrite <- Hrecvl. trivial.
-Qed.
-*)
+    try discriminate.
 
-Abort.
+  discriminate.
+  clear Hrecvrrl. unfold isSendEvt in Hsend.
+  symmetry in Hsend.
+  apply swControllerMessages in Hsend;
+    [| trivial].
+  rewrite Hrecvl in Hsend.
+  rewrite <- Hem in Hsend.
+  destruct Hsend as [Hsend | Hsend]; inverts Hsend; simpl; auto.
+Qed.
 
 Lemma  TrainVelBounded : forall (t:QTime),
    velBound (velAtTime tstate t).
@@ -1138,27 +1147,38 @@ Close Scope nat_scope.
      lra.
 Qed.
 
-Lemma RHSSafe : forall t: QTime,  (centerPosAtTime tstate t) [<=] Z2R 95.
-Proof.
-  intros.
-  pose proof (less_cotransitive_unfolded _ (Z2R 94) (Z2R 95)) as Hdi.
-  lapply Hdi; [clear Hdi; intro Hdi
-                |apply inj_Q_less; unfold inject_Z; simpl; lra; fail].
-  match goal with
-  [|- ?l [<=] ?r] => specialize (Hdi l)
-  end.
-  destruct Hdi;[|apply less_leEq].
-  assert False;[| contradiction].
-Abort.
-(** While this method works, a better one is also constructive *)
 
 
 Definition latestEvt (P : Event -> Prop) (ev : Event) :=
   P ev /\ (forall ev':Event, P ev' -> (eTime ev) <= (eTime ev')).
 
+Lemma velocityMessagesMsg: forall upto mt,
+  member mt (velocityMessagesAux (localEvts BASEMOTOR) upto)
+  -> {fst mt  = speed} + {fst mt = (-speed)}.
+Proof.
+  induction upto as [ | upt Hind]; simpl; intros mt Hmem;[contradiction|].
+  pose proof (velMessages upt) as Hvm.
+  unfold getVelAndTime, getVel in Hmem.
+  unfold getVelFromMsg, getVelFromEv, motorEvents in Hvm.
+  destruct (localEvts BASEMOTOR upt) as [ev|]; simpl in Hvm, Hmem;
+    [| auto; fail].
+  destruct (opBind getVelM (deqMesg ev)) as [vel|];
+    [| auto; fail].
+  simpl in Hmem.
+  destruct Hmem as [Hmem| Hmem];[auto;fail| subst].
+  simpl. 
+
+Abort.
+
+
 Lemma velocityMessagesMsg: forall m t,
   member m (velocityMessages (localEvts BASEMOTOR) t)
   -> {fst m  = speed} + {fst m = (-speed)}.
+Proof.
+  intros mt t. revert mt.
+  unfold velocityMessages.
+  
+  
 Admitted.
 
 Lemma velocityMessagesEv : forall m t,
@@ -1278,6 +1298,7 @@ Close Scope nat_scope.
       rewrite Hlatrrl in Hlatrll.
       split; [dands; auto; eauto using Qlt_trans|].
       (* use Heq and Hvm *) admit.
+
 
     * trivial. (* use Hvm and something like [PosVelAtNegPos] *)
       subst hq ht.

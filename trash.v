@@ -418,3 +418,16 @@ Definition getRosOutDevBhv  {Env : Type}
     | last :: rest => getLastOutput (snd (odev p)) rest last
     end.
 
+Lemma RHSSafe : forall t: QTime,  (centerPosAtTime tstate t) [<=] Z2R 95.
+Proof.
+  intros.
+  pose proof (less_cotransitive_unfolded _ (Z2R 94) (Z2R 95)) as Hdi.
+  lapply Hdi; [clear Hdi; intro Hdi
+                |apply inj_Q_less; unfold inject_Z; simpl; lra; fail].
+  match goal with
+  [|- ?l [<=] ?r] => specialize (Hdi l)
+  end.
+  destruct Hdi;[|apply less_leEq].
+  assert False;[| contradiction].
+Abort.
+(** While this method works, a better one is also constructive *)
