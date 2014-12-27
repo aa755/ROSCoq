@@ -401,9 +401,9 @@ Definition RSwNodeSemanticsAux
   (locEvts: nat -> option EV) :=
   ∀ n : nat, 
       (isSendEvtOp (locEvts n) 
-          -> ∃ m: nat, possibleDeqSendOncePair swn locEvts m n)
-    ∧ (isDeqEvtOp (locEvts n) 
-          -> ∃ m: nat, possibleDeqSendOncePair swn locEvts n m).
+          -> {m: nat | possibleDeqSendOncePair swn locEvts m n})
+    & (isDeqEvtOp (locEvts n) 
+          -> { m: nat| possibleDeqSendOncePair swn locEvts n m}).
 
 
 
@@ -449,7 +449,7 @@ Definition DeviceView (PhysQ : Type) :=
 Definition NodeSemantics  :=
   PhysicalEnvEvolutionType
   -> (nat -> option Event)
-  -> Prop.
+  -> Type.
 
 Definition DeviceSemantics
     {PhysQ : Type}
@@ -490,10 +490,10 @@ Context  (PhysicalEnvType : Type)
 
 Open Scope Q_scope.
 
-Definition NodeBehCorrect (l : LocT) : Prop :=
+Definition NodeBehCorrect (l : LocT) : Type :=
   (locNode l) physics (localEvts l).
 
-Definition AllNodeBehCorrect : Prop:= 
+Definition AllNodeBehCorrect : Type:= 
   forall l,  NodeBehCorrect l.
 
 Definition PossibleSendRecvPair
@@ -525,15 +525,15 @@ Record PossibleEventOrder  := {
 
     eventualDelivery: forall (Es : EV),
           isSendEvt Es
-          ->  sig (fun Er : EV =>
+          ->  {Er: EV |
               PossibleSendRecvPair Es Er
-              /\ causedBy Es Er /\ isRecvEvt Er);
+              /\ causedBy Es Er /\ isRecvEvt Er};
 
     recvSend: forall (Er : EV),
           isRecvEvt Er
-          ->  sig (fun Es : EV => 
+          ->  {Es : EV |
                   PossibleSendRecvPair Es Er
-                  /\ causedBy Es Er /\ isSendEvt Es);
+                  /\ causedBy Es Er /\ isSendEvt Es};
 
     corrFIFO : CorrectFIFOQueue;
     corrNodes : AllNodeBehCorrect;
@@ -553,14 +553,15 @@ Lemma PureProcDeqSendOncePair : forall ns nd TI TO qt loc
     (sp : SimplePureProcess TI TO),
   let sproc := mkPureProcess (liftToMesg sp)in
   possibleDeqSendOncePair (Build_RosSwNode sproc qt) (localEvts loc) nd ns
-  -> {es : EV | {ed : EV | isDeqEvt ed ∧ isSendEvt es
-          ∧ (nd < ns)%Q
-            ∧ (∀ n : nat, (nd < n)%Q ∧ (n < ns)%Q → isEnqEvtOp (localEvts loc n))
-              ∧ (eTime ed <eTime es < eTime ed + qt)%Q
-        ∧ localEvts loc nd = Some ed ∧ localEvts loc ns = Some es ∧ 
+  -> {es : EV | {ed : EV | isDeqEvt ed & isSendEvt es
+          & (nd < ns)%Q
+            & (∀ n : nat, (nd < n)%Q ∧ (n < ns)%Q → isEnqEvtOp (localEvts loc n))
+              & (eTime ed <eTime es < eTime ed + qt)%Q
+        & localEvts loc nd = Some ed & localEvts loc ns = Some es &
           (validRecvMesg (TI::nil,nil) (eMesg ed)
-           ->  exists dmp : topicType TI,  eMesg ed = ((mkMesg _ dmp)::nil)
-                  ∧ (mkMesg TO (sp dmp) )::nil = (eMesg es) ) }}.
+           ->  {dmp : topicType TI |  
+                      eMesg ed = ((mkMesg _ dmp)::nil)
+                      ∧ (mkMesg TO (sp dmp) )::nil = (eMesg es)})}}.
 Proof.
   intros ? ? ? ? ? ? ?. simpl. intro Hnc.
   unfold possibleDeqSendOncePair in Hnc.

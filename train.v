@@ -399,15 +399,15 @@ Proof.
 
 Lemma DeqSendOncePair : forall ns nd sp,
   possibleDeqSendOncePair (ControllerNode sp) (localEvts SWCONTROLLER) nd ns
-  -> {es : Event | {ed : Event | isDeqEvt ed ∧ isSendEvt es
-          ∧ (nd < ns)%Q
-            ∧ (∀ n : nat, (nd < n)%Q ∧ (n < ns)%Q → isEnqEvtOp (localEvts SWCONTROLLER n))
-              ∧ (eTime ed < eTime es < eTime ed + digiControllerTiming)%Q
-        ∧
+  -> {es : Event | {ed : Event | isDeqEvt ed & isSendEvt es
+          & (nd < ns)%Q
+            & (∀ n : nat, (nd < n <  ns)%Q → isEnqEvtOp (localEvts SWCONTROLLER n))
+              & (eTime ed < eTime es < eTime ed + digiControllerTiming)%Q
+        &
         localEvts SWCONTROLLER nd = Some ed 
-        ∧ localEvts SWCONTROLLER ns = Some es ∧ 
-         exists (dmp : bool),  eMesg ed = ((mkMesg PSENSOR dmp)::nil)
-                  ∧ (mkMesg MOTOR ((SwControllerProgram sp) dmp))::nil = (eMesg es) }}.
+        & localEvts SWCONTROLLER ns = Some es &
+         {dmp : bool|  eMesg ed = ((mkMesg PSENSOR dmp)::nil)
+                  ∧ (mkMesg MOTOR ((SwControllerProgram sp) dmp))::nil = (eMesg es) }}}.
 Proof.
   intros ? ? ? Hnc.
   apply PureProcDeqSendOncePair in Hnc.
@@ -416,24 +416,20 @@ Proof.
   destruct Hnc as [ed Hnc].
   exists es. exists ed.  simpl.
   exrepd. 
-  pose proof (noSpamRecv eo H) as Hvr.
+  pose proof (noSpamRecv eo i) as Hvr.
   dands; trivial.
-
-  clear H0 H1 H2 H3 H5.
-  rename H4 into H0.
-  rename H6 into H2.
-  rewrite <- locEvtIndex in H0.
-  TrimAndRHS H0. rewrite H0 in Hvr.
+  rewrite <- locEvtIndex in e.
+  TrimAndRHS e. rewrite e in Hvr.
   simpl in Hvr. 
-  specialize (H2 Hvr). clear Hvr. trivial.
+  specialize (s Hvr). clear Hvr. trivial.
 Qed.
 
 Lemma swControllerMessages : 
   forall es : Event,
   SWCONTROLLER = eLoc es
   -> sendEvt = eKind es
-  -> (eMesg es) = (mkMesg MOTOR speed)::nil
-      \/ (eMesg es) = (mkMesg MOTOR (-speed))::nil.
+  -> {(eMesg es) = (mkMesg MOTOR speed)::nil}
+      + {(eMesg es) = (mkMesg MOTOR (-speed))::nil}.
 Proof.
   intros es Hsw Hsend.
   pose proof (locEvtIndex 
@@ -454,10 +450,10 @@ Proof.
   specialize (Hnc eq_refl). destruct Hnc as [mDeq  Hnc].
   apply DeqSendOncePair in Hnc.
   simpl in Hnc. exrepd. 
-  rewrite  H5 in Hiff. inversion Hiff as [Heq]. clear Hiff.
+  rewrite  e0 in Hiff. inversion Hiff as [Heq]. clear Hiff.
   subst.
   destruct dmp;[right | left];
-  simpl in H8; inversion H8; reflexivity.
+  simpl in H2; inversion H2; reflexivity.
 Qed.
 
 
@@ -465,7 +461,7 @@ Qed.
 Lemma velMessages:
   forall n : nat,
      match getVelFromMsg (motorEvents n) with
-     | Some v => v = speed \/ v = (-speed)
+     | Some v => {v = speed} + {v = (-speed)}
      | None => True
      end.
 Proof.
@@ -867,15 +863,15 @@ Proof.
     simpl in Hnc. 
     destruct Hnc as [es0 Hnc].
     destruct Hnc as [ed Hnc].
-    rewrite inBetweenFold in Hnc.
-    exrepd. clear H2.
-    pose proof (sameLocCausal eo _ _ _ H4 H5 H1) as Hcaus.
-    clear H1.
+    fold (inBetween (eTime ed) (eTime es0) (eTime ed + 1)) in Hnc.
+    exrepd. rename e into H4. rename e0 into H5.
+    pose proof (sameLocCausal eo _ _ _ H4 H5 q) as Hcaus.
+    clear q.
     pose proof (locEvtIndex SWCONTROLLER (eLocIndex es) es) as Hiff.
     TrimAndRHS Hiff.
     rewrite Hiff in H5; auto;[].
     inversion H5 as [Heqs].  clear H5.
-    symmetry in Heqs. subst es0.
+    symmetry in Heqs. subst es0. rename H0 into H7.
     rewrite <- H7. intro Heq. clear H7.
     inversion Heq as [Heqq]. clear Heq.
     apply (f_equal getVelM) in Heqq.
@@ -885,10 +881,11 @@ Proof.
     specialize (Hind ed Hcaus). clear Hiff. clear Hcaus.
     unfold MotorRecievesPositivVelAtLHS in Hind.
     apply locEvtIndex in H4. repnd. subst m. 
-    rewrite H4l in Hind. clear H4l. rewrite H in Hind.
+    rewrite H4l in Hind. clear H4l. rewrite i in Hind.
+    rename H into H6.
     specialize (Hind H6). clear H6.
-    unfold digiControllerTiming in H3.
-    clear H0 H Heqeks Heqevloc eo reactionTimeGap transitionValues velAccuracy boundary 
+    unfold inBetween in i2.
+    clear Heqeks Heqevloc eo reactionTimeGap transitionValues velAccuracy boundary 
       alertDist safeDist maxDelay hwidth reactionTime.
     eapply centerPosUB2; eauto.
 
@@ -1048,15 +1045,15 @@ Proof.
     simpl in Hnc. 
     destruct Hnc as [es0 Hnc].
     destruct Hnc as [ed Hnc].
-    rewrite inBetweenFold in Hnc.
-    exrepd. clear H2.
-    pose proof (sameLocCausal eo _ _ _ H4 H5 H1) as Hcaus.
-    clear H1.
+    fold (inBetween (eTime ed) (eTime es0) (eTime ed + 1)) in Hnc.
+    exrepd. rename e into H4. rename e0 into H5.
+    pose proof (sameLocCausal eo _ _ _ H4 H5 q) as Hcaus.
+    clear q.
     pose proof (locEvtIndex SWCONTROLLER (eLocIndex es) es) as Hiff.
     TrimAndRHS Hiff.
     rewrite Hiff in H5; auto;[].
     inversion H5 as [Heqs].  clear H5.
-    symmetry in Heqs. subst es0.
+    symmetry in Heqs. subst es0. rename H0 into H7.
     rewrite <- H7. intro Heq. clear H7.
     inversion Heq as [Heqq]. clear Heq.
     apply (f_equal getVelM) in Heqq.
@@ -1066,10 +1063,11 @@ Proof.
     specialize (Hind ed Hcaus). clear Hiff. clear Hcaus.
     unfold MotorRecievesNegVelAtRHS in Hind.
     apply locEvtIndex in H4. repnd. subst m. 
-    rewrite H4l in Hind. clear H4l. rewrite H in Hind.
+    rewrite H4l in Hind. clear H4l. rewrite i in Hind.
+    rename H into H6.
     specialize (Hind H6). clear H6.
-    unfold digiControllerTiming in H3.
-    clear H0 H Heqeks Heqevloc eo reactionTimeGap transitionValues velAccuracy boundary 
+    unfold inBetween in i2.
+    clear Heqeks Heqevloc eo reactionTimeGap transitionValues velAccuracy boundary 
       alertDist safeDist maxDelay hwidth reactionTime.
     eapply centerPosLB2; eauto.
 
@@ -1152,7 +1150,7 @@ Qed.
 Definition latestEvt (P : Event -> Prop) (ev : Event) :=
   P ev /\ (forall ev':Event, P ev' -> (eTime ev) <= (eTime ev')).
 
-Lemma velocityMessagesMsg: forall upto mt,
+Lemma velocityMessagesAuxMsg: forall upto mt,
   member mt (velocityMessagesAux (localEvts BASEMOTOR) upto)
   -> {fst mt  = speed} + {fst mt = (-speed)}.
 Proof.
@@ -1166,9 +1164,8 @@ Proof.
     [| auto; fail].
   simpl in Hmem.
   destruct Hmem as [Hmem| Hmem];[auto;fail| subst].
-  simpl. 
-
-Abort.
+  simpl. destruct Hvm; auto.
+Qed.
 
 
 Lemma velocityMessagesMsg: forall m t,
