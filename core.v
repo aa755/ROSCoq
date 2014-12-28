@@ -795,3 +795,8 @@ match op with
 | Some _ => true
 | None => false
 end.
+
+Lemma mapNil {A B}: forall f : A->B, 
+    map f nil = nil.
+intros. reflexivity.
+Qed.

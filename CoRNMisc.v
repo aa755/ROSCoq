@@ -508,3 +508,6 @@ Proof.
   specialize (Hq q (fst cc _ p)).
   tauto.
 Qed.
+
+Require Export CoRN.ftc.StrongIVT.
+Check Weak_IVT.

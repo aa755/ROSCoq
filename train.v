@@ -788,7 +788,7 @@ end.
 
 
 
-Lemma  PosVelAtNegLHS : forall (ev : Event),
+Lemma  PosVelAtLHSAux : forall (ev : Event),
           MotorRecievesPositivVelAtLHS ev.
 Proof.
   induction ev as [ev Hind] using 
@@ -969,7 +969,7 @@ match (eLoc  ev) with
 | _ => True
 end.
 
-Lemma  NegVelAtNegRHS : forall (ev : Event),
+Lemma  NegVelAtRHSAux : forall (ev : Event),
           MotorRecievesNegVelAtRHS ev.
 Proof.
   induction ev as [ev Hind] using 
@@ -1149,8 +1149,6 @@ Proof.
   simpl. destruct Hvm; auto.
 Qed.
 
-
-
 Lemma velocityMessagesMsg: forall m t,
   member m (velocityMessages t)
   -> {fst m  = speed} + {fst m = (-speed)}.
@@ -1160,16 +1158,39 @@ Proof.
   trivial.
 Qed.
 
-
-
-
-Lemma mapNil {A B}: forall f : A->B, 
-    map f nil = nil.
-intros. reflexivity.
+Lemma posVelAtLHS : forall evp,
+  getPayloadFromEv MOTOR evp = Some speed
+  -> eLoc evp = BASEMOTOR
+  -> (centerPosAtTime tstate (eTime evp)) [<=]  Z2R (-91).
+Proof.
+  intros ? Hp Hl.
+  pose proof (PosVelAtLHSAux evp) as Hev.
+  unfold MotorRecievesPositivVelAtLHS in Hev.
+  rewrite Hl in Hev.
+  pose proof (getPayloadFromEvSpecMesg MOTOR) as Hd.
+  simpl in Hd.
+  specialize (Hd _ _ Hp). repnd.
+  specialize (Hev Hdl Hdr).
+  trivial.
+Qed.
+  
+Lemma negVelAtRHS : forall evp,
+  getPayloadFromEv MOTOR evp = Some (-speed)
+  -> eLoc evp = BASEMOTOR
+  -> Z2R (91) [<=] (centerPosAtTime tstate (eTime evp)) .
+Proof.
+  intros ? Hp Hl.
+  pose proof (NegVelAtRHSAux evp) as Hev.
+  unfold MotorRecievesNegVelAtRHS in Hev.
+  rewrite Hl in Hev.
+  pose proof (getPayloadFromEvSpecMesg MOTOR) as Hd.
+  simpl in Hd.
+  specialize (Hd _ _ Hp). repnd.
+  specialize (Hev Hdl Hdr).
+  trivial.
 Qed.
 
-
-Lemma motorLastPosVel : forall (lm : list (Q * Event)) (t : QTime),
+Lemma motorLastPosVelAux : forall (lm : list (Q * Event)) (t : QTime),
   (Q2R 1) [<=] (centerPosAtTime tstate t)
   -> lm = velocityMessages t
   -> sig (latestEvt 
@@ -1260,6 +1281,7 @@ Close Scope nat_scope.
     simpl in Hvm. simpl in Hcorr.
     simpl in Hcorr. repnd. simpl in Hm. 
     specialize (fun gt => Hind (eTime ht) gt Hcorrrrr).
+    clear Hm Hcent. subst hq.
     lapply Hind;[clear Hind; intros Hind|].
     * destruct Hind as [evInd Hind]. exists evInd.
       unfold latestEvt in Hind. repnd.
@@ -1278,31 +1300,42 @@ Close Scope nat_scope.
         apply slem in Hh.
       simpl in Hh. repnd.
       apply Hindr; dands; auto.
-    * trivial. (* use Hvm and something like [PosVelAtNegPos] *)
-      subst hq. clear Hm. clear Hind.
-      pose proof (NegVelAtNegRHS ht) as Hev.
-      unfold MotorRecievesNegVelAtRHS in Hev.
-      rewrite Hcorrrl in Hev.
-      pose proof (getPayloadFromEvSpecMesg MOTOR) as Hd.
-      simpl in Hd.
-      specialize (Hd _ _ Hcorrl). repnd.
-      specialize (Hev Hdl Hdr).
-      clear Hdl Hdr.
-      eapply leEq_transitive;[ | apply Hev].
+    * clear Hind Heq Hcorrrrr.
+      eapply negVelAtRHS in Hcorrl; eauto.
+      eapply leEq_transitive;[ | apply Hcorrl].
       unfold Z2R, Q2R.
       apply inj_Q_leEq.
       unfold inject_Z. simpl.
       lra.
 Qed.
 
-
+(** in the aux version, lm was there only for induction.
+    lets get rid of it*)
+Lemma motorLastPosVel: forall (t : QTime),
+  (Q2R 1) [<=] (centerPosAtTime tstate t)
+  -> sig (latestEvt 
+              (fun ev =>  eTime ev < t 
+                    /\ getPayloadFromEv MOTOR ev = Some speed
+                    /\  eLoc ev = BASEMOTOR)).
+Proof.
+  intros. eapply motorLastPosVelAux; eauto.
+Qed.
 
 
 
 Lemma RHSSafe : forall t: QTime,  (centerPosAtTime tstate t) [<=] Z2R 95.
 Proof.
   intros. apply leEq_def. intros Hc.
+  apply less_leEq in Hc.
+  assert (Z2R 1[<=]centerPosAtTime tstate t) as Hle1 by
+  (eapply leEq_transitive; eauto; unfold Z2R, inject_Z
+    ;apply inj_Q_leEq; simpl;  lra).
+  apply motorLastPosVel in Hle1.
+  destruct Hle1 as [evp Hlat].
+  unfold latestEvt in Hlat.
+  repnd. eapply posVelAtLHS in Hlatlrl ; eauto.
 Abort.
+  
   
   
 

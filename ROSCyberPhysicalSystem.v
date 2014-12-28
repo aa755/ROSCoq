@@ -597,7 +597,7 @@ Proof.
   specialize (Hc _ eq_refl Hprl Hprr).
   rewrite <- Heqb in Hc.
   simpl in Hc.
-  destruct Hc as [Hc | Hc]; subst; info_eauto 3 with *.
+  destruct Hc as [Hc | Hc]; subst; eauto 3 with *.
 Qed.
 
 
