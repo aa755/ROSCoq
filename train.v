@@ -1264,9 +1264,20 @@ Close Scope nat_scope.
     * destruct Hind as [evInd Hind]. exists evInd.
       unfold latestEvt in Hind. repnd.
       split; [dands; auto; eauto using Qlt_trans|].
-      (* use Heq and Hvm *) admit.
-
-
+      intros ? Hpp.
+      repnd. 
+      let slem:= eval simpl in (filterPayloadsTimeComp MOTOR) in
+        eapply slem in Hpprl; eauto.
+      unfold velocityMessages in Heq.
+      rewrite <- Heq in Hpprl.
+      simpl in Hpprl.
+      destruct Hpprl as [Hh| Ht];
+        [|subst; apply (f_equal fst) in Ht; inverts Ht; fail].
+      subst tlm. 
+      let slem:= eval simpl in (filterPayloadsTimeCorr2 MOTOR) in
+        apply slem in Hh.
+      simpl in Hh. repnd.
+      apply Hindr; dands; auto.
     * trivial. (* use Hvm and something like [PosVelAtNegPos] *)
       subst hq. clear Hm. clear Hind.
       pose proof (NegVelAtNegRHS ht) as Hev.

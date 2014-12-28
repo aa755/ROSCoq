@@ -443,6 +443,20 @@ Proof.
 - repnd.  dands; auto.
 Qed.
 
+Lemma filterPayloadsTimeCorr2 : forall tp loc (t:QTime) mev,
+  member mev (filterPayloadsUptoTime tp (localEvts loc) t)
+  ->  let m:= fst mev in
+      let ev := snd mev in
+         (getPayloadFromEv tp ev) = Some m
+         /\ eLoc ev = loc
+         /\ (eTime ev < t)%Q.
+Proof.
+  simpl. intros ? ? ? ? Hmem.
+  apply filterPayloadsIndexCorr2 in Hmem.
+  repnd.
+  dands; auto.
+  apply numPrevEvtsSpec in Hmemrr; trivial.
+Qed.
 
 Lemma filterPayloadsIndexSorted : forall tp loc (n:nat) mev lmev,
   (mev::lmev = filterPayloadsUptoIndex tp (localEvts loc) n)
