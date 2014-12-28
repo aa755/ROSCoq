@@ -351,10 +351,9 @@ Definition filterPayloadsUptoTime (tp : RosTopic)
   (evs : nat -> option Event) (t : QTime) : list ((topicType tp) * Event):=
 filterPayloadsUptoIndex tp evs (numPrevEvts evs t).
 
-Open Scope Q_scope.
 
 Definition latestEvt (P : Event -> Prop) (ev : Event) :=
-  P ev /\ (forall ev':Event, P ev' -> (eTime ev) <= (eTime ev')).
+  P ev /\ (forall ev':Event, P ev' -> ((eTime ev) <= (eTime ev'))%Q).
 
 Lemma latestEvtStr: forall  (PS P : Event -> Prop) (ev : Event),
    PS ev
@@ -396,16 +395,15 @@ Proof.
   dands; auto.
 Qed.
 
-Close Scope Z_scope.
 
   
-Lemma filterPayloadsTimeSpec : forall tp loc (t:QTime) mev lmev,
+Lemma filterPayloadsTimeCorr : forall tp loc (t:QTime) mev lmev,
   (mev::lmev = filterPayloadsUptoTime tp (localEvts loc) t)
   ->  let m:= fst mev in
       let ev := snd mev in
         (getPayloadFromEv tp ev) = Some m
          /\ eLoc ev = loc
-         /\ (eTime ev < t)
+         /\ (eTime ev < t)%Q
          /\ lmev = filterPayloadsUptoTime tp (localEvts loc) (eTime ev).
 Proof.
   simpl. intros ? ? ? ? ? Heq.
@@ -419,7 +417,62 @@ Proof.
   rewrite numPrevEvtsEtime; auto.
 Qed.
 
+Lemma locNoneIndex : forall loc n,
+    None = localEvts loc n
+    -> forall ev,
+        eLoc ev = loc
+        -> eLocIndex ev < n.
+Proof.
+  intros ? ?  Hn ? Hl.
+  apply not_ge.
+  intros Hc.
+  unfold ge in Hc.
+  apply le_lt_or_eq in Hc.
+  destruct Hc as [Hc|Hc].
+- eapply localIndexDense in Hc; eauto.
+  destruct Hc as [evn Hc].
+  apply locEvtIndex in Hc.
+  rewrite Hc in Hn.
+  discriminate.
+- symmetry in Hc. 
+  rewrite (proj1 (locEvtIndex _ _ _) (conj Hl Hc)) in Hn.
+  discriminate.
+Qed.
+
+
   
+Lemma filterPayloadsIndexComp : forall tp loc (n:nat) pl ev,
+  (getPayloadFromEv tp ev) = Some pl
+  -> eLoc ev = loc
+  -> (eLocIndex ev < n)
+  -> member (pl,ev) (filterPayloadsUptoIndex tp (localEvts loc) n).
+Proof.
+  induction n as [| np Hind]; intros ? ? Hp Heq Hl;
+    [omega|].
+  simpl.
+  remember (localEvts loc np) as oev.
+  destruct oev as [evnp|];
+    [|specialize (Hind _ _ Hp); simpl in Hind; apply Hind; auto;
+                      eapply locNoneIndex; eauto; fail].
+  unfold getPayloadAndEv.
+  remember (getPayloadFromEv tp evnp) as osp.
+  destruct osp as [sp | ];
+    [|specialize (Hind _ _ Hp); simpl in Hind].
+- pose proof (eq_nat_dec (eLocIndex ev) np) as Hd.
+  destruct Hd as [Hd|Hd];[right|left].
+  + symmetry in Heqoev. apply locEvtIndex in Heqoev.
+    repnd. subst np. eapply indexDistinct in Hd; eauto;[|congruence].
+    subst. rewrite Hp in Heqosp. inverts Heqosp. reflexivity.
+  + assert (eLocIndex ev <  np) by omega.
+    apply Hind; auto.
+- apply Hind; trivial. unfold lt in Hl. apply le_lt_or_eq in Hl.
+  clear Hind. destruct Hl as [Hl|Hl];[omega|].
+  inverts Hl.
+  symmetry in Heqoev. apply locEvtIndex in Heqoev.
+  repnd.
+  eapply indexDistinct in Heqoevr; eauto;[|congruence].
+  subst. rewrite Hp in Heqosp. discriminate.
+Qed.
   
 
 (*
