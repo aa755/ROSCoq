@@ -1163,18 +1163,13 @@ Qed.
 
 
 
-Lemma velocityMessagesSpec : forall m lm  t,
-   (m::lm = velocityMessages t)
-  -> sig (fun ev=> (eMesg ev) = ((mkMesg MOTOR (fst m))::nil)
-                /\ latestEvt (fun ev' => eTime ev' < t) ev
-                /\ eTime ev = (snd m)
-                /\ lm = velocityMessages  (snd m)
-                /\ eLoc ev = BASEMOTOR
-                /\ isDeqEvt ev).
-Admitted.
+Lemma mapNil {A B}: forall f : A->B, 
+    map f nil = nil.
+intros. reflexivity.
+Qed.
 
 
-Lemma motorLastPosVel : forall (lm : list (Q * QTime)) (t : QTime),
+Lemma motorLastPosVel : forall (lm : list (Q * Event)) (t : QTime),
   (Q2R 1) [<=] (centerPosAtTime tstate t)
   -> lm = velocityMessages t
   -> sig (latestEvt 
@@ -1198,6 +1193,7 @@ Open Scope nat_scope.
 Close Scope nat_scope.
   clear Hinit. 
   subst. clear Hrt Heq. unfold hd in Hm.
+  rewrite mapNil in Hm.
   rewrite (initVel tstate) in Hm.
   destruct Hm as [qtrans Hm]. repnd.
   
@@ -1242,15 +1238,18 @@ Close Scope nat_scope.
   end.
   apply velocityMessagesMsg in Hvm.
   pose proof Heq as Hlat.
-  apply velocityMessagesSpec in Hlat.
-  destruct Hlat as [ev Hlat].
+  unfold velocityMessages in Hlat.
+  pose proof (filterPayloadsTimeSpec MOTOR BASEMOTOR) as Hs.
+  simpl in Hs.
+  apply Hs in Hlat. clear Hs.
   destruct Hvm as [Hvm | Hvm].
   + clear Hm Hind. 
-    exists ev.
-    rewrite Hvm in Hlat.
+    exists (snd hlm). simpl in Hvm.
+    simpl. rewrite Hvm in Hlat.
     fold (posVelMeg) in Hlat. repnd.
     apply latestEvtStr with (P:= (λ ev' : Event, eTime ev' < t));
-      dands; auto;[|tauto].
+      dands; auto;try tauto.
+[|tauto].
     exact (proj1 Hlatrl).
 
   + unfold hd in Hm.

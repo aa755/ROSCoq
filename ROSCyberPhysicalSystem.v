@@ -19,6 +19,7 @@ Context  `{rtopic : RosTopicType RosTopic}.
 
 (** [Event] is a type
     representing all events in the system *)
+Close Scope Q_scope.
 
 Class EventType (T: Type) 
       (Loc : Type) 
@@ -46,7 +47,7 @@ Class EventType (T: Type)
     -> a = b;
   timeIndexConsistent : forall (a b : T),
     eLocIndex a < eLocIndex b
-    <-> eTime a < eTime b;
+    <-> (eTime a < eTime b)%Q;
 
   localEvts : Loc -> (nat -> option T);
 
@@ -64,9 +65,9 @@ Class EventType (T: Type)
       and ones happening after *)
 
   eventSpacing :  forall (e1 e2 : T),
-    (eTime e1 >  minGap)
+    (eTime e1 >  minGap)%Q
     /\ (eLoc e1 = eLoc e2 
-        -> Qabs ((eTime e1) - (eTime e2)) <=  minGap)
+        -> (Qabs ((eTime e1) - (eTime e2)) <=  minGap))%Q
  }.
 
 
@@ -100,25 +101,61 @@ Context
     [n]. see [numPrevEvtsCorrect]
  *)
 
-Definition numPrevEvts : (nat -> option Event) -> QTime -> nat.
-Admitted.
-
 Definition eTimeOp := 
 option_map eTime.
 
-
-Lemma numPrevEvtsCorrect :
-forall t loc m,
-  match eTimeOp (localEvts loc m) with
-  | Some tm =>
-    (S m <= numPrevEvts (localEvts loc) t
-         -> tm <= t)
-    /\ (S m > numPrevEvts (localEvts loc) t
-         -> tm > t)
-  | None => True
-  end.
+Definition numPrevEvts : (nat -> option Event) -> QTime -> nat.
 Admitted.
 
+(** this is the spec of the above function *)
+Lemma numPrevEvtsSpec:
+  forall loc qt,
+    forall ev: Event , eLoc ev = loc
+    -> ((eLocIndex ev < numPrevEvts (localEvts loc) qt)%nat 
+          <-> (eTime ev < qt)).
+Admitted.
+
+Lemma numPrevEvtsEtime:
+  forall (ev: Event) loc ,
+    eLoc ev = loc
+    -> numPrevEvts (localEvts loc) (eTime ev)
+        = eLocIndex ev.
+Proof.
+  intros ? ?.
+  remember (eLocIndex ev) as en.
+  generalize dependent ev.
+  induction en as [|enp  Hind]; intros ? Hin Hl.
+- pose proof (numPrevEvtsSpec loc (eTime ev) ev Hl) as Hs;
+  rewrite <- Hin in Hs. 
+  unfold iff in Hs.
+  repnd.
+  destruct (numPrevEvts (localEvts loc) (eTime ev));
+    [reflexivity| assert False;[| contradiction]].
+  apply (Qlt_irrefl (eTime ev)).
+  apply Hsl. omega.
+- symmetry in Hin.
+  pose proof (localIndexDense _ _ ev enp 
+    (conj Hl Hin) (lt_n_Sn enp)) as Hld.
+  destruct Hld as [evp Hld].
+  repnd. symmetry in Hldr.
+  specialize (Hind _ Hldr Hldl).
+  pose proof (numPrevEvtsSpec loc (eTime ev) evp Hldl) as Hs.
+  rewrite <- timeIndexConsistent in Hs.
+  rewrite <- Hldr in Hs.
+  apply proj2  in Hs.
+  rewrite Hin in Hs.
+  specialize (Hs (lt_n_Sn _)).
+  unfold lt in Hs.
+  apply le_lt_or_eq in Hs.
+  destruct Hs as [Hs|Hs];[| auto; fail].
+  assert False;[| contradiction].
+  rewrite <- Hin in Hs.
+  pose proof (numPrevEvtsSpec loc (eTime ev) ev Hl) as Hss.
+  apply proj1 in Hss.
+  apply Hss in Hs.
+  apply (Qlt_irrefl (eTime ev)).
+  apply Hs.
+Qed.
 
 Definition isSendEvt (ev: Event) :Prop :=
  eKind ev = sendEvt.
@@ -333,47 +370,59 @@ Proof.
 Qed.
 
 
-Lemma filterPayloadsSpec1 : forall tp loc (n:nat) mev lmev,
+Lemma filterPayloadsIndexSpec : forall tp loc (n:nat) mev lmev,
   (mev::lmev = filterPayloadsUptoIndex tp (localEvts loc) n)
   ->  let m:= fst mev in
       let ev := snd mev in
         (getPayloadFromEv tp ev) = Some m
          /\ eLoc ev = loc
-         /\ (eLocIndex ev < n)%nat.
+         /\ (eLocIndex ev < n)%nat
+         /\ lmev = filterPayloadsUptoIndex tp (localEvts loc) (eLocIndex ev).
 Proof.
   induction n as [| np Hind]; intros ? ? Hmem; simpl in Hmem;
     [inversion Hmem; fail|].
   remember (localEvts loc np) as oev.
-  simpl. 
+  simpl.
   destruct oev as [ev|];
-    [|specialize (Hind _ _ Hmem); simpl in Hind; repnd; dands; auto].
-    
+    [|specialize (Hind _ _ Hmem); simpl in Hind; repnd; dands; auto; fail].
+  unfold getPayloadAndEv in Hmem.
+  remember (getPayloadFromEv tp ev) as osp.
+  destruct osp as [sp | ];
+    [|specialize (Hind _ _ Hmem); simpl in Hind; repnd; dands; auto; fail].
+  inverts Hmem.
+  simpl. rewrite <- Heqosp.
+  symmetry in Heqoev. apply locEvtIndex in Heqoev.
+  repnd. subst np.
+  dands; auto.
+Qed.
 
-Admitted.
+Close Scope Z_scope.
+
   
-(*
-Lemma filterPayloadsSpec : forall tp loc n m lm ,
-  (m::lm = filterPayloadsUptoIndex tp (localEvts loc) n)
-  ->  {ev : Event |
-         (latestEvt (fun ev=> (eMesg ev) = ((mkMesg _ (fst m))::nil)
-              /\ eTime ev = (snd m)
-              /\ eLoc ev = loc
-              /\ isDeqEvt ev) ev)
-         /\ lm = filterPayloadsUptoIndex tp (localEvts loc) (eLocIndex ev)}.
+Lemma filterPayloadsTimeSpec : forall tp loc (t:QTime) mev lmev,
+  (mev::lmev = filterPayloadsUptoTime tp (localEvts loc) t)
+  ->  let m:= fst mev in
+      let ev := snd mev in
+        (getPayloadFromEv tp ev) = Some m
+         /\ eLoc ev = loc
+         /\ (eTime ev < t)
+         /\ lmev = filterPayloadsUptoTime tp (localEvts loc) (eTime ev).
 Proof.
-  induction n as [| np Hind]; intros ? ? Hmem; simpl in Hmem;
-    [inversion Hmem; fail|].
-  remember (localEvts loc np) as oev.
-  destruct oev as [ev|].
-- admit.
-- simpl in Hmem. specialize (Hind _ _ Hmem).
-  destruct Hind as [ev Hind]. exists ev.
+  simpl. intros ? ? ? ? ? Heq.
+  unfold filterPayloadsUptoTime in Heq.
+  apply filterPayloadsIndexSpec in  Heq.
   repnd. dands; auto.
+- pose proof (numPrevEvtsSpec loc t (snd mev) Heqrl) as Hnm. simpl in Hnm.
+  apply Hnm.
+  trivial.
+- unfold filterPayloadsUptoTime.
+  rewrite numPrevEvtsEtime; auto.
+Qed.
+
   
   
 
-
-
+(*
 Lemma filterPayloadsSpec : forall tp loc m lm  t,
    (m::lm = filterPayloadsUptoTime tp (localEvts loc) t)
   -> sig (fun ev=> (eMesg ev) = ((mkMesg _ (fst m))::nil)
