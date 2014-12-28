@@ -431,3 +431,13 @@ Proof.
   assert False;[| contradiction].
 Abort.
 (** While this method works, a better one is also constructive *)
+
+
+Lemma velocityMessagesEv : forall m t,
+  member m (velocityMessages t)
+  -> sig (fun ev=> (eMesg ev) = ((mkMesg MOTOR (fst m))::nil)
+                /\ eTime ev < t
+                /\ eTime ev = (snd m)
+                /\ eLoc ev = BASEMOTOR
+                /\ isDeqEvt ev).
+Admitted.

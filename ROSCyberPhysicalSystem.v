@@ -266,34 +266,52 @@ Qed.
 Definition getPayloadFromEv (tp : RosTopic) (ev : Event) 
   : option (topicType tp)  :=
 opBind (getPayLoad tp) (deqMesg ev).
+Require Import LibTactics.
+
+Lemma getPayloadFromEvSpec: 
+    forall tp ev tv,
+      getPayloadFromEv tp ev = Some tv
+      -> isDeqEvt ev.
+Proof.
+  intros ? ? ? Hp.
+  unfold getPayloadFromEv in Hp.
+  pose proof (deqSingleMessage ev) as Hs.
+  unfold isDeqEvt.
+  unfold isDeqEvt in Hs.
+  unfold deqMesg in Hp, Hs.
+  destruct (eKind ev); simpl in Hp; try discriminate;[].
+  reflexivity.
+Qed.
+
+  
 
 Definition getPayloadFromEvOp (tp : RosTopic) 
   : (option Event) ->  option (topicType tp)  :=
 opBind (getPayloadFromEv tp).
 
 
-Definition getPayloadAndTime  (tp : RosTopic) (oev : option Event) 
-    : option ((topicType tp) * QTime)  :=
+Definition getPayloadAndEv  (tp : RosTopic) (oev : option Event) 
+    : option ((topicType tp) * Event)  :=
 match oev with
 | Some ev => match getPayloadFromEv tp ev with
-             | Some vq => Some (vq, eTime ev)
+             | Some vq => Some (vq, ev)
              | None => None
              end
 | None => None
 end.
 
 Fixpoint filterPayloadsUptoIndex (tp : RosTopic) (evs : nat -> option Event) 
-    (numPrevEvts : nat) : list ((topicType tp) * QTime):=
+    (numPrevEvts : nat) : list ((topicType tp) * Event):=
 match numPrevEvts with
 | 0 => nil
-| S numPrevEvts' => match getPayloadAndTime tp (evs numPrevEvts') with
+| S numPrevEvts' => match getPayloadAndEv tp (evs numPrevEvts') with
           | Some pr => pr::(filterPayloadsUptoIndex tp evs numPrevEvts')
           | None => filterPayloadsUptoIndex tp evs numPrevEvts'
            end
 end.
 
 Definition filterPayloadsUptoTime (tp : RosTopic)
-  (evs : nat -> option Event) (t : QTime) : list ((topicType tp) * QTime):=
+  (evs : nat -> option Event) (t : QTime) : list ((topicType tp) * Event):=
 filterPayloadsUptoIndex tp evs (numPrevEvts evs t).
 
 Open Scope Q_scope.
@@ -301,6 +319,73 @@ Open Scope Q_scope.
 Definition latestEvt (P : Event -> Prop) (ev : Event) :=
   P ev /\ (forall ev':Event, P ev' -> (eTime ev) <= (eTime ev')).
 
+Lemma latestEvtStr: forall  (PS P : Event -> Prop) (ev : Event),
+   PS ev
+   -> (forall ev, PS ev -> P ev)
+   -> latestEvt P ev
+   -> latestEvt PS ev.
+Proof.
+  intros ? ? ? Hp Him Hl.
+  split; [auto;fail|].
+  intros evp Hps. TrimAndLHS Hl.
+  specialize (Hl evp (Him _ Hps)).
+  trivial.
+Qed.
+
+
+Lemma filterPayloadsSpec1 : forall tp loc (n:nat) mev lmev,
+  (mev::lmev = filterPayloadsUptoIndex tp (localEvts loc) n)
+  ->  let m:= fst mev in
+      let ev := snd mev in
+        (getPayloadFromEv tp ev) = Some m
+         /\ eLoc ev = loc
+         /\ (eLocIndex ev < n)%nat.
+Proof.
+  induction n as [| np Hind]; intros ? ? Hmem; simpl in Hmem;
+    [inversion Hmem; fail|].
+  remember (localEvts loc np) as oev.
+  simpl. 
+  destruct oev as [ev|];
+    [|specialize (Hind _ _ Hmem); simpl in Hind; repnd; dands; auto].
+    
+
+Admitted.
+  
+(*
+Lemma filterPayloadsSpec : forall tp loc n m lm ,
+  (m::lm = filterPayloadsUptoIndex tp (localEvts loc) n)
+  ->  {ev : Event |
+         (latestEvt (fun ev=> (eMesg ev) = ((mkMesg _ (fst m))::nil)
+              /\ eTime ev = (snd m)
+              /\ eLoc ev = loc
+              /\ isDeqEvt ev) ev)
+         /\ lm = filterPayloadsUptoIndex tp (localEvts loc) (eLocIndex ev)}.
+Proof.
+  induction n as [| np Hind]; intros ? ? Hmem; simpl in Hmem;
+    [inversion Hmem; fail|].
+  remember (localEvts loc np) as oev.
+  destruct oev as [ev|].
+- admit.
+- simpl in Hmem. specialize (Hind _ _ Hmem).
+  destruct Hind as [ev Hind]. exists ev.
+  repnd. dands; auto.
+  
+  
+
+
+
+Lemma filterPayloadsSpec : forall tp loc m lm  t,
+   (m::lm = filterPayloadsUptoTime tp (localEvts loc) t)
+  -> sig (fun ev=> (eMesg ev) = ((mkMesg _ (fst m))::nil)
+                /\ latestEvt (fun ev' => eTime ev' < t) ev
+                /\ eTime ev = (snd m)
+                /\ lm = filterPayloadsUptoTime tp (localEvts loc) (snd m)
+                /\ eLoc ev = loc
+                /\ isDeqEvt ev).
+Proof.
+  intros ? ? ? ? ? Heq.
+  
+*)
 Close Scope Q_scope.
 
 

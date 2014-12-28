@@ -162,8 +162,8 @@ getPayloadFromEvOp MOTOR.
 
 
 Definition getVelAndTime (oev : option Event) 
-    : option (Q * QTime)  :=
-getPayloadAndTime MOTOR oev.
+    : option (Q * Event)  :=
+getPayloadAndEv MOTOR oev.
 
 
 Definition ProxPossibleTimeEvPair 
@@ -235,7 +235,8 @@ Definition velocityMessages (t : QTime) :=
 
 Definition lastVelAndTime (evs : nat -> option Event)
   (t : QTime) : (Q * QTime) :=
-hd (initialVel,mkQTime 0 I) (velocityMessages t) .
+hd (initialVel,mkQTime 0 I) (map (fun p => (fst p, eTime (snd p)))
+                                  (velocityMessages t)) .
 
 
 Definition corrSinceLastVel
@@ -1134,7 +1135,7 @@ Lemma velocityMessagesAuxMsg: forall upto mt,
 Proof.
   induction upto as [ | upt Hind]; simpl; intros mt Hmem;[contradiction|].
   pose proof (velMessages upt) as Hvm.
-  unfold getPayloadAndTime, getPayloadFromEv in Hmem.
+  unfold getPayloadAndEv, getPayloadFromEv in Hmem.
   unfold getVelOEv, getPayloadFromEvOp, 
     getPayloadFromEv, motorEvents in Hvm. simpl in Hvm.
   simpl in Hmem.
@@ -1160,23 +1161,9 @@ Proof.
 Qed.
 
 
-Lemma velocityMessagesEv : forall m t,
-  member m (velocityMessages t)
-  -> sig (fun ev=> (eMesg ev) = ((mkMesg MOTOR (fst m))::nil)
-                /\ eTime ev < t
-                /\ eTime ev = (snd m)
-                /\ eLoc ev = BASEMOTOR
-                /\ isDeqEvt ev).
-Admitted.
 
-Lemma latestEvtStr: forall  (PS P : Event -> Prop) (ev : Event),
-   PS ev
-   -> (forall ev, PS ev -> P ev)
-   -> latestEvt P ev
-   -> latestEvt PS ev.
-Admitted.
 
-Lemma velocityMessagesLatest : forall m lm  t,
+Lemma velocityMessagesSpec : forall m lm  t,
    (m::lm = velocityMessages t)
   -> sig (fun ev=> (eMesg ev) = ((mkMesg MOTOR (fst m))::nil)
                 /\ latestEvt (fun ev' => eTime ev' < t) ev
@@ -1255,7 +1242,7 @@ Close Scope nat_scope.
   end.
   apply velocityMessagesMsg in Hvm.
   pose proof Heq as Hlat.
-  apply velocityMessagesLatest in Hlat.
+  apply velocityMessagesSpec in Hlat.
   destruct Hlat as [ev Hlat].
   destruct Hvm as [Hvm | Hvm].
   + clear Hm Hind. 
