@@ -790,3 +790,8 @@ Proof.
   apply QTimeD. trivial.
 Qed.
 
+Definition notNone {T : Type} (op : option T) : bool :=
+match op with
+| Some _ => true
+| None => false
+end.

@@ -1173,8 +1173,9 @@ Lemma motorLastPosVel : forall (lm : list (Q * Event)) (t : QTime),
   (Q2R 1) [<=] (centerPosAtTime tstate t)
   -> lm = velocityMessages t
   -> sig (latestEvt 
-              (fun ev =>  eTime ev < t /\ (eMesg ev = posVelMeg) 
-                          /\  eLoc ev = BASEMOTOR)).
+              (fun ev =>  eTime ev < t 
+                    /\ getPayloadFromEv MOTOR ev = Some speed
+                    /\  eLoc ev = BASEMOTOR)).
 Proof.
   intro.
   induction lm as [|hlm tlm Hind]; intros ? Hcent Heq.
@@ -1237,41 +1238,45 @@ Close Scope nat_scope.
       [rewrite <- Heq; simpl; right; reflexivity|]
   end.
   apply velocityMessagesMsg in Hvm.
-  pose proof Heq as Hlat.
-  unfold velocityMessages in Hlat.
-  pose proof (filterPayloadsTimeSpec MOTOR BASEMOTOR) as Hs.
+  pose proof Heq as Hcorr.
+  unfold velocityMessages in Hcorr.
+  pose proof (filterPayloadsTimeCorr MOTOR BASEMOTOR) as Hs.
   simpl in Hs.
-  apply Hs in Hlat. clear Hs.
+  apply Hs in Hcorr. clear Hs.
   destruct Hvm as [Hvm | Hvm].
-  + clear Hm Hind. 
+  + clear Hm Hind. (** last message was of positive vel *)
     exists (snd hlm). simpl in Hvm.
-    simpl. rewrite Hvm in Hlat.
-    fold (posVelMeg) in Hlat. repnd.
-    apply latestEvtStr with 
-        (P:= (λ ev' : Event, eTime ev' < t));
-      dands; auto;try tauto.
-[|tauto].
-    exact (proj1 Hlatrl).
+    simpl. rewrite Hvm in Hcorr.
+    fold (posVelMeg) in Hcorr. repnd.
+    pose proof (filterPayloadsTimeLatest MOTOR BASEMOTOR) as Hlat.
+    simpl in Hlat.
+    apply Hlat in Heq.
+    eapply latestEvtStr; eauto.
+    intros ? Hp. simpl. repnd.
+    rewrite Hprl. dands; auto.
 
-  + unfold hd in Hm.
+  + unfold hd in Hm. (** last message was of negative vel *)
     destruct hlm as [hq ht].
-    simpl in Hvm. simpl in Hlat.
-    simpl in Hlat. repnd.
-    specialize (fun gt => Hind ht gt Hlatrrrl).
+    simpl in Hvm. simpl in Hcorr.
+    simpl in Hcorr. repnd. simpl in Hm. 
+    specialize (fun gt => Hind (eTime ht) gt Hcorrrrr).
     lapply Hind;[clear Hind; intros Hind|].
     * destruct Hind as [evInd Hind]. exists evInd.
-      unfold latestEvt in Hlatrl, Hind. repnd.
-      rewrite Hlatrrl in Hlatrll.
+      unfold latestEvt in Hind. repnd.
       split; [dands; auto; eauto using Qlt_trans|].
       (* use Heq and Hvm *) admit.
 
 
     * trivial. (* use Hvm and something like [PosVelAtNegPos] *)
-      subst hq ht.
-      pose proof (NegVelAtNegRHS ev) as Hev.
+      subst hq. clear Hm. clear Hind.
+      pose proof (NegVelAtNegRHS ht) as Hev.
       unfold MotorRecievesNegVelAtRHS in Hev.
-      rewrite Hlatrrrrl  in Hev.
-      specialize (Hev Hlatrrrrr Hlatl).
+      rewrite Hcorrrl in Hev.
+      pose proof (getPayloadFromEvSpecMesg MOTOR) as Hd.
+      simpl in Hd.
+      specialize (Hd _ _ Hcorrl). repnd.
+      specialize (Hev Hdl Hdr).
+      clear Hdl Hdr.
       eapply leEq_transitive;[ | apply Hev].
       unfold Z2R, Q2R.
       apply inj_Q_leEq.

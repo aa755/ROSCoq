@@ -305,7 +305,7 @@ Definition getPayloadFromEv (tp : RosTopic) (ev : Event)
 opBind (getPayLoad tp) (deqMesg ev).
 Require Import LibTactics.
 
-Lemma getPayloadFromEvSpec: 
+Lemma getPayloadFromEvSpecDeq: 
     forall tp ev tv,
       getPayloadFromEv tp ev = Some tv
       -> isDeqEvt ev.
@@ -320,7 +320,35 @@ Proof.
   reflexivity.
 Qed.
 
-  
+Lemma MsgEta: forall tp m pl,
+ getPayLoad tp m = Some pl
+  -> m = mkMesg tp pl.
+Proof.
+  unfold getPayLoad. intros ? ? ? Heq.
+  destruct m.
+  unfold mkMesg.
+  destruct (eqdec x tp);simpl in Heq; inversion Heq; subst; reflexivity.
+Qed.
+
+Lemma getPayloadFromEvSpecMesg: forall tp ev tv,
+      getPayloadFromEv tp ev = Some tv
+      -> isDeqEvt ev /\ eMesg ev = (mkMesg tp tv)::nil.
+Proof.
+  unfold getPayloadFromEv. intros ? ? ? Heq.
+  pose proof (deqMesgSome ev) as Hd.
+  remember (deqMesg ev) as dm.
+  destruct dm as [sm|]; [| inverts Heq; fail].
+  simpl in Heq. specialize (Hd _ eq_refl).
+  dands; [trivial; fail|].
+  apply deqSingleMessage in Hd.
+  destruct Hd as [smm Hd].
+  repnd.
+  rewrite Hdr in Heqdm.
+  inverts Heqdm.
+  apply MsgEta in Heq.
+  subst smm.
+  auto.
+Qed.
 
 Definition getPayloadFromEvOp (tp : RosTopic) 
   : (option Event) ->  option (topicType tp)  :=
@@ -353,7 +381,7 @@ filterPayloadsUptoIndex tp evs (numPrevEvts evs t).
 
 
 Definition latestEvt (P : Event -> Prop) (ev : Event) :=
-  P ev /\ (forall ev':Event, P ev' -> ((eTime ev) <= (eTime ev'))%Q).
+  P ev /\ (forall ev':Event, P ev' -> ((eTime ev') <= (eTime ev))%Q).
 
 Lemma latestEvtStr: forall  (PS P : Event -> Prop) (ev : Event),
    PS ev
@@ -401,7 +429,7 @@ Lemma filterPayloadsIndexCorr2 : forall tp loc (n:nat) mev,
       let ev := snd mev in
          (getPayloadFromEv tp ev) = Some m
          /\ eLoc ev = loc
-         /\ (eLocIndex ev < n)%nat.
+         /\ (eLocIndex ev < n).
 Proof.
   simpl. intros ? ? ?.
   remember (filterPayloadsUptoIndex tp (localEvts loc) n) as ll.
@@ -446,7 +474,6 @@ Proof.
   trivial.
 Qed.
 
-  
 Lemma filterPayloadsTimeCorr : forall tp loc (t:QTime) mev lmev,
   (mev::lmev = filterPayloadsUptoTime tp (localEvts loc) t)
   ->  let m:= fst mev in
@@ -524,6 +551,41 @@ Proof.
   subst. rewrite Hp in Heqosp. discriminate.
 Qed.
   
+Lemma filterPayloadsTimeComp : forall tp loc (t: QTime) ev pl,
+  (getPayloadFromEv tp ev) = Some pl
+  -> eLoc ev = loc
+  -> (eTime ev < t)%Q
+  -> member (pl,ev) (filterPayloadsUptoTime tp (localEvts loc) t).
+Proof.
+  intros ? ? ? ? ? Hev Hl Hi.
+  apply filterPayloadsIndexComp; auto.
+  apply numPrevEvtsSpec; auto.
+Qed.
+
+
+Coercion is_true  : bool >-> Sortclass.
+
+Lemma filterPayloadsTimeLatest : forall tp loc (t:QTime) mev ll,
+  (mev::ll = filterPayloadsUptoTime tp (localEvts loc) t)
+  -> latestEvt (fun ev => notNone (getPayloadFromEv tp ev)
+                            /\ eLoc ev = loc
+                            /\ (eTime ev < t)%Q) (snd mev).
+Proof.
+  intros ? ? ? ? ? Heq.
+  pose proof (filterPayloadsTimeSorted _ _ _ _ _ Heq) as Hs.
+  pose proof Heq as Heqb.
+  simpl in Hs. apply filterPayloadsTimeCorr in Heq.
+  repnd. split; dands; auto;[rewrite Heql; reflexivity|].
+  intros evp Hp.
+  repnd. 
+  pose proof (filterPayloadsTimeComp tp loc t evp) as Hc.
+  destruct (getPayloadFromEv tp evp) as [plp|]; inversion Hpl.
+  specialize (Hc _ eq_refl Hprl Hprr).
+  rewrite <- Heqb in Hc.
+  simpl in Hc.
+  destruct Hc as [Hc | Hc]; subst; info_eauto 3 with *.
+Qed.
+
 
 (*
 Lemma filterPayloadsSpec : forall tp loc m lm  t,
