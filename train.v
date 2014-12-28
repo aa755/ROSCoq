@@ -1247,7 +1247,8 @@ Close Scope nat_scope.
     exists (snd hlm). simpl in Hvm.
     simpl. rewrite Hvm in Hlat.
     fold (posVelMeg) in Hlat. repnd.
-    apply latestEvtStr with (P:= (λ ev' : Event, eTime ev' < t));
+    apply latestEvtStr with 
+        (P:= (λ ev' : Event, eTime ev' < t));
       dands; auto;try tauto.
 [|tauto].
     exact (proj1 Hlatrl).

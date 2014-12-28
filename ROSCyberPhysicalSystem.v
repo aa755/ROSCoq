@@ -369,7 +369,7 @@ Proof.
 Qed.
 
 
-Lemma filterPayloadsIndexSpec : forall tp loc (n:nat) mev lmev,
+Lemma filterPayloadsIndexCorr : forall tp loc (n:nat) mev lmev,
   (mev::lmev = filterPayloadsUptoIndex tp (localEvts loc) n)
   ->  let m:= fst mev in
       let ev := snd mev in
@@ -395,6 +395,56 @@ Proof.
   dands; auto.
 Qed.
 
+Lemma filterPayloadsIndexCorr2 : forall tp loc (n:nat) mev,
+  member mev (filterPayloadsUptoIndex tp (localEvts loc) n)
+  ->  let m:= fst mev in
+      let ev := snd mev in
+         (getPayloadFromEv tp ev) = Some m
+         /\ eLoc ev = loc
+         /\ (eLocIndex ev < n)%nat.
+Proof.
+  simpl. intros ? ? ?.
+  remember (filterPayloadsUptoIndex tp (localEvts loc) n) as ll.
+  generalize dependent n.
+  induction ll; intros ? Hf ? Hm;[inverts Hm|].
+  simpl in Hm.
+  destruct Hm as [Hm|?]; [| subst];
+  apply filterPayloadsIndexCorr in Hf.
+- repnd. apply IHll with (mev:=mev)  in Hfrrr; auto.
+  repnd. dands; auto. omega.
+- repnd.  dands; auto.
+Qed.
+
+
+Lemma filterPayloadsIndexSorted : forall tp loc (n:nat) mev lmev,
+  (mev::lmev = filterPayloadsUptoIndex tp (localEvts loc) n)
+  ->  let m:= fst mev in
+      let ev := snd mev in
+      forall mp evp,  
+        member (mp, evp) lmev
+        -> (eLocIndex evp) < (eLocIndex ev).
+Proof.
+  simpl. intros ? ? ? ? ? Heq ? ? Hmem; simpl in Hmem. simpl.
+  apply filterPayloadsIndexCorr in Heq.
+  repnd. subst lmev.
+  apply filterPayloadsIndexCorr2 in Hmem.
+  simpl in Hmem.
+  repnd. trivial.
+Qed.
+
+Lemma filterPayloadsTimeSorted : forall tp loc (t:QTime) mev lmev,
+  (mev::lmev = filterPayloadsUptoTime tp (localEvts loc) t)
+  ->  let m:= fst mev in
+      let ev := snd mev in
+      forall mp evp,  
+        member (mp, evp) lmev
+        -> ((eTime evp) < (eTime ev))%Q.
+Proof.
+  simpl. intros ? ? ? ? ? Heq ? ? Hm.
+  eapply filterPayloadsIndexSorted in Heq; eauto.
+  apply timeIndexConsistent.
+  trivial.
+Qed.
 
   
 Lemma filterPayloadsTimeCorr : forall tp loc (t:QTime) mev lmev,
@@ -408,7 +458,7 @@ Lemma filterPayloadsTimeCorr : forall tp loc (t:QTime) mev lmev,
 Proof.
   simpl. intros ? ? ? ? ? Heq.
   unfold filterPayloadsUptoTime in Heq.
-  apply filterPayloadsIndexSpec in  Heq.
+  apply filterPayloadsIndexCorr in  Heq.
   repnd. dands; auto.
 - pose proof (numPrevEvtsSpec loc t (snd mev) Heqrl) as Hnm. simpl in Hnm.
   apply Hnm.
