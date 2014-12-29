@@ -264,6 +264,8 @@ Min_leEq_rht Min_leEq_lft
 shift_zero_leEq_minus shift_minus_leEq shift_zeroR_leEq_minus
 pos_two: CoRN.
 
+Hint Immediate eq_reflexive_unfolded : CoRN.
+
 Lemma leAddRhs :
 forall (a b : IR), 
     [0][<=]b -> a[<=]a[+]b.
@@ -536,6 +538,16 @@ Qed.
 
 Require Export CoRN.ftc.StrongIVT.
 
+Lemma closeRationalLR : forall (a b x d : IR) (Hab : a [<] b),
+  (Compact (less_leEq _ _ _ Hab)) x
+  -> [0][<]d
+  -> {q : Q | (Compact (less_leEq _ _ _ Hab)) q /\
+                      AbsIR (x[-]q)[<=]d}.
+Proof.
+  intros ? ? ? ? ? Hcc Hdp.
+  pose proof Hab as Hap.
+  apply less_cotransitive_unfolded with (z:=x)in Hap.
+Admitted.
 (** this lemma is strronger than Weak_IVT. the only change
     is that this lemma gives a rational with the same properties
     as required earlier. In the proof, the provided tolerance
@@ -567,8 +579,10 @@ Proof.
   unfold Continuous_I in Hcr.
   match type of Hcr with
   ?A -> _ => assert A as H99 by (apply included_interval; auto);
+            pose proof (included_trans _ _ _ _ H99 Hcl) as Hdom;
              specialize (Hcr H99); clear H99
   end.
+
   apply snd in Hcr.
   specialize (Hcr _ He).
   destruct Hcr as [d Hdp Hcc].
@@ -579,15 +593,22 @@ Proof.
   apply less_imp_ap in Hap.
   apply pfstrx in Hap.
   apply ap_imp_Min_less_Max in Hap.
-  apply less_cotransitive_unfolded with (z:=x)in Hap.
-  assert {q : Q | Compact (Min_leEq_Max a b) q /\
-                      AbsIR (x[-]q)[<=]d}.
-  -destruct Hap as [Hap|Hap].
-- admit.
-- 
-Abort. (* this might run into some decidability issues.
-          lets try a simpler case when a and b and intervals
-          are rationals. see core .v *)
-
-
-
+  pose proof (closeRationalLR _ _ _ _ Hap Hmm Hdp) as Hqq.
+  destruct Hqq as [q H99].
+  exists q.
+  destruct H99 as [Hcomp Hab].
+  split;[exact Hcomp|].
+  specialize (Hcc q Hcomp (Hdom _ Hmm) (Hdom _ Hcomp) Hab).
+  specialize (Hfx (Hdom _ Hmm)).
+  rewrite AbsIR_minus in Hcc.
+  apply AbsIR_imp_AbsSmall in Hcc.
+  apply AbsIR_imp_AbsSmall in Hfx.
+  pose proof (AbsSmall_eps_div_two  _ _ _ _ Hcc Hfx) as Hsum.
+  clear Hfx Hcc.
+  unfold cg_minus in Hsum.
+  ring_simplify in Hsum.
+  intros Hx.
+  apply AbsSmall_imp_AbsIR.
+  rewrite pfwdef with (Hy := Hx) in Hsum; trivial.
+  apply eq_reflexive.
+Qed.
