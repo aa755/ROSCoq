@@ -541,18 +541,90 @@ Lemma Weak_QIVT
        [0][<]e ->
        forall y : IR,
        Compact (less_leEq IR (F a Ha) (F b Hb) HFab) y ->
-       {x : Q | Compact (Min_leEq_Max a b) x |
+       {x : Q | Compact (Min_leEq_Max a b) x /\
        forall Hx : Dom F x, AbsIR (F x Hx[-]y)[<=]e}.
 Proof.
   intros ? ? Hc ? ? ? ? ? Hia Hib ? He ? Hcp.
   apply pos_div_two in He.
-  eapply Weak_IVT with (y:=y) (F:=F) (HFab := HFab) in He;
+  pose proof He as Hivt.
+  eapply Weak_IVT with (y:=y) (F:=F) (HFab := HFab) in Hivt;
     eauto.
   unfold compact in He.
   unfold Continuous in Hc.
   destruct Hc as [Hcl Hcr].
-  specialize (Hcr a b).
+  specialize (Hcr _ _  (Min_leEq_Max a b)).
   unfold Continuous_I in Hcr.
+  match type of Hcr with
+  ?A -> _ => assert A as H99 by (apply included_interval; auto);
+             specialize (Hcr H99); clear H99
+  end.
+  apply snd in Hcr.
+  specialize (Hcr _ He).
+  destruct Hcr as [d Hdp Hcc].
+  destruct Hivt as [x Hmm Hfx].
+  pose proof HFab as Hap.
+  specialize (fun xp => Hcc x xp Hmm).
+    (* y already names a point in the co-domain *)
+  apply less_imp_ap in Hap.
+  apply pfstrx in Hap.
+  apply ap_imp_Min_less_Max in Hap.
+  apply less_cotransitive_unfolded with (z:=x)in Hap.
+  assert {q : Q | Compact (Min_leEq_Max a b) q /\
+                      AbsIR (x[-]q)[<=]d}.
+  -destruct Hap as [Hap|Hap].
+- admit.
+- pose proof (less_Min _ _ _ (ltAddRhs _ d Hdp) Hap) as Hmlt.
+  pose proof (Q_dense_in_CReals' _ _ _ Hmlt) as Hqr.
+  destruct Hqr as [q Hqr Hql]. exists q.
+  specialize (Hcc q).
+  simpl in p. unfold Q2R in p. destruct p as [pl pr].
+  assert (inj_Q _ a[<=]inj_Q IR q) as Haq by (eauto using
+        less_leEq, leEq_less_trans).
+  assert (inj_Q IR q[<=] inj_Q _ b) as Hqb by (eauto using
+      less_leEq,
+      less_leEq_trans,
+      Min_leEq_rht).
+  
+  specialize (Hq (Haq, Hqb)).
+  specialize (HC t q).
+  unfold compact in HC.
+  lapply HC;[clear HC; intro HC|split; auto].
+  lapply HC;[clear HC; intro HC|split; auto].
+  specialize (HC (HI _ (pl,pr)) (HI _ (Haq, Hqb))).
+  rewrite AbsIR_minus in HC. unfold Q2R in HC.
+  rewrite AbsIR_eq_x in HC;[|eauto 4 using 
+        shift_zero_leEq_minus, less_leEq].
+  lapply HC;[ clear HC; intro HC | 
+    apply shift_minus_leEq;
+    rewrite cag_commutes_unfolded; (eauto using
+        less_leEq,leEq_less_trans,leEq_reflexive,
+        less_leEq_trans,Min_leEq_lft
+  )].
+  clear Hql Hqr Hmlt Hcc Hdp.
+  subst eps. clear Hc.
+  remember (f t (HI t (pl, pr))) as ft.
+  clear Heqft. unfold Q2R in Hq.
+  remember (f (inj_Q IR q) (HI (inj_Q IR q) (Haq, Hqb))) as fq.
+  clear Heqfq.
+  apply shift_mult_leEq' in HC; [|apply pos_two].
+  assert (fq[<]ft) as Hlqt by eauto using leEq_less_trans.
+  (** Now we need to prove ft[<=]fq *)
+  rewrite AbsIR_eq_x in HC;[|eauto using 
+      shift_zero_leEq_minus,
+      less_leEq].
+  apply (plus_resp_leEq_both _ _ _ _ _ HC) in Hq.
+  rewrite <- cg_cancel_mixed in Hq.
+  rewrite <- x_plus_x in Hq.
+  apply shift_leEq_minus in Hq.
+  remember (ft[-]fq) as ftmx.
+  apply shift_leEq_minus in Hq.
+  rewrite cg_minus_correct in Hq.
+  subst ftmx.
+  apply shift_leEq_plus in Hq.
+  ring_simplify in Hq.
+  apply leEq_def in Hq.
+  unfold Not in Hq. tauto.
+
 Abort. (* this might run into some decidability issues.
           lets try a simpler case when a and b and intervals
           are rationals. see core .v *)
