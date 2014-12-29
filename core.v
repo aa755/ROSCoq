@@ -958,6 +958,10 @@ Proof.
   specialize (Hcn _ He).
   destruct Hcn as [d dp Hcn].
   unfold compact in Hcn.
+  
+
+  pose proof (less_cotransitive_unfolded)
+
   remember (mkQTime 1 I) as t1.
   remember (e [/]TwoNZ) as eps2.
   unfold tadd in Hcn. simpl in Hcn.
