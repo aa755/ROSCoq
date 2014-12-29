@@ -262,7 +262,8 @@ leEq_inj_Q leEq_wdr leEq_wdr leEq_reflexive eq_imp_leEq
 leEq_imp_eq leEq_imp_eq leEq_transitive (leEq_inj_Q IR) less_leEq
 Min_leEq_rht Min_leEq_lft
 shift_zero_leEq_minus shift_minus_leEq shift_zeroR_leEq_minus
-pos_two: CoRN.
+pos_two rht_leEq_Max 
+lft_leEq_Max: CoRN.
 
 Hint Immediate eq_reflexive_unfolded : CoRN.
 
@@ -414,7 +415,48 @@ Proof.
         less_leEq,leEq_less_trans,leEq_reflexive,
         less_leEq_trans,Min_leEq_lft.
 Defined.
-  
+
+Lemma ltMinusRhs: 
+  forall (x y: IR), 
+    [0] [<]y -> x[-]y[<]x.
+Proof.
+  intros.
+  apply shift_minus_less.
+  apply ltAddRhs; auto.
+Qed.
+
+
+
+Lemma closeRationalL : forall (a b t d : IR) (Hab : a [<=] b),
+  Compact Hab t
+  -> a[<]t
+  -> [0][<]d
+  -> {q : Q | Compact Hab q /\
+                      AbsIR (t[-]q)[<=]d}.
+Proof.
+  intros ? ? ? ? ? p Hcc Hdp.
+  pose proof (Max_less _ _ _ (ltMinusRhs _ d Hdp) Hcc) as Hmlt.
+  pose proof (Q_dense_in_CReals' _ _ _ Hmlt) as Hqr.
+  destruct Hqr as [q Hqr Hql].
+  exists q.
+  simpl in p. unfold Q2R in p. destruct p as [pl pr].
+  assert (inj_Q IR q[<=] b) as Hqb by (eauto using
+        less_leEq, less_leEq_trans).
+  assert (a[<=] inj_Q IR q) as Haq by (eauto using
+      less_leEq,
+      less_leEq_trans,
+      leEq_less_trans,
+      rht_leEq_Max).
+  split;[exact (Haq,Hqb)|].
+  rewrite AbsIR_eq_x;[|eauto 4 using 
+        shift_zero_leEq_minus, less_leEq].
+  apply shift_minus_leEq.
+  apply shift_leEq_plus'.
+  unfold Q2R.
+  pose proof (lft_leEq_Max (t[-]d) a).
+  apply less_leEq.
+  eapply leEq_less_trans; eauto.
+Qed.
 
 (** It might be possible to do this proof 
     using AbsIR_approach_zero *)
@@ -547,13 +589,15 @@ Proof.
   intros ? ? ? ? ? Hcc Hdp.
   pose proof Hab as Hap.
   apply less_cotransitive_unfolded with (z:=x)in Hap.
-Admitted.
-(** this lemma is strronger than Weak_IVT. the only change
-    is that this lemma gives a rational with the same properties
-    as required earlier. In the proof, the provided tolerance
-    needs to be split between that of Weak_IVT
-    and that of modulus of continuity *)
-Lemma Weak_QIVT
+  destruct Hap as [Hlt | Hgt].
+- apply closeRationalL; auto.
+- apply closeRationalR; auto.
+Qed.
+
+(** this lemma is stronger than Weak_IVT. the only change
+    is that the type of [x] (in the concluion)
+    is Q, instead of IR *)
+Lemma Weak_IVTQ
      : forall (I : interval) (F : PartFunct IR),
        Continuous I F ->
        forall (a b : IR) (Ha : Dom F a) (Hb : Dom F b)
