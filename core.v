@@ -104,7 +104,7 @@ Defined.
 
 Hint Resolve plus_resp_nonneg : CoRN. 
  Definition tadd (t tl : Time) : Time.
-   exists (tl [+] t).
+   exists (t [+] tl).
    unfold iprop. destruct t. destruct tl.
    simpl. unfold iprop in realVPos0.
    unfold iprop in realVPos1.
@@ -127,6 +127,11 @@ Hint Resolve plus_resp_nonneg : CoRN.
    apply N2RNonNeg.
  Defined.
 
+
+Definition mkTime (t:R) (p: [0] [<=] t) : Time.
+  exists t.
+  exact p.
+Defined.
 
 Definition QNNeg : Type := {q : Q | (if Qlt_le_dec q 0 then False else True) : Prop}.
 Definition QTime := QNNeg.
@@ -669,6 +674,15 @@ Proof.
   split; apply (leEq_inj_Q IR); trivial.
 Defined.
 
+Lemma contTf : forall (tf : TimeFun) (ta tb : Time), 
+    Continuous  (clcr ta tb) tf.
+Proof.
+  intros ? ? ?.
+  pose proof (continTF tf) as Hc.
+  eapply Included_imp_Continuous; eauto.
+  apply timeIncluded.
+Qed.
+
 Lemma contTfQ : forall (tf : TimeFun) (ta tb : QTime), 
     Continuous  (clcr ta tb) tf.
 Proof.
@@ -800,3 +814,218 @@ Lemma mapNil {A B}: forall f : A->B,
     map f nil = nil.
 intros. reflexivity.
 Qed.
+
+Lemma timeNonNeg: forall t:Time, 
+  (closel [0]) t.
+Proof.
+  intros. destruct t. simpl. trivial.
+Qed.
+
+Lemma timeNonNegUnfolded: forall t:Time, 
+  [0] [<=] t.
+Proof.
+  intros. destruct t. simpl. trivial.
+Qed.
+Hint Immediate timeNonNeg timeNonNegUnfolded: ROSCOQ.
+
+Lemma IVTTimeMinMax: forall (F : TimeFun) (ta tb : Time) (e y : IR),
+   ({F} ta[<]{F} tb)
+   -> [0][<]e 
+   -> (clcr ({F} ta) ({F} tb)) y 
+   -> {x : Time | (clcr (Min ta tb) (Max ta tb)) x |
+                    AbsIR ({F} x [-]y)[<=]e}.
+Proof.
+  intros ? ? ? ? ?.
+  destruct F . unfold getF. simpl.
+  intros Hflt He Hy.
+  eapply Weak_IVT with (y:=y) (F:=f0) (HFab := Hflt) in He; 
+    eauto 1 with ROSCOQ.
+  destruct He as [t He Ha].
+  unfold compact in He.
+  pose proof (leEq_Min _ _ _ (timeNonNeg ta) (timeNonNeg tb)).
+  destruct He as [Hel Her].
+  assert ([0][<=]t) as tp by info_eauto using leEq_transitive.
+  simpl in Hel, Her.
+  exists (mkTime t tp);
+    [simpl; dands; trivial; fail|].
+  apply Ha.
+Qed.
+
+Definition TMin (ta tb :Time) : Time.
+  exists (Min ta tb).
+  pose proof (leEq_Min _ _ _ (timeNonNeg ta) (timeNonNeg tb)).
+  trivial.
+Defined.
+
+Definition TMax (ta tb :Time) : Time.
+  exists (Max ta tb). simpl. 
+  pose proof (lft_leEq_Max ta tb) as Htm.
+  simpl in Htm.
+  pose proof (timeNonNeg ta) as Hta. simpl in Hta.
+  eauto using leEq_transitive.
+Defined.
+
+  
+
+
+Lemma contITf : forall (tf : TimeFun) (ta tb : Time), 
+    Continuous_I  (Min_leEq_Max ta tb) tf.
+Proof.
+  intros ? ? ?.
+  apply (contTf tf (TMin ta tb) (TMax ta tb)).
+  unfold compact.
+  simpl. intros ? Hc.
+  simpl. trivial.
+Qed.
+
+Lemma  ContinTFSimpl : 
+   forall (F : TimeFun) (ta tb : Time) (e  : IR),
+      [0][<]e ->
+      {d : IR | [0][<]d |
+      forall x y : Time,
+      Compact (Min_leEq_Max ta tb) x ->
+      Compact (Min_leEq_Max ta tb) y ->
+      AbsIR (x[-]y)[<=]d -> AbsIR ({F} x[-]{F} y)[<=]e}.
+Proof.
+  intros ? ? ? ? Hgt.
+  pose proof (contITf F ta tb) as Hc.
+  apply snd in Hc.
+  specialize (Hc _ Hgt).
+  destruct Hc as [d Hdgt Hcn].
+  exists d; eauto.
+Qed.
+
+
+Lemma MinTAdd : forall (tx ty : Time),
+  MIN tx (tx[+]ty) [=] tx.
+Proof.
+  intros.
+  apply leEq_imp_Min_is_lft.
+  rewrite cag_commutes.
+  apply shift_leEq_plus.
+  rewrite cg_minus_correct.
+  eauto 1  with ROSCOQ.
+Qed.
+
+Lemma MaxTAdd : forall (tx ty : Time),
+  MAX tx (tx[+]ty) [=] (tx[+]ty).
+Proof.
+  intros.
+  apply leEq_imp_Max_is_rht.
+  rewrite cag_commutes.
+  apply shift_leEq_plus.
+  rewrite cg_minus_correct.
+  eauto 1  with ROSCOQ.
+Qed.
+
+Lemma injQGt0 : forall q:Q, 0 < q ->  [0][<] inj_Q IR q.
+  intros ? Hq.
+  eapply less_wdl;[| apply inj_Q_Zero].
+  apply inj_Q_less.
+  trivial.
+Qed.
+
+Lemma QT2TGt0 : forall q:QTime, 0 < q ->  [0][<] QT2T q.
+  intros ? Hq.
+  destruct q as [q qp]. simpl.
+  simpl in Hq.
+  apply injQGt0.
+  trivial.
+Qed.
+  
+Definition mkQTimeLt  (t : Q) (tl: Time) (p: tl [<] t) : QTime.
+  exists t.
+  apply mkQTimeSnd.
+  apply (leEq_inj_Q IR).
+  rewrite inj_Q_Zero.
+  unfold Q2R in p.
+  info_eauto 3 with CoRN ROSCOQ.
+Defined.
+
+Lemma IVTQTimeMinMax: forall (F : TimeFun) (ta tb : QTime) 
+    (e y : IR),
+   ({F} ta[<]{F} tb)
+   -> [0][<]e 
+   -> (clcr ({F} ta) ({F} tb)) y 
+   -> {x : QTime | (clcr (Min ta tb) (Max ta tb)) x |
+                    AbsIR ({F} x [-]y)[<=]e}.
+Proof.
+  intros ? ? ? ? ? Hfab He Hy.
+  apply pos_div_two in He.
+  eapply IVTTimeMinMax in Hy; eauto.
+  destruct Hy as [tx Hclr Habs].
+  pose proof (ContinTFSimpl F tx (tadd tx (mkQTime 1 I))) as Hcn.
+  specialize (Hcn _ He).
+  destruct Hcn as [d dp Hcn].
+  unfold compact in Hcn.
+  remember (mkQTime 1 I) as t1.
+  remember (e [/]TwoNZ) as eps2.
+  unfold tadd in Hcn. simpl in Hcn.
+  pose proof (eq_imp_leEq IR _ _ (MinTAdd tx t1)) as txl.
+  specialize (fun y=> Hcn tx y (txl, lft_leEq_Max _ _)).
+  remember (TMin t1 (mkTime d (less_leEq IR _ _ dp))) as tma.
+  assert ([0][<]tma) as Hx by
+    (subst tma; simpl;
+     apply less_Min;
+      [apply QT2TGt0;
+        subst; simpl; lra | auto]).
+  apply (ltAddRhs tx) in Hx.
+  pose proof (Q_dense_in_CReals' _ _ _ Hx) as Hqr.
+  destruct Hqr as [q Hlt Hgt].
+  remember (mkQTimeLt _ _ Hlt) as qt.
+  (* exists qt. *)
+  specialize (Hcn qt).
+  clear Hx. simpl in Hcn.
+  match type of Hcn with
+  (?A & ?B) -> _ => assert A as tq 
+       by (subst qt; simpl;
+         eauto 3 with CoRN)
+  end. 
+  clear txl.
+  specialize (fun p => (Hcn (tq, p))).
+  rewrite MaxTAdd in Hcn.
+  match type of Hcn with
+  ?A -> _ => assert A as pp by
+      (subst qt; simpl;apply less_leEq;
+      eapply less_leEq_trans;[apply Hgt|];
+      apply plus_resp_leEq_lft;
+      subst tma;
+      simpl; apply Min_leEq_lft)
+  end.
+  specialize (Hcn pp).
+  exists ()
+
+
+
+
+  subst t1.
+
+  rewrite QT2T_Q2R.
+
+  apply injQGt0.
+
+  rewrite <- inj_Q_Zero.
+
+
+
+  unfold Continuous_I in Hcn.
+  apply snd in Hcn.
+  specialize (fun y => Hcn tx y Hclr).
+
+  unfold Continuous in Hcn.
+
+
+  eapply Weak_IVT with (y:=y) (F:=f0) (HFab := Hflt) in He; 
+    eauto 1 with ROSCOQ.
+  destruct He as [t He Ha].
+  unfold compact in He.
+  pose proof (leEq_Min _ _ _ (timeNonNeg ta) (timeNonNeg tb)).
+  destruct He as [Hel Her].
+  assert ([0][<=]t) as tp by info_eauto using leEq_transitive.
+  simpl in Hel, Her.
+  exists (mkTime t tp);
+    [simpl; dands; trivial; fail|].
+  apply Ha.
+Qed.
+
+

@@ -510,4 +510,38 @@ Proof.
 Qed.
 
 Require Export CoRN.ftc.StrongIVT.
-Check Weak_IVT.
+
+(** this lemma is strronger than Weak_IVT. the only change
+    is that this lemma gives a rational with the same properties
+    as required earlier. In the proof, the provided tolerance
+    needs to be split between that of Weak_IVT
+    and that of modulus of continuity *)
+Lemma Weak_QIVT
+     : forall (I : interval) (F : PartFunct IR),
+       Continuous I F ->
+       forall (a b : IR) (Ha : Dom F a) (Hb : Dom F b)
+         (HFab : F a Ha[<]F b Hb),
+       I a ->
+       I b ->
+       forall e : IR,
+       [0][<]e ->
+       forall y : IR,
+       Compact (less_leEq IR (F a Ha) (F b Hb) HFab) y ->
+       {x : Q | Compact (Min_leEq_Max a b) x |
+       forall Hx : Dom F x, AbsIR (F x Hx[-]y)[<=]e}.
+Proof.
+  intros ? ? Hc ? ? ? ? ? Hia Hib ? He ? Hcp.
+  apply pos_div_two in He.
+  eapply Weak_IVT with (y:=y) (F:=F) (HFab := HFab) in He;
+    eauto.
+  unfold compact in He.
+  unfold Continuous in Hc.
+  destruct Hc as [Hcl Hcr].
+  specialize (Hcr a b).
+  unfold Continuous_I in Hcr.
+Abort. (* this might run into some decidability issues.
+          lets try a simpler case when a and b and intervals
+          are rationals. see core .v *)
+
+
+
