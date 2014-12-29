@@ -283,109 +283,6 @@ forall (a b : IR),
   trivial.
 Qed.
 
-Lemma ContFunQRLeAux : forall (f : PartIR)  (a b : Q) (c : IR)
-(cc : Continuous (clcr a b) f),
-(forall (t:Q) (p: (clcr a b) t), (f t ((fst cc) _ p) [<=] c))
--> (forall (t:IR) (p: (clcr a b) t), (f t ((fst cc) _ p) [<=] c)).
-Proof.
-  intros ? ? ? ? ? Hq ? ?.
-  apply leEq_def.
-  intros Hc.
-  unfold Continuous in cc.
-  pose proof (Qlt_le_dec b a) as Hd.
-  destruct Hd as [Hd | Hd].
-- simpl in p. destruct p as [pl pr].
-  assert ((Q2R a) [<=] (Q2R b)) as Hqq by 
-  eauto using leEq_transitive.
-  apply leEq_inj_Q in Hqq.
-  simpl in Hqq. lra.
-- destruct cc as [HI  HC].
-  simpl in Hq. pose proof Hd as Hdb.
-  apply (inj_Q_leEq IR) in Hd.
-  simpl in Hc.
-  specialize (HC _ _ Hd).
-  unfold compact in HC. simpl in HC.
-  lapply HC;[clear HC; intro HC
-            |intros x Hx; simpl; tauto].
-  unfold  Continuous_I in HC.
-  apply snd in HC. pose proof Hc as Hcb.
-  apply shift_zero_less_minus in Hc.
-  remember ((f t (HI t p)) [-] c) as eps.
-  apply pos_div_two in Hc.
-  specialize (HC _ Hc).
-  destruct HC as [d Hdp HC].
-  (** need to come up with a rational (say [q]) [d]-close 
-    to [t] and also in [(clcr a b)].
-    Then we can use [Hq q] and [HC t q)] to get a contradiction
-    [q] can be on either side of [t].
-    Lets focus on RHS.
-    so, [q] must lie in (olor t (Min (t[+]d) b))
-    Since rationals are dense in reals, it suffices
-    to prove that t < (Min (t[+]d) b)
- *)
-  pose proof (leEq_less_or_equal _ _ _ (snd p)) as Heq.
-  apply Heq. intros Hcc. simpl in Hq. clear Heq.
-  pose proof (Hq b (Hd,leEq_reflexive _ _)) as Hqb.
-  destruct Hcc as [Hcc| Hcc];
-  [ | pose proof (pfwdef _ _ _ _ (HI t p) 
-                (HI b (Hd, leEq_reflexive IR b)) Hcc) as Hr;
-      rewrite <- Hr in Hqb;
-      apply leEq_def in Hqb;
-      unfold Not in Hqb; tauto].
-  clear Hqb.
-  pose proof (less_Min _ _ _ (ltAddRhs t d Hdp) Hcc) as Hmlt.
-  pose proof (Q_dense_in_CReals' _ _ _ Hmlt) as Hqr.
-  destruct Hqr as [q Hqr Hql].
-  specialize (Hq q).
-  simpl in p. unfold Q2R in p. destruct p as [pl pr].
-  assert (inj_Q _ a[<=]inj_Q IR q) as Haq by (eauto using
-        less_leEq, leEq_less_trans).
-  assert (inj_Q IR q[<=] inj_Q _ b) as Hqb by (eauto using
-      less_leEq,
-      less_leEq_trans,
-      Min_leEq_rht).
-  
-  specialize (Hq (Haq, Hqb)).
-  specialize (HC t q).
-  unfold compact in HC.
-  lapply HC;[clear HC; intro HC|split; auto].
-  lapply HC;[clear HC; intro HC|split; auto].
-  specialize (HC (HI _ (pl,pr)) (HI _ (Haq, Hqb))).
-  rewrite AbsIR_minus in HC. unfold Q2R in HC.
-  rewrite AbsIR_eq_x in HC;[|eauto 4 using 
-        shift_zero_leEq_minus, less_leEq].
-  lapply HC;[ clear HC; intro HC | 
-    apply shift_minus_leEq;
-    rewrite cag_commutes_unfolded; (eauto using
-        less_leEq,leEq_less_trans,leEq_reflexive,
-        less_leEq_trans,Min_leEq_lft
-  )].
-  clear Hql Hqr Hmlt Hcc Hdp.
-  subst eps. clear Hc.
-  remember (f t (HI t (pl, pr))) as ft.
-  clear Heqft. unfold Q2R in Hq.
-  remember (f (inj_Q IR q) (HI (inj_Q IR q) (Haq, Hqb))) as fq.
-  clear Heqfq.
-  apply shift_mult_leEq' in HC; [|apply pos_two].
-  assert (fq[<]ft) as Hlqt by eauto using leEq_less_trans.
-  (** Now we need to prove ft[<=]fq *)
-  rewrite AbsIR_eq_x in HC;[|eauto using 
-      shift_zero_leEq_minus,
-      less_leEq].
-  apply (plus_resp_leEq_both _ _ _ _ _ HC) in Hq.
-  rewrite <- cg_cancel_mixed in Hq.
-  rewrite <- x_plus_x in Hq.
-  apply shift_leEq_minus in Hq.
-  remember (ft[-]fq) as ftmx.
-  apply shift_leEq_minus in Hq.
-  rewrite cg_minus_correct in Hq.
-  subst ftmx.
-  apply shift_leEq_plus in Hq.
-  ring_simplify in Hq.
-  apply leEq_def in Hq.
-  unfold Not in Hq. tauto.
-Qed.
-
 Lemma closeRationalR : forall (a b t d : IR) (Hab : a [<=] b),
   Compact Hab t
   -> t[<]b
@@ -456,6 +353,90 @@ Proof.
   pose proof (lft_leEq_Max (t[-]d) a).
   apply less_leEq.
   eapply leEq_less_trans; eauto.
+Qed.
+
+Lemma ContFunQRLeAux : forall (f : PartIR)  (a b : Q) (c : IR)
+(cc : Continuous (clcr a b) f),
+(forall (t:Q) (p: (clcr a b) t), (f t ((fst cc) _ p) [<=] c))
+-> (forall (t:IR) (p: (clcr a b) t), (f t ((fst cc) _ p) [<=] c)).
+Proof.
+  intros ? ? ? ? ? Hq ? ?.
+  apply leEq_def.
+  intros Hc.
+  unfold Continuous in cc.
+  pose proof (Qlt_le_dec b a) as Hd.
+  destruct Hd as [Hd | Hd].
+- simpl in p. destruct p as [pl pr].
+  assert ((Q2R a) [<=] (Q2R b)) as Hqq by 
+  eauto using leEq_transitive.
+  apply leEq_inj_Q in Hqq.
+  simpl in Hqq. lra.
+- destruct cc as [HI  HC].
+  simpl in Hq. pose proof Hd as Hdb.
+  apply (inj_Q_leEq IR) in Hd.
+  simpl in Hc.
+  specialize (HC _ _ Hd).
+  unfold compact in HC. simpl in HC.
+  lapply HC;[clear HC; intro HC
+            |intros x Hx; simpl; tauto].
+  unfold  Continuous_I in HC.
+  apply snd in HC. pose proof Hc as Hcb.
+  apply shift_zero_less_minus in Hc.
+  remember ((f t (HI t p)) [-] c) as eps.
+  apply pos_div_two in Hc.
+  specialize (HC _ Hc).
+  destruct HC as [d Hdp HC].
+  (** need to come up with a rational (say [q]) [d]-close 
+    to [t] and also in [(clcr a b)].
+    Then we can use [Hq q] and [HC t q)] to get a contradiction
+    [q] can be on either side of [t].
+    Lets focus on RHS.
+    so, [q] must lie in (olor t (Min (t[+]d) b))
+    Since rationals are dense in reals, it suffices
+    to prove that t < (Min (t[+]d) b)
+ *)
+  pose proof (leEq_less_or_equal _ _ _ (snd p)) as Heq.
+  apply Heq. intros Hcc. simpl in Hq. clear Heq.
+  pose proof (Hq b (Hd,leEq_reflexive _ _)) as Hqb.
+  destruct Hcc as [Hcc| Hcc];
+  [ | pose proof (pfwdef _ _ _ _ (HI t p) 
+                (HI b (Hd, leEq_reflexive IR b)) Hcc) as Hr;
+      rewrite <- Hr in Hqb;
+      apply leEq_def in Hqb;
+      unfold Not in Hqb; tauto].
+  clear Hqb.
+
+pose proof (closeRationalR _ _ _ _ 
+    Hd p Hcc Hdp) as Hqq.
+destruct Hqq as [q Hqq].
+destruct Hqq as [Hcomp Hab].
+  specialize (HC t q p Hcomp (HI t p) (HI (inj_Q IR q) Hcomp) Hab).
+  clear Hcc Hdp.
+  subst eps. clear Hc.
+  remember (f t (HI t p)) as ft.
+  clear Heqft. unfold Q2R in Hq.
+  apply shift_mult_leEq' in HC; [|apply pos_two].
+  specialize (Hq q Hcomp).
+  unfold Q2R in HC.
+  remember (f (inj_Q IR q) (HI (inj_Q IR q) Hcomp)) as fq.
+  clear Heqfq.
+  assert (fq[<]ft) as Hlqt by eauto using leEq_less_trans.
+  (** Now we need to prove ft[<=]fq *)
+  rewrite AbsIR_eq_x in HC;[|eauto using 
+      shift_zero_leEq_minus,
+      less_leEq].
+  apply (plus_resp_leEq_both _ _ _ _ _ HC) in Hq.
+  rewrite <- cg_cancel_mixed in Hq.
+  rewrite <- x_plus_x in Hq.
+  apply shift_leEq_minus in Hq.
+  remember (ft[-]fq) as ftmx.
+  apply shift_leEq_minus in Hq.
+  rewrite cg_minus_correct in Hq.
+  subst ftmx.
+  apply shift_leEq_plus in Hq.
+  ring_simplify in Hq.
+  apply leEq_def in Hq.
+  unfold Not in Hq. tauto.
 Qed.
 
 (** It might be possible to do this proof 
