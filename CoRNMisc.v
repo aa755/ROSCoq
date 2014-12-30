@@ -262,7 +262,7 @@ leEq_inj_Q leEq_wdr leEq_wdr leEq_reflexive eq_imp_leEq
 leEq_imp_eq leEq_imp_eq leEq_transitive (leEq_inj_Q IR) less_leEq
 Min_leEq_rht Min_leEq_lft
 shift_zero_leEq_minus shift_minus_leEq shift_zeroR_leEq_minus
-pos_two rht_leEq_Max 
+pos_two pos_one rht_leEq_Max 
 lft_leEq_Max: CoRN.
 
 Hint Immediate eq_reflexive_unfolded : CoRN.

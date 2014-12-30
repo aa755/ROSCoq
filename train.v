@@ -757,7 +757,7 @@ Qed.
   
 Lemma concreteValues : hwidth = Z2R 2 
                        /\ boundary = Z2R 100 
-                       /\ alertDist =  1
+                       /\ alertDist =  (inject_Z 16)
                       /\ maxDelay = mkQTime 1 I
                       /\ reactionTime = 1
                       /\ initialVel = (-1%Z)
@@ -772,15 +772,15 @@ match (eLoc  ev) with
 | BASEMOTOR => 
             isDeqEvt ev
               -> (eMesg ev) = posVelMeg
-              -> (centerPosAtTime tstate (eTime ev)) [<=]  Z2R (-91)
+              -> (centerPosAtTime tstate (eTime ev)) [<=]  Z2R (-78)
 | SWCONTROLLER => 
             match eKind ev with
             | sendEvt => 
                 (eMesg ev) = posVelMeg
-                -> (centerPosAtTime tstate (eTime ev)) [<=] Z2R (-92)
+                -> (centerPosAtTime tstate (eTime ev)) [<=] Z2R (-79)
             | deqEvt => 
                 (eMesg ev) = (mkMesg PSENSOR false)::nil
-                -> (centerPosAtTime tstate (eTime ev)) [<=] Z2R (-93)
+                -> (centerPosAtTime tstate (eTime ev)) [<=] Z2R (-80)
             | _ => True
             end
 | _ => True
@@ -955,15 +955,15 @@ match (eLoc  ev) with
 | BASEMOTOR => 
             isDeqEvt ev
               -> (eMesg ev) = negVelMeg
-              -> Z2R (91) [<=]  (centerPosAtTime tstate (eTime ev))
+              -> Z2R (78) [<=]  (centerPosAtTime tstate (eTime ev))
 | SWCONTROLLER => 
             match eKind ev with
             | sendEvt => 
                 (eMesg ev) = negVelMeg
-                -> Z2R (92) [<=] (centerPosAtTime tstate (eTime ev))
+                -> Z2R (79) [<=] (centerPosAtTime tstate (eTime ev))
             | deqEvt => 
                 (eMesg ev) = (mkMesg PSENSOR true)::nil
-                -> Z2R (93) [<=] (centerPosAtTime tstate (eTime ev))
+                -> Z2R (80) [<=] (centerPosAtTime tstate (eTime ev))
             | _ => True
             end
 | _ => True
@@ -1161,7 +1161,7 @@ Qed.
 Lemma posVelAtLHS : forall evp,
   getPayloadFromEv MOTOR evp = Some speed
   -> eLoc evp = BASEMOTOR
-  -> (centerPosAtTime tstate (eTime evp)) [<=]  Z2R (-91).
+  -> (centerPosAtTime tstate (eTime evp)) [<=]  Z2R (-78).
 Proof.
   intros ? Hp Hl.
   pose proof (PosVelAtLHSAux evp) as Hev.
@@ -1177,7 +1177,7 @@ Qed.
 Lemma negVelAtRHS : forall evp,
   getPayloadFromEv MOTOR evp = Some (-speed)
   -> eLoc evp = BASEMOTOR
-  -> Z2R (91) [<=] (centerPosAtTime tstate (eTime evp)) .
+  -> Z2R (78) [<=] (centerPosAtTime tstate (eTime evp)) .
 Proof.
   intros ? Hp Hl.
   pose proof (NegVelAtRHSAux evp) as Hev.
@@ -1321,6 +1321,13 @@ Proof.
   intros. eapply motorLastPosVelAux; eauto.
 Qed.
 
+Ltac simplInjQ :=
+let H99 := fresh "HSimplInjQ" in
+match goal with
+[|- context [inj_Q _ ?q]] => let qs := eval compute in q in
+                         assert (q = qs) as H99 by reflexivity;
+                         rewrite H99; clear H99
+end.
 
 
 Lemma RHSSafe : forall t: QTime,  (centerPosAtTime tstate t) [<=] Z2R 95.
@@ -1334,6 +1341,44 @@ Proof.
   destruct Hle1 as [evp Hlat].
   unfold latestEvt in Hlat.
   repnd. eapply posVelAtLHS in Hlatlrl ; eauto.
+  assert (Z2R (-78) [<] Z2R 95) as H99 by
+   (unfold Z2R, inject_Z; apply inj_Q_less; simpl; lra).
+  assert (centerPosAtTime tstate (eTime evp) [<] centerPosAtTime tstate t)
+    as Hlt by eauto 4 with CoRN.
+  clear H99. unfold centerPosAtTime in Hlatlrl, Hc.
+  assert (Z2R (-78) [<=] Z2R 86) as H91 by
+   (unfold Z2R, inject_Z; apply inj_Q_leEq; simpl; lra).
+  assert (Z2R (86) [<=] Z2R 95) as H92 by
+   (unfold Z2R, inject_Z; apply inj_Q_leEq; simpl; lra).
+  apply IVTTimeMinMax with (e:=[1]) (y:=Z2R 86)  in Hlt; simpl; 
+    try split; eauto 3 with CoRN;[].
+  clear H91 H92.
+  destruct Hlt as [tpp H99].
+  destruct H99 as [Hclr Habs].
+  simpl in Hclr.
+  destruct Hclr as [Httpp Htppt].
+  rewrite leEq_imp_Min_is_lft in Httpp by
+      (repeat (rewrite <- QT2T_Q2R);
+       apply less_leEq;
+       apply inj_Q_less; simpl; trivial).
+
+  rewrite leEq_imp_Max_is_rht in Htppt by
+      (repeat (rewrite <- QT2T_Q2R);
+       apply less_leEq;
+       apply inj_Q_less; simpl; trivial).
+
+  apply AbsIR_imp_AbsSmall in Habs.
+  apply proj1 in Habs.
+  apply shift_plus_leEq in Habs.
+  rewrite cag_commutes in Habs.
+  unfold Z2R in Habs. rewrite <- inj_Q_One in Habs.
+  rewrite <- inj_Q_inv in Habs.
+  rewrite <- inj_Q_plus in Habs.
+  revert Habs. simplInjQ. intro Habs.
+
+
+  
+
 Abort.
   
   
