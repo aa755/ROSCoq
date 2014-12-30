@@ -620,7 +620,7 @@ Require Import Psatz.
 Require Import Setoid.
 
 
-Lemma centerPosChangeQ : forall (ta tb : QTime),
+Lemma centerPosChangeQAux : forall (ta tb : QTime),
   ta < tb
   -> (centerPosAtTime tstate tb [-] centerPosAtTime tstate ta) [<=] (tb - ta).
 Proof.
@@ -631,6 +631,30 @@ Proof.
   lapply Hcc; [clear Hcc; intro Hcc |apply inj_Q_less;trivial].
   eapply leEq_transitive; eauto.
   trivial. unfold Q2R. rewrite inj_Q_minus. simpl. unfold Q2R. simpl.
+  apply leEq_reflexive.
+Qed.
+
+
+(** this proof is not possible when [ta] and [tb] are
+    rationals *)
+Lemma centerPosChangeQ : forall (ta tb : QTime),
+  ta <= tb
+  -> (centerPosAtTime tstate tb [-] centerPosAtTime tstate ta) [<=] (tb - ta).
+Proof.
+  intros ? ? Hlt.
+  apply Qle_lteq in Hlt.
+  destruct Hlt as [Hlt| Hlt].
+- apply centerPosChangeQAux; trivial.
+- apply (inj_Q_wd IR) in Hlt.
+  unfold centerPosAtTime.
+  unfold Q2R.
+  rewrite inj_Q_minus. rewrite Hlt.
+  rewrite QT2T_Q2R in Hlt.
+  rewrite QT2T_Q2R in Hlt.
+  apply getFTimeProper with (tf:= tstate)in Hlt.
+  rewrite Hlt.
+  rewrite cg_minus_correct.
+  rewrite cg_minus_correct.
   apply leEq_reflexive.
 Qed.
 
@@ -660,7 +684,7 @@ Proof.
   repnd.
   apply qSubLt in Hintr.
   rename Hintl into Htlt.
-  apply centerPosChangeQ in Htlt.
+  apply centerPosChangeQAux in Htlt.
   remember (centerPosAtTime tstate tf) as cpvt. clear Heqcpvt.
   remember (centerPosAtTime tstate ts) as cpst. clear Heqcpst.
   rename Hintr into Hqlt.
@@ -1325,23 +1349,6 @@ Proof.
   intros. eapply motorLastPosVelAux; eauto.
 Qed.
 
-Ltac simplInjQ :=
-let H99 := fresh "HSimplInjQ" in
-match goal with
-[|- context [inj_Q _ ?q]] => let qs := eval compute in q in
-                         assert (q = qs) as H99 by reflexivity;
-                         rewrite H99; clear H99
-end.
-
-Lemma seq_refl: forall x y : IR, x = y -> x[=] y.
-  intros ? ? Heq.
-  rewrite Heq.
-  apply eq_reflexive.
-Qed.
-
-Lemma AbsIR_ABSIR: forall x, ABSIR x = AbsIR x.
-  intros. reflexivity.
-Qed.
 
 
 Lemma SensorOnlySendsToSw :   forall Es Er side,
@@ -1377,6 +1384,22 @@ Proof.
   reflexivity.
 Qed.
 
+
+Lemma timeDiffLB : forall (ts te : Time) (ps pe : R),
+  {tstate} ts [<=] ps
+  -> pe [<=] {tstate} te
+  -> ts [<=] te
+  -> ps [<] pe
+  -> (pe[-]ps) [<=] te [-] ts.
+Proof.
+  intros ? ? ? ? Htl Htr Hte Hplt.
+  assert ({tstate} ts [<] {tstate} te) as Hlt by eauto 4 with CoRN.
+  apply pfstrlt in Hlt; trivial;[].
+  pose proof (minus_resp_leEq_both _ _ _ _ _ Htr Htl).
+  eapply leEq_transitive; eauto.
+  apply centerPosChange.
+  trivial.
+Qed.
 Lemma RHSSafe : forall t: QTime,  (centerPosAtTime tstate t) [<=] Z2R 95.
 Proof.
   intros. apply leEq_def. intros Hc.
@@ -1390,15 +1413,12 @@ Proof.
   repnd. eapply posVelAtLHS in Hlatlrl ; eauto.
 
   (** Applying IVT *)
-  assert (Z2R (-78) [<] Z2R 95) as H99 by
-   (unfold Z2R, inject_Z; apply inj_Q_less; simpl; lra).
+  assert (Z2R (-78) [<] Z2R 95) as H99 by UnfoldLRA.
   assert (centerPosAtTime tstate (eTime evp) [<] centerPosAtTime tstate t)
     as Hlt by eauto 4 with CoRN.
   clear H99. unfold centerPosAtTime in Hlatlrl, Hc.
-  assert (Z2R (-78) [<=] Z2R 86) as H91 by
-   (unfold Z2R, inject_Z; apply inj_Q_leEq; simpl; lra).
-  assert (Z2R (86) [<=] Z2R 95) as H92 by
-   (unfold Z2R, inject_Z; apply inj_Q_leEq; simpl; lra).
+  assert (Z2R (-78) [<=] Z2R 86) as H91 by UnfoldLRA.
+  assert (Z2R (86) [<=] Z2R 95) as H92 by UnfoldLRA.
   apply IVTTimeMinMax with (e:=[1]) (y:=Z2R 86)  in Hlt; simpl; 
     try split; eauto 3 with CoRN;[].
   clear H91 H92.
@@ -1415,17 +1435,32 @@ Proof.
       (repeat (rewrite <- QT2T_Q2R);
        apply less_leEq;
        apply inj_Q_less; simpl; trivial).
+  
+  pose proof Habs as HUB.
+  rewrite AbsIR_minus in HUB.
+  apply AbsIR_bnd in HUB.
+  apply AbsIR_bnd in Habs.
+  apply shift_minus_leEq in Habs.
+  rename Habs into HLB.
+  unfold Z2R in HLB, HUB.
+  autorewrite with QSimpl in HLB, HUB.
+  revert HLB. simplInjQ. intro HLB.
+  revert HUB. simplInjQ. intro HUB.
+  rename evp into evMp.
 
-  apply AbsIR_imp_AbsSmall in Habs.
-  destruct Habs as [Habs Habsr].
-  apply shift_plus_leEq in Habs.
-  rewrite cag_commutes in Habs.
-  unfold Z2R in Habs. rewrite <- inj_Q_One in Habs.
-  rewrite <- inj_Q_inv in Habs.
-  rewrite <- inj_Q_plus in Habs.
-  revert Habs. simplInjQ. intro Habs.
+  (** Applying IVT finished, we need to know that
+     ([tpp] - [t]) > 8, because 9 sec is enough
+     for corrective action to kick in in the motor.
+    if 8 is not enough, change 95 to sth bigger *)
 
-  (** Applying IVT finished, now invoking sensor's spec
+  rewrite  QT2T_Q2R in Htppt.
+  pose proof (timeDiffLB _ _ _ _ HUB Hc Htppt) as Htlt.
+  lapply Htlt;[clear Htlt; intros Htlt| UnfoldLRA].
+  revert Htlt. unfold Z2R. simplInjQ.
+  intros Htlt.
+
+
+    (* now invoking sensor's spec
       to get the event that it fired soon after [tpp] *)
   
   pose proof (corrNodes 

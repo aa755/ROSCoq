@@ -302,7 +302,18 @@ f t ((definedOnNonNeg f) _ (realVPos _ t)).
 
 Notation "{ f }" := (getF f).
 
-
+Instance getFTimeProper (tf : TimeFun):
+  Proper ((fun t1 t2 : Time => realV _ t1 [=] realV _ t2)
+          ==> (fun v1 v2 => v1 [=] v2))
+         {tf}.
+Proof.
+  unfold getF. intros  ? ? heq.
+  simpl in heq.
+  erewrite (pfwdef _ tf x y); eauto.
+  simpl.
+  apply eq_reflexive.
+Qed.
+  
 Definition isDerivativeOf (F' F : TimeFun) : CProp :=
 Derivative (closel [0]) I F F'.
 
@@ -954,4 +965,49 @@ Proof.
   rewrite cag_commutes in Hncl.
   apply shift_minus_leEq in Hncl.
   trivial.
+Qed.
+
+Lemma seq_refl: forall x y : IR, x = y -> x[=] y.
+  intros ? ? Heq.
+  rewrite Heq.
+  apply eq_reflexive.
+Qed.
+
+Lemma AbsIR_ABSIR: forall x, ABSIR x = AbsIR x.
+  intros. reflexivity.
+Qed.
+
+  Hint Rewrite <- inj_Q_One : QSimpl.
+  Hint Rewrite <- inj_Q_inv : QSimpl.
+  Hint Rewrite <- inj_Q_plus : QSimpl.
+  Hint Rewrite <- inj_Q_minus : QSimpl.
+  Hint Rewrite <- inj_Q_inv : QSimpl.
+
+Ltac simplInjQ :=
+  unfold Q2R, Z2R; autorewrite with QSimpl;
+let H99 := fresh "HSimplInjQ" in
+match goal with
+[|- context [inj_Q _ ?q]] => let qs := eval compute in q in
+                         assert (q = qs) as H99 by reflexivity;
+                         rewrite H99; clear H99
+end.
+Ltac UnfoldLRA :=
+   (unfold Q2R, Z2R, inject_Z; 
+      try apply inj_Q_leEq; 
+      try apply inj_Q_less; 
+      simpl; lra).
+
+Lemma pfstrlt:  forall (p : PartFunct IR) (x y : IR) 
+      (Hx : Dom p x)
+      (Hy : Dom p y), 
+        p x Hx[<]p y Hy 
+        -> x[<=]y
+       -> x[<]y.
+Proof.
+  intros ? ? ? ? ? Hpp Hle.
+  apply less_imp_ap in Hpp.
+  apply pfstrx in Hpp.
+  apply ap_imp_less in Hpp.
+  apply leEq_def in Hle. unfold Not in Hle.
+  destruct Hpp; tauto.
 Qed.
