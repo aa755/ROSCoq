@@ -35,7 +35,7 @@ Instance  ttttt : @RosTopicType Topic _.
 Defined.
 
 Definition left := false.
-Definition right := false.
+Definition right := true.
 
 Inductive RosLoc := 
  BASEMOTOR | PROXSENSOR (b:bool) | SWCONTROLLER.
@@ -180,12 +180,14 @@ fun  (distanceAtTime : Time -> R)
      (evs : nat -> option Event) 
   =>
     (∀ t:QTime,
-       (distanceAtTime t  [<] alertDist)
-       -> ∃ n, opLiftF (ProxPossibleTimeEvPair maxDelay side t) (evs n))
+       (distanceAtTime t  [<=] alertDist)
+       -> ∃ n, ∃ ev,
+          evs n = Some ev /\ isSendEvt ev /\
+            opLiftF (ProxPossibleTimeEvPair maxDelay side t) (evs n))
     /\
     (∀ (n: nat), 
         isSendEvtOp (evs n)
-        -> ∃ t : QTime,  Cast (distanceAtTime t  [<]  alertDist)
+        -> ∃ t : QTime,  Cast (distanceAtTime t  [<=]  alertDist)
                 /\ opLiftF (ProxPossibleTimeEvPair maxDelay side t) (evs n)).
 
 Definition inIntervalDuring
@@ -288,8 +290,8 @@ Definition transitionInterval : interval :=
 
 Definition proxView (side :bool) :=
 match side with
-| true => (fun ts t => AbsIR ((rEndPos ts t) [-] rboundary))
-| false => (fun ts t => AbsIR ((lEndPos ts t) [-] lboundary))
+| true => (fun ts t => (rboundary [-] (rEndPos ts t)))
+| false => (fun ts t => ((lEndPos ts t) [-] lboundary))
 end.
 
 
@@ -912,9 +914,9 @@ Proof.
     simpl in Hmd.
     inverts Hncl as Hncl.
     subst. unfold proxView in Hncl.
-    apply less_leEq in Hncl.
-    rewrite AbsIR_minus in Hncl.
-    apply AbsIR_bnd in Hncl.
+    (* apply less_leEq in Hncl. *)
+    (* rewrite AbsIR_minus in Hncl. *)
+    (* apply AbsIR_bnd in Hncl. *)
     unfold lEndPos, lboundary in Hncl.
     pose proof concreteValues as Hcon.
 
@@ -934,6 +936,7 @@ Close Scope nat_scope.
     clear tstate reactionTimeGap 
         maxDelay transitionValues velAccuracy boundary safeDist 
         hwidth  reactionTime  alertDist minGap.
+    apply shift_leEq_plus in Hncl.
     apply shift_leEq_plus in Hncl.
     eapply leEq_transitive; eauto. clear dependent cpt.
     rewrite <- inj_Q_Zero.
@@ -1094,8 +1097,8 @@ Proof.
     simpl in Hmd.
     inverts Hncl as Hncl.
     subst. unfold proxView in Hncl.
-    apply less_leEq in Hncl.
-    apply AbsIR_bnd in Hncl.
+    (* apply less_leEq in Hncl. *)
+    (* apply AbsIR_bnd in Hncl. *)
     unfold rEndPos, rboundary in Hncl.
     pose proof concreteValues as Hcon.
 
@@ -1114,8 +1117,9 @@ Close Scope nat_scope.
     clear tstate reactionTimeGap 
         maxDelay transitionValues velAccuracy boundary safeDist 
         hwidth  reactionTime  alertDist minGap.
-    rewrite <- plus_assoc_unfolded in Hncl.
-    apply shift_minus_leEq in Hncl.
+    rewrite CAbGroups.minus_plus in Hncl.
+    apply shift_leEq_plus in Hncl.
+    apply minusSwapLe in Hncl.
     eapply leEq_transitive; eauto. clear dependent cpt.
     unfold Z2R. unfold inject_Z.
     unfold Q2R, Z2R.
@@ -1329,6 +1333,15 @@ match goal with
                          rewrite H99; clear H99
 end.
 
+Lemma seq_refl: forall x y : IR, x = y -> x[=] y.
+  intros ? ? Heq.
+  rewrite Heq.
+  apply eq_reflexive.
+Qed.
+
+Lemma AbsIR_ABSIR: forall x, ABSIR x = AbsIR x.
+  intros. reflexivity.
+Qed.
 
 Lemma RHSSafe : forall t: QTime,  (centerPosAtTime tstate t) [<=] Z2R 95.
 Proof.
@@ -1341,6 +1354,8 @@ Proof.
   destruct Hle1 as [evp Hlat].
   unfold latestEvt in Hlat.
   repnd. eapply posVelAtLHS in Hlatlrl ; eauto.
+
+  (** Applying IVT *)
   assert (Z2R (-78) [<] Z2R 95) as H99 by
    (unfold Z2R, inject_Z; apply inj_Q_less; simpl; lra).
   assert (centerPosAtTime tstate (eTime evp) [<] centerPosAtTime tstate t)
@@ -1368,7 +1383,7 @@ Proof.
        apply inj_Q_less; simpl; trivial).
 
   apply AbsIR_imp_AbsSmall in Habs.
-  apply proj1 in Habs.
+  destruct Habs as [Habs Habsr].
   apply shift_plus_leEq in Habs.
   rewrite cag_commutes in Habs.
   unfold Z2R in Habs. rewrite <- inj_Q_One in Habs.
@@ -1376,6 +1391,42 @@ Proof.
   rewrite <- inj_Q_plus in Habs.
   revert Habs. simplInjQ. intro Habs.
 
+  (** Applying IVT finished, now invoking sensor's spec
+      to get the event that it fired soon after [tpp] *)
+  
+  pose proof (corrNodes 
+                eo 
+                (PROXSENSOR right)) as Hnc.
+  simpl in Hnc.
+
+  unfold NodeBehCorrect in Hnc.
+  unfold  ROSCyberPhysicalSystem.locNode in Hnc.
+
+  apply proj1 in Hnc.
+  specialize (Hnc tpp).
+  unfold rEndPos, rboundary in Hnc.
+  pose proof concreteValues as Hcon.
+Open Scope nat_scope.
+    AndProjN 0 Hcon as Hhw.
+    AndProjN 1 Hcon as Hbb.
+    AndProjN 2 Hcon as Hal.
+    AndProjN 3 Hcon as Hmd.
+Close Scope nat_scope.
+  subst.
+  clear Hcon Hhw Hbb Hal Hmd. 
+  unfold Z2R, inject_Z in Hnc.
+  rewrite cag_commutes in Hnc.
+  rewrite CAbGroups.minus_plus in Hnc.
+  lapply Hnc;[clear Hnc;intro Hnc|
+    apply minusSwapLe;
+    eapply leEq_transitive; eauto;
+    unfold Q2R;
+    repeat (rewrite <- inj_Q_minus);
+    apply inj_Q_leEq; unfold cg_minus; simpl; lra].
+  destruct Hnc as [n Hnc].
+  destruct Hnc as [ev Hnc].
+  repnd.
+  
 
   
 

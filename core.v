@@ -946,3 +946,12 @@ Definition mkQTimeLt  (t : Q) (tl: Time) (p: tl [<] t) : QTime.
   info_eauto 3 with CoRN ROSCOQ.
 Defined.
 
+Lemma minusSwapLe : forall (x y z : IR),
+  x [-] y [<=] z -> x [-] z [<=] y.
+Proof.
+  intros  ? ? ? Hncl.
+  apply shift_leEq_plus in Hncl.
+  rewrite cag_commutes in Hncl.
+  apply shift_minus_leEq in Hncl.
+  trivial.
+Qed.
