@@ -812,7 +812,13 @@ match (eLoc  ev) with
 | _ => True
 end.
 
-
+Ltac SensorMsgInvert Hmd :=
+    (apply (f_equal (hd (mkMesg PSENSOR false))) in Hmd;
+    simpl in Hmd;
+    apply (f_equal getSensorSide) in Hmd;
+    simpl in Hmd;
+    apply (f_equal (fun op => opExtract op false)) in Hmd;
+    simpl in Hmd).
 
 Lemma  PosVelAtLHSAux : forall (ev : Event),
           MotorRecievesPositivVelAtLHS ev.
@@ -930,12 +936,7 @@ Proof.
     eapply centerPosUB2; eauto.
     clear Hncrl.
     rewrite Hncrr in Hmd.
-    apply (f_equal (hd (mkMesg PSENSOR false))) in Hmd.
-    simpl in Hmd.
-    apply (f_equal getSensorSide) in Hmd.
-    simpl in Hmd. 
-    apply (f_equal (fun op => opExtract op false)) in Hmd.
-    simpl in Hmd.
+    SensorMsgInvert Hmd.
     inverts Hncl as Hncl.
     subst. unfold proxView in Hncl.
     (* apply less_leEq in Hncl. *)
@@ -1113,12 +1114,7 @@ Proof.
     eapply centerPosLB2; eauto.
     clear Hncrl.
     rewrite Hncrr in Hmd.
-    apply (f_equal (hd (mkMesg PSENSOR false))) in Hmd.
-    simpl in Hmd.
-    apply (f_equal getSensorSide) in Hmd.
-    simpl in Hmd. 
-    apply (f_equal (fun op => opExtract op false)) in Hmd.
-    simpl in Hmd.
+    SensorMsgInvert Hmd.
     inverts Hncl as Hncl.
     subst. unfold proxView in Hncl.
     (* apply less_leEq in Hncl. *)
@@ -1384,6 +1380,38 @@ Proof.
   reflexivity.
 Qed.
 
+Lemma SwOnlySendsToMotor :   forall Es Er,
+  isSendEvt Es
+  -> isRecvEvt Er
+  -> PossibleSendRecvPair Es Er
+  -> eLoc Es = SWCONTROLLER
+  -> eLoc Er = BASEMOTOR.
+Proof.
+  intros ? ?  Hs Hr Hsendl Hl.
+  unfold PossibleSendRecvPair in Hsendl.
+  repnd. clear Hsendlrrr.
+  unfold validSendMesg in Hsendlrrl.
+  pose proof (deqSingleMessage _ Hr) as XX.
+  destruct XX as [m XX].
+  repnd. rewrite <- XXl in Hsendlrl.
+  rewrite <- Hsendll in XXl.
+  rewrite <- XXl in Hsendlrrl.
+  specialize (Hsendlrl _ (or_introl eq_refl)).
+  specialize (Hsendlrrl _ (or_introl eq_refl)).
+  rewrite Hl in Hsendlrrl.
+  simpl in Hsendlrrl.
+  rewrite RemoveOrFalse in Hsendlrrl.
+  unfold validSendMesg in Hsendlrrl.
+  simpl in Hsendlrrl.
+  rewrite <- Hsendlrrl in Hsendlrl.
+  destruct (eLoc Er); simpl in Hsendlrl;
+    try rewrite RemoveOrFalse in Hsendlrl;
+    try contradiction;
+    inversion Hsendlrrl; 
+    try discriminate;
+    try contradiction.
+  reflexivity.
+Qed.
 
 Lemma timeDiffLB : forall (ts te : Time) (ps pe : R),
   {tstate} ts [<=] ps
@@ -1518,15 +1546,75 @@ Close Scope nat_scope.
   simpl in Hrecl.
   rename Er into Eswr.
   repnd. rewrite Hncrrr in Hmeq.
-  (* lets update the time bounds *)
+
+  (** got the msg received by sw. lets update the time bounds *)
+
   assert (6 # 1 < t + - (eTime Eswr))  as Htubb by lra.
-  assert (tivt < (eTime Eswr))  as Htlb by lra.
   clear Htub. rename Htubb into Htub.
-  clear Hreclr Hrecll Hncrrr Hncrl Hrecrl Hnclr Hncll.
-  
+  assert (tivt < (eTime Eswr))  as Htlb by lra.
+  clear Hreclr Hrecll Hncrrr Hncrl Hrecrl Hnclr Hncll Htppt
+      Hncrrll Esens.
 
-
+  (** lets process the message on the s/w node *)
+   pose proof (corrNodes 
+                eo 
+                SWCONTROLLER 
+                (eLocIndex Eswr)) as Hnc.
+  apply snd in Hnc.
+  pose proof (locEvtIndex SWCONTROLLER (eLocIndex Eswr) Eswr) as Hxx.
+  rewrite (proj1 Hxx) in Hnc;[| split; auto; fail].
+  simpl  in Hnc.
+  specialize (Hnc Hrecrr).
+  destruct Hnc as [m Hnc].
+  apply DeqSendOncePair in Hnc.
+  simpl in Hnc. 
+  destruct Hnc as [es0 Hnc].
+  destruct Hnc as [ed Hnc].
+  exrepd. rewrite ((proj1 Hxx) (conj Hsw eq_refl)) in e.
+  symmetry in e. inverts e.
+  rename es0 into Esws.
+  rewrite <- Hmeq in H1.
+  SensorMsgInvert H1. subst.
+  clear Hmeq.
+  rename H2 into Hmot.
+  simpl in Hmot.
   
+  (** got the msg sent received by sw. 
+      lets update the time bounds *)
+
+  assert (5 # 1 < t + - (eTime Esws))  as Htubb by lra.
+  clear Htub. rename Htubb into Htub.
+  assert (tivt < (eTime Esws))  as Htlbb by lra.
+  clear Htlb. rename Htlbb into Htlb.
+  rename e0 into Hss.
+  apply locEvtIndex in Hss.
+  clear H0 H i i1 q Hrecrr Hxx Hsw Eswr.
+
+  rename i0 into HmotSend.
+
+  (** let's receive the -speed message on the motor *)
+  
+  pose proof (eventualDelivery eo  HmotSend) as Hmrec.
+  destruct Hmrec as [Er  Hmrec].
+  repnd. rename Er into Emr.
+  pose proof (SwOnlySendsToMotor _ _ 
+      HmotSend Hmrecrr Hmrecl Hssl) as HmotR.
+  unfold PossibleSendRecvPair in Hmrecl.
+  pose proof (proj1 Hmrecl) as Hmeq.
+  repeat (apply proj2 in Hmrecl).
+  rewrite HmotR in Hmrecl.
+  rewrite Hssl in Hmrecl.
+  simpl in Hmrecl.
+  repnd. rewrite <- Hmot in Hmeq.
+  
+    (** got the msg received by sw. lets update the time bounds *)
+
+  assert (4 # 1 < t + - (eTime Emr))  as Htubb by lra.
+  clear Htub. rename Htubb into Htub.
+  assert (tivt < (eTime Emr))  as Htlbb by lra.
+  clear Htlb. rename Htlbb into Htlb.
+  clear dependent Esws.
+
 
 Abort.
   
