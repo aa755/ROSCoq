@@ -183,7 +183,7 @@ fun  (distanceAtTime : Time -> R)
        (distanceAtTime t  [<=] alertDist)
        -> ∃ n, ∃ ev,
           evs n = Some ev /\ isSendEvt ev /\
-            opLiftF (ProxPossibleTimeEvPair maxDelay side t) (evs n))
+            (ProxPossibleTimeEvPair maxDelay side t) ev)
     /\
     (∀ (n: nat), 
         isSendEvtOp (evs n)
@@ -1343,6 +1343,40 @@ Lemma AbsIR_ABSIR: forall x, ABSIR x = AbsIR x.
   intros. reflexivity.
 Qed.
 
+
+Lemma SensorOnlySendsToSw :   forall Es Er side,
+  isSendEvt Es
+  -> isRecvEvt Er
+  -> PossibleSendRecvPair Es Er
+  -> eLoc Es = PROXSENSOR side
+  -> eLoc Er = SWCONTROLLER.
+Proof.
+  intros ? ? ? Hs Hr Hsendl Hl.
+  unfold PossibleSendRecvPair in Hsendl.
+  repnd. clear Hsendlrrr.
+  unfold validSendMesg in Hsendlrrl.
+  pose proof (deqSingleMessage _ Hr) as XX.
+  destruct XX as [m XX].
+  repnd. rewrite <- XXl in Hsendlrl.
+  rewrite <- Hsendll in XXl.
+  rewrite <- XXl in Hsendlrrl.
+  specialize (Hsendlrl _ (or_introl eq_refl)).
+  specialize (Hsendlrrl _ (or_introl eq_refl)).
+  rewrite Hl in Hsendlrrl.
+  simpl in Hsendlrrl.
+  rewrite RemoveOrFalse in Hsendlrrl.
+  unfold validSendMesg in Hsendlrrl.
+  simpl in Hsendlrrl.
+  rewrite <- Hsendlrrl in Hsendlrl.
+  destruct (eLoc Er); simpl in Hsendlrl;
+    try rewrite RemoveOrFalse in Hsendlrl;
+    try contradiction;
+    inversion Hsendlrrl; 
+    try discriminate;
+    try contradiction.
+  reflexivity.
+Qed.
+
 Lemma RHSSafe : forall t: QTime,  (centerPosAtTime tstate t) [<=] Z2R 95.
 Proof.
   intros. apply leEq_def. intros Hc.
@@ -1426,7 +1460,25 @@ Close Scope nat_scope.
   destruct Hnc as [n Hnc].
   destruct Hnc as [ev Hnc].
   repnd.
-  
+  pose proof (eventualDelivery eo  Hncrl) as Hrec.
+  destruct Hrec as [Er  Hrec].
+  repnd.
+apply locEvtIndex in Hncl.
+  pose proof (SensorOnlySendsToSw _ _ _ 
+      Hncrl Hrecrr Hrecl (proj1 Hncl)) as Hsw.
+  unfold PossibleSendRecvPair in Hrecl.
+  pose proof (proj1 Hrecl) as Hmeq.
+  repeat (apply proj2 in Hrecl).
+  rewrite Hsw in Hrecl.
+  rewrite (proj1 Hncl) in Hrecl.
+  simpl in Hrecl.
+  rename Er into Esw.
+  rename ev into Esens.
+  unfold ProxPossibleTimeEvPair in Hncrr.
+  repnd.
+  rewrite Hncrrr in Hmeq.
+  clear Hncrrr.
+
 
   
 
