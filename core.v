@@ -1011,3 +1011,6 @@ Proof.
   apply leEq_def in Hle. unfold Not in Hle.
   destruct Hpp; tauto.
 Qed.
+
+Ltac provefalse :=
+  assert False ;[| contradiction].

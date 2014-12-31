@@ -1437,6 +1437,59 @@ Qed.
 
 
 
+Lemma latestPosAfterNegM : forall evMp evMn t (n:nat),
+  priorMotorMesg (-speed) t evMn
+  -> (latestEvt (priorMotorMesg speed t)) evMp
+  -> (eTime evMp < eTime evMn)
+  -> (S (eLocIndex evMn) <= n)%nat
+  -> let lm := filterPayloadsUptoIndex MOTOR (localEvts BASEMOTOR) n in
+     match lm with
+     | hdp::tlp =>
+          eTime (snd hdp) < t -> (fst hdp) = -speed
+     | nil => True
+     end.
+Proof.
+  intros  ? ? ? ? Hp Hl Het Hle.
+  induction Hle as [| np Hnp Hind].
+- simpl. unfold priorMotorMesg in Hp.
+  repnd.
+  pose proof (locEvtIndex BASEMOTOR (eLocIndex evMn) evMn) as Hxx.
+  rewrite ((proj1 Hxx) (conj Hprr eq_refl)).
+  simpl. rewrite Hprl. simpl. reflexivity.
+- simpl. simpl in Hind.
+  pose proof (velocityMessagesAuxMsg (S np)) as Hxy.
+  pose proof (filterPayloadsIndexCorr2 MOTOR BASEMOTOR (S np)) as Hxz.
+  simpl in Hxy, Hxz.
+  remember ((getPayloadAndEv MOTOR (localEvts BASEMOTOR np)))
+    as oplev.
+  destruct oplev as [plev|];[clear Hind| exact Hind].
+  simpl. simpl in Hxz, Hxy. 
+  specialize (Hxz _ (inr eq_refl)).
+  specialize (Hxy _ (inr eq_refl)).
+  intros Hplt.
+  destruct Hxy as [hxy | Hxy];trivial;[].
+  provefalse. 
+  unfold latestEvt in Hl.
+  repnd. rewrite hxy in Hxzl. clear Hxzrr.
+  unfold priorMotorMesg in Hlr.
+  specialize (Hlr _ (conj Hplt (conj Hxzl Hxzrl))).
+  clear Hxzl Hxzrl.
+  revert Hlr.
+  remember (localEvts BASEMOTOR np) as oev.
+  destruct oev as [ev|];
+  simpl in Heqoplev;[|inverts Heqoplev; fail].
+  destruct (getPayloadFromEv MOTOR ev); inverts Heqoplev.
+  simpl in Hplt. simpl.
+  intro Hcc. assert (eTime evMp < eTime ev);[| lra].
+  clear Hcc.
+  symmetry in Heqoev. apply locEvtIndex in Heqoev.
+  repnd.
+  fold (lt (eLocIndex evMn) np) in Hnp.
+  rewrite <- Heqoevr  in Hnp.
+  apply timeIndexConsistent in Hnp.
+  lra.
+Qed.
+
 
 Lemma RHSSafe : forall t: QTime,  (centerPosAtTime tstate t) [<=] Z2R 95.
 Proof.
@@ -1626,24 +1679,8 @@ Close Scope nat_scope.
   apply (centerPosUB _ _ _ _ (conj Htlb Htub)) in HUB.
   revert HUB. simplInjQ. intro HUB.
   assert ((eTime Emr) < t) as Hlt by lra.
-  
-Lemma latestPosAfterNegM : forall evMp evMn t (n:nat),
-  priorMotorMesg (-speed) t evMn
-  -> (latestEvt (priorMotorMesg speed t)) evMp
-  -> (eTime evMp < eTime evMn)
-  -> (S (eLocIndex evMn) <= n)
-  -> let lm 
-    := filterPayloadsUptoIndex MOTOR (localEvts BASEMOTOR) n in
-    fst (hd (initialVel,mkQTime 0 I) 
-            (map (fun p => (fst p, eTime (snd p))) lm))
-    = (-speed).
-Proof.
 
 Abort.
-  
-  
-Abort.
-  
 
 
 
