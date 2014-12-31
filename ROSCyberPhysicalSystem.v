@@ -5,6 +5,7 @@ Require Export CoList.
 Require Import Coq.QArith.QArith.
 Require Import Coq.QArith.Qabs.
 Require Import Coq.QArith.QOrderedType.
+Require Import Psatz.
 
 
 
@@ -67,7 +68,7 @@ Class EventType (T: Type)
   eventSpacing :  forall (e1 e2 : T),
     (eTime e1 >  minGap)%Q
     /\ (eLoc e1 = eLoc e2 
-        -> (Qabs ((eTime e1) - (eTime e2)) <=  minGap))%Q
+        -> minGap <= (Qabs ((eTime e1) - (eTime e2))))%Q
  }.
 
 

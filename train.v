@@ -1522,9 +1522,9 @@ Proof.
     simpl in Hm.
     unfold corrSinceLastVel, lastVelAndTime, 
         velocityMessages, filterPayloadsUptoTime in Hm.
-    subst smn. rewrite numPrevEvtsEtime in Hm.
     symmetry in Heqoev.
     apply locEvtIndex in Heqoev. repnd.
+    subst smn. rewrite numPrevEvtsEtime in Hm; [| trivial];[].
     rewrite Heqoevr in Hm.
     simpl in Hm.
     unfold priorMotorMesg in Hp.
@@ -1539,13 +1539,27 @@ Proof.
     pose proof (eventSpacing evMn ev) as Hgap.
     apply proj2 in Hgap.
     
-Lemma evSpacIndex :
-  eventSpacing :  forall loc (n1 n2: ) (ev1 ev2: Event),
-    n1 < n2
-    -> 
-        -> (Qabs ((eTime e1) - (eTime e2)) <=  minGap))%Q
+Lemma evSpacIndex :  forall (ev1 ev2: Event),
+    eLoc ev1 = eLoc ev2
+    -> eLocIndex ev1 <  eLocIndex ev2
+    -> (eTime ev1 + minGap <= eTime ev2)%Q.
+Proof.
+  intros  ? ?  Hl Hlt.
+  pose proof (proj2 ( eventSpacing ev1 ev2) Hl) as Ht.
+  apply timeIndexConsistent in Hlt.
+  rewrite Q.Qabs_Qminus in Ht.
+  rewrite Qabs.Qabs_pos in Ht; lra.
+Qed.
 
+  assert (eLocIndex evMn <  eLocIndex ev) as Hev by omega.
+  apply evSpacIndex in Hev;[| congruence].
+  assert ((qt <= eTime ev)%Q) as Hqt by lra.
+  rewrite Hmrl;
+    [|split; trivial]; apply leEq_reflexive.
 
+Abort.
+
+  
 Lemma RHSSafe : forall t: QTime,  (centerPosAtTime tstate t) [<=] Z2R 95.
 Proof.
   intros. apply leEq_def. intros Hc.
