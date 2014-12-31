@@ -1613,12 +1613,23 @@ Proof.
   + unfold between in Hmrr.
     specialize (Hmrr _ (conj Hlt Hdec)).
     repnd.
-    trivial. admit.
-
-
-
--  admit.
-
+    trivial. unfold speed in Hmrrr.
+    unfold Q2R, Z2R , inject_Z in Hmrrr, Hv.
+    revert Hmrrl. simplInjQ.
+    intro Hmrrl.
+    eapply leEq_transitive; eauto.
+    apply Max_leEq; auto.
+    unfold inject_Z.
+    simplInjQ.
+    apply leEq_reflexive.
+- unfold correctVelDuring, corrSinceLastVel, lastVelAndTime, 
+    velocityMessages, filterPayloadsUptoTime in Hm.
+  destruct Hm as [qt Hm].
+  repnd. clear Hmrr.
+  specialize (Hmrl t). rewrite Hrr in Hmlr.
+  assert (qt <= t)%Q by lra.
+  rewrite Hmrl;
+    [|split; trivial]; apply leEq_reflexive; fail.
 Qed.
 
 Lemma RHSSafe : forall t: QTime,  (centerPosAtTime tstate t) [<=] Z2R 95.
