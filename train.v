@@ -1436,16 +1436,18 @@ Proof.
 Qed.
 
 
+Close Scope Q_scope.
+Open Scope nat_scope.
 
-Lemma latestPosAfterNegM : forall evMp evMn t (n:nat),
+Lemma NegAfterLatestPos : forall evMp evMn t (n:nat),
   priorMotorMesg (-speed) t evMn
   -> (latestEvt (priorMotorMesg speed t)) evMp
-  -> (eTime evMp < eTime evMn)
+  -> (eTime evMp < eTime evMn)%Q
   -> (S (eLocIndex evMn) <= n)%nat
   -> let lm := filterPayloadsUptoIndex MOTOR (localEvts BASEMOTOR) n in
      match lm with
      | hdp::tlp =>
-          eTime (snd hdp) < t -> (fst hdp) = -speed
+          (eTime (snd hdp) < t)%Q -> (fst hdp) = (-speed)%Q
      | nil => True
      end.
 Proof.
@@ -1480,7 +1482,7 @@ Proof.
   simpl in Heqoplev;[|inverts Heqoplev; fail].
   destruct (getPayloadFromEv MOTOR ev); inverts Heqoplev.
   simpl in Hplt. simpl.
-  intro Hcc. assert (eTime evMp < eTime ev);[| lra].
+  intro Hcc. assert (eTime evMp < eTime ev)%Q;[| lra].
   clear Hcc.
   symmetry in Heqoev. apply locEvtIndex in Heqoev.
   repnd.
@@ -1490,6 +1492,101 @@ Proof.
   lra.
 Qed.
 
+Lemma VelNegAfterLatestPos : forall evMp evMn t (n:nat),
+  priorMotorMesg (-speed) t evMn
+  -> (latestEvt (priorMotorMesg speed t)) evMp
+  -> (eTime evMp < eTime evMn)%Q
+  -> (S (S (eLocIndex evMn)) <= n)%nat
+  -> let lm := filterPayloadsUptoIndex MOTOR (localEvts BASEMOTOR) n in
+     match lm with
+     | hdp::tlp =>
+          (eTime (snd hdp) < t)%Q
+          -> ((eLocIndex evMn) < eLocIndex (snd hdp))
+          -> ({velX tstate} t [<=] Z2R (-1))
+     | nil => True
+     end.
+Proof.
+  intros  ? ? ? ? Hp Hl Het Hle.
+  remember ((S (eLocIndex evMn))) as smn.
+  induction Hle as [| np Hnp Hind].
+- pose proof (filterPayloadsIndexCorr MOTOR 
+          BASEMOTOR (S smn)) as Hxx.
+  pose proof (NegAfterLatestPos _ _ _ _
+          Hp Hl Het (le_S _ _ (le_n _))) as Hyy.
+  rewrite <- Heqsmn in Hyy.
+  simpl. simpl in Hxx, Hyy.
+  remember (getPayloadAndEv MOTOR (localEvts BASEMOTOR smn))
+    as oplev.
+  destruct oplev as [plev|]; simpl in Hxx.
+  + specialize (Hxx _ _ eq_refl).
+    repnd. clear Hxxrrr.
+    remember (localEvts BASEMOTOR smn) as oev.
+    destruct oev as [ev|];
+    simpl in Heqoplev;[|inverts Heqoplev; fail].
+    destruct (getPayloadFromEv MOTOR ev); inverts Heqoplev.
+    simpl. simpl in Hyy.
+    parallelForall Hyy.
+    rename x into Hevt. subst.
+Abort.
+
+(*
+    
+  + 
+
+  pose proof (corrNodes 
+                eo 
+                BASEMOTOR t) as Hm.
+  simpl in Hm.
+  unfold corrSinceLastVel, lastVelAndTime, correctVelDuring in Hm.
+  rewrite <- Heq in Hm. unfold last in Hm.
+  pose proof concreteValues as Hinit.
+Open Scope nat_scope.
+  AndProjN 4 Hinit as Hrt.
+  AndProjN 5 Hinit as Hv.
+  AndProjN 6 Hinit as Hp.
+Close Scope nat_scope.
+  clear Hinit. 
+  subst. clear Hrt Heq. unfold hd in Hm.
+  rewrite mapNil in Hm.
+  rewrite (initVel tstate) in Hm.
+  destruct Hm as [qtrans Hm]. repnd.
+  
+  eapply QVelPosLeIf with (ta:=(mkQTime 0 I)) in Hcent; auto;
+    [|apply qtimePos|].
+
+- simpl. simpl in Hind.
+  pose proof (velocityMessagesAuxMsg (S np)) as Hxy.
+  pose proof (filterPayloadsIndexCorr2 MOTOR BASEMOTOR (S np)) as Hxz.
+  simpl in Hxy, Hxz.
+  remember ((getPayloadAndEv MOTOR (localEvts BASEMOTOR np)))
+    as oplev.
+  destruct oplev as [plev|];[clear Hind| exact Hind].
+  simpl. simpl in Hxz, Hxy. 
+  specialize (Hxz _ (inr eq_refl)).
+  specialize (Hxy _ (inr eq_refl)).
+  intros Hplt.
+  destruct Hxy as [hxy | Hxy];trivial;[].
+  provefalse. 
+  unfold latestEvt in Hl.
+  repnd. rewrite hxy in Hxzl. clear Hxzrr.
+  unfold priorMotorMesg in Hlr.
+  specialize (Hlr _ (conj Hplt (conj Hxzl Hxzrl))).
+  clear Hxzl Hxzrl.
+  revert Hlr.
+  remember (localEvts BASEMOTOR np) as oev.
+  destruct oev as [ev|];
+  simpl in Heqoplev;[|inverts Heqoplev; fail].
+  destruct (getPayloadFromEv MOTOR ev); inverts Heqoplev.
+  simpl in Hplt. simpl.
+  intro Hcc. assert (eTime evMp < eTime ev);[| lra].
+  clear Hcc.
+  symmetry in Heqoev. apply locEvtIndex in Heqoev.
+  repnd.
+  fold (lt (eLocIndex evMn) np) in Hnp.
+  rewrite <- Heqoevr  in Hnp.
+  apply timeIndexConsistent in Hnp.
+  lra.
+*)
 
 Lemma RHSSafe : forall t: QTime,  (centerPosAtTime tstate t) [<=] Z2R 95.
 Proof.
@@ -1611,9 +1708,9 @@ Close Scope nat_scope.
 
   (** got the msg received by sw. lets update the time bounds *)
 
-  assert ((eTime Eswr) < tivt + (2 # 1))  as Htubb by lra.
+  assert ((eTime Eswr) < tivt + (2 # 1))%Q  as Htubb by lra.
   clear Htub. rename Htubb into Htub.
-  assert (tivt < (eTime Eswr))  as Htlb by lra.
+  assert (tivt < (eTime Eswr))%Q  as Htlb by lra.
   clear Hreclr Hrecll Hncrrr Hncrl Hrecrl Hnclr Hncll Htppt
       Hncrrll Esens.
 
@@ -1644,9 +1741,9 @@ Close Scope nat_scope.
   (** got the msg sent received by sw. 
       lets update the time bounds *)
 
-  assert ((eTime Esws) < tivt + (3 # 1))  as Htubb by lra.
+  assert ((eTime Esws) < tivt + (3 # 1))%Q  as Htubb by lra.
   clear Htub. rename Htubb into Htub.
-  assert (tivt < (eTime Esws))  as Htlbb by lra.
+  assert (tivt < (eTime Esws))%Q  as Htlbb by lra.
   clear Htlb. rename Htlbb into Htlb.
   rename e0 into Hss.
   apply locEvtIndex in Hss.
@@ -1671,14 +1768,14 @@ Close Scope nat_scope.
   
     (** got the msg received by sw. lets update the time bounds *)
 
-  assert ((eTime Emr) < tivt + (4 # 1))  as Htubb by lra.
+  assert ((eTime Emr) < tivt + (4 # 1))%Q  as Htubb by lra.
   clear Htub. rename Htubb into Htub.
-  assert (tivt < (eTime Emr))  as Htlbb by lra.
+  assert (tivt < (eTime Emr))%Q  as Htlbb by lra.
   clear Htlb. rename Htlbb into Htlb.
   clear dependent Esws.
   apply (centerPosUB _ _ _ _ (conj Htlb Htub)) in HUB.
   revert HUB. simplInjQ. intro HUB.
-  assert ((eTime Emr) < t) as Hlt by lra.
+  assert ((eTime Emr) < t)%Q as Hlt by lra.
 
 Abort.
 
