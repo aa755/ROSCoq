@@ -790,8 +790,6 @@ Lemma concreteValues : hwidth = Z2R 2
                       /\ initialPos = 0.
 Admitted.
 
-Lemma reactionTimeLt : reactionTime < minGap.
-Admitted.
 
 Definition posVelMeg : list Message :=
   (mkMesg MOTOR speed)::nil.
@@ -1502,91 +1500,51 @@ Lemma VelNegAfterLatestPos : forall evMp evMn t (n:nat),
      | hdp::tlp =>
           (eTime (snd hdp) < t)%Q
           -> ((eLocIndex evMn) < eLocIndex (snd hdp))
-          -> ({velX tstate} t [<=] Z2R (-1))
+          -> ({velX tstate}  (eTime (snd hdp)) [<=] Z2R (-1))
      | nil => True
      end.
 Proof.
   intros  ? ? ? ? Hp Hl Het Hle.
   remember ((S (eLocIndex evMn))) as smn.
-  induction Hle as [| np Hnp Hind].
-- pose proof (filterPayloadsIndexCorr MOTOR 
-          BASEMOTOR (S smn)) as Hxx.
-  pose proof (NegAfterLatestPos _ _ _ _
-          Hp Hl Het (le_S _ _ (le_n _))) as Hyy.
-  rewrite <- Heqsmn in Hyy.
-  simpl. simpl in Hxx, Hyy.
-  remember (getPayloadAndEv MOTOR (localEvts BASEMOTOR smn))
+  induction Hle as [| np Hnp Hind]. simpl.
+- remember (getPayloadAndEv MOTOR (localEvts BASEMOTOR smn))
     as oplev.
-  destruct oplev as [plev|]; simpl in Hxx.
-  + specialize (Hxx _ _ eq_refl).
-    repnd. clear Hxxrrr.
+  destruct oplev as [plev| ];[|provefalse].
+  + intros H91 H92. clear H91 H92.
     remember (localEvts BASEMOTOR smn) as oev.
     destruct oev as [ev|];
     simpl in Heqoplev;[|inverts Heqoplev; fail].
     destruct (getPayloadFromEv MOTOR ev); inverts Heqoplev.
-    simpl. simpl in Hyy.
-    parallelForall Hyy.
-    rename x into Hevt. subst.
-Abort.
-
-(*
-    
-  + 
-
-  pose proof (corrNodes 
+    simpl. 
+    pose proof (corrNodes 
                 eo 
-                BASEMOTOR t) as Hm.
-  simpl in Hm.
-  unfold corrSinceLastVel, lastVelAndTime, correctVelDuring in Hm.
-  rewrite <- Heq in Hm. unfold last in Hm.
-  pose proof concreteValues as Hinit.
-Open Scope nat_scope.
-  AndProjN 4 Hinit as Hrt.
-  AndProjN 5 Hinit as Hv.
-  AndProjN 6 Hinit as Hp.
-Close Scope nat_scope.
-  clear Hinit. 
-  subst. clear Hrt Heq. unfold hd in Hm.
-  rewrite mapNil in Hm.
-  rewrite (initVel tstate) in Hm.
-  destruct Hm as [qtrans Hm]. repnd.
-  
-  eapply QVelPosLeIf with (ta:=(mkQTime 0 I)) in Hcent; auto;
-    [|apply qtimePos|].
+                BASEMOTOR  (eTime ev)) as Hm.
+    simpl in Hm.
+    unfold corrSinceLastVel, lastVelAndTime, 
+        velocityMessages, filterPayloadsUptoTime in Hm.
+    subst smn. rewrite numPrevEvtsEtime in Hm.
+    symmetry in Heqoev.
+    apply locEvtIndex in Heqoev. repnd.
+    rewrite Heqoevr in Hm.
+    simpl in Hm.
+    unfold priorMotorMesg in Hp.
+    repnd.
+    pose proof (locEvtIndex BASEMOTOR (eLocIndex evMn) evMn) as Hxx.
+    rewrite ((proj1 Hxx) (conj Hprr eq_refl)) in Hm.
+    simpl in Hm. rewrite Hprl in Hm. simpl in Hm.
+    unfold correctVelDuring in Hm.
+    destruct Hm as [qt Hm].
+    repnd. clear Hmrr.
+    specialize (Hmrl (eTime ev)).
+    pose proof (eventSpacing evMn ev) as Hgap.
+    apply proj2 in Hgap.
+    
+Lemma evSpacIndex :
+  eventSpacing :  forall loc (n1 n2: ) (ev1 ev2: Event),
+    n1 < n2
+    -> 
+        -> (Qabs ((eTime e1) - (eTime e2)) <=  minGap))%Q
 
-- simpl. simpl in Hind.
-  pose proof (velocityMessagesAuxMsg (S np)) as Hxy.
-  pose proof (filterPayloadsIndexCorr2 MOTOR BASEMOTOR (S np)) as Hxz.
-  simpl in Hxy, Hxz.
-  remember ((getPayloadAndEv MOTOR (localEvts BASEMOTOR np)))
-    as oplev.
-  destruct oplev as [plev|];[clear Hind| exact Hind].
-  simpl. simpl in Hxz, Hxy. 
-  specialize (Hxz _ (inr eq_refl)).
-  specialize (Hxy _ (inr eq_refl)).
-  intros Hplt.
-  destruct Hxy as [hxy | Hxy];trivial;[].
-  provefalse. 
-  unfold latestEvt in Hl.
-  repnd. rewrite hxy in Hxzl. clear Hxzrr.
-  unfold priorMotorMesg in Hlr.
-  specialize (Hlr _ (conj Hplt (conj Hxzl Hxzrl))).
-  clear Hxzl Hxzrl.
-  revert Hlr.
-  remember (localEvts BASEMOTOR np) as oev.
-  destruct oev as [ev|];
-  simpl in Heqoplev;[|inverts Heqoplev; fail].
-  destruct (getPayloadFromEv MOTOR ev); inverts Heqoplev.
-  simpl in Hplt. simpl.
-  intro Hcc. assert (eTime evMp < eTime ev);[| lra].
-  clear Hcc.
-  symmetry in Heqoev. apply locEvtIndex in Heqoev.
-  repnd.
-  fold (lt (eLocIndex evMn) np) in Hnp.
-  rewrite <- Heqoevr  in Hnp.
-  apply timeIndexConsistent in Hnp.
-  lra.
-*)
 
 Lemma RHSSafe : forall t: QTime,  (centerPosAtTime tstate t) [<=] Z2R 95.
 Proof.
