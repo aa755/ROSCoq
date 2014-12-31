@@ -1493,7 +1493,7 @@ Proof.
   simpl in Htlt.
 
     (* now invoking sensor's spec
-      to get the event that it fired soon after [tpp] *)
+      to get the event that it fired soon after [tivt] *)
   
   pose proof (corrNodes 
                 eo 
@@ -1528,8 +1528,7 @@ Close Scope nat_scope.
       let's count the time towards the deadline *)
   unfold ProxPossibleTimeEvPair in Hncrr.
   repnd. simpl in Hncrrlr.
-  assert (7 # 1 < t + - (eTime Esens))  as Htub by lra.
-  clear Htlt Hncrrlr.
+  rename Hncrrlr  into Htub.
   (** lets deliver the message to the s/w node *)
 
   pose proof (eventualDelivery eo  Hncrl) as Hrec.
@@ -1549,7 +1548,7 @@ Close Scope nat_scope.
 
   (** got the msg received by sw. lets update the time bounds *)
 
-  assert (6 # 1 < t + - (eTime Eswr))  as Htubb by lra.
+  assert ((eTime Eswr) < tivt + (2 # 1))  as Htubb by lra.
   clear Htub. rename Htubb into Htub.
   assert (tivt < (eTime Eswr))  as Htlb by lra.
   clear Hreclr Hrecll Hncrrr Hncrl Hrecrl Hnclr Hncll Htppt
@@ -1582,7 +1581,7 @@ Close Scope nat_scope.
   (** got the msg sent received by sw. 
       lets update the time bounds *)
 
-  assert (5 # 1 < t + - (eTime Esws))  as Htubb by lra.
+  assert ((eTime Esws) < tivt + (3 # 1))  as Htubb by lra.
   clear Htub. rename Htubb into Htub.
   assert (tivt < (eTime Esws))  as Htlbb by lra.
   clear Htlb. rename Htlbb into Htlb.
@@ -1609,12 +1608,15 @@ Close Scope nat_scope.
   
     (** got the msg received by sw. lets update the time bounds *)
 
-  assert (4 # 1 < t + - (eTime Emr))  as Htubb by lra.
+  assert ((eTime Emr) < tivt + (4 # 1))  as Htubb by lra.
   clear Htub. rename Htubb into Htub.
   assert (tivt < (eTime Emr))  as Htlbb by lra.
   clear Htlb. rename Htlbb into Htlb.
   clear dependent Esws.
-
+  apply (centerPosUB _ _ _ _ (conj Htlb Htub)) in HUB.
+  revert HUB. simplInjQ. intro HUB.
+  assert ((eTime Emr) < t) as Hlt by lra.
+  
 
 Abort.
   
