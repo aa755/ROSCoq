@@ -46,7 +46,7 @@ Instance rldeqdsjfklsajlk : DecEq RosLoc.
 constructor. exact RosLoc_eq_dec.
 Defined.
 
-Open Scope Q_scope.
+Close Scope Q_scope.
 
 (** it is a pure function that repeatedly
    reads a message from the [PSENSOR] topic
@@ -54,7 +54,7 @@ Open Scope Q_scope.
 Definition SwControllerProgram (speed : Q):
   SimplePureProcess PSENSOR MOTOR :=
 fun side  => match side with
-            | true => -speed
+            | true => (-speed)%Q
             | false => speed
             end.
 
@@ -107,9 +107,9 @@ Proof.
 Qed.
 
 Lemma QVelPosUB :forall (tst : Train)
-   (ta tb : QTime) (Hab : ta<=tb) (c : Q),
-   (forall (t:QTime), (ta <= t <= tb) -> ({velX tst} t) [<=] c)
-   -> ({posX tst} tb[-] {posX tst} ta)[<=] c*(tb-ta).
+   (ta tb : QTime) (Hab : (ta<=tb)%Q) (c : Q),
+   (forall (t:QTime), (ta <= t <= tb)%Q -> ({velX tst} t) [<=] c)
+   -> (({posX tst} tb[-] {posX tst} ta)[<=] c*(tb-ta))%Q.
 Proof.
   intros. unfold Q2R.
   rewrite inj_Q_mult.
@@ -119,8 +119,8 @@ Proof.
 Qed.
 
 Lemma QVelPosLB :forall (tst : Train)
-   (ta tb : QTime) (Hab : ta<=tb) (c : Q),
-   (forall (t:QTime), (ta <= t <= tb) -> Q2R c [<=] ({velX tst} t))
+   (ta tb : QTime) (Hab : (ta<=tb)%Q) (c : Q),
+   (forall (t:QTime), (ta <= t <= tb)%Q -> Q2R c [<=] ({velX tst} t))
    -> Q2R (c*(tb-ta))[<=] ({posX tst} tb[-] {posX tst} ta).
 Proof.
   intros. unfold Q2R.
@@ -170,7 +170,7 @@ Definition ProxPossibleTimeEvPair
   (maxDelay: QTime) (side : bool)
   (t: QTime) (ev: Event) 
   :=
-   t < (eTime ev) < (t + maxDelay) 
+   (t < (eTime ev) < (t + maxDelay))%Q
   /\ (eMesg ev) = (mkMesg PSENSOR side)::nil.
 
 (** [side] is just an identifier *)
@@ -192,11 +192,11 @@ fun  (distanceAtTime : Time -> R)
 
 Definition inIntervalDuring
   (interval: interval) (tStart tEnd : QTime)  (f : Time -> R) : Prop :=
-  Cast (forall t : QTime, ( tStart <= t <= tEnd   -> (interval) (f t))).
+  Cast (forall t : QTime, ( tStart <= t <= tEnd   -> (interval) (f t)))%Q.
   
 Definition isEqualDuring
   (vel: Q) (tStart tEnd : QTime)  (f : Time -> R) : Prop :=
-  (forall t : QTime, ( tStart <= t <= tEnd   -> (f t) [=] vel)).
+  (forall t : QTime, ( tStart <= t <= tEnd   -> (f t) [=] vel))%Q.
 
 Variable reactionTime : Q.
 Variable velAccuracy : Q.
@@ -215,11 +215,11 @@ Definition correctVelDuring
   (uptoTime : QTime) 
   (velAtTime: Time -> R) :=
 
-exists  (qt : QTime), 
+(exists  (qt : QTime), 
   lastTime <= qt <= (lastTime + reactionTime)
   /\ ((forall t : QTime, (qt <= t <= uptoTime -> (velAtTime t) [=] lastVel)))
   /\ (forall t : QTime, (lastTime <= t <= qt)  
-          -> (between (velAtTime t) (velAtTime lastTime) lastVel)).
+          -> (between (velAtTime t) (velAtTime lastTime) lastVel)))%Q.
   
 Close Scope Q_scope.
 
@@ -266,9 +266,8 @@ Variable maxDelay : QTime.
 Variable hwidth : R. (* half of width *)
 Definition speed : Q := 1.
 
-Open Scope Q_scope.
 
-Variable reactionTimeGap : reactionTime < minGap.
+Variable reactionTimeGap : (reactionTime < minGap)%Q.
 Definition lEndPos (ts : Train) (t : Time) : R :=
   (getF (posX ts) t [-]  hwidth).
 
@@ -333,8 +332,8 @@ Definition motorEvents : nat -> option Event
    := localEvts BASEMOTOR.
 
 Lemma QVelPosLe :forall (tst : Train)
-   (ta tb : QTime) (Hab : ta<=tb),
-   (forall (t:QTime), (ta <= t <= tb) -> ({velX tst} t) [<=] Q2R 0)
+   (ta tb : QTime) (Hab : (ta<=tb)%Q),
+   (forall (t:QTime), (ta <= t <= tb)%Q -> ({velX tst} t) [<=] Q2R 0)
    -> ({posX tst} tb[<=] {posX tst} ta).
 Proof.
   intros ? ? ? ?  Hq.
@@ -349,8 +348,8 @@ Proof.
 Qed.
 
 Lemma QVelPosLeIf :forall (tst : Train) (c : IR)
-   (ta tb : QTime) (Hab : ta<=tb),
-   (forall (t:QTime), (ta <= t <= tb) -> ({velX tst} t) [<=] Q2R 0)
+   (ta tb : QTime) (Hab : (ta<=tb)%Q),
+   (forall (t:QTime), (ta <= t <= tb)%Q -> ({velX tst} t) [<=] Q2R 0)
    -> c [<=] {posX tst} tb
    -> c [<=] {posX tst} ta.
 Proof.
@@ -382,11 +381,13 @@ Proof.
     right now, the motor can disregard
     all messages *)
 
+Close Scope Q_scope.
+
 Lemma DeqSendOncePair : forall ns nd sp,
   possibleDeqSendOncePair (ControllerNode sp) (localEvts SWCONTROLLER) nd ns
   -> {es : Event | {ed : Event | isDeqEvt ed & isSendEvt es
-          & (nd < ns)%Q
-            & (∀ n : nat, (nd < n <  ns)%Q → isEnqEvtOp (localEvts SWCONTROLLER n))
+          & (nd < ns)
+            & (∀ n : nat, (nd < n <  ns) → isEnqEvtOp (localEvts SWCONTROLLER n))
               & (eTime ed < eTime es < eTime ed + digiControllerTiming)%Q
         &
         localEvts SWCONTROLLER nd = Some ed 
@@ -414,7 +415,7 @@ Lemma swControllerMessages :
   SWCONTROLLER = eLoc es
   -> sendEvt = eKind es
   -> {(eMesg es) = (mkMesg MOTOR speed)::nil}
-      + {(eMesg es) = (mkMesg MOTOR (-speed))::nil}.
+      + {(eMesg es) = (mkMesg MOTOR (-speed))%Q::nil}.
 Proof.
   intros es Hsw Hsend.
   pose proof (locEvtIndex 
@@ -446,7 +447,7 @@ Qed.
 Lemma velMessages:
   forall n : nat,
      match getVelOEv (motorEvents n) with
-     | Some v => {v = speed} + {v = (-speed)}
+     | Some v => {v = speed} + {v = (-speed)%Q}
      | None => True
      end.
 Proof.
@@ -619,9 +620,10 @@ Add Ring RisaRing: (CRing_Ring R).
 Require Import Psatz.
 Require Import Setoid.
 
+Open Scope Q_scope.
 
 Lemma centerPosChangeQAux : forall (ta tb : QTime),
-  ta < tb
+  ((ta < tb)%Q)
   -> (centerPosAtTime tstate tb [-] centerPosAtTime tstate ta) [<=] (tb - ta).
 Proof.
   intros ? ? Hlt.
@@ -638,7 +640,7 @@ Qed.
 (** this proof is not possible when [ta] and [tb] are
     rationals *)
 Lemma centerPosChangeQ : forall (ta tb : QTime),
-  ta <= tb
+  (ta <= tb)%Q
   -> (centerPosAtTime tstate tb [-] centerPosAtTime tstate ta) [<=] (tb - ta).
 Proof.
   intros ? ? Hlt.
@@ -674,7 +676,6 @@ Qed.
 
 
 
-Open Scope Q_scope.
 Lemma centerPosUB : forall (ts tf : QTime) (td : Q) (ps : R),
   ts < tf < ts + td
   -> centerPosAtTime tstate ts[<=] ps
@@ -700,11 +701,6 @@ Proof.
   unfold Q2R. apply leEq_reflexive.
 Qed.
 
-Lemma minusInvQ : forall a b:Q, [--](a[-]b)[=](b[-]a).
-Proof.
-  intros. unfold cg_minus.
-  simpl. ring.
-Qed.
 
 Lemma centerPosLB : forall (ts tf : QTime) (td : Q) (ps : R),
   ts < tf < ts + td
@@ -879,8 +875,8 @@ Proof.
     destruct Hnc as [ed Hnc].
     fold (inBetween (eTime ed) (eTime es0) (eTime ed + 1)) in Hnc.
     exrepd. rename e into H4. rename e0 into H5.
-    pose proof (sameLocCausal eo _ _ _ H4 H5 q) as Hcaus.
-    clear q.
+    pose proof (sameLocCausal eo _ H4 H5 l) as Hcaus.
+    clear l.
     pose proof (locEvtIndex SWCONTROLLER (eLocIndex es) es) as Hiff.
     TrimAndRHS Hiff.
     rewrite Hiff in H5; auto;[].
@@ -1057,8 +1053,8 @@ Proof.
     destruct Hnc as [ed Hnc].
     fold (inBetween (eTime ed) (eTime es0) (eTime ed + 1)) in Hnc.
     exrepd. rename e into H4. rename e0 into H5.
-    pose proof (sameLocCausal eo _ _ _ H4 H5 q) as Hcaus.
-    clear q.
+    pose proof (sameLocCausal eo _ H4 H5 l) as Hcaus.
+    clear l.
     pose proof (locEvtIndex SWCONTROLLER (eLocIndex es) es) as Hiff.
     TrimAndRHS Hiff.
     rewrite Hiff in H5; auto;[].
@@ -1544,7 +1540,8 @@ Proof.
   apply evSpacIndex in Hev;[| congruence].
   assert ((qt <= eTime ev)%Q) as Hqt by lra.
   rewrite Hmrl;
-    [|split; trivial]; apply leEq_reflexive.
+    [|split; trivial]; apply leEq_reflexive; fail.
+
 
 Abort.
 
@@ -1708,7 +1705,7 @@ Close Scope nat_scope.
   clear Htlb. rename Htlbb into Htlb.
   rename e0 into Hss.
   apply locEvtIndex in Hss.
-  clear H0 H i i1 q Hrecrr Hxx Hsw Eswr.
+  clear H0 H i i1 l Hrecrr Hxx Hsw Eswr.
 
   rename i0 into HmotSend.
 

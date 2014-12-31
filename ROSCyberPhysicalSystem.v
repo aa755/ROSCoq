@@ -741,7 +741,7 @@ Definition getDeqOutput (proc: Process Message (list Message))
   (ev : option Event) : option (list Message) :=
   opBind2 (getOutput proc) (deqMesgOp ev).
 
-Open Scope Q_scope.
+Close Scope Q_scope.
 
   
 (** assuming all outgoing messages resulting from processing
@@ -754,7 +754,7 @@ Definition possibleDeqSendOncePair
   | (Some evd, Some evs) => 
     isDeqEvt evd ∧ isSendEvt evs ∧ nd < ns (** the last bit is redundant because of time *)
     ∧ (forall n: nat, nd < n < ns -> isEnqEvtOp (locEvts n))
-    ∧ (eTime evd < eTime evs < (eTime evd) + (pTiming swNode))
+    ∧ (eTime evd < eTime evs < (eTime evd) + (pTiming swNode))%Q
     ∧ let procEvts := prevProcessedEvents nd locEvts in
       let procMsgs := flat_map eMesg procEvts in
       let lastProc := getNewProcL (process swNode) procMsgs in
@@ -855,7 +855,7 @@ Context  (PhysicalEnvType : Type)
  `{etype : @EventType _ _ _ Event LocT minGap tdeq }
   `{rlct : @RosLocType PhysicalEnvType RosTopic Event LocT ldeq}.
 
-Open Scope Q_scope.
+Close Scope Q_scope.
 
 Definition NodeBehCorrect (l : LocT) : Type :=
   (locNode l) physics (localEvts l).
@@ -869,7 +869,7 @@ Definition PossibleSendRecvPair
    /\ (validRecvMesg (validTopics (eLoc Er)) (eMesg Er))
    /\ (validSendMesg (validTopics (eLoc Es)) (eMesg Es))
    /\ (match (maxDeliveryDelay  (eLoc Es) (eLoc Er)) with
-      | Some td => (eTime Es < eTime Er <  eTime Es + td)
+      | Some td => (eTime Es < eTime Er <  eTime Es + td)%Q
       | None => True (* None stands for infinity *)
       end).
     
@@ -888,7 +888,7 @@ Record PossibleEventOrder  := {
 
     globalCausal : forall (e1 e2 : Event),
         causedBy e1 e2
-        -> eTime e1 < eTime e2;
+        -> (eTime e1 < eTime e2)%Q;
 
     eventualDelivery: forall (Es : Event),
           isSendEvt Es
@@ -921,8 +921,8 @@ Lemma PureProcDeqSendOncePair : forall ns nd TI TO qt loc
   let sproc := mkPureProcess (liftToMesg sp)in
   possibleDeqSendOncePair (Build_RosSwNode sproc qt) (localEvts loc) nd ns
   -> {es : Event | {ed : Event | isDeqEvt ed & isSendEvt es
-          & (nd < ns)%Q
-            & (∀ n : nat, (nd < n)%Q ∧ (n < ns)%Q → isEnqEvtOp (localEvts loc n))
+          & (nd < ns)
+            & (∀ n : nat, (nd < n) ∧ (n < ns) → isEnqEvtOp (localEvts loc n))
               & (eTime ed <eTime es < eTime ed + qt)%Q
         & localEvts loc nd = Some ed & localEvts loc ns = Some es &
           (validRecvMesg (TI::nil,nil) (eMesg ed)
@@ -938,7 +938,7 @@ Proof.
   destruct oevS as [evS |]; [| contradiction].
   destruct Hnc as [Hdeq  Hnc].
   exists evS. exists evD.  simpl in Hnc.
-  remember (eTime evD < eTime evS ∧ eTime evS < eTime evD + qt) as dontSplit.
+  remember (eTime evD < eTime evS ∧ eTime evS < eTime evD + qt)%Q as dontSplit.
   repnd.
   split; [trivial |].
   split; [trivial |].

@@ -1014,3 +1014,9 @@ Qed.
 
 Ltac provefalse :=
   assert False ;[| contradiction].
+
+Lemma minusInvQ : forall a b:Q, [--](a[-]b)[=](b[-]a).
+Proof.
+  intros. unfold cg_minus.
+  simpl. ring.
+Qed.
