@@ -1489,7 +1489,7 @@ Ltac DestImp H :=
  lapply H;[clear H; intro H|].
 
 
-Lemma VelNegAfterLatestPos : forall evMp evMn t ev,
+Lemma VelNegAfterLatestPosAux : forall evMp evMn t ev,
   priorMotorMesg (-speed) t evMn
   -> (latestEvt (priorMotorMesg speed t)) evMp
   -> (eTime evMp < eTime evMn)%Q
@@ -1544,7 +1544,82 @@ Proof.
     [|split; trivial]; apply leEq_reflexive; fail.
 Qed.
 
-  
+Open Scope Q_scope.
+
+Lemma VelNegAfterLatestPos : forall evMp evMn tunsafe
+    (t : QTime),
+  priorMotorMesg (-speed) tunsafe evMn
+  -> (latestEvt (priorMotorMesg speed tunsafe)) evMp
+  -> (eTime evMp < eTime evMn)%Q
+  -> ((eTime evMn) + reactionTime) < t < tunsafe
+  -> ({velX tstate} t [<=] Z2R (-1)).
+Close Scope Q_scope.
+Proof.
+  intros  ? ? ? ? Hp Hl Het Hbet.
+  pose proof (corrNodes 
+              eo 
+              BASEMOTOR t) as Hm.
+  simpl in Hm.
+  unfold corrSinceLastVel, lastVelAndTime, 
+      velocityMessages, filterPayloadsUptoTime in Hm.
+    (* we know that 
+      the default case of [hd] wont get invoked in Hm
+      Luckily, [initialVel] is corrent,
+      but let's not depend on that because
+      we already have a message/event that must be
+      in that list *)
+  pose proof (fun pl => filterPayloadsIndexComp  
+        MOTOR BASEMOTOR (numPrevEvts (localEvts BASEMOTOR) t) pl evMn) as Hcomp.
+  pose proof Hp as Hpb.
+  unfold priorMotorMesg in Hp.
+  repnd. rewrite Hprl in Hcomp. rewrite Hprr in Hcomp.
+  specialize (Hcomp _ eq_refl eq_refl).
+  pose proof (concreteValues) as Hcorr.
+  AndProjN 4 Hcorr as Hrr.
+  clear Hcorr.
+  rewrite Hrr in Hbetl. 
+  DestImp Hcomp;[|apply numPrevEvtsSpec; trivial; lra].
+  remember(filterPayloadsUptoIndex MOTOR (localEvts BASEMOTOR)
+             (numPrevEvts (localEvts BASEMOTOR) t)) as lf.
+  destruct lf as [ | plev lft ];[inverts Hcomp; fail|].
+  inverts Hcomp as; simpl in Hm.
+- intros Hcomp.
+  pose proof (NegAfterLatestPos _ _ _ 
+      (numPrevEvts (localEvts BASEMOTOR) t) Hpb Hl Het) as Hnn.
+  rewrite <- Heqlf in Hnn. simpl in Hnn.
+  DestImp Hnn;[|apply numPrevEvtsSpec; trivial; lra].
+  eapply filterPayloadsIndexSorted in Hcomp; eauto.
+  apply filterPayloadsTimeCorr in Heqlf.
+  rename Heqlf into Hf. repnd. 
+  assert (eTime (snd plev) < tunsafe)%Q by 
+    eauto using Qlt_trans.
+  DestImp Hnn;[|trivial;fail].
+  eapply VelNegAfterLatestPosAux in Hcomp; eauto.
+  rewrite Hnn in Hm.
+  revert Hfrrl.
+  revert Hm.
+  revert Hcomp.
+  clear. intros Hv Hm Hlt.
+  unfold correctVelDuring, corrSinceLastVel, lastVelAndTime, 
+    velocityMessages, filterPayloadsUptoTime in Hm.
+  destruct Hm as [qt Hm].
+  repnd.
+  pose proof (Qlt_le_dec qt t) as Hdec.
+  apply Qlt_le_weak in Hlt.
+  destruct Hdec as [Hdec | Hdec]; [clear Hmrr|clear Hmrl].
+  + apply Qlt_le_weak in Hdec.
+    rewrite Hmrl; [| split]; auto;[|]; apply leEq_reflexive.
+  + unfold between in Hmrr.
+    specialize (Hmrr _ (conj Hlt Hdec)).
+    repnd.
+    trivial.
+
+
+
+-  admit.
+
+Qed.
+
 Lemma RHSSafe : forall t: QTime,  (centerPosAtTime tstate t) [<=] Z2R 95.
 Proof.
   intros. apply leEq_def. intros Hc.
