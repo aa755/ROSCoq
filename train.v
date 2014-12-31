@@ -1485,166 +1485,64 @@ Proof.
   apply timeIndexConsistent in Hnp.
   lra.
 Qed.
+Ltac DestImp H :=
+ lapply H;[clear H; intro H|].
 
-Lemma VelNegAfterLatestPos : forall evMp evMn t (n:nat),
+
+Lemma VelNegAfterLatestPos : forall evMp evMn t ev,
   priorMotorMesg (-speed) t evMn
   -> (latestEvt (priorMotorMesg speed t)) evMp
   -> (eTime evMp < eTime evMn)%Q
-  -> (S (S (eLocIndex evMn)) <= n)%nat
-  -> let lm := filterPayloadsUptoIndex MOTOR (localEvts BASEMOTOR) n in
-     match lm with
-     | hdp::tlp =>
-          (eTime (snd hdp) < t)%Q
-          -> ((eLocIndex evMn) < eLocIndex (snd hdp))
-          -> ({velX tstate}  (eTime (snd hdp)) [<=] Z2R (-1))
-     | nil => True
-     end.
+  -> ((eLocIndex evMn) < eLocIndex ev)%nat
+  -> (eLoc ev = BASEMOTOR)
+  -> (eTime ev < t)%Q
+  -> ({velX tstate}  (eTime ev) [<=] Z2R (-1)).
 Proof.
-  intros  ? ? ? ? Hp Hl Het Hle.
-  destruct n as [| np];[omega|].
-  apply le_S_n in Hle.
+  intros  ? ? ? ? Hp Hl Het Hle Hloc Hevt.
   pose proof (NegAfterLatestPos _ _ _ _ Hp Hl Het Hle) as Hnn.
   simpl. simpl in Hnn.
-    (* we know that 
-      the default case of [hd] wont get invoked in Hm
-      Luckily, [initialVel] is corrent,
-      but let's not depend on that because
-      we already have a message/event that must be
-      in that list *)
-
-
-  pose proof (fun pl => filterPayloadsIndexComp  
-        MOTOR BASEMOTOR np pl evMn) as Hcomp.
-  unfold priorMotorMesg in Hp.
-  repnd. rewrite Hprl in Hcomp. rewrite Hprr in Hcomp.
-  specialize (Hcomp _ eq_refl eq_refl).
-  lapply Hcomp;[clear Hcomp; intro Hcomp| omega].
-  remember ((filterPayloadsUptoIndex MOTOR (localEvts BASEMOTOR) np))
-    as lf.
-  destruct lf as [ | plev lft ];[inverts Hcomp; fail|].
-  clear Hcomp.
-  remember (getPayloadAndEv MOTOR (localEvts BASEMOTOR np))
-      as oplevnp.
-  destruct oplevnp as [plevnp |].
-
-  simpl in Hm.
-  unfold correctVelDuring, corrSinceLastVel, lastVelAndTime, 
-  remember (filterPayloadsUptoIndex MOTOR (localEvts BASEMOTOR) np)
-    as lf.
-  destruct lf as [| plev ]; simpl.
-  
-  
-  + intros H91 H92. clear H91 H92.
-    remember (localEvts BASEMOTOR np) as oev.
-    destruct oev as [ev|];
-    simpl in Heqoplev;[|inverts Heqoplev; fail].
-    destruct (getPayloadFromEv MOTOR ev); inverts Heqoplev.
-    simpl. 
-    pose proof (corrNodes 
-                eo 
-                BASEMOTOR  (eTime ev)) as Hm.
-    simpl in Hm.
-    unfold corrSinceLastVel, lastVelAndTime, 
-        velocityMessages, filterPayloadsUptoTime in Hm.
-    symmetry in Heqoev.
-    apply locEvtIndex in Heqoev. repnd.
-    rewrite numPrevEvtsEtime in Hm; [| trivial];[].
-    rewrite Heqoevr in Hm.
-    (* we know that 
-      the default case of [hd] wont get invoked in Hm
-      Luckily, [initialVel] is corrent,
-      but let's not depend on that because
-      we already have a message/event that must be
-      in that list *)
-
-
-    pose proof (fun pl => filterPayloadsIndexComp  
-          MOTOR BASEMOTOR np pl evMn) as Hcomp.
-    unfold priorMotorMesg in Hp.
-    repnd. rewrite Hprl in Hcomp. rewrite Hprr in Hcomp.
-    specialize (Hcomp _ eq_refl eq_refl).
-    lapply Hcomp;[clear Hcomp; intro Hcomp| omega].
-    remember ((filterPayloadsUptoIndex MOTOR (localEvts BASEMOTOR) np))
-      as lf.
-    destruct lf as [ | plev lft ];[inverts Hcomp; fail|].
-    clear Hcomp.
-    simpl in Hm.
-    unfold correctVelDuring, corrSinceLastVel, lastVelAndTime, 
-      velocityMessages, filterPayloadsUptoTime in Hm.
-    destruct Hm as [qt Hm].
-    repnd. clear Hmrr.
-    specialize (Hmrl (eTime ev)).
-    pose proof (eventSpacing evMn ev) as Hgap.
-    apply proj2 in Hgap.
-    assert (eLocIndex evMn <  eLocIndex ev) as Hev by omega.
-    apply evSpacIndex in Hev;[| congruence].
-    assert ((qt <= eTime ev)%Q) as Hqt by lra.
-    rewrite Hmrl;
-      [|split; trivial]; apply leEq_reflexive; fail.
-   
-  + pose proof (filterPayloadsIndexCorr MOTOR BASEMOTOR smn) as Hf.
-    destruct_head_match;[trivial; fail|].
-    specialize (Hf _ _ eq_refl).
-    simpl in Hf.
-    dands.
-    intros. provefalse.
-    omega.
-
-- simpl. simpl in Hind. 
-  remember (getPayloadAndEv MOTOR (localEvts BASEMOTOR np))
-    as oplev.
-  destruct oplev as [plev| ];[| exact Hind].
-  intros Ht Hin. 
-  remember (localEvts BASEMOTOR np) as oev.
-  destruct oev as [ev|];
-  simpl in Heqoplev;[|inverts Heqoplev; fail].
-  destruct (getPayloadFromEv MOTOR ev); inverts Heqoplev.
-  simpl. 
   pose proof (corrNodes 
               eo 
               BASEMOTOR  (eTime ev)) as Hm.
   simpl in Hm.
   unfold corrSinceLastVel, lastVelAndTime, 
       velocityMessages, filterPayloadsUptoTime in Hm.
-  symmetry in Heqoev.
-  apply locEvtIndex in Heqoev. repnd.
-  subst smn. rewrite numPrevEvtsEtime in Hm; [| trivial];[].
-  rewrite Heqoevr in Hm.
-  simpl in Hm.
-  (** this is where things are different from base case.
-      This time, we know by inductive hyp
-      that the vlocity at prev. time
-      was actually -1. First we knoe that 
+  rewrite numPrevEvtsEtime in Hm; [| trivial];[].
+    (* we know that 
       the default case of [hd] wont get invoked in Hm
       Luckily, [initialVel] is corrent,
       but let's not depend on that because
       we already have a message/event that must be
       in that list *)
-
-
   pose proof (fun pl => filterPayloadsIndexComp  
-        MOTOR BASEMOTOR np pl evMn) as Hcomp.
+        MOTOR BASEMOTOR (eLocIndex ev) pl evMn) as Hcomp.
   unfold priorMotorMesg in Hp.
   repnd. rewrite Hprl in Hcomp. rewrite Hprr in Hcomp.
   specialize (Hcomp _ eq_refl eq_refl).
-  simpl in Hin, Ht.
   lapply Hcomp;[clear Hcomp; intro Hcomp| omega].
-  remember ((filterPayloadsUptoIndex MOTOR (localEvts BASEMOTOR) np))
-    as lf.
+  remember ((filterPayloadsUptoIndex MOTOR 
+        (localEvts BASEMOTOR) (eLocIndex ev))) as lf.
   destruct lf as [ | plev lft ];[inverts Hcomp; fail|].
-  clear Hcomp.
-  simpl in Hm.
+  clear Hcomp. simpl in Hm.
+  apply filterPayloadsIndexCorr in Heqlf.
+  repnd.
+  clear Heqlfrrr.
+  assert (eLocIndex (snd plev) <  eLocIndex ev) as Hev by omega.
+  apply timeIndexConsistent in Heqlfrrl.
+  DestImp Hnn;[| eauto using Qlt_trans].
   unfold correctVelDuring, corrSinceLastVel, lastVelAndTime, 
     velocityMessages, filterPayloadsUptoTime in Hm.
- 
-
-  
-  (** Now that we know that it is non-empty, 
-      lets destruct it and quickly get sid of the nil case*)
-  
-
-
-Abort.
+  destruct Hm as [qt Hm].
+  repnd. clear Hmrr.
+  specialize (Hmrl (eTime ev)). rewrite Hnn in Hmrl.
+  apply evSpacIndex in Hev;[| congruence].
+  assert (eTime (snd plev) + reactionTime <= eTime ev)%Q
+    by lra.
+  assert (qt <= eTime ev)%Q as Hqt by 
+    eauto using Qle_trans.
+  rewrite Hmrl;
+    [|split; trivial]; apply leEq_reflexive; fail.
+Qed.
 
   
 Lemma RHSSafe : forall t: QTime,  (centerPosAtTime tstate t) [<=] Z2R 95.
