@@ -207,7 +207,8 @@ Notation "a <== b <== c" := ((a [<=] b) /\ (b [<=] c))
   (at level 201,left associativity).
 *)
 
-Definition between (b a c : IR) := ((a [<=] b) /\ (b [<=] c)) .
+Definition between (b a c : IR) 
+  := ((Min a c [<=] b) /\ (b [<=] Max a c)) .
 
 Definition correctVelDuring
   (lastVel : Q) 
@@ -1259,7 +1260,7 @@ Close Scope nat_scope.
       unfold between in Hmrr.
       apply proj2 in Hmrr.
       eapply leEq_transitive; eauto.
-      apply inj_Q_leEq.
+      rewrite Max_id. apply inj_Q_leEq.
       simpl. unfold inject_Z. simpl. lra.
 
     * rewrite Hv in Hmrl. specialize (Hmrl qt (conj Hd (proj2 H0t))).
@@ -1612,7 +1613,7 @@ Proof.
   + unfold between in Hmrr.
     specialize (Hmrr _ (conj Hlt Hdec)).
     repnd.
-    trivial.
+    trivial. admit.
 
 
 
