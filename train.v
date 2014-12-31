@@ -790,6 +790,9 @@ Lemma concreteValues : hwidth = Z2R 2
                       /\ initialPos = 0.
 Admitted.
 
+Lemma reactionTimeLt : reactionTime < minGap.
+Admitted.
+
 Definition posVelMeg : list Message :=
   (mkMesg MOTOR speed)::nil.
 
@@ -1214,15 +1217,18 @@ Proof.
   trivial.
 Qed.
 
+Definition priorMotorMesg (vel: Q) (t : QTime):=
+(λ ev : Event,
+         eTime ev < t
+         ∧ getPayloadFromEv MOTOR ev = Some vel 
+          ∧ eLoc ev = BASEMOTOR).
+
 Lemma motorLastPosVelAux : forall (lm : list (Q * Event)) (t : QTime),
   (Q2R 1) [<=] (centerPosAtTime tstate t)
   -> lm = velocityMessages t
-  -> sig (latestEvt 
-              (fun ev =>  eTime ev < t 
-                    /\ getPayloadFromEv MOTOR ev = Some speed
-                    /\  eLoc ev = BASEMOTOR)).
+  -> sig (latestEvt  (priorMotorMesg speed t)).
 Proof.
-  intro.
+  intro. unfold priorMotorMesg.
   induction lm as [|hlm tlm Hind]; intros ? Hcent Heq.
 - simpl. assert False;[| contradiction].
   pose proof (corrNodes 
@@ -1294,7 +1300,7 @@ Close Scope nat_scope.
     simpl. rewrite Hvm in Hcorr.
     fold (posVelMeg) in Hcorr. repnd.
     pose proof (filterPayloadsTimeLatest MOTOR BASEMOTOR) as Hlat.
-    simpl in Hlat.
+    simpl in Hlat. 
     apply Hlat in Heq.
     eapply latestEvtStr; eauto.
     intros ? Hp. simpl. repnd.
@@ -1428,6 +1434,10 @@ Proof.
   apply centerPosChange.
   trivial.
 Qed.
+
+
+
+
 Lemma RHSSafe : forall t: QTime,  (centerPosAtTime tstate t) [<=] Z2R 95.
 Proof.
   intros. apply leEq_def. intros Hc.
@@ -1436,15 +1446,16 @@ Proof.
   (eapply leEq_transitive; eauto; unfold Z2R, inject_Z
     ;apply inj_Q_leEq; simpl;  lra).
   apply motorLastPosVel in Hle1.
-  destruct Hle1 as [evp Hlat].
-  unfold latestEvt in Hlat.
-  repnd. eapply posVelAtLHS in Hlatlrl ; eauto.
+  destruct Hle1 as [evMp Hlat].
+  pose proof (Hlat) as Hlatb.
+  unfold latestEvt in Hlat. apply proj1 in Hlat.
+  repnd. eapply posVelAtLHS in Hlatrl ; eauto.
 
   (** Applying IVT *)
   assert (Z2R (-78) [<] Z2R 95) as H99 by UnfoldLRA.
-  assert (centerPosAtTime tstate (eTime evp) [<] centerPosAtTime tstate t)
+  assert (centerPosAtTime tstate (eTime evMp) [<] centerPosAtTime tstate t)
     as Hlt by eauto 4 with CoRN.
-  clear H99. unfold centerPosAtTime in Hlatlrl, Hc.
+  clear H99. unfold centerPosAtTime in Hlatrl, Hc.
   assert (Z2R (-78) [<=] Z2R 86) as H91 by UnfoldLRA.
   assert (Z2R (86) [<=] Z2R 95) as H92 by UnfoldLRA.
   apply IVTTimeMinMax with (e:=[1]) (y:=Z2R 86)  in Hlt; simpl; 
@@ -1474,7 +1485,6 @@ Proof.
   autorewrite with QSimpl in HLB, HUB.
   revert HLB. simplInjQ. intro HLB.
   revert HUB. simplInjQ. intro HUB.
-  rename evp into evMp.
 
   (** Applying IVT finished, we need to know that
      ([tpp] - [t]) > 8, because 9 sec is enough
@@ -1617,10 +1627,22 @@ Close Scope nat_scope.
   revert HUB. simplInjQ. intro HUB.
   assert ((eTime Emr) < t) as Hlt by lra.
   
+Lemma latestPosAfterNegM : forall evMp evMn t (n:nat),
+  priorMotorMesg (-speed) t evMn
+  -> (latestEvt (priorMotorMesg speed t)) evMp
+  -> (eTime evMp < eTime evMn)
+  -> (S (eLocIndex evMn) <= n)
+  -> let lm 
+    := filterPayloadsUptoIndex MOTOR (localEvts BASEMOTOR) n in
+    fst (hd (initialVel,mkQTime 0 I) 
+            (map (fun p => (fst p, eTime (snd p))) lm))
+    = (-speed).
+Proof.
 
 Abort.
   
   
+Abort.
   
 
 
