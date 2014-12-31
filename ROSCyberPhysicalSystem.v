@@ -108,12 +108,26 @@ option_map eTime.
 Definition numPrevEvts : (nat -> option Event) -> QTime -> nat.
 Admitted.
 
+Close Scope Q_scope.
+
+Lemma evSpacIndex :  forall (ev1 ev2: Event),
+    eLoc ev1 = eLoc ev2
+    -> eLocIndex ev1 <  eLocIndex ev2
+    -> (eTime ev1 + minGap <= eTime ev2)%Q.
+Proof.
+  intros  ? ?  Hl Hlt.
+  pose proof (proj2 ( eventSpacing ev1 ev2) Hl) as Ht.
+  apply timeIndexConsistent in Hlt.
+  rewrite Q.Qabs_Qminus in Ht.
+  rewrite Qabs.Qabs_pos in Ht; lra.
+Qed.
+
 (** this is the spec of the above function *)
 Lemma numPrevEvtsSpec:
   forall loc qt,
     forall ev: Event , eLoc ev = loc
     -> ((eLocIndex ev < numPrevEvts (localEvts loc) qt)%nat 
-          <-> (eTime ev < qt)).
+          <-> (eTime ev < qt)%Q).
 Admitted.
 
 Lemma numPrevEvtsEtime:
