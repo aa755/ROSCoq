@@ -1709,6 +1709,7 @@ Open Scope nat_scope.
     AndProjN 1 Hcon as Hbb.
     AndProjN 2 Hcon as Hal.
     AndProjN 3 Hcon as Hmd.
+    AndProjN 4 Hcon as Hrrrrr.
 Close Scope nat_scope.
   subst.
   clear Hcon Hhw Hbb Hal Hmd. 
@@ -1774,7 +1775,7 @@ Close Scope nat_scope.
   symmetry in e. inverts e.
   rename es0 into Esws.
   rewrite <- Hmeq in H1.
-  SensorMsgInvert H1. subst.
+  SensorMsgInvert H1. subst dmp.
   clear Hmeq.
   rename H2 into Hmot.
   simpl in Hmot.
@@ -1809,26 +1810,30 @@ Close Scope nat_scope.
   
     (** got the msg received by sw. lets update the time bounds *)
 
-  assert ((eTime Emr) < tivt + (4 # 1))%Q  as Htubb by lra.
-  clear Htub. rename Htubb into Htub.
-  assert (tivt < (eTime Emr))%Q  as Htlbb by lra.
-  clear Htlb. rename Htlbb into Htlb.
-  clear dependent Esws.
-  apply (centerPosUB _ _ _ _ (conj Htlb Htub)) in HUB.
-  revert HUB. simplInjQ. intro HUB.
-  assert ((eTime Emr) < t)%Q as Hlt by lra.
-  pose proof (fun tl pm
-      => VelNegAfterLatestPos evMp Emr t tl pm Hlatb) as Hv.
   rewrite <- QT2T_Q2R in Httpp.
   apply leEq_inj_Q in Httpp.
   simpl in Httpp.
   assert (eTime evMp < eTime Emr)%Q as Hql by lra.
+  assert ((eTime Emr) < t)%Q as Hlt by lra.
+  assert (Qtadd (eTime Emr) (mkQTime 1 I)< tivt + (5 # 1))%Q  
+    as Htubb by (unfold Qtadd; simpl; lra).
+  assert (tivt < Qtadd (eTime Emr) (mkQTime 1 I))%Q  
+    as Htlbb by (unfold Qtadd; simpl; lra).
+  assert (Qtadd (eTime Emr) (mkQTime 1 I) < t)%Q  
+    as Hltt by (unfold Qtadd; simpl; lra).
+  clear dependent Esws.
+  apply (centerPosUB _ _ _ _ (conj Htlbb Htubb)) in HUB.
+  revert HUB. simplInjQ. intro HUB.
+  pose proof (fun tl pm
+      => VelNegAfterLatestPos evMp Emr t tl pm Hlatb) as Hv.
   specialize (fun tl pm => Hv tl pm Hql).
   unfold priorMotorMesg, getPayloadFromEv, deqMesg in Hv.
   rewrite Hmrecrr in Hv. rewrite <- Hmeq in Hv.
   simpl in Hv.
   clear Hql.
   specialize (fun tl => Hv tl (conj Hlt (conj eq_refl HmotR))).
+  pose proof (QVelPosUB tstate _ _ (Qlt_le_weak _ _ Hltt) (inject_Z (-1))) 
+      as Hvb.
   
 Abort.
 

@@ -1020,3 +1020,15 @@ Proof.
   intros. unfold cg_minus.
   simpl. ring.
 Qed.
+
+
+ Definition Qtadd (t tl : QTime) : QTime.
+  exists (t + tl).
+  destruct t as [qt qp].
+  destruct tl as [qlt qlp].
+  simpl.
+  apply mkQTimeSnd.
+  apply QTimeD in qlp.
+  apply QTimeD in qp.
+  lra.
+Defined.
