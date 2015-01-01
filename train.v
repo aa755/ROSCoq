@@ -1338,10 +1338,7 @@ Qed.
     lets get rid of it*)
 Lemma motorLastPosVel: forall (t : QTime),
   (Q2R 1) [<=] (centerPosAtTime tstate t)
-  -> sig (latestEvt 
-              (fun ev =>  eTime ev < t 
-                    /\ getPayloadFromEv MOTOR ev = Some speed
-                    /\  eLoc ev = BASEMOTOR)).
+  -> sig (latestEvt (priorMotorMesg speed t)).
 Proof.
   intros. eapply motorLastPosVelAux; eauto.
 Qed.
@@ -1642,7 +1639,7 @@ Proof.
   apply motorLastPosVel in Hle1.
   destruct Hle1 as [evMp Hlat].
   pose proof (Hlat) as Hlatb.
-  unfold latestEvt in Hlat. apply proj1 in Hlat.
+  unfold latestEvt, priorMotorMesg in Hlat. apply proj1 in Hlat.
   repnd. eapply posVelAtLHS in Hlatrl ; eauto.
 
   (** Applying IVT *)
@@ -1820,7 +1817,19 @@ Close Scope nat_scope.
   apply (centerPosUB _ _ _ _ (conj Htlb Htub)) in HUB.
   revert HUB. simplInjQ. intro HUB.
   assert ((eTime Emr) < t)%Q as Hlt by lra.
-
+  pose proof (fun tl pm
+      => VelNegAfterLatestPos evMp Emr t tl pm Hlatb) as Hv.
+  rewrite <- QT2T_Q2R in Httpp.
+  apply leEq_inj_Q in Httpp.
+  simpl in Httpp.
+  assert (eTime evMp < eTime Emr)%Q as Hql by lra.
+  specialize (fun tl pm => Hv tl pm Hql).
+  unfold priorMotorMesg, getPayloadFromEv, deqMesg in Hv.
+  rewrite Hmrecrr in Hv. rewrite <- Hmeq in Hv.
+  simpl in Hv.
+  clear Hql.
+  specialize (fun tl => Hv tl (conj Hlt (conj eq_refl HmotR))).
+  
 Abort.
 
 
