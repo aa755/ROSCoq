@@ -787,6 +787,11 @@ Lemma concreteValues : hwidth = Z2R 2
                       /\ initialPos = 0.
 Admitted.
 
+Lemma reactionTime1 : reactionTime = 1.
+Proof.
+  pose proof concreteValues. repnd.
+  trivial.
+Qed.
 
 Definition posVelMeg : list Message :=
   (mkMesg MOTOR speed)::nil.
@@ -1549,7 +1554,7 @@ Lemma VelNegAfterLatestPos : forall evMp evMn tunsafe
   priorMotorMesg (-speed) tunsafe evMn
   -> (latestEvt (priorMotorMesg speed tunsafe)) evMp
   -> (eTime evMp < eTime evMn)%Q
-  -> ((eTime evMn) + reactionTime) < t < tunsafe
+  -> ((eTime evMn) + reactionTime) <= t <= tunsafe
   -> ({velX tstate} t [<=] Z2R (-1)).
 Close Scope Q_scope.
 Proof.
@@ -1589,8 +1594,7 @@ Proof.
   eapply filterPayloadsIndexSorted in Hcomp; eauto.
   apply filterPayloadsTimeCorr in Heqlf.
   rename Heqlf into Hf. repnd. 
-  assert (eTime (snd plev) < tunsafe)%Q by 
-    eauto using Qlt_trans.
+  assert (eTime (snd plev) < tunsafe)%Q by  lra.
   DestImp Hnn;[|trivial;fail].
   eapply VelNegAfterLatestPosAux in Hcomp; eauto.
   rewrite Hnn in Hm.
@@ -1834,10 +1838,26 @@ Close Scope nat_scope.
   specialize (fun tl => Hv tl (conj Hlt (conj eq_refl HmotR))).
   pose proof (QVelPosUB tstate _ _ (Qlt_le_weak _ _ Hltt) (inject_Z (-1))) 
       as Hvb.
-  
-Abort.
-
-
+  rewrite reactionTime1 in Hv.
+  specialize ( Hvb Hv).
+  clear Hv. unfold centerPosAtTime in HUB.
+  remember ({tstate} (Qtadd (eTime Emr) (mkQTime 1 I))) as qta.
+  unfold Qtadd in Hltt.
+  simpl in Hltt.
+  assert ({tstate} t[-]qta [<=] [0]) as HH0 by
+     (eapply  leEq_transitive; eauto;
+      rewrite <- inj_Q_Zero;
+      apply inj_Q_leEq;
+      simpl; unfold inject_Z; simpl; lra).
+  pose proof (plus_resp_leEq_both _ _ _ _ _ HH0 HUB) as Hf.
+  rewrite <- cg_cancel_mixed in Hf.
+  rewrite <- inj_Q_Zero in Hf.
+  rewrite <- inj_Q_plus in Hf.
+  pose proof (leEq_transitive _ _ _ _ Hc Hf) as XX.
+  apply leEq_inj_Q in XX.
+  simpl in XX. unfold inject_Z in XX.
+  lra.
+Qed.
 
 (*
 Lemma  TrainVelBounded : forall (e : Event) (t: QTime),
