@@ -783,7 +783,7 @@ Lemma concreteValues : hwidth = Z2R 2
                        /\ alertDist =  (inject_Z 16)
                       /\ maxDelay = mkQTime 1 I
                       /\ reactionTime = 1
-                      /\ initialVel = (-1%Z)
+                      /\ initialVel = (0%Z)
                       /\ initialPos = 0.
 Admitted.
 
@@ -1513,7 +1513,7 @@ Proof.
   rewrite numPrevEvtsEtime in Hm; [| trivial];[].
     (* we know that 
       the default case of [hd] wont get invoked in Hm
-      Luckily, [initialVel] is corrent,
+      Luckily, [initialVel] is correct,
       but let's not depend on that because
       we already have a message/event that must be
       in that list *)
