@@ -1012,6 +1012,21 @@ Proof.
   destruct Hpp; tauto.
 Qed.
 
+Lemma pfstrgt:  forall (p : PartFunct IR) (x y : IR) 
+      (Hx : Dom p x)
+      (Hy : Dom p y), 
+        p x Hx[<]p y Hy 
+        -> y[<=]x
+       -> y[<]x.
+Proof.
+  intros ? ? ? ? ? Hpp Hle.
+  apply less_imp_ap in Hpp.
+  apply pfstrx in Hpp.
+  apply ap_imp_less in Hpp.
+  apply leEq_def in Hle. unfold Not in Hle.
+  destruct Hpp; tauto.
+Qed.
+
 Ltac provefalse :=
   assert False ;[| contradiction].
 

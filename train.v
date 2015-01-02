@@ -1561,7 +1561,7 @@ Proof.
   reflexivity.
 Qed.
 
-Lemma timeDiffLB : forall (ts te : Time) (ps pe : R),
+Lemma timeDiffLBPosVel : forall (ts te : Time) (ps pe : R),
   {tstate} ts [<=] ps
   -> pe [<=] {tstate} te
   -> ts [<=] te
@@ -1577,6 +1577,24 @@ Proof.
   trivial.
 Qed.
 
+Lemma timeDiffLBNegVel : forall (ts te : Time) (ps pe : R),
+  {tstate} te [<=] pe (*-95*)
+  -> ps [<=] {tstate} ts (*-87, tivt*)
+  -> ts [<=] te
+  -> pe [<] ps
+  ->  (ps[-]pe) [<=] te [-] ts .
+Proof.
+  intros ? ? ? ? Htl Htr Hte Hplt.
+  assert ({tstate} te [<] {tstate} ts) as Hlt by eauto 4 with CoRN.
+  apply pfstrgt in Hlt; trivial;[].
+  pose proof (minus_resp_leEq_both _ _ _ _ _ Htl Htr) as HH.
+  apply inv_cancel_leEq.
+  rewrite minusInvR.
+  rewrite minusInvR.
+  eapply leEq_transitive; eauto.
+  apply centerPosChangeLB.
+  trivial.
+Qed.
 
 Close Scope Q_scope.
 Open Scope nat_scope.
@@ -1634,6 +1652,60 @@ Proof.
   lra.
 Qed.
 
+Lemma PosAfterLatestNeg : forall evMp evMn t (n:nat),
+  priorMotorMesg (speed) t evMn
+  -> (latestEvt (priorMotorMesg (-speed) t)) evMp
+  -> (eTime evMp < eTime evMn)%Q
+  -> (S (eLocIndex evMn) <= n)%nat
+  -> let lm := filterPayloadsUptoIndex 
+                  MOTOR (localEvts BASEMOTOR) n in
+     match lm with
+     | hdp::tlp =>
+          (eTime (snd hdp) < t)%Q -> (fst hdp) = (speed)
+     | nil => True
+     end.
+Proof.
+  intros  ? ? ? ? Hp Hl Het Hle.
+  induction Hle as [| np Hnp Hind].
+- simpl. unfold priorMotorMesg in Hp.
+  repnd.
+  pose proof (locEvtIndex BASEMOTOR (eLocIndex evMn) evMn) as Hxx.
+  rewrite ((proj1 Hxx) (conj Hprr eq_refl)).
+  simpl. rewrite Hprl. simpl. reflexivity.
+- simpl. simpl in Hind.
+  pose proof (velocityMessagesAuxMsg (S np)) as Hxy.
+  pose proof (filterPayloadsIndexCorr2 MOTOR BASEMOTOR (S np)) as Hxz.
+  simpl in Hxy, Hxz.
+  remember ((getPayloadAndEv MOTOR (localEvts BASEMOTOR np)))
+    as oplev.
+  destruct oplev as [plev|];[clear Hind| exact Hind].
+  simpl. simpl in Hxz, Hxy. 
+  specialize (Hxz _ (inr eq_refl)).
+  specialize (Hxy _ (inr eq_refl)).
+  intros Hplt.
+  destruct Hxy as [Hxy | Hxy];trivial;[].
+  provefalse. 
+  unfold latestEvt in Hl.
+  repnd. rewrite Hxy in Hxzl. clear Hxzrr.
+  unfold priorMotorMesg in Hlr.
+  specialize (Hlr _ (conj Hplt (conj Hxzl Hxzrl))).
+  clear Hxzl Hxzrl.
+  revert Hlr.
+  remember (localEvts BASEMOTOR np) as oev.
+  destruct oev as [ev|];
+  simpl in Heqoplev;[|inverts Heqoplev; fail].
+  destruct (getPayloadFromEv MOTOR ev); inverts Heqoplev.
+  simpl in Hplt. simpl.
+  intro Hcc. assert (eTime evMp < eTime ev)%Q;[| lra].
+  clear Hcc.
+  symmetry in Heqoev. apply locEvtIndex in Heqoev.
+  repnd.
+  fold (lt (eLocIndex evMn) np) in Hnp.
+  rewrite <- Heqoevr  in Hnp.
+  apply timeIndexConsistent in Hnp.
+  lra.
+Qed.
+
 
 Lemma VelNegAfterLatestPosAux : forall evMp evMn t ev,
   priorMotorMesg (-speed) t evMn
@@ -1646,6 +1718,61 @@ Lemma VelNegAfterLatestPosAux : forall evMp evMn t ev,
 Proof.
   intros  ? ? ? ? Hp Hl Het Hle Hloc Hevt.
   pose proof (NegAfterLatestPos _ _ _ _ Hp Hl Het Hle) as Hnn.
+  simpl. simpl in Hnn.
+  pose proof (corrNodes 
+              eo 
+              BASEMOTOR  (eTime ev)) as Hm.
+  simpl in Hm.
+  unfold corrSinceLastVel, lastVelAndTime, 
+      velocityMessages, filterPayloadsUptoTime in Hm.
+  rewrite numPrevEvtsEtime in Hm; [| trivial];[].
+    (* we know that 
+      the default case of [hd] wont get invoked in Hm
+      Luckily, [initialVel] is correct,
+      but let's not depend on that because
+      we already have a message/event that must be
+      in that list *)
+  pose proof (fun pl => filterPayloadsIndexComp  
+        MOTOR BASEMOTOR (eLocIndex ev) pl evMn) as Hcomp.
+  unfold priorMotorMesg in Hp.
+  repnd. rewrite Hprl in Hcomp. rewrite Hprr in Hcomp.
+  specialize (Hcomp _ eq_refl eq_refl).
+  lapply Hcomp;[clear Hcomp; intro Hcomp| omega].
+  remember ((filterPayloadsUptoIndex MOTOR 
+        (localEvts BASEMOTOR) (eLocIndex ev))) as lf.
+  destruct lf as [ | plev lft ];[inverts Hcomp; fail|].
+  clear Hcomp. simpl in Hm.
+  apply filterPayloadsIndexCorr in Heqlf.
+  repnd.
+  clear Heqlfrrr.
+  assert (eLocIndex (snd plev) <  eLocIndex ev) as Hev by omega.
+  apply timeIndexConsistent in Heqlfrrl.
+  DestImp Hnn;[| eauto using Qlt_trans].
+  unfold correctVelDuring, corrSinceLastVel, lastVelAndTime, 
+    velocityMessages, filterPayloadsUptoTime in Hm.
+  destruct Hm as [qt Hm].
+  repnd. clear Hmrr.
+  specialize (Hmrl (eTime ev)). rewrite Hnn in Hmrl.
+  apply evSpacIndex in Hev;[| congruence].
+  assert (eTime (snd plev) + reactionTime <= eTime ev)%Q
+    by lra.
+  assert (qt <= eTime ev)%Q as Hqt by 
+    eauto using Qle_trans.
+  rewrite Hmrl;
+    [|split; trivial]; apply leEq_reflexive; fail.
+Qed.
+
+Lemma VelPosAfterLatestNegAux : forall evMp evMn t ev,
+  priorMotorMesg (speed) t evMn
+  -> (latestEvt (priorMotorMesg (-speed) t)) evMp
+  -> (eTime evMp < eTime evMn)%Q
+  -> ((eLocIndex evMn) < eLocIndex ev)%nat
+  -> (eLoc ev = BASEMOTOR)
+  -> (eTime ev < t)%Q
+  -> (Z2R (1) [<=] {velX tstate}  (eTime ev)).
+Proof.
+  intros  ? ? ? ? Hp Hl Het Hle Hloc Hevt.
+  pose proof (PosAfterLatestNeg _ _ _ _ Hp Hl Het Hle) as Hnn.
   simpl. simpl in Hnn.
   pose proof (corrNodes 
               eo 
@@ -1776,6 +1903,92 @@ Proof.
     [|split; trivial]; apply leEq_reflexive; fail.
 Qed.
 
+Open Scope Q_scope.
+
+Lemma VelPosAfterLatestNeg : forall evMp evMn tunsafe
+    (t : QTime),
+  priorMotorMesg (speed) tunsafe evMn
+  -> (latestEvt (priorMotorMesg (-speed) tunsafe)) evMp
+  -> (eTime evMp < eTime evMn)
+  -> ((eTime evMn) + reactionTime) <= t <= tunsafe
+  -> (Z2R (1) [<=] {velX tstate} t).
+Close Scope Q_scope.
+Proof.
+  intros  ? ? ? ? Hp Hl Het Hbet.
+  pose proof (corrNodes 
+              eo 
+              BASEMOTOR t) as Hm.
+  simpl in Hm.
+  unfold corrSinceLastVel, lastVelAndTime, 
+      velocityMessages, filterPayloadsUptoTime in Hm.
+    (* we know that 
+      the default case of [hd] wont get invoked in Hm
+      Luckily, [initialVel] is corrent,
+      but let's not depend on that because
+      we already have a message/event that must be
+      in that list *)
+  pose proof (fun pl => filterPayloadsIndexComp  
+        MOTOR BASEMOTOR (numPrevEvts (localEvts BASEMOTOR) t) pl evMn) as Hcomp.
+  pose proof Hp as Hpb.
+  unfold priorMotorMesg in Hp.
+  repnd. rewrite Hprl in Hcomp. rewrite Hprr in Hcomp.
+  specialize (Hcomp _ eq_refl eq_refl).
+  pose proof (concreteValues) as Hcorr.
+  AndProjN 4 Hcorr as Hrr.
+  clear Hcorr.
+  rewrite Hrr in Hbetl. 
+  DestImp Hcomp;[|apply numPrevEvtsSpec; trivial; lra].
+  remember(filterPayloadsUptoIndex MOTOR (localEvts BASEMOTOR)
+             (numPrevEvts (localEvts BASEMOTOR) t)) as lf.
+  destruct lf as [ | plev lft ];[inverts Hcomp; fail|].
+  inverts Hcomp as; simpl in Hm.
+- intros Hcomp.
+  pose proof (PosAfterLatestNeg _ _ _ 
+      (numPrevEvts (localEvts BASEMOTOR) t) Hpb Hl Het) as Hnn.
+  rewrite <- Heqlf in Hnn. simpl in Hnn.
+  DestImp Hnn;[|apply numPrevEvtsSpec; trivial; lra].
+  eapply filterPayloadsIndexSorted in Hcomp; eauto.
+  apply filterPayloadsTimeCorr in Heqlf.
+  rename Heqlf into Hf. repnd. 
+  assert (eTime (snd plev) < tunsafe)%Q by  lra.
+  DestImp Hnn;[|trivial;fail].
+  eapply VelPosAfterLatestNegAux in Hcomp; eauto.
+  rewrite Hnn in Hm.
+  revert Hfrrl.
+  revert Hm.
+  revert Hcomp.
+  clear. intros Hv Hm Hlt.
+  unfold correctVelDuring, corrSinceLastVel, lastVelAndTime, 
+    velocityMessages, filterPayloadsUptoTime in Hm.
+  destruct Hm as [qt Hm].
+  repnd.
+  pose proof (Qlt_le_dec qt t) as Hdec.
+  apply Qlt_le_weak in Hlt.
+  destruct Hdec as [Hdec | Hdec]; [clear Hmrr|clear Hmrl].
+  + apply Qlt_le_weak in Hdec.
+    rewrite Hmrl; [| split]; auto;[|];
+     apply leEq_reflexive.
+  + unfold between in Hmrr.
+    specialize (Hmrr _ (conj Hlt Hdec)).
+    repnd.
+    trivial. unfold speed in Hmrrr.
+    unfold Q2R, Z2R , inject_Z in Hmrrr, Hv.
+    revert Hmrrl. simplInjQ.
+    intro Hmrrl.
+    eapply leEq_transitive;[| apply Hmrrl].
+    apply leEq_Min; auto.
+    unfold inject_Z.
+    apply leEq_reflexive.
+- unfold correctVelDuring, corrSinceLastVel, lastVelAndTime, 
+    velocityMessages, filterPayloadsUptoTime in Hm.
+  destruct Hm as [qt Hm].
+  repnd. clear Hmrr.
+  specialize (Hmrl t). rewrite Hrr in Hmlr.
+  assert (qt <= t)%Q by lra.
+  rewrite Hmrl;
+    [|split; trivial]; apply leEq_reflexive; fail.
+Qed.
+
 Lemma RHSSafe : forall t: QTime,  (centerPosAtTime tstate t) [<=] Z2R 95.
 Proof.
   intros. apply leEq_def. intros Hc.
@@ -1830,7 +2043,7 @@ Proof.
     if 8 is not enough, change 95 to sth bigger *)
 
   rewrite  QT2T_Q2R in Htppt.
-  pose proof (timeDiffLB _ _ _ _ HUB Hc Htppt) as Htlt.
+  pose proof (timeDiffLBPosVel _ _ _ _ HUB Hc Htppt) as Htlt.
   lapply Htlt;[clear Htlt; intros Htlt| UnfoldLRA].
   revert Htlt. unfold Z2R. simplInjQ.
   intros Htlt. simpl. 
@@ -2002,6 +2215,239 @@ Close Scope nat_scope.
   lra.
 Qed.
 
+Lemma LHSSafe : forall t: QTime, 
+  Z2R (-95) [<=] (centerPosAtTime tstate t).
+Proof.
+  intros. apply leEq_def. intros Hc.
+  apply less_leEq in Hc.
+  assert (centerPosAtTime tstate t[<=]Z2R (-1)) as Hle1 by
+  (eapply leEq_transitive; eauto; unfold Z2R, inject_Z
+    ;apply inj_Q_leEq; simpl;  lra).
+  apply motorLastNegVel in Hle1.
+  destruct Hle1 as [evMp Hlat].
+  pose proof (Hlat) as Hlatb.
+  unfold latestEvt, priorMotorMesg in Hlat. apply proj1 in Hlat.
+  repnd. eapply negVelAtRHS in Hlatrl ; eauto.
+
+  (** Applying IVT *)
+  assert (Z2R (-95) [<] Z2R 78) as H99 by UnfoldLRA.
+  assert (centerPosAtTime tstate t 
+        [<] centerPosAtTime tstate (eTime evMp))
+    as Hlt by eauto 4 with CoRN.
+  clear H99. unfold centerPosAtTime in Hlatrl, Hc.
+  assert (Z2R (-86) [<=] Z2R (78)) as H91 by UnfoldLRA.
+  assert (Z2R (-95) [<=] Z2R (-86)) as H92 by UnfoldLRA.
+  apply IVTTimeMinMax with (e:=[1]) (y:=Z2R (-86))  in Hlt; simpl; 
+    try split; eauto 3 with CoRN;[].
+  clear H91 H92.
+  destruct Hlt as [tivt H99].
+  destruct H99 as [Hclr Habs].
+  simpl in Hclr.
+  destruct Hclr as [Httpp Htppt].
+  rewrite Min_comm in Httpp.
+  rewrite leEq_imp_Min_is_lft in Httpp by
+      (repeat (rewrite <- QT2T_Q2R);
+       apply less_leEq;
+       apply inj_Q_less; simpl; trivial).
+
+  rewrite Max_comm in Htppt.
+  rewrite leEq_imp_Max_is_rht in Htppt by
+      (repeat (rewrite <- QT2T_Q2R);
+       apply less_leEq;
+       apply inj_Q_less; simpl; trivial).
+  
+  pose proof Habs as HUB.
+  rewrite AbsIR_minus in HUB.
+  apply AbsIR_bnd in HUB.
+  apply AbsIR_bnd in Habs.
+  apply shift_minus_leEq in Habs.
+  rename Habs into HLB.
+  unfold Z2R in HLB, HUB.
+  autorewrite with QSimpl in HLB, HUB.
+  revert HLB. simplInjQ. intro HLB.
+  revert HUB. simplInjQ. intro HUB.
+
+  (** Applying IVT finished, we need to know that
+     ([tpp] - [t]) > 8, because 9 sec is enough
+     for corrective action to kick in in the motor.
+    if 8 is not enough, change 95 to sth bigger *)
+
+  rewrite  QT2T_Q2R in Htppt.
+
+
+  pose proof (timeDiffLBNegVel _ _ _ _ Hc HLB  Htppt) as Htlt.
+  lapply Htlt;[clear Htlt; intros Htlt| UnfoldLRA].
+  revert Htlt. unfold Z2R. simplInjQ.
+  intros Htlt. simpl. 
+  repeat (rewrite <- QT2T_Q2R in Htlt).
+  autorewrite with QSimpl in Htlt.
+  apply leEq_inj_Q in Htlt.
+  unfold cg_minus in Htlt.
+  simpl in Htlt.
+
+    (* now invoking sensor's spec
+      to get the event that it fired soon after [tivt] *)
+  
+  pose proof (corrNodes 
+                eo 
+                (PROXSENSOR left)) as Hnc.
+  simpl in Hnc.
+  apply proj1 in Hnc.
+  specialize (Hnc tivt).
+  unfold lEndPos, lboundary in Hnc.
+  pose proof concreteValues as Hcon.
+Open Scope nat_scope.
+    AndProjN 0 Hcon as Hhw.
+    AndProjN 1 Hcon as Hbb.
+    AndProjN 2 Hcon as Hal.
+    AndProjN 3 Hcon as Hmd.
+    AndProjN 4 Hcon as Hrrrrr.
+Close Scope nat_scope.
+  subst.
+  clear Hcon Hhw Hbb Hal Hmd. 
+  unfold Z2R, inject_Z in Hnc.
+  rewrite <- inj_Q_Zero in Hnc.
+  rewrite <- CAbGroups.minus_plus in Hnc.
+  autorewrite with QSimpl in Hnc.
+  revert Hnc. simplInjQ. intros Hnc.
+  DestImp Hnc;[|
+    apply shift_minus_leEq;
+    eapply leEq_transitive; eauto;
+    autorewrite with QSimpl;
+    UnfoldLRA].
+  destruct Hnc as [n Hnc].
+  destruct Hnc as [ev Hnc].
+  repnd.
+  rename ev into Esens.
+  (** got the event generated by the prox sensor.
+      let's count the time towards the deadline *)
+  unfold ProxPossibleTimeEvPair in Hncrr.
+  repnd. simpl in Hncrrlr.
+  rename Hncrrlr  into Htub.
+  (** lets deliver the message to the s/w node *)
+
+  pose proof (eventualDelivery eo  Hncrl) as Hrec.
+  destruct Hrec as [Er  Hrec].
+  repnd.
+  apply locEvtIndex in Hncl.
+  pose proof (SensorOnlySendsToSw _ _ _ 
+      Hncrl Hrecrr Hrecl (proj1 Hncl)) as Hsw.
+  unfold PossibleSendRecvPair in Hrecl.
+  pose proof (proj1 Hrecl) as Hmeq.
+  repeat (apply proj2 in Hrecl).
+  rewrite Hsw in Hrecl.
+  rewrite (proj1 Hncl) in Hrecl.
+  simpl in Hrecl.
+  rename Er into Eswr.
+  repnd. rewrite Hncrrr in Hmeq.
+
+  (** got the msg received by sw. lets update the time bounds *)
+
+  assert ((eTime Eswr) < tivt + (2 # 1))%Q  as Htubb by lra.
+  clear Htub. rename Htubb into Htub.
+  assert (tivt < (eTime Eswr))%Q  as Htlb by lra.
+  clear Hreclr Hrecll Hncrrr Hncrl Hrecrl Hnclr Hncll Htppt
+      Hncrrll Esens.
+
+  (** lets process the message on the s/w node *)
+   pose proof (corrNodes 
+                eo 
+                SWCONTROLLER 
+                (eLocIndex Eswr)) as Hnc.
+  apply snd in Hnc.
+  pose proof (locEvtIndex SWCONTROLLER (eLocIndex Eswr) Eswr) as Hxx.
+  rewrite (proj1 Hxx) in Hnc;[| split; auto; fail].
+  simpl  in Hnc.
+  specialize (Hnc Hrecrr).
+  destruct Hnc as [m Hnc].
+  apply DeqSendOncePair in Hnc.
+  simpl in Hnc. 
+  destruct Hnc as [es0 Hnc].
+  destruct Hnc as [ed Hnc].
+  exrepd. rewrite ((proj1 Hxx) (conj Hsw eq_refl)) in e.
+  symmetry in e. inverts e.
+  rename es0 into Esws.
+  rewrite <- Hmeq in H1.
+  SensorMsgInvert H1. subst dmp.
+  clear Hmeq.
+  rename H2 into Hmot.
+  simpl in Hmot.
+  
+  (** got the msg sent received by sw. 
+      lets update the time bounds *)
+
+  assert ((eTime Esws) < tivt + (3 # 1))%Q  as Htubb by lra.
+  clear Htub. rename Htubb into Htub.
+  assert (tivt < (eTime Esws))%Q  as Htlbb by lra.
+  clear Htlb. rename Htlbb into Htlb.
+  rename e0 into Hss.
+  apply locEvtIndex in Hss.
+  clear H0 H i i1 l Hrecrr Hxx Hsw Eswr.
+
+  rename i0 into HmotSend.
+
+  (** let's receive the -speed message on the motor *)
+  
+  pose proof (eventualDelivery eo  HmotSend) as Hmrec.
+  destruct Hmrec as [Er  Hmrec].
+  repnd. rename Er into Emr.
+  pose proof (SwOnlySendsToMotor _ _ 
+      HmotSend Hmrecrr Hmrecl Hssl) as HmotR.
+  unfold PossibleSendRecvPair in Hmrecl.
+  pose proof (proj1 Hmrecl) as Hmeq.
+  repeat (apply proj2 in Hmrecl).
+  rewrite HmotR in Hmrecl.
+  rewrite Hssl in Hmrecl.
+  simpl in Hmrecl.
+  repnd. rewrite <- Hmot in Hmeq.
+  
+    (** got the msg received by sw. lets update the time bounds *)
+
+  rewrite <- QT2T_Q2R in Httpp.
+  apply leEq_inj_Q in Httpp.
+  simpl in Httpp.
+  assert (eTime evMp < eTime Emr)%Q as Hql by lra.
+  assert ((eTime Emr) < t)%Q as Hlt by lra.
+  assert (Qtadd (eTime Emr) (mkQTime 1 I)< tivt + (5 # 1))%Q  
+    as Htubb by (unfold Qtadd; simpl; lra).
+  assert (tivt < Qtadd (eTime Emr) (mkQTime 1 I))%Q  
+    as Htlbb by (unfold Qtadd; simpl; lra).
+  assert (Qtadd (eTime Emr) (mkQTime 1 I) < t)%Q  
+    as Hltt by (unfold Qtadd; simpl; lra).
+  clear dependent Esws.
+  apply (centerPosLB _ _ _ _ (conj Htlbb Htubb)) in HLB.
+  revert HLB. simplInjQ. intro HLB.
+  pose proof (fun tl pm
+      => VelPosAfterLatestNeg evMp Emr t tl pm Hlatb) as Hv.
+  specialize (fun tl pm => Hv tl pm Hql).
+  unfold priorMotorMesg, getPayloadFromEv, deqMesg in Hv.
+  rewrite Hmrecrr in Hv. rewrite <- Hmeq in Hv.
+  simpl in Hv.
+  clear Hql.
+  specialize (fun tl => Hv tl (conj Hlt (conj eq_refl HmotR))).
+  pose proof (QVelPosLB tstate _ _ (Qlt_le_weak _ _ Hltt) 
+                                (inject_Z (1))) 
+      as Hvb.
+  rewrite reactionTime1 in Hv.
+  specialize ( Hvb Hv).
+  clear Hv. unfold centerPosAtTime in HLB.
+  remember ({tstate} (Qtadd (eTime Emr) (mkQTime 1 I))) as qta.
+  unfold Qtadd in Hltt.
+  simpl in Hltt.
+  assert ( [0] [<=] {tstate} t[-]qta) as HH0 by
+     (eapply  leEq_transitive; eauto;
+      rewrite <- inj_Q_Zero;
+      apply inj_Q_leEq;
+      simpl; unfold inject_Z; simpl; lra).
+  pose proof (plus_resp_leEq_both _ _ _ _ _ HH0 HLB) as Hf.
+  rewrite <- cg_cancel_mixed in Hf.
+  rewrite <- inj_Q_Zero in Hf.
+  rewrite <- inj_Q_plus in Hf.
+  pose proof (leEq_transitive _ _ _ _ Hf Hc) as XX.
+  apply leEq_inj_Q in XX.
+  simpl in XX. unfold inject_Z in XX.
+  lra.
+Qed.
 
 Close Scope R_scope.
 Close Scope Q_scope.
