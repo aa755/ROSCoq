@@ -187,7 +187,7 @@ fun  (distanceAtTime : Time -> R)
     /\
     (∀ (n: nat), 
         isSendEvtOp (evs n)
-        -> ∃ t : QTime,  Cast (distanceAtTime t  [<=]  alertDist)
+        -> ∃ t : QTime, (distanceAtTime t  [<=]  alertDist)
                 /\ opLiftF (ProxPossibleTimeEvPair maxDelay side t) (evs n)).
 
 Definition inIntervalDuring
@@ -968,7 +968,6 @@ Proof.
     clear Hncrl.
     rewrite Hncrr in Hmd.
     SensorMsgInvert Hmd.
-    inverts Hncl as Hncl.
     subst. unfold proxView in Hncl.
     (* apply less_leEq in Hncl. *)
     (* rewrite AbsIR_minus in Hncl. *)
@@ -1150,7 +1149,6 @@ Proof.
     clear Hncrl.
     rewrite Hncrr in Hmd.
     SensorMsgInvert Hmd.
-    inverts Hncl as Hncl.
     subst. unfold proxView in Hncl.
     (* apply less_leEq in Hncl. *)
     (* apply AbsIR_bnd in Hncl. *)
