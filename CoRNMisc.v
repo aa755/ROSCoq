@@ -2,20 +2,6 @@ Require Export CoRN.ftc.FTC.
 
 Definition Q2R  (q: Q) : IR := (inj_Q IR q).
 Coercion  Q2R : Q >-> st_car.
-Lemma Weak_QIVT
-     : forall (I : interval) (F : PartFunct IR),
-       Continuous I F ->
-       forall (a b : Q) (Ha : Dom F a) (Hb : Dom F b)
-         (HFab : F a Ha[<]F b Hb),
-       I a ->
-       I b ->
-       forall e : IR,
-       [0][<]e ->
-       forall y : IR,
-       Compact (less_leEq IR (F a Ha) (F b Hb) HFab) y ->
-       {x : Q | Compact (Min_leEq_Max a b) x |
-       forall Hx : Dom F x, AbsIR (F x Hx[-]y)[<=]e}.
-Abort.
 
 Require Export CoRN.ftc.Derivative.   
 Require Export CoRN.ftc.Integral.

@@ -361,6 +361,17 @@ Definition mkQTime1  (t : Q) (tl: QTime) (p: tl <= t) : QTime.
   eauto using Qle_trans.
 Defined.
 
+Definition mkQTimeT  (t : Q) (tl: Time) (p: tl [<=] t) : QTime.
+  exists t.
+  apply mkQTimeSnd.
+  destruct tl as [tq tp].
+  simpl in p.
+  simpl in tp.
+  apply (leEq_inj_Q IR).
+  rewrite inj_Q_Zero.
+  eauto using leEq_transitive.
+Defined.
+
 Definition mkQTimeInj  (t : Q) (tl: QTime) (p: Q2R tl [<=] Q2R t) : QTime.
   eapply mkQTime1.
   apply leEq_inj_Q in p.
@@ -703,7 +714,7 @@ Proof.
   apply timeIncludedQ.
 Qed.
 
-Lemma TimeFunR2QCompactInt : forall (tf : TimeFun)  (ta tb : QTime) (c : R),
+Lemma TimeFunR2QCompactIntUB : forall (tf : TimeFun)  (ta tb : QTime) (c : R),
 (forall (t:QTime), (ta <= t <= tb) -> ({tf} t) [<=] c)
 -> (forall (t:Time), ((clcr ta tb) t) -> ({tf} t) [<=] c).
 Proof.
@@ -718,7 +729,65 @@ Proof.
   erewrite pfwdef; eauto using leEq_imp_eq,leEq_reflexive.
 Qed.
 
-Lemma TimeFunR2QCompactIntGe : forall (tf : TimeFun)  (ta tb : QTime) (c : R),
+
+  Hint Rewrite <- inj_Q_One : QSimpl.
+  Hint Rewrite <- inj_Q_inv : QSimpl.
+  Hint Rewrite <- inj_Q_plus : QSimpl.
+  Hint Rewrite <- inj_Q_minus : QSimpl.
+  Hint Rewrite <- inj_Q_inv : QSimpl.
+
+Ltac simplInjQ :=
+  unfold Q2R, Z2R; autorewrite with QSimpl;
+let H99 := fresh "HSimplInjQ" in
+match goal with
+[|- context [inj_Q _ ?q]] => let qs := eval compute in q in
+                         assert (q = qs) as H99 by reflexivity;
+                         rewrite H99; clear H99
+end.
+Ltac UnfoldLRA :=
+   (unfold Q2R, Z2R, inject_Z; 
+      try apply inj_Q_leEq; 
+      try apply inj_Q_less; 
+      simpl; lra).
+
+Lemma QT2T_Q2R : forall (qt:QTime),
+  inj_Q IR (QT2Q qt) = realV _ (QT2T qt).
+Proof.
+  intros. destruct qt as [q p].
+  unfold QT2T, QT2Q, QT2R.
+  simpl. reflexivity.
+Qed.
+
+Lemma timeNonNeg: forall t:Time, 
+  (closel [0]) t.
+Proof.
+  intros. destruct t. simpl. trivial.
+Qed.
+
+Lemma timeNonNegUnfolded: forall t:Time, 
+  [0] [<=] t.
+Proof.
+  intros. destruct t. simpl. trivial.
+Qed.
+Hint Immediate timeNonNeg timeNonNegUnfolded: ROSCOQ.
+
+Lemma TimeFunR2QUB : forall (tf : TimeFun) (c : R),
+(forall (t:QTime), ({tf} t) [<=] c)
+-> (forall (t:Time), ({tf} t) [<=] c).
+Proof.
+  intros ? ? Hq ?.
+  pose proof (less_plusOne _ t) as Hl.
+  apply Q_dense_in_CReals' in Hl.
+  destruct Hl as [q  Htq Hqt].
+  apply less_leEq in Htq.
+  apply TimeFunR2QCompactIntUB with (ta:= mkQTime 0 I) 
+        (tb:=mkQTimeT q _ Htq); trivial.
+  trivial. simplInjQ.
+  split;[rewrite inj_Q_Zero|]; simpl; auto.
+  eauto with ROSCOQ.
+Qed.
+
+Lemma TimeFunR2QCompactIntLB : forall (tf : TimeFun)  (ta tb : QTime) (c : R),
 (forall (t:QTime), (ta <= t <= tb) -> c [<=] ({tf} t))
 -> (forall (t:Time), ((clcr ta tb) t) -> c [<=] ({tf} t)).
 Proof.
@@ -733,12 +802,20 @@ Proof.
   erewrite pfwdef; eauto using leEq_imp_eq,leEq_reflexive.
 Qed.
 
-Lemma QT2T_Q2R : forall (qt:QTime),
-  inj_Q IR (QT2Q qt) = realV _ (QT2T qt).
+Lemma TimeFunR2QLB : forall (tf : TimeFun) (c : R),
+(forall (t:QTime),  c [<=] ({tf} t))
+-> (forall (t:Time), c [<=] ({tf} t)).
 Proof.
-  intros. destruct qt as [q p].
-  unfold QT2T, QT2Q, QT2R.
-  simpl. reflexivity.
+  intros ? ? Hq ?.
+  pose proof (less_plusOne _ t) as Hl.
+  apply Q_dense_in_CReals' in Hl.
+  destruct Hl as [q  Htq Hqt].
+  apply less_leEq in Htq.
+  apply TimeFunR2QCompactIntLB with (ta:= mkQTime 0 I) 
+        (tb:=mkQTimeT q _ Htq); trivial.
+  trivial. simplInjQ.
+  split;[rewrite inj_Q_Zero|]; simpl; auto.
+  eauto with ROSCOQ.
 Qed.
 
 Lemma TDerivativeUBQ :forall (F F' : TimeFun)
@@ -759,7 +836,7 @@ Proof.
       apply inj_Q_less; trivial|].
   rewrite <- QT2T_Q2R.
   rewrite <- QT2T_Q2R.
-  apply TimeFunR2QCompactInt.
+  apply TimeFunR2QCompactIntUB.
   trivial.
 - symmetry in Heq. apply (inj_Q_wd IR) in Heq.
   unfold Q2R.
@@ -788,7 +865,7 @@ Proof.
       apply inj_Q_less; trivial|].
   rewrite <- QT2T_Q2R.
   rewrite <- QT2T_Q2R.
-  apply TimeFunR2QCompactIntGe.
+  apply TimeFunR2QCompactIntLB.
   trivial.
 - symmetry in Heq. apply (inj_Q_wd IR) in Heq.
   unfold Q2R.
@@ -826,18 +903,6 @@ Lemma mapNil {A B}: forall f : A->B,
 intros. reflexivity.
 Qed.
 
-Lemma timeNonNeg: forall t:Time, 
-  (closel [0]) t.
-Proof.
-  intros. destruct t. simpl. trivial.
-Qed.
-
-Lemma timeNonNegUnfolded: forall t:Time, 
-  [0] [<=] t.
-Proof.
-  intros. destruct t. simpl. trivial.
-Qed.
-Hint Immediate timeNonNeg timeNonNegUnfolded: ROSCOQ.
 
 Lemma IVTTimeMinMax: forall (F : TimeFun) (ta tb : Time) (e y : IR),
    ({F} ta[<]{F} tb)
@@ -977,25 +1042,6 @@ Lemma AbsIR_ABSIR: forall x, ABSIR x = AbsIR x.
   intros. reflexivity.
 Qed.
 
-  Hint Rewrite <- inj_Q_One : QSimpl.
-  Hint Rewrite <- inj_Q_inv : QSimpl.
-  Hint Rewrite <- inj_Q_plus : QSimpl.
-  Hint Rewrite <- inj_Q_minus : QSimpl.
-  Hint Rewrite <- inj_Q_inv : QSimpl.
-
-Ltac simplInjQ :=
-  unfold Q2R, Z2R; autorewrite with QSimpl;
-let H99 := fresh "HSimplInjQ" in
-match goal with
-[|- context [inj_Q _ ?q]] => let qs := eval compute in q in
-                         assert (q = qs) as H99 by reflexivity;
-                         rewrite H99; clear H99
-end.
-Ltac UnfoldLRA :=
-   (unfold Q2R, Z2R, inject_Z; 
-      try apply inj_Q_leEq; 
-      try apply inj_Q_less; 
-      simpl; lra).
 
 Lemma pfstrlt:  forall (p : PartFunct IR) (x y : IR) 
       (Hx : Dom p x)

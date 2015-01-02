@@ -2449,6 +2449,21 @@ Close Scope nat_scope.
   lra.
 Qed.
 
+
+Lemma TrainSafe : 
+    forall t: Time,  AbsIR (centerPosAtTime tstate t) [<=] Z2R 95.
+Proof.
+  intros.
+  apply AbsSmall_imp_AbsIR.
+  split.
+- apply TimeFunR2QLB. intro qt. unfold Z2R. rewrite <- inj_Q_inv.
+  apply LHSSafe.
+- apply TimeFunR2QUB.
+  exact RHSSafe.
+Qed.
+
+
+
 Close Scope R_scope.
 Close Scope Q_scope.
 Add LoadPath "../../../nuprl/coq".
