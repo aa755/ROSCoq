@@ -1032,3 +1032,6 @@ Qed.
   apply QTimeD in qp.
   lra.
 Defined.
+
+Ltac DestImp H :=
+ lapply H;[clear H; intro H|].
