@@ -320,7 +320,6 @@ Instance rllllfjkfhsdakfsdakh : @RosLocType Train Topic Event  RosLoc _.
 Defined.
 
 
-Open Scope R_scope.
 
 Variable tstate : Train.
 Variable eo : (@PossibleEventOrder _  tstate minGap _ _ _ _ _ _ _ _ _).
@@ -334,7 +333,7 @@ Definition motorEvents : nat -> option Event
 
 Lemma QPositionLe :forall (tst : Train)
    (ta tb : QTime) (Hab : (ta<=tb)%Q),
-   (forall (t:QTime), (ta <= t <= tb)%Q -> ({velX tst} t) [<=] Q2R 0)
+   (forall (t:QTime), (ta <= t <= tb)%Q -> ({velX tst} t) [<=] 0)
    -> ({posX tst} tb[<=] {posX tst} ta).
 Proof.
   intros ? ? ? ?  Hq.
@@ -366,7 +365,7 @@ Qed.
 
 Lemma QPositionGeIf :forall (tst : Train) (c : IR)
    (ta tb : QTime) (Hab : (ta<=tb)%Q),
-   (forall (t:QTime), (ta <= t <= tb)%Q -> ({velX tst} t) [<=] Q2R 0)
+   (forall (t:QTime), (ta <= t <= tb)%Q -> ({velX tst} t) [<=] 0)
    -> c [<=] {posX tst} tb
    -> c [<=] {posX tst} ta.
 Proof.
@@ -377,7 +376,7 @@ Qed.
 
 Lemma QPositionLeIf :forall (tst : Train) (c : IR)
    (ta tb : QTime) (Hab : (ta<=tb)%Q),
-   (forall (t:QTime), (ta <= t <= tb)%Q -> Q2R 0 [<=] ({velX tst} t))
+   (forall (t:QTime), (ta <= t <= tb)%Q -> 0 [<=] ({velX tst} t))
    -> {posX tst} tb  [<=] c
    -> {posX tst} ta  [<=] c.
 Proof.
@@ -805,13 +804,13 @@ Qed.
 *)
 
   
-Lemma concreteValues : hwidth = Z2R 2 
-                       /\ boundary = Z2R 100 
-                       /\ alertDist =  (inject_Z 16)
-                      /\ maxDelay = mkQTime 1 I
-                      /\ reactionTime = 1
-                      /\ initialVel = (0%Z)
-                      /\ initialPos = 0.
+Lemma concreteValues : hwidth =  2 
+                      /\ boundary =  100 
+                      /\ alertDist =   16
+                      /\ (maxDelay = mkQTime 1 I)
+                      /\ (reactionTime = 1)
+                      /\ (initialVel = 0)
+                      /\ (initialPos = 0).
 Admitted.
 
 Lemma reactionTime1 : reactionTime = 1.
@@ -823,20 +822,22 @@ Qed.
 Definition posVelMeg : list Message :=
   (mkMesg MOTOR speed)::nil.
 
+Open Scope Z_scope.
+
 Definition MotorRecievesPositivVelAtLHS (ev : Event)  :=
 match (eLoc  ev) with
 | BASEMOTOR => 
             isDeqEvt ev
               -> (eMesg ev) = posVelMeg
-              -> (centerPosAtTime tstate (eTime ev)) [<=]  Z2R (-78)
+              -> (centerPosAtTime tstate (eTime ev)) [<=]  -78
 | SWCONTROLLER => 
             match eKind ev with
             | sendEvt => 
                 (eMesg ev) = posVelMeg
-                -> (centerPosAtTime tstate (eTime ev)) [<=] Z2R (-79)
+                -> (centerPosAtTime tstate (eTime ev)) [<=] -79
             | deqEvt => 
                 (eMesg ev) = (mkMesg PSENSOR false)::nil
-                -> (centerPosAtTime tstate (eTime ev)) [<=] Z2R (-80)
+                -> (centerPosAtTime tstate (eTime ev)) [<=] -80
             | _ => True
             end
 | _ => True
@@ -857,7 +858,7 @@ Proof.
     (@well_founded_induction_type Event (causedBy eo) (causalWf eo)) .
   unfold MotorRecievesPositivVelAtLHS.
   remember (eLoc ev) as evloc.
-  destruct evloc; simpl; auto.
+  destruct evloc; auto.
 
 - intro Hdeqx. pose proof (recvSend eo Hdeqx) as Hsend.
   destruct Hsend as [Es Hsend].
@@ -1005,23 +1006,27 @@ Close Scope nat_scope.
     simpl. unfold inject_Z. simpl. lra.
 Qed.
 
+Close Scope Z_scope.
+
 Definition negVelMeg : list Message :=
   (mkMesg MOTOR (-speed))::nil.
+
+Open Scope Z_scope.
 
 Definition MotorRecievesNegVelAtRHS (ev : Event)  :=
 match (eLoc  ev) with
 | BASEMOTOR => 
             isDeqEvt ev
               -> (eMesg ev) = negVelMeg
-              -> Z2R (78) [<=]  (centerPosAtTime tstate (eTime ev))
+              -> 78 [<=]  (centerPosAtTime tstate (eTime ev))
 | SWCONTROLLER => 
             match eKind ev with
             | sendEvt => 
                 (eMesg ev) = negVelMeg
-                -> Z2R (79) [<=] (centerPosAtTime tstate (eTime ev))
+                -> 79 [<=] (centerPosAtTime tstate (eTime ev))
             | deqEvt => 
                 (eMesg ev) = (mkMesg PSENSOR true)::nil
-                -> Z2R (80) [<=] (centerPosAtTime tstate (eTime ev))
+                -> 80 [<=] (centerPosAtTime tstate (eTime ev))
             | _ => True
             end
 | _ => True
@@ -1034,7 +1039,7 @@ Proof.
     (@well_founded_induction_type Event (causedBy eo) (causalWf eo)).
   unfold MotorRecievesNegVelAtRHS.
   remember (eLoc ev) as evloc.
-  destruct evloc; simpl; auto.
+  destruct evloc; auto.
 
 
 - intro Hdeqx. pose proof (recvSend eo Hdeqx) as Hsend.
@@ -1182,6 +1187,7 @@ Qed.
 
 
 
+Close Scope Z_scope.
 
 Lemma velocityMessagesAuxMsg: forall upto mt,
   member mt (filterPayloadsUptoIndex MOTOR (localEvts BASEMOTOR) upto)
@@ -1212,10 +1218,12 @@ Proof.
   trivial.
 Qed.
 
+Open Scope Z_scope.
+
 Lemma posVelAtLHS : forall evp,
   getPayloadFromEv MOTOR evp = Some speed
   -> eLoc evp = BASEMOTOR
-  -> (centerPosAtTime tstate (eTime evp)) [<=]  Z2R (-78).
+  -> (centerPosAtTime tstate (eTime evp)) [<=]  -78.
 Proof.
   intros ? Hp Hl.
   pose proof (PosVelAtLHSAux evp) as Hev.
@@ -1229,9 +1237,9 @@ Proof.
 Qed.
   
 Lemma negVelAtRHS : forall evp,
-  getPayloadFromEv MOTOR evp = Some (-speed)
+  getPayloadFromEv MOTOR evp = Some (-speed)%Q
   -> eLoc evp = BASEMOTOR
-  -> Z2R (78) [<=] (centerPosAtTime tstate (eTime evp)) .
+  -> 78 [<=] (centerPosAtTime tstate (eTime evp)) .
 Proof.
   intros ? Hp Hl.
   pose proof (NegVelAtRHSAux evp) as Hev.
@@ -1244,14 +1252,17 @@ Proof.
   trivial.
 Qed.
 
+Close Scope Z_scope.
+
 Definition priorMotorMesg (vel: Q) (t : QTime):=
 (λ ev : Event,
          eTime ev < t
          ∧ getPayloadFromEv MOTOR ev = Some vel 
           ∧ eLoc ev = BASEMOTOR).
 
+Open Scope Z_scope.
 Lemma motorLastPosVelAux : forall (lm : list (Q * Event)) (t : QTime),
-  (Z2R 1) [<=] (centerPosAtTime tstate t)
+  1 [<=] (centerPosAtTime tstate t)
   -> lm = velocityMessages t
   -> sig (latestEvt  (priorMotorMesg speed t)).
 Proof.
@@ -1364,7 +1375,7 @@ Close Scope nat_scope.
 Qed.
 
 Lemma motorLastNegVelAux : forall (lm : list (Q * Event)) (t : QTime),
-  (centerPosAtTime tstate t) [<=] (Z2R (-1))
+  (centerPosAtTime tstate t) [<=] -1
   -> lm = velocityMessages t
   -> sig (latestEvt  (priorMotorMesg (-speed) t)).
 Proof.
@@ -1479,7 +1490,7 @@ Qed.
 (** in the aux version, lm was there only for induction.
     lets get rid of it*)
 Lemma motorLastPosVel: forall (t : QTime),
-  (Q2R 1) [<=] (centerPosAtTime tstate t)
+  1 [<=] (centerPosAtTime tstate t)
   -> sig (latestEvt (priorMotorMesg speed t)).
 Proof.
   intros. eapply motorLastPosVelAux; eauto.
@@ -1578,8 +1589,8 @@ Proof.
 Qed.
 
 Lemma timeDiffLBNegVel : forall (ts te : Time) (ps pe : R),
-  {tstate} te [<=] pe (*-95*)
-  -> ps [<=] {tstate} ts (*-87, tivt*)
+  {tstate} te [<=] pe
+  -> ps [<=] {tstate} ts
   -> ts [<=] te
   -> pe [<] ps
   ->  (ps[-]pe) [<=] te [-] ts .
@@ -1706,6 +1717,7 @@ Proof.
   lra.
 Qed.
 
+Open Scope Z_scope.
 
 Lemma VelNegAfterLatestPosAux : forall evMp evMn t ev,
   priorMotorMesg (-speed) t evMn
@@ -1714,11 +1726,11 @@ Lemma VelNegAfterLatestPosAux : forall evMp evMn t ev,
   -> ((eLocIndex evMn) < eLocIndex ev)%nat
   -> (eLoc ev = BASEMOTOR)
   -> (eTime ev < t)%Q
-  -> ({velX tstate}  (eTime ev) [<=] Z2R (-1)).
+  -> ({velX tstate}  (eTime ev) [<=] -1).
 Proof.
   intros  ? ? ? ? Hp Hl Het Hle Hloc Hevt.
   pose proof (NegAfterLatestPos _ _ _ _ Hp Hl Het Hle) as Hnn.
-  simpl. simpl in Hnn.
+  simpl in Hnn.
   pose proof (corrNodes 
               eo 
               BASEMOTOR  (eTime ev)) as Hm.
@@ -1745,7 +1757,7 @@ Proof.
   apply filterPayloadsIndexCorr in Heqlf.
   repnd.
   clear Heqlfrrr.
-  assert (eLocIndex (snd plev) <  eLocIndex ev) as Hev by omega.
+  assert (eLocIndex (snd plev) <  eLocIndex ev)%nat as Hev by omega.
   apply timeIndexConsistent in Heqlfrrl.
   DestImp Hnn;[| eauto using Qlt_trans].
   unfold correctVelDuring, corrSinceLastVel, lastVelAndTime, 
@@ -1769,7 +1781,7 @@ Lemma VelPosAfterLatestNegAux : forall evMp evMn t ev,
   -> ((eLocIndex evMn) < eLocIndex ev)%nat
   -> (eLoc ev = BASEMOTOR)
   -> (eTime ev < t)%Q
-  -> (Z2R (1) [<=] {velX tstate}  (eTime ev)).
+  -> 1 [<=] {velX tstate}  (eTime ev).
 Proof.
   intros  ? ? ? ? Hp Hl Het Hle Hloc Hevt.
   pose proof (PosAfterLatestNeg _ _ _ _ Hp Hl Het Hle) as Hnn.
@@ -1800,7 +1812,7 @@ Proof.
   apply filterPayloadsIndexCorr in Heqlf.
   repnd.
   clear Heqlfrrr.
-  assert (eLocIndex (snd plev) <  eLocIndex ev) as Hev by omega.
+  assert (eLocIndex (snd plev) <  eLocIndex ev)%nat as Hev by omega.
   apply timeIndexConsistent in Heqlfrrl.
   DestImp Hnn;[| eauto using Qlt_trans].
   unfold correctVelDuring, corrSinceLastVel, lastVelAndTime, 
@@ -1825,7 +1837,7 @@ Lemma VelNegAfterLatestPos : forall evMp evMn tunsafe
   -> (latestEvt (priorMotorMesg speed tunsafe)) evMp
   -> (eTime evMp < eTime evMn)%Q
   -> ((eTime evMn) + reactionTime) <= t <= tunsafe
-  -> ({velX tstate} t [<=] Z2R (-1)).
+  -> ({velX tstate} t [<=] -1).
 Close Scope Q_scope.
 Proof.
   intros  ? ? ? ? Hp Hl Het Hbet.
@@ -1847,10 +1859,7 @@ Proof.
   unfold priorMotorMesg in Hp.
   repnd. rewrite Hprl in Hcomp. rewrite Hprr in Hcomp.
   specialize (Hcomp _ eq_refl eq_refl).
-  pose proof (concreteValues) as Hcorr.
-  AndProjN 4 Hcorr as Hrr.
-  clear Hcorr.
-  rewrite Hrr in Hbetl. 
+  rewrite reactionTime1 in Hbetl. 
   DestImp Hcomp;[|apply numPrevEvtsSpec; trivial; lra].
   remember(filterPayloadsUptoIndex MOTOR (localEvts BASEMOTOR)
              (numPrevEvts (localEvts BASEMOTOR) t)) as lf.
@@ -1897,7 +1906,7 @@ Proof.
     velocityMessages, filterPayloadsUptoTime in Hm.
   destruct Hm as [qt Hm].
   repnd. clear Hmrr.
-  specialize (Hmrl t). rewrite Hrr in Hmlr.
+  specialize (Hmrl t). rewrite reactionTime1 in Hmlr.
   assert (qt <= t)%Q by lra.
   rewrite Hmrl;
     [|split; trivial]; apply leEq_reflexive; fail.
@@ -1911,7 +1920,7 @@ Lemma VelPosAfterLatestNeg : forall evMp evMn tunsafe
   -> (latestEvt (priorMotorMesg (-speed) tunsafe)) evMp
   -> (eTime evMp < eTime evMn)
   -> ((eTime evMn) + reactionTime) <= t <= tunsafe
-  -> (Z2R (1) [<=] {velX tstate} t).
+  -> (Z2R 1 [<=] {velX tstate} t).
 Close Scope Q_scope.
 Proof.
   intros  ? ? ? ? Hp Hl Het Hbet.
@@ -1933,10 +1942,7 @@ Proof.
   unfold priorMotorMesg in Hp.
   repnd. rewrite Hprl in Hcomp. rewrite Hprr in Hcomp.
   specialize (Hcomp _ eq_refl eq_refl).
-  pose proof (concreteValues) as Hcorr.
-  AndProjN 4 Hcorr as Hrr.
-  clear Hcorr.
-  rewrite Hrr in Hbetl. 
+  rewrite reactionTime1 in Hbetl. 
   DestImp Hcomp;[|apply numPrevEvtsSpec; trivial; lra].
   remember(filterPayloadsUptoIndex MOTOR (localEvts BASEMOTOR)
              (numPrevEvts (localEvts BASEMOTOR) t)) as lf.
@@ -1983,13 +1989,13 @@ Proof.
     velocityMessages, filterPayloadsUptoTime in Hm.
   destruct Hm as [qt Hm].
   repnd. clear Hmrr.
-  specialize (Hmrl t). rewrite Hrr in Hmlr.
+  specialize (Hmrl t). rewrite reactionTime1 in Hmlr.
   assert (qt <= t)%Q by lra.
   rewrite Hmrl;
     [|split; trivial]; apply leEq_reflexive; fail.
 Qed.
 
-Lemma RHSSafe : forall t: QTime,  (centerPosAtTime tstate t) [<=] Z2R 95.
+Lemma RHSSafe : forall t: QTime,  (centerPosAtTime tstate t) [<=]  95.
 Proof.
   intros. apply leEq_def. intros Hc.
   apply less_leEq in Hc.
@@ -2216,7 +2222,7 @@ Close Scope nat_scope.
 Qed.
 
 Lemma LHSSafe : forall t: QTime, 
-  Z2R (-95) [<=] (centerPosAtTime tstate t).
+  -95 [<=] (centerPosAtTime tstate t).
 Proof.
   intros. apply leEq_def. intros Hc.
   apply less_leEq in Hc.
@@ -2449,9 +2455,13 @@ Close Scope nat_scope.
   lra.
 Qed.
 
+Notation "| x |" := (AbsIR x) (at level 300).
+
+
+Coercion Z2R : Z >-> st_car.
 
 Lemma TrainSafe : 
-    forall t: Time,  AbsIR (centerPosAtTime tstate t) [<=] Z2R 95.
+    forall t: Time,  |(centerPosAtTime tstate t)| [<=] 95.
 Proof.
   intros.
   apply AbsSmall_imp_AbsIR.
@@ -2464,26 +2474,14 @@ Qed.
 
 
 
-Close Scope R_scope.
-Close Scope Q_scope.
-Add LoadPath "../../../nuprl/coq".
+(* Add LoadPath "../../../nuprl/coq".
 Require Import UsefulTypes.
-(* Close Scope NupCoqScope. *)
+Close Scope NupCoqScope. *)
 
 
 
-Open Scope R_scope.
-Close Scope Q_scope.
 
 
 
 
 End TrainProofs.
-
-(** To begin with, let the VelControl device control position
-    make it exact if needed *)
-
-(** need to add sequence numbers in timer messages and keep
-    track of it in the controller sw *)
-
-(** N2R commuted with addition *)
