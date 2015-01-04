@@ -441,3 +441,128 @@ Lemma velocityMessagesEv : forall m t,
                 /\ eLoc ev = BASEMOTOR
                 /\ isDeqEvt ev).
 Admitted.
+
+
+(** not relevant for code generation, 
+    only relevant for reasoning *)
+
+Section Dev.
+
+Variable Env : Type.
+  
+(** Output devices receive messages and
+    affect their environment. Examples are
+    heating devices, motors in mobile robots
+    like iCreate
+    
+    In our model,
+    an output device receives a message and outputs
+    a property about how future environment evolves.
+    Note that the device can use the previous history of
+    inputs.
+
+    For example, when a roomba icreate receives
+    a message with a request to go along X axis with
+    speed 1m/s , the output property could be
+    that the robots physical speed somewhere between
+    0.9m/s and 1.1 m/s until a new message arrives
+ *)
+Open Scope type_scope.
+
+Record OutDevBehaviour := {
+  allowedBhv :> forall (t:RTime), (RInInterval (clcr [0] t) -> Env) -> Prop
+
+    (* ; extendTime : forall (t1 t2 :Time)
+            (ev1 : RInInterval (clcr [0] t1) -> Env) ,
+            t1 [<] t2
+            -> allowedBhv t1 ev1
+            -> {ev2 : RInInterval (clcr [0] t2) -> Env | allowedBhv t2 ev2} *)
+}.
+
+Definition OutDev (Inp : Type) :=
+  OutDevBehaviour * Process Inp OutDevBehaviour.
+
+Definition MemoryLessOutDev (Inp : Type) :=
+  OutDevBehaviour * (Inp -> OutDevBehaviour).
+Close Scope type_scope.
+
+CoFixpoint makeOutDevAux {Inp: Type} 
+  (m: Inp -> OutDevBehaviour) 
+    : Process Inp OutDevBehaviour :=
+   buildP (fun inp : Inp => (makeOutDevAux  m,  m inp)).
+
+Definition makeOutDev {Inp: Type} 
+  (m: MemoryLessOutDev Inp) 
+    : OutDev  Inp :=
+  (fst m,  makeOutDevAux (snd m)).
+
+Definition getOutDevBhv  {In : Type}
+    (p: OutDev In )
+    (allInputs : list In)  : OutDevBehaviour :=
+    match allInputs with
+    | nil => fst p
+    | last :: rest => getLastOutput (snd p) rest last
+    end.
+
+Coercion makeOutDev : MemoryLessOutDev >-> OutDev.
+
+
+(** An input device observes the environment over time
+    and may emit messages.
+    In the following model, it is a function which
+    when given how environment evolved,
+    either never outputs a message ([unit] case)
+    our outputs a triple indicating the output message,
+    time of output and a new device (possibly storing some state)
+
+    Time is relative to the previous emitted message.
+    If no message was emitted yet, time is relative to
+    the instant the device (driver) was turned on.
+
+    The reason why [InpDev] cannot be modeled
+    by a software node is because unlike
+    software nodes, input devices can emit
+    messages even when they did not receive
+    any input. Maybe we can generalize software
+    nodes to do that. 
+*)
+CoInductive InpDev (Out : Type) :=
+maybeSendMesg : 
+      ((Time -> Env) 
+        -> (unit + (Out * Time * InpDev Out)))
+        -> InpDev Out.
+
+(** Input devices may receive message as instructions.
+    This model is not expressive enough to capture that.
+    
+    Howver, that is not too bad. In ROS, sensors like
+    kinect continuously emit and there is no control data.
+ *)
+
+Definition getIDev {Out : Type} (idv : InpDev Out ) :
+((Time -> Env) -> (unit + (Out * Time * InpDev Out)))
+  :=
+match idv with
+maybeSendMesg mmm => mmm
+end.
+
+End Dev.
+
+
+(*
+CoInductive StateFulProcess (In State Out : Type) :=
+buildSP : (In -> State -> ((StateFulProcess In State Out)* Out))
+          -> StateFulProcess In State Out.
+
+CoFixpoint fromSFProcess {In State Out : Type} (initState : State)
+  (sfp : StateFulProcess In State Out)
+   : Process In Out.
+constructor. intro inp.
+destruct sfp.
+pose proof (p inp initState) as Hsfs.
+destruct Hsfs; split; [| trivial]. clear p.
+eauto.
+Defined.
+
+Coercion  fromSFProcess : StateFulProcess >-> Process.
+*)

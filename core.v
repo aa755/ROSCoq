@@ -54,7 +54,12 @@ Definition restrictToInterval {A} (f : R -> A)
     fun r => f r.
 
 
-Definition Time := RNonNeg.
+Definition Time := {r : IR | [0] [<=] r}.
+
+Definition T2R : Time -> IR := (@proj1_sig IR _).
+
+Coercion T2R : Time >-> st_car.
+
 Open Scope Q_scope.
 
 
@@ -63,11 +68,6 @@ Definition Qpos : Type := {q : Q | 0 < q}.
 Definition Qp2Q (t : Qpos) : Q := (proj1_sig t).
 Coercion Qp2Q : Qpos >-> Q.
 
-(*
-Definition Time : Type := {q : Q | 0 <= q}.
-Definition T2Q (t : Time) : Q := (proj1_sig t).
-Coercion T2Q : Time >-> Q.
-*)
 
 (*
 Lemma restrictTill {A} (f : Time -> A) 
@@ -106,8 +106,7 @@ Hint Resolve plus_resp_nonneg : CoRN.
  Definition tadd (t tl : Time) : Time.
    exists (t [+] tl).
    unfold iprop. destruct t. destruct tl.
-   simpl. unfold iprop in realVPos0.
-   unfold iprop in realVPos1.
+   simpl. 
    eauto using plus_resp_nonneg.
 
    (*   exists (tl + t). destruct t, tl. simpl.
@@ -298,12 +297,12 @@ Definition definedOnNonNeg (tf: TimeFun) : included (closel [0]) (pfdom _ tf)
   := (fst (continTF tf)).
 
 Definition getF  (f : TimeFun)  (t :Time ) : R :=
-f t ((definedOnNonNeg f) _ (realVPos _ t)).
+f t ((definedOnNonNeg f) _ (proj2_sig t)).
 
 Notation "{ f }" := (getF f).
 
 Instance getFTimeProper (tf : TimeFun):
-  Proper ((fun t1 t2 : Time => realV _ t1 [=] realV _ t2)
+  Proper ((fun t1 t2 : Time => T2R t1 [=] T2R t2)
           ==> (fun v1 v2 => v1 [=] v2))
          {tf}.
 Proof.
@@ -751,7 +750,7 @@ Ltac UnfoldLRA :=
       simpl; lra).
 
 Lemma QT2T_Q2R : forall (qt:QTime),
-  inj_Q IR (QT2Q qt) = realV _ (QT2T qt).
+  inj_Q IR (QT2Q qt) = T2R (QT2T qt).
 Proof.
   intros. destruct qt as [q p].
   unfold QT2T, QT2Q, QT2R.
