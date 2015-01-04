@@ -1008,8 +1008,8 @@ Qed.
 
     
 
-Definition holdsUptoNextEvent (prp : Time -> R -> Prop)
-  (phys : Time -> R)
+Definition holdsUptoNextEvent (prp : Time -> ℝ -> Prop)
+  (phys : Time -> ℝ)
   (evs : nat -> option Event) (n: nat) :=
   let otn := eTimeOp (evs n) in
   let otsn := eTimeOp (evs (S n)) in

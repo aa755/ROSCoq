@@ -89,7 +89,7 @@ Record Train : Type := {
 
 
 Lemma VelPosUB :forall (tst : Train)
-   (ta tb : Time) (Hab : ta[<]tb) (c : R),
+   (ta tb : Time) (Hab : ta[<]tb) (c : ℝ),
    (forall (t:Time), (clcr ta tb) t -> ({velX tst} t) [<=] c)
    -> ({posX tst} tb[-] {posX tst} ta)[<=]c[*](tb[-]ta).
 Proof.
@@ -98,7 +98,7 @@ Proof.
 Qed.
 
 Lemma VelPosLB :forall (tst : Train)
-   (ta tb : Time) (Hab : ta[<]tb) (c : R),
+   (ta tb : Time) (Hab : ta[<]tb) (c : ℝ),
    (forall (t:Time), (clcr ta tb) t -> c [<=] ({velX tst} t))
    -> c[*](tb[-]ta)[<=] ({posX tst} tb[-] {posX tst} ta).
 Proof.
@@ -175,8 +175,8 @@ Definition ProxPossibleTimeEvPair
 
 (** [side] is just an identifier *)
 Definition ProximitySensor (alertDist : Q) (maxDelay: QTime) (side : bool)
-  : Device R :=
-fun  (distanceAtTime : Time -> R)
+  : Device ℝ :=
+fun  (distanceAtTime : Time -> ℝ)
      (evs : nat -> option Event) 
   =>
     (∀ t:QTime,
@@ -191,11 +191,11 @@ fun  (distanceAtTime : Time -> R)
                 /\ opLiftF (ProxPossibleTimeEvPair maxDelay side t) (evs n)).
 
 Definition inIntervalDuring
-  (interval: interval) (tStart tEnd : QTime)  (f : Time -> R) : Prop :=
+  (interval: interval) (tStart tEnd : QTime)  (f : Time -> ℝ) : Prop :=
   Cast (forall t : QTime, ( tStart <= t <= tEnd   -> (interval) (f t)))%Q.
   
 Definition isEqualDuring
-  (vel: Q) (tStart tEnd : QTime)  (f : Time -> R) : Prop :=
+  (vel: Q) (tStart tEnd : QTime)  (f : Time -> ℝ) : Prop :=
   (forall t : QTime, ( tStart <= t <= tEnd   -> (f t) [=] vel))%Q.
 
 Variable reactionTime : Q.
@@ -214,7 +214,7 @@ Definition correctVelDuring
   (lastVel : Q) 
   (lastTime: QTime)
   (uptoTime : QTime) 
-  (velAtTime: Time -> R) :=
+  (velAtTime: Time -> ℝ) :=
 
 (exists  (qt : QTime), 
   lastTime <= qt <= (lastTime + reactionTime)
@@ -245,40 +245,40 @@ hd (initialVel,mkQTime 0 I) (map (fun p => (fst p, eTime (snd p)))
 Definition corrSinceLastVel
   (evs : nat -> option Event)
   (uptoTime : QTime) 
-  (velAtTime: Time -> R) :=
+  (velAtTime: Time -> ℝ) :=
   let (lastVel, lastTime) := lastVelAndTime evs uptoTime in
   correctVelDuring lastVel lastTime uptoTime velAtTime.
 
 
 Definition SlowMotorQ 
-   : Device R :=
-fun  (velAtTime: Time -> R) (evs : nat -> option Event) 
+   : Device ℝ :=
+fun  (velAtTime: Time -> ℝ) (evs : nat -> option Event) 
   => forall t: QTime, corrSinceLastVel evs t velAtTime.
 
 
-Variable boundary : R.
+Variable boundary : ℝ.
 
-Definition rboundary : R := (boundary).
-Definition lboundary : R := ([0] [-] boundary).
+Definition rboundary : ℝ := (boundary).
+Definition lboundary : ℝ := ([0] [-] boundary).
 
 Variable alertDist : Q.
-Variable safeDist : R.
+Variable safeDist : ℝ.
 Variable maxDelay : QTime.
-Variable hwidth : R. (* half of width *)
+Variable hwidth : ℝ. (* half of width *)
 Definition speed : Q := 1.
 
 
 Variable reactionTimeGap : (reactionTime < minGap)%Q.
-Definition lEndPos (ts : Train) (t : Time) : R :=
+Definition lEndPos (ts : Train) (t : Time) : ℝ :=
   (getF (posX ts) t [-]  hwidth).
 
-Definition rEndPos (ts : Train) (t : Time) : R :=
+Definition rEndPos (ts : Train) (t : Time) : ℝ :=
   (getF (posX ts) t [+]  hwidth).
 
-Definition velAtTime (ts : Train) (t : Time) : R :=
+Definition velAtTime (ts : Train) (t : Time) : ℝ :=
   (getF (velX ts) t).
 
-Definition centerPosAtTime (ts : Train) (t : Time) : R :=
+Definition centerPosAtTime (ts : Train) (t : Time) : ℝ :=
   (getF (posX ts) t).
 
 Definition velBound : interval :=
@@ -643,7 +643,7 @@ Require Import CoRN.tactics.CornTac.
 Require Import CoRN.algebra.CRing_as_Ring.
 
 Add Ring IRisaRing: (CRing_Ring IR).
-Add Ring RisaRing: (CRing_Ring R).
+Add Ring RisaRing: (CRing_Ring ℝ).
 Require Import Psatz.
 Require Import Setoid.
 
@@ -703,7 +703,7 @@ Qed.
 
 
 
-Lemma centerPosUB : forall (ts tf : QTime) (td : Q) (ps : R),
+Lemma centerPosUB : forall (ts tf : QTime) (td : Q) (ps : ℝ),
   ts < tf < ts + td
   -> centerPosAtTime tstate ts[<=] ps
   -> centerPosAtTime tstate tf[<=] (ps [+] td).
@@ -716,7 +716,7 @@ Proof.
   remember (centerPosAtTime tstate tf) as cpvt. clear Heqcpvt.
   remember (centerPosAtTime tstate ts) as cpst. clear Heqcpst.
   rename Hintr into Hqlt.
-  apply inj_Q_less with (R1:=R)  in Hqlt.
+  apply inj_Q_less with (R1:=ℝ)  in Hqlt.
   unfold Q2R in Htlt.
   apply (leEq_less_trans _ _ _ _ Htlt) in Hqlt ; eauto.
   clear Htlt ts tf.
@@ -729,7 +729,7 @@ Proof.
 Qed.
 
 
-Lemma centerPosLB : forall (ts tf : QTime) (td : Q) (ps : R),
+Lemma centerPosLB : forall (ts tf : QTime) (td : Q) (ps : ℝ),
   ts < tf < ts + td
   -> ps [<=] centerPosAtTime tstate ts
   -> (ps [-] td) [<=] centerPosAtTime tstate tf.
@@ -1570,7 +1570,7 @@ Proof.
   reflexivity.
 Qed.
 
-Lemma timeDiffLBPosVel : forall (ts te : Time) (ps pe : R),
+Lemma timeDiffLBPosVel : forall (ts te : Time) (ps pe : ℝ),
   {tstate} ts [<=] ps
   -> pe [<=] {tstate} te
   -> ts [<=] te
@@ -1586,7 +1586,7 @@ Proof.
   trivial.
 Qed.
 
-Lemma timeDiffLBNegVel : forall (ts te : Time) (ps pe : R),
+Lemma timeDiffLBNegVel : forall (ts te : Time) (ps pe : ℝ),
   {tstate} te [<=] pe
   -> ps [<=] {tstate} ts
   -> ts [<=] te

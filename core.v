@@ -1,7 +1,9 @@
 Require Import Coq.QArith.QArith.
 Require Import Coq.QArith.Qabs.
 Require Import Coq.QArith.QOrderedType.
-
+(** printing ℝ $\mathbb{R}$ #ℝ# *)
+(** printing [0] $0$ #0# *)
+(** printing [<=] $\le$ #<=# *)
 
 Require Export CoRN.ftc.MoreIntervals.
 
@@ -16,7 +18,7 @@ Notation "x × y" := (prod x y) (at level 80, right associativity) : type_scope.
 Definition ninv (n: nat) : Q :=
   Qinv (n).
 
-Definition R := IR.
+Notation ℝ := IR.
 
 Require Export Coq.ZArith.ZArith.
 
@@ -38,23 +40,25 @@ Notation "A & B" := (prod A B)  (at level 80, right associativity).
 (*
 Notation "a [<] b [<] c" := (a [<] b &  b [<] c) : R_scope.
 Notation "a [<=] b [<=] c" := (a [<=] b &  b [<=] c) : R_scope.
-*)
 
 
 Record RInInterval (intvl : interval)  := {
-  realV :> R;
+  realV : IR;
   realVPos : iprop intvl realV
 }.
 
 Definition RNonNeg := RInInterval (closel [0]).
 Definition RPos := RInInterval (openl [0]).
 
-Definition restrictToInterval {A} (f : R -> A) 
+Definition restrictToInterval {A} (f : IR -> A) 
     (intvl : interval) : (RInInterval intvl) -> A :=
     fun r => f r.
 
+*)
 
-Definition Time := {r : IR | [0] [<=] r}.
+(** CatchFileBetweenTagsStartTime *)
+Definition Time := {r : ℝ | [0] [<=] r}.
+(** CatchFileBetweenTagsEndTime *)
 
 Definition T2R : Time -> IR := (@proj1_sig IR _).
 
@@ -127,7 +131,7 @@ Hint Resolve plus_resp_nonneg : CoRN.
  Defined.
 
 
-Definition mkTime (t:R) (p: [0] [<=] t) : Time.
+Definition mkTime (t:ℝ) (p: [0] [<=] t) : Time.
   exists t.
   exact p.
 Defined.
@@ -155,7 +159,7 @@ Definition QT2T (q: QTime) : Time.
   contradiction.
 Defined.
 
-Definition QT2R (q: QTime) : R.
+Definition QT2R (q: QTime) : ℝ.
   destruct q.
   exact (x).
 Defined.
@@ -250,9 +254,9 @@ Qed.
 
 Require Export CoRN.reals.Q_in_CReals.
 
-Definition Z2R  (n: Z) : R := (inj_Q IR  (inject_Z n)).
+Definition Z2R  (n: Z) : ℝ := (inj_Q ℝ  (inject_Z n)).
 
-Definition overApproximate (t: R) : { z:  Z | t  [<] Z2R z}.
+Definition overApproximate (t: ℝ) : { z:  Z | t  [<] Z2R z}.
   remember (start_of_sequence _ t).
   clear Heqs. destruct s as [qf Hp]. destruct Hp as [qc Hpp].
   exists (Qround.Qceiling qc).
@@ -296,7 +300,7 @@ Record TimeFun :=
 Definition definedOnNonNeg (tf: TimeFun) : included (closel [0]) (pfdom _ tf)
   := (fst (continTF tf)).
 
-Definition getF  (f : TimeFun)  (t :Time ) : R :=
+Definition getF  (f : TimeFun)  (t :Time ) : ℝ :=
 f t ((definedOnNonNeg f) _ (proj2_sig t)).
 
 Notation "{ f }" := (getF f).
@@ -395,7 +399,7 @@ Proof.
 Qed.
 
 Lemma TDerivativeUB :forall {F F' : TimeFun}
-   (ta tb : Time) (Hab : ta[<]tb) (c : R),
+   (ta tb : Time) (Hab : ta[<]tb) (c : ℝ),
    isDerivativeOf F' F
    -> UBoundInCompInt Hab F' c
    -> ((getF F) tb[-] (getF F) ta)[<=]c[*](tb[-]ta).
@@ -410,7 +414,7 @@ Proof.
 Qed.
 
 Lemma TDerivativeLB :forall {F F' : TimeFun}
-   (ta tb : Time) (Hab : ta[<]tb) (c : R),
+   (ta tb : Time) (Hab : ta[<]tb) (c : ℝ),
    isDerivativeOf F' F
    -> LBoundInCompInt Hab F' c
    -> c[*](tb[-]ta) [<=] ((getF F) tb[-] (getF F) ta).
@@ -424,7 +428,7 @@ Proof.
  apply timeIncluded.
 Qed.
 
-Definition toTime (t : Time) (r : R) (p :t[<=]r) : Time.
+Definition toTime (t : Time) (r : ℝ) (p :t[<=]r) : Time.
 Proof.
   exists r.
   destruct t as [rt  pt].
@@ -435,7 +439,7 @@ Defined.
 
 
 Lemma TDerivativeUB2 :forall (F F' : TimeFun)
-   (ta tb : Time) (Hab : ta[<]tb) (c : R),
+   (ta tb : Time) (Hab : ta[<]tb) (c : ℝ),
    isDerivativeOf F' F
    -> (forall (t:Time), (clcr ta tb) t -> ({F'} t) [<=] c)
    -> ({F} tb[-] {F} ta)[<=]c[*](tb[-]ta).
@@ -461,7 +465,7 @@ Proof.
 Qed.
 
 Lemma TDerivativeLB2 :forall (F F' : TimeFun)
-   (ta tb : Time) (Hab : ta[<]tb) (c : R),
+   (ta tb : Time) (Hab : ta[<]tb) (c : ℝ),
    isDerivativeOf F' F
    -> (forall (t:Time), (clcr ta tb) t -> c [<=] ({F'} t))
    -> c[*](tb[-]ta) [<=] ({F} tb[-] {F} ta).
@@ -534,7 +538,7 @@ match nextMesgTime with
 end.
 
 
-Definition nbdAround ( radius center : R) :=
+Definition nbdAround ( radius center : ℝ) :=
 clcr (radius [-] center) (radius [+] center).
 
 Ltac parallelExist Hyp :=
@@ -713,7 +717,7 @@ Proof.
   apply timeIncludedQ.
 Qed.
 
-Lemma TimeFunR2QCompactIntUB : forall (tf : TimeFun)  (ta tb : QTime) (c : R),
+Lemma TimeFunR2QCompactIntUB : forall (tf : TimeFun)  (ta tb : QTime) (c : ℝ),
 (forall (t:QTime), (ta <= t <= tb) -> ({tf} t) [<=] c)
 -> (forall (t:Time), ((clcr ta tb) t) -> ({tf} t) [<=] c).
 Proof.
@@ -770,7 +774,7 @@ Proof.
 Qed.
 Hint Immediate timeNonNeg timeNonNegUnfolded: ROSCOQ.
 
-Lemma TimeFunR2QUB : forall (tf : TimeFun) (c : R),
+Lemma TimeFunR2QUB : forall (tf : TimeFun) (c : ℝ),
 (forall (t:QTime), ({tf} t) [<=] c)
 -> (forall (t:Time), ({tf} t) [<=] c).
 Proof.
@@ -786,7 +790,7 @@ Proof.
   eauto with ROSCOQ.
 Qed.
 
-Lemma TimeFunR2QCompactIntLB : forall (tf : TimeFun)  (ta tb : QTime) (c : R),
+Lemma TimeFunR2QCompactIntLB : forall (tf : TimeFun)  (ta tb : QTime) (c : ℝ),
 (forall (t:QTime), (ta <= t <= tb) -> c [<=] ({tf} t))
 -> (forall (t:Time), ((clcr ta tb) t) -> c [<=] ({tf} t)).
 Proof.
@@ -801,7 +805,7 @@ Proof.
   erewrite pfwdef; eauto using leEq_imp_eq,leEq_reflexive.
 Qed.
 
-Lemma TimeFunR2QLB : forall (tf : TimeFun) (c : R),
+Lemma TimeFunR2QLB : forall (tf : TimeFun) (c : ℝ),
 (forall (t:QTime),  c [<=] ({tf} t))
 -> (forall (t:Time), c [<=] ({tf} t)).
 Proof.
@@ -818,7 +822,7 @@ Proof.
 Qed.
 
 Lemma TDerivativeUBQ :forall (F F' : TimeFun)
-   (ta tb : QTime) (Hab : ta <= tb) (c : R),
+   (ta tb : QTime) (Hab : ta <= tb) (c : ℝ),
    isDerivativeOf F' F
    -> (forall (t:QTime), ta <= t <= tb -> ({F'} t) [<=] c)
    -> ({F} tb[-] {F} ta)[<=]c[*](tb[-]ta).
@@ -847,7 +851,7 @@ Proof.
 Qed.
 
 Lemma TDerivativeLBQ :forall (F F' : TimeFun)
-   (ta tb : QTime) (Hab : ta <= tb) (c : R),
+   (ta tb : QTime) (Hab : ta <= tb) (c : ℝ),
    isDerivativeOf F' F
    -> (forall (t:QTime), ta <= t <= tb -> c [<=] ({F'} t))
    -> c[*](tb[-]ta)[<=]({F} tb[-] {F} ta).

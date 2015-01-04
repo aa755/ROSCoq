@@ -33,7 +33,7 @@ core.vo : core.v CoRNMisc.vo
 CoRNMisc.vo : CoRNMisc.v
 	$(COQC) $<
 
-%.tex: %.v
+%.tex: %.v %.vo
 	$(COQC) $<
 	coqdoc   -l --latex --interpolate --body-only $< -o $(@)	
 
