@@ -6,6 +6,20 @@ Require Export ROSCyberPhysicalSystem.
 Require Export String.
 (* Require Export CoRN.ode.SimpleIntegration. *)
 
+Variable initialVel : Q.
+Variable initialPos : Q.
+
+
+Record Train : Type := {
+  posX :> TContR;
+  velX : TContR;
+  deriv : isDerivativeOf velX posX;
+    (** this probably already implies continuity, which is now
+        explicitly put in TContR *)
+  initVel : {velX} (mkQTime 0 I)  = initialVel;
+  initPos : {posX} (mkQTime 0 I)  = initialPos
+}.
+
 Instance stringdeceqdsjfklsajlk : DecEq string.
 constructor. exact string_dec.
 Defined.
@@ -74,18 +88,7 @@ Definition digiControllerTiming  :
 Definition ControllerNode (speed : Q): RosSwNode :=
   Build_RosSwNode (SwProcess speed) (digiControllerTiming).
 
-Variable initialVel : Q.
-Variable initialPos : Q.
 
-Record Train : Type := {
-  posX :> TContR;
-  velX : TContR;
-  deriv : isDerivativeOf velX posX;
-    (** this probably already implies continuity, which is now
-        explicitly put in TContR *)
-  initVel : {velX} (mkQTime 0 I)  = initialVel;
-  initPos : {posX} (mkQTime 0 I)  = initialPos
-}.
 
 
 Lemma VelPosUB :forall (tst : Train)

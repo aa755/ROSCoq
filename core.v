@@ -1022,7 +1022,7 @@ Definition mkQTimeLt  (t : Q) (tl: Time) (p: tl [<] t) : QTime.
   apply (leEq_inj_Q IR).
   rewrite inj_Q_Zero.
   unfold Q2R in p.
-  info_eauto 3 with CoRN ROSCOQ.
+  eauto using timeNonNegUnfolded, leEq_less_trans, less_leEq.
 Defined.
 
 Lemma minusSwapLe : forall (x y z : IR),
@@ -1051,7 +1051,7 @@ Lemma pfstrlt:  forall (p : PartFunct IR) (x y : IR)
       (Hy : Dom p y), 
         p x Hx[<]p y Hy 
         -> x[<=]y
-       -> x[<]y.
+        -> x[<]y.
 Proof.
   intros ? ? ? ? ? Hpp Hle.
   apply less_imp_ap in Hpp.
