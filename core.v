@@ -275,10 +275,6 @@ exists (Z.to_N zf).
 Definition RTime :=Time.
 
 
-Lemma N2R_add_commute : forall (n1 n2 : nat),
-  N2R n1 [+] N2R n2 = N2R (n1 + n2).
-Abort.
-
 
 (** Much of the work in defining devices is to decide what the inputs
     and outputs are and what property they specify. Each device is defined
@@ -292,16 +288,24 @@ Close Scope R_scope.
    From this, one can extract a member of [Time -> R]
    representing how the physical quantity changed over time.
   [PartIR] ensures functionality, unlike  [Time -> R] *)
-Record IContR (intvl : interval):= 
- { f :> PartIR ;
-  continTF :  Continuous intvl f
-}.
+
+Definition IContR (intvl : interval):= { f : PartIR | Continuous intvl f}.
+
+Definition IContR2Fun (intvl : interval) : IContR intvl -> PartIR
+    := (@proj1_sigT PartIR _).
+
+Coercion IContR2Fun : IContR >-> PartFunct.
+
 
 Definition TContR :Type := IContR (closel [0]).
 
+Definition TContR2Fun : TContR -> PartIR
+    := (@proj1_sigT PartIR _).
+
+Coercion TContR2Fun : TContR >-> PartFunct.
 
 Definition definedOnNonNeg (tf: TContR) : included (closel [0]) (pfdom _ tf)
-  := (fst (continTF tf)).
+  := (fst (proj2_sigT _ _ tf)).
 
 Definition getF  (f : TContR)  (t :Time ) : ℝ :=
 f t ((definedOnNonNeg f) _ (proj2_sig t)).
@@ -706,7 +710,7 @@ Lemma contTf : forall (tf : TContR) (ta tb : Time),
     Continuous  (clcr ta tb) tf.
 Proof.
   intros ? ? ?.
-  pose proof (continTF tf) as Hc.
+  pose proof (proj2_sigT _ _ tf) as Hc.
   eapply Included_imp_Continuous; eauto.
   apply timeIncluded.
 Qed.
@@ -715,7 +719,7 @@ Lemma contTfQ : forall (tf : TContR) (ta tb : QTime),
     Continuous  (clcr ta tb) tf.
 Proof.
   intros ? ? ?.
-  pose proof (continTF tf) as Hc.
+  pose proof (proj2_sigT _ _ tf) as Hc.
   eapply Included_imp_Continuous; eauto.
   apply timeIncludedQ.
 Qed.
@@ -920,7 +924,7 @@ Proof.
   intros ? ? ? ? ?.
   destruct F . unfold getF. simpl.
   intros Hflt He Hy.
-  eapply Weak_IVTQ with (y:=y) (F:=f0) (HFab := Hflt) in He; 
+  eapply Weak_IVTQ with (y:=y) (F:=x) (HFab := Hflt) in He; 
     eauto 1 with ROSCOQ.
   destruct He as [t H99]. destruct H99 as [He Ha].
   unfold compact in He.
