@@ -78,11 +78,11 @@ Variable initialVel : Q.
 Variable initialPos : Q.
 
 Record Train : Type := {
-  posX :> TimeFun;
-  velX : TimeFun;
+  posX :> TContR;
+  velX : TContR;
   deriv : isDerivativeOf velX posX;
     (** this probably already implies continuity, which is now
-        explicitly put in TimeFun *)
+        explicitly put in TContR *)
   initVel : {velX} (mkQTime 0 I)  = initialVel;
   initPos : {posX} (mkQTime 0 I)  = initialPos
 }.
@@ -2464,9 +2464,9 @@ Proof.
   intros.
   apply AbsSmall_imp_AbsIR.
   split.
-- apply TimeFunR2QLB. intro qt. unfold Z2R. rewrite <- inj_Q_inv.
+- apply TContRR2QLB. intro qt. unfold Z2R. rewrite <- inj_Q_inv.
   apply LHSSafe.
-- apply TimeFunR2QUB.
+- apply TContRR2QUB.
   exact RHSSafe.
 Qed.
 

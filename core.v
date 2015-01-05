@@ -57,7 +57,7 @@ Definition restrictToInterval {A} (f : IR -> A)
 *)
 
 (** CatchFileBetweenTagsStartTime *)
-Definition Time := {r : ℝ | [0] [<=] r}.
+Definition Time : Type := {r : ℝ | [0] [<=] r}.
 (** CatchFileBetweenTagsEndTime *)
 
 Definition T2R : Time -> IR := (@proj1_sig IR _).
@@ -287,25 +287,25 @@ Abort.
 Close Scope R_scope.
 
 
-(** A [TimeFun] is a partial function from reals to reals,
+(** A [TContR] is a partial function from reals to reals,
    such that its domain includes the non-negative reals.
    From this, one can extract a member of [Time -> R]
    representing how the physical quantity changed over time.
   [PartIR] ensures functionality, unlike  [Time -> R] *)
-Record TimeFun := 
+Record TContR := 
  { f :> PartIR ;
   continTF :  Continuous (closel [0]) f
 }.
 
-Definition definedOnNonNeg (tf: TimeFun) : included (closel [0]) (pfdom _ tf)
+Definition definedOnNonNeg (tf: TContR) : included (closel [0]) (pfdom _ tf)
   := (fst (continTF tf)).
 
-Definition getF  (f : TimeFun)  (t :Time ) : ℝ :=
+Definition getF  (f : TContR)  (t :Time ) : ℝ :=
 f t ((definedOnNonNeg f) _ (proj2_sig t)).
 
 Notation "{ f }" := (getF f).
 
-Instance getFTimeProper (tf : TimeFun):
+Instance getFTimeProper (tf : TContR):
   Proper ((fun t1 t2 : Time => T2R t1 [=] T2R t2)
           ==> (fun v1 v2 => v1 [=] v2))
          {tf}.
@@ -317,7 +317,7 @@ Proof.
   apply eq_reflexive.
 Qed.
   
-Definition isDerivativeOf (F' F : TimeFun) : CProp :=
+Definition isDerivativeOf (F' F : TContR) : CProp :=
 Derivative (closel [0]) I F F'.
 
 Lemma timeIncluded : forall (ta tb : Time),
@@ -398,7 +398,7 @@ Proof.
   eauto using leEq_transitive.
 Qed.
 
-Lemma TDerivativeUB :forall {F F' : TimeFun}
+Lemma TDerivativeUB :forall {F F' : TContR}
    (ta tb : Time) (Hab : ta[<]tb) (c : ℝ),
    isDerivativeOf F' F
    -> UBoundInCompInt Hab F' c
@@ -413,7 +413,7 @@ Proof.
  apply timeIncluded.
 Qed.
 
-Lemma TDerivativeLB :forall {F F' : TimeFun}
+Lemma TDerivativeLB :forall {F F' : TContR}
    (ta tb : Time) (Hab : ta[<]tb) (c : ℝ),
    isDerivativeOf F' F
    -> LBoundInCompInt Hab F' c
@@ -438,7 +438,7 @@ Proof.
 Defined.
 
 
-Lemma TDerivativeUB2 :forall (F F' : TimeFun)
+Lemma TDerivativeUB2 :forall (F F' : TContR)
    (ta tb : Time) (Hab : ta[<]tb) (c : ℝ),
    isDerivativeOf F' F
    -> (forall (t:Time), (clcr ta tb) t -> ({F'} t) [<=] c)
@@ -464,7 +464,7 @@ Proof.
   split; auto.
 Qed.
 
-Lemma TDerivativeLB2 :forall (F F' : TimeFun)
+Lemma TDerivativeLB2 :forall (F F' : TContR)
    (ta tb : Time) (Hab : ta[<]tb) (c : ℝ),
    isDerivativeOf F' F
    -> (forall (t:Time), (clcr ta tb) t -> c [<=] ({F'} t))
@@ -699,7 +699,7 @@ Proof.
   split; apply (leEq_inj_Q IR); trivial.
 Defined.
 
-Lemma contTf : forall (tf : TimeFun) (ta tb : Time), 
+Lemma contTf : forall (tf : TContR) (ta tb : Time), 
     Continuous  (clcr ta tb) tf.
 Proof.
   intros ? ? ?.
@@ -708,7 +708,7 @@ Proof.
   apply timeIncluded.
 Qed.
 
-Lemma contTfQ : forall (tf : TimeFun) (ta tb : QTime), 
+Lemma contTfQ : forall (tf : TContR) (ta tb : QTime), 
     Continuous  (clcr ta tb) tf.
 Proof.
   intros ? ? ?.
@@ -717,7 +717,7 @@ Proof.
   apply timeIncludedQ.
 Qed.
 
-Lemma TimeFunR2QCompactIntUB : forall (tf : TimeFun)  (ta tb : QTime) (c : ℝ),
+Lemma TContRR2QCompactIntUB : forall (tf : TContR)  (ta tb : QTime) (c : ℝ),
 (forall (t:QTime), (ta <= t <= tb) -> ({tf} t) [<=] c)
 -> (forall (t:Time), ((clcr ta tb) t) -> ({tf} t) [<=] c).
 Proof.
@@ -774,7 +774,7 @@ Proof.
 Qed.
 Hint Immediate timeNonNeg timeNonNegUnfolded: ROSCOQ.
 
-Lemma TimeFunR2QUB : forall (tf : TimeFun) (c : ℝ),
+Lemma TContRR2QUB : forall (tf : TContR) (c : ℝ),
 (forall (t:QTime), ({tf} t) [<=] c)
 -> (forall (t:Time), ({tf} t) [<=] c).
 Proof.
@@ -783,14 +783,14 @@ Proof.
   apply Q_dense_in_CReals' in Hl.
   destruct Hl as [q  Htq Hqt].
   apply less_leEq in Htq.
-  apply TimeFunR2QCompactIntUB with (ta:= mkQTime 0 I) 
+  apply TContRR2QCompactIntUB with (ta:= mkQTime 0 I) 
         (tb:=mkQTimeT q _ Htq); trivial.
   trivial. simplInjQ.
   split;[rewrite inj_Q_Zero|]; simpl; auto.
   eauto with ROSCOQ.
 Qed.
 
-Lemma TimeFunR2QCompactIntLB : forall (tf : TimeFun)  (ta tb : QTime) (c : ℝ),
+Lemma TContRR2QCompactIntLB : forall (tf : TContR)  (ta tb : QTime) (c : ℝ),
 (forall (t:QTime), (ta <= t <= tb) -> c [<=] ({tf} t))
 -> (forall (t:Time), ((clcr ta tb) t) -> c [<=] ({tf} t)).
 Proof.
@@ -805,7 +805,7 @@ Proof.
   erewrite pfwdef; eauto using leEq_imp_eq,leEq_reflexive.
 Qed.
 
-Lemma TimeFunR2QLB : forall (tf : TimeFun) (c : ℝ),
+Lemma TContRR2QLB : forall (tf : TContR) (c : ℝ),
 (forall (t:QTime),  c [<=] ({tf} t))
 -> (forall (t:Time), c [<=] ({tf} t)).
 Proof.
@@ -814,14 +814,14 @@ Proof.
   apply Q_dense_in_CReals' in Hl.
   destruct Hl as [q  Htq Hqt].
   apply less_leEq in Htq.
-  apply TimeFunR2QCompactIntLB with (ta:= mkQTime 0 I) 
+  apply TContRR2QCompactIntLB with (ta:= mkQTime 0 I) 
         (tb:=mkQTimeT q _ Htq); trivial.
   trivial. simplInjQ.
   split;[rewrite inj_Q_Zero|]; simpl; auto.
   eauto with ROSCOQ.
 Qed.
 
-Lemma TDerivativeUBQ :forall (F F' : TimeFun)
+Lemma TDerivativeUBQ :forall (F F' : TContR)
    (ta tb : QTime) (Hab : ta <= tb) (c : ℝ),
    isDerivativeOf F' F
    -> (forall (t:QTime), ta <= t <= tb -> ({F'} t) [<=] c)
@@ -839,7 +839,7 @@ Proof.
       apply inj_Q_less; trivial|].
   rewrite <- QT2T_Q2R.
   rewrite <- QT2T_Q2R.
-  apply TimeFunR2QCompactIntUB.
+  apply TContRR2QCompactIntUB.
   trivial.
 - symmetry in Heq. apply (inj_Q_wd IR) in Heq.
   unfold Q2R.
@@ -850,7 +850,7 @@ Proof.
   trivial.
 Qed.
 
-Lemma TDerivativeLBQ :forall (F F' : TimeFun)
+Lemma TDerivativeLBQ :forall (F F' : TContR)
    (ta tb : QTime) (Hab : ta <= tb) (c : ℝ),
    isDerivativeOf F' F
    -> (forall (t:QTime), ta <= t <= tb -> c [<=] ({F'} t))
@@ -868,7 +868,7 @@ Proof.
       apply inj_Q_less; trivial|].
   rewrite <- QT2T_Q2R.
   rewrite <- QT2T_Q2R.
-  apply TimeFunR2QCompactIntLB.
+  apply TContRR2QCompactIntLB.
   trivial.
 - symmetry in Heq. apply (inj_Q_wd IR) in Heq.
   unfold Q2R.
@@ -907,7 +907,7 @@ intros. reflexivity.
 Qed.
 
 
-Lemma IVTTimeMinMax: forall (F : TimeFun) (ta tb : Time) (e y : IR),
+Lemma IVTTimeMinMax: forall (F : TContR) (ta tb : Time) (e y : IR),
    ({F} ta[<]{F} tb)
    -> [0][<]e 
    -> (clcr ({F} ta) ({F} tb)) y 
@@ -951,7 +951,7 @@ Defined.
   
 
 
-Lemma contITf : forall (tf : TimeFun) (ta tb : Time), 
+Lemma contITf : forall (tf : TContR) (ta tb : Time), 
     Continuous_I  (Min_leEq_Max ta tb) tf.
 Proof.
   intros ? ? ?.
@@ -962,7 +962,7 @@ Proof.
 Qed.
 
 Lemma  ContinTFSimpl : 
-   forall (F : TimeFun) (ta tb : Time) (e  : IR),
+   forall (F : TContR) (ta tb : Time) (e  : IR),
       [0][<]e ->
       {d : IR | [0][<]d |
       forall x y : Time,
