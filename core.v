@@ -292,10 +292,13 @@ Close Scope R_scope.
    From this, one can extract a member of [Time -> R]
    representing how the physical quantity changed over time.
   [PartIR] ensures functionality, unlike  [Time -> R] *)
-Record TContR := 
+Record IContR (intvl : interval):= 
  { f :> PartIR ;
-  continTF :  Continuous (closel [0]) f
+  continTF :  Continuous intvl f
 }.
+
+Definition TContR :Type := IContR (closel [0]).
+
 
 Definition definedOnNonNeg (tf: TContR) : included (closel [0]) (pfdom _ tf)
   := (fst (continTF tf)).

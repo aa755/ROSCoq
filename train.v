@@ -645,7 +645,6 @@ Require Import Ring.
 Require Import CoRN.tactics.CornTac.
 Require Import CoRN.algebra.CRing_as_Ring.
 
-Add Ring IRisaRing: (CRing_Ring IR).
 Add Ring RisaRing: (CRing_Ring ℝ).
 Require Import Psatz.
 Require Import Setoid.
@@ -683,7 +682,7 @@ Proof.
   rewrite inj_Q_minus. rewrite Hlt.
   rewrite QT2T_Q2R in Hlt.
   rewrite QT2T_Q2R in Hlt.
-  apply getFTimeProper with (tf:= tstate)in Hlt.
+  apply getFTimeProper with (tf:= posX tstate)in Hlt.
   rewrite Hlt.
   rewrite cg_minus_correct.
   rewrite cg_minus_correct.
