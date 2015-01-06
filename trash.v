@@ -566,3 +566,26 @@ Defined.
 
 Coercion  fromSFProcess : StateFulProcess >-> Process.
 *)
+
+Lemma restrictTill {A} (f : Time -> A) 
+    (right : Time) : (RInInterval (clcr [0] right)) -> A.
+  intro rint.
+  destruct rint.
+  apply f. exists realV0.
+  unfold iprop.
+  unfold iprop in realVPos0.
+  destruct realVPos0.
+  trivial.
+Defined.
+
+Lemma fastFwd {A} (f : Time -> A) 
+    (duration : Time) : Time  -> A.
+  intro rint.
+  destruct rint.
+  apply f. exists (realV0 [+] duration).
+  destruct duration. simpl.
+  unfold iprop.
+  unfold iprop in realVPos0.
+  unfold iprop in realVPos1.
+  eauto with *.
+Defined.

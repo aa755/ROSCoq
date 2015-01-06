@@ -24,6 +24,7 @@ Require Export Coq.ZArith.ZArith.
 
 Require Export CoRNMisc.
 
+Require Export ContField.
 
 Definition N2R  (n: nat) : IR := (inj_Q IR  (inject_Z n)).
 
@@ -57,12 +58,9 @@ Definition restrictToInterval {A} (f : IR -> A)
 *)
 
 (** CatchFileBetweenTagsStartTime *)
-Definition Time : Type := {r : ℝ | [0] [<=] r}.
+Notation Time := (RInIntvl (closel [0])).
 (** CatchFileBetweenTagsEndTime *)
 
-Definition T2R : Time -> IR := (@proj1_sig IR _).
-
-Coercion T2R : Time >-> st_car.
 
 Open Scope Q_scope.
 
@@ -73,30 +71,6 @@ Definition Qp2Q (t : Qpos) : Q := (proj1_sig t).
 Coercion Qp2Q : Qpos >-> Q.
 
 
-(*
-Lemma restrictTill {A} (f : Time -> A) 
-    (right : Time) : (RInInterval (clcr [0] right)) -> A.
-  intro rint.
-  destruct rint.
-  apply f. exists realV0.
-  unfold iprop.
-  unfold iprop in realVPos0.
-  destruct realVPos0.
-  trivial.
-Defined.
-
-Lemma fastFwd {A} (f : Time -> A) 
-    (duration : Time) : Time  -> A.
-  intro rint.
-  destruct rint.
-  apply f. exists (realV0 [+] duration).
-  destruct duration. simpl.
-  unfold iprop.
-  unfold iprop in realVPos0.
-  unfold iprop in realVPos1.
-  eauto with *.
-Defined.
-*)
 
 Definition tdiff (t tl : Time) : Time.
 (*  exists (Qabs (tl - t)).
@@ -164,10 +138,10 @@ Definition QT2R (q: QTime) : ℝ.
   exact (x).
 Defined.
 
-Coercion N2T : nat >-> Time.
+Coercion N2T : nat >-> st_car.
   (* Q.Qle_nat *)
 
-Coercion QT2T : QTime >-> Time.
+Coercion QT2T : QTime >-> st_car.
 
 (*
 Definition N2QTime (n: nat) : QTime.
@@ -289,43 +263,20 @@ Close Scope R_scope.
    representing how the physical quantity changed over time.
   [PartIR] ensures functionality, unlike  [Time -> R] *)
 
-Definition IContR (intvl : interval):= { f : PartIR | Continuous intvl f}.
 
-Definition IContR2Fun (intvl : interval) : IContR intvl -> PartIR
-    := (@proj1_sigT PartIR _).
+Notation TContR := (IContR (closel [0])).
 
-Coercion IContR2Fun : IContR >-> PartFunct.
-
-
-Definition TContR :Type := IContR (closel [0]).
-
-Definition TContR2Fun : TContR -> PartIR
-    := (@proj1_sigT PartIR _).
-
-Coercion TContR2Fun : TContR >-> PartFunct.
-
-Definition definedOnNonNeg (tf: TContR) : included (closel [0]) (pfdom _ tf)
-  := (fst (proj2_sigT _ _ tf)).
-
-Definition getF  (f : TContR)  (t :Time ) : ℝ :=
-f t ((definedOnNonNeg f) _ (proj2_sig t)).
-
-Notation "{ f }" := (getF f).
-
-Instance getFTimeProper (tf : TContR):
-  Proper ((fun t1 t2 : Time => T2R t1 [=] T2R t2)
-          ==> (fun v1 v2 => v1 [=] v2))
-         {tf}.
-Proof.
-  unfold getF. intros  ? ? heq.
-  simpl in heq.
-  erewrite (pfwdef _ tf x y); eauto.
-  simpl.
-  apply eq_reflexive.
-Qed.
+(* Coercion TContR2Fun : TContR >-> PartFunct. *)
   
 Definition isDerivativeOf (F' F : TContR) : CProp :=
-Derivative (closel [0]) I F F'.
+Derivative (closel [0]) I (toPart F) (toPart F').
+
+Definition getF  (f : TContR) (t : Time) : IR :=
+match f with
+| {| scs_elem := scs_elem |} => scs_elem t
+end.
+
+Notation "{ f }" := (getF f).
 
 Lemma timeIncluded : forall (ta tb : Time),
   included (clcr ta tb) (closel [0]).
@@ -405,15 +356,43 @@ Proof.
   eauto using leEq_transitive.
 Qed.
 
+Definition getDomPrf (f : TContR) (t : Time)
+    : Dom (toPart f) t.
+Proof.
+  destruct f.
+  destruct t.
+  destruct scs_elem.
+  simpl. exact scs_prf0.
+Defined.
+
+Lemma getFToPart (f : TContR) : forall (t : Time),
+  {f} t [=] (toPart f) t (getDomPrf f t).
+Proof.
+  intros ?.
+  destruct f, t.
+  simpl.
+  apply   extToPart.
+Qed.
+
+Lemma getFToPart2 (f : TContR) : forall (t : Time) 
+  (p' : Dom (toPart f) t), (toPart f) t p' [=] {f} t.
+Proof.
+  intros ? ?. symmetry.
+  destruct f, t.
+  simpl.
+  apply   extToPart.
+Qed.
+
 Lemma TDerivativeUB :forall {F F' : TContR}
    (ta tb : Time) (Hab : ta[<]tb) (c : ℝ),
    isDerivativeOf F' F
-   -> UBoundInCompInt Hab F' c
-   -> ((getF F) tb[-] (getF F) ta)[<=]c[*](tb[-]ta).
+   -> UBoundInCompInt Hab (toPart F') c
+   -> ({F} tb [-] ({F} ta))[<=]c[*](tb[-]ta).
 Proof.
  intros ? ? ? ? ? ? Hisd Hub.
- unfold getF.
- apply (AntiderivativeUB2 F F' ta tb Hab); auto.
+ rewrite getFToPart.
+ rewrite getFToPart.
+ apply (AntiderivativeUB2 (toPart F) (toPart F') ta tb Hab); auto.
  unfold isDerivativeOf in Hisd.
  apply Included_imp_Derivative with 
    (I:=closel [0]) (pI := I); trivial;[].
@@ -423,12 +402,13 @@ Qed.
 Lemma TDerivativeLB :forall {F F' : TContR}
    (ta tb : Time) (Hab : ta[<]tb) (c : ℝ),
    isDerivativeOf F' F
-   -> LBoundInCompInt Hab F' c
+   -> LBoundInCompInt Hab (toPart F') c
    -> c[*](tb[-]ta) [<=] ((getF F) tb[-] (getF F) ta).
 Proof.
  intros ? ? ? ? ? ? Hisd Hub.
- unfold getF.
- apply (AntiderivativeLB2 F F' ta tb Hab); auto.
+ rewrite getFToPart.
+ rewrite getFToPart.
+ apply (AntiderivativeLB2 (toPart F) (toPart F') ta tb Hab); auto.
  unfold isDerivativeOf in Hisd.
  apply Included_imp_Derivative with 
    (I:=closel [0]) (pI := I); trivial;[].
@@ -455,12 +435,14 @@ Proof.
   eapply TDerivativeUB with (Hab0 := Hab); eauto;[].
   unfold UBoundInCompInt.
   intros r Hc ?. unfold compact in Hc.
-  unfold getF in Hub.
   destruct Hc as [Hca Hcb].
+  
   specialize (Hub (toTime _ _ Hca)).
+  rewrite <- extToPart.
   unfold toTime in Hub.
   destruct ta as [ra pa].
   simpl in Hub.
+  
   pose proof (pfwdef _ F' r r Hx
                (definedOnNonNeg F' r (leEq_transitive IR [0] ra r pa Hca))
                 (eq_reflexive _ _) ) 
@@ -711,6 +693,7 @@ Lemma contTf : forall (tf : TContR) (ta tb : Time),
 Proof.
   intros ? ? ?.
   pose proof (proj2_sigT _ _ tf) as Hc.
+  simpl in Hc.
   eapply Included_imp_Continuous; eauto.
   apply timeIncluded.
 Qed.
@@ -720,6 +703,7 @@ Lemma contTfQ : forall (tf : TContR) (ta tb : QTime),
 Proof.
   intros ? ? ?.
   pose proof (proj2_sigT _ _ tf) as Hc.
+  simpl in Hc.
   eapply Included_imp_Continuous; eauto.
   apply timeIncludedQ.
 Qed.

@@ -27,7 +27,10 @@ Process.vo : Process.v core.vo
 ADC.vo : ADC.v core.vo
 	$(COQC) $<
 
-core.vo : core.v CoRNMisc.vo
+core.vo : core.v CoRNMisc.vo ContField.vo
+	$(COQC) $<
+
+ContField.vo : ContField.v
 	$(COQC) $<
 
 CoRNMisc.vo : CoRNMisc.v
@@ -36,6 +39,7 @@ CoRNMisc.vo : CoRNMisc.v
 %.tex: %.v %.vo
 	$(COQC) $<
 	coqdoc   -l --latex --interpolate --body-only $< -o $(@)	
+
 
 clean:
 	rm *.vo *.glob
