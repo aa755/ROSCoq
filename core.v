@@ -38,24 +38,6 @@ Notation "a < b < c" := (Qlt a  b /\  Qlt b  c) : Q_scope .
 
 
 Notation "A & B" := (prod A B)  (at level 80, right associativity).
-(*
-Notation "a [<] b [<] c" := (a [<] b &  b [<] c) : R_scope.
-Notation "a [<=] b [<=] c" := (a [<=] b &  b [<=] c) : R_scope.
-
-
-Record RInInterval (intvl : interval)  := {
-  realV : IR;
-  realVPos : iprop intvl realV
-}.
-
-Definition RNonNeg := RInInterval (closel [0]).
-Definition RPos := RInInterval (openl [0]).
-
-Definition restrictToInterval {A} (f : IR -> A) 
-    (intvl : interval) : (RInInterval intvl) -> A :=
-    fun r => f r.
-
-*)
 
 (** CatchFileBetweenTagsStartTime *)
 Definition Time := (RInIntvl (closel [0])).
@@ -63,12 +45,6 @@ Definition Time := (RInIntvl (closel [0])).
 
 
 Open Scope Q_scope.
-
-
-Definition Qpos : Type := {q : Q | 0 < q}.
-
-Definition Qp2Q (t : Qpos) : Q := (proj1_sig t).
-Coercion Qp2Q : Qpos >-> Q.
 
 
 
@@ -177,11 +153,6 @@ Require Import String.
 Definition InjectiveFun {A B} (f : A -> B) :=
   forall (a1 a2: A), f a1 = f a2 -> a1 = a2.
 
-Class UniqueNames (T : Type) :=
-{
-    tname : T -> string;
-    tnameInj : InjectiveFun tname
-}.
 
 Class DecEq (T : Type) :=
 {

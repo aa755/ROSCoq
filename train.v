@@ -145,7 +145,7 @@ Section TrainProofs.
 (** To define IO devices, we already need
     an Event type *)
 Context  
-  (minGap : Qpos)
+  (minGap : Q)
  `{etype : @EventType _ _ _ Event RosLoc minGap tdeq}.
 
 

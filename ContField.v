@@ -82,7 +82,7 @@ Definition IContR := Build_SubCSetoid RI_R
 
 
 End ContFAlgebra.
-  
+
 (*
 Definition ContFSG : CSemiGroup.
 

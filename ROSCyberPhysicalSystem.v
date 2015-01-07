@@ -25,7 +25,7 @@ Close Scope Q_scope.
 Class EventType (T: Type) 
       (Loc : Type) 
       (** minimum time diff between events *)
-      (minGap : Qpos) 
+    	(minGap : Q) 
       {tdeq: DecEq T}  := {
   eLoc : T ->  Loc;
   eMesg : T -> list Message;
@@ -849,7 +849,7 @@ Set Implicit Arguments.
 Section Global.
 Context  (PhysicalEnvType : Type)
   (physics : PhysicalEnvType)
-  (minGap : Qpos)
+  (minGap : Q)
   `{rtopic : RosTopicType RosTopic} 
   `{dteq : Deq RosTopic}
  `{etype : @EventType _ _ _ Event LocT minGap tdeq }
