@@ -15,11 +15,10 @@ Definition RI_R := FS_as_CSetoid RInIntvl IR.
 
 
 Definition toPart (f : RI_R) : PartIR.
-  destruct f.
   apply Build_PartFunct with (pfdom := (itvl)) 
-    (pfpfun := fun ir pp => csf_fun (mkRIntvl ir pp)).
+    (pfpfun := fun ir pp => f (mkRIntvl ir pp)).
   - apply iprop_wd.
-  - unfold fun_strext in csf_strext. intros ? ? ? ?. apply csf_strext.
+  - intros ? ? ? ?. apply csf_strext.
 Defined.
 
 (*
@@ -30,11 +29,44 @@ Definition fromPart (f : PartIR) : RI_R.
 *)
 
 Lemma extToPart (f : RI_R) : forall (x:IR) (p : (itvl) x) 
-  (p' : Dom (toPart f) x), f (mkRIntvl x p') [=] (toPart f) x p'.
+  (p' : Dom (toPart f) x), f (mkRIntvl x p) [=] (toPart f) x p'.
 Proof.
   intros ? ? ?.
   destruct f. unfold toPart. simpl.
   simpl in p'.
+  unfold fun_strext in csf_strext.
+  apply not_ap_imp_eq.
+  intros Hc.
+  apply csf_strext in Hc.
+  simpl in Hc.
+  revert Hc.
+  apply eq_imp_not_ap.
+  apply eq_reflexive.
+Qed.
+
+Lemma extToPartLt (f : RI_R) : forall (x y:IR) (px : (itvl) x) (py : (itvl) y)
+  (px': Dom (toPart f) x) (py': Dom (toPart f) y), 
+    f (mkRIntvl x px) [<] f (mkRIntvl y py)
+    -> (toPart f) x px' [<] (toPart f) y py'.
+Proof.
+  intros ? ? ? ? ? ? Hlt.
+  pose proof (extToPart f x px px') as Hx.
+  pose proof (extToPart f y py py') as Hy.
+  eauto using less_wdl, less_wdr.
+Qed.
+
+Lemma extToPartLt2 (f : RI_R) : forall x y,
+    f x [<] f y
+    -> (toPart f) x (scs_prf _ _ x) [<] (toPart f) y (scs_prf  _ _ y).
+Proof.
+  intros. destruct x,y. eapply extToPartLt; eauto.
+Qed.
+
+Lemma extToPart2 (f : RI_R) : forall (x:IR) (p : (itvl) x),
+  f (mkRIntvl x p) [=] (toPart f) x p.
+Proof.
+  intros ? ?.
+  destruct f. unfold toPart. simpl.
   unfold fun_strext in csf_strext.
   apply not_ap_imp_eq.
   intros Hc.

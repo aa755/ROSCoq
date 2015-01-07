@@ -116,7 +116,6 @@ Lemma QVelPosUB :forall (tst : Train)
 Proof.
   intros. unfold Q2R.
   rewrite inj_Q_mult.
-  rewrite inj_Q_minus.
   apply TDerivativeUBQ with (F' := (velX tst)); auto.
   apply deriv.
 Qed.
@@ -128,7 +127,6 @@ Lemma QVelPosLB :forall (tst : Train)
 Proof.
   intros. unfold Q2R.
   rewrite inj_Q_mult.
-  rewrite inj_Q_minus.
   apply TDerivativeLBQ with (F' := (velX tst)); auto.
   apply deriv.
 Qed.
@@ -680,9 +678,7 @@ Proof.
   unfold centerPosAtTime.
   unfold Q2R.
   rewrite inj_Q_minus. rewrite Hlt.
-  rewrite QT2T_Q2R in Hlt.
-  rewrite QT2T_Q2R in Hlt.
-  apply getFTimeProper with (tf:= posX tstate)in Hlt.
+  apply TContRExtQ2 with (f:= posX tstate) in Hlt.
   rewrite Hlt.
   rewrite cg_minus_correct.
   rewrite cg_minus_correct.
@@ -1581,7 +1577,7 @@ Lemma timeDiffLBPosVel : forall (ts te : Time) (ps pe : ℝ),
 Proof.
   intros ? ? ? ? Htl Htr Hte Hplt.
   assert ({tstate} ts [<] {tstate} te) as Hlt by eauto 4 with CoRN.
-  apply pfstrlt in Hlt; trivial;[].
+  apply TContRlt in Hlt; trivial;[].
   pose proof (minus_resp_leEq_both _ _ _ _ _ Htr Htl).
   eapply leEq_transitive; eauto.
   apply centerPosChange.
@@ -1597,7 +1593,7 @@ Lemma timeDiffLBNegVel : forall (ts te : Time) (ps pe : ℝ),
 Proof.
   intros ? ? ? ? Htl Htr Hte Hplt.
   assert ({tstate} te [<] {tstate} ts) as Hlt by eauto 4 with CoRN.
-  apply pfstrgt in Hlt; trivial;[].
+  apply TContRgt in Hlt; trivial;[].
   pose proof (minus_resp_leEq_both _ _ _ _ _ Htl Htr) as HH.
   apply inv_cancel_leEq.
   rewrite minusInvR.

@@ -58,7 +58,7 @@ Definition restrictToInterval {A} (f : IR -> A)
 *)
 
 (** CatchFileBetweenTagsStartTime *)
-Notation Time := (RInIntvl (closel [0])).
+Definition Time := (RInIntvl (closel [0])).
 (** CatchFileBetweenTagsEndTime *)
 
 
@@ -99,10 +99,10 @@ Hint Resolve plus_resp_nonneg : CoRN.
    apply Q.Qle_nat.
  Qed.
 
- Definition N2T (n: nat) : Time.
+Definition N2T (n: nat) : Time.
    exists (N2R n). unfold iprop.
    apply N2RNonNeg.
- Defined.
+Defined.
 
 
 Definition mkTime (t:ℝ) (p: [0] [<=] t) : Time.
@@ -121,7 +121,6 @@ Definition mkQTime (q:Q) (p: (if Qlt_le_dec q 0 then False else True)) : QTime
 
 Definition QT2Q (t : QTime) : Q := let (x, _) := t in x.
 
-Coercion QT2Q : QTime >-> Q.
 
 Definition QT2T (q: QTime) : Time.
   destruct q as [q qp].
@@ -142,6 +141,7 @@ Coercion N2T : nat >-> st_car.
   (* Q.Qle_nat *)
 
 Coercion QT2T : QTime >-> st_car.
+Coercion QT2Q : QTime >-> Q.
 
 (*
 Definition N2QTime (n: nat) : QTime.
@@ -264,7 +264,7 @@ Close Scope R_scope.
   [PartIR] ensures functionality, unlike  [Time -> R] *)
 
 
-Notation TContR := (IContR (closel [0])).
+Definition TContR := (IContR (closel [0])).
 
 (* Coercion TContR2Fun : TContR >-> PartFunct. *)
   
@@ -272,9 +272,8 @@ Definition isDerivativeOf (F' F : TContR) : CProp :=
 Derivative (closel [0]) I (toPart F) (toPart F').
 
 Definition getF  (f : TContR) (t : Time) : IR :=
-match f with
-| {| scs_elem := scs_elem |} => scs_elem t
-end.
+(scs_elem _ _ f) t.
+
 
 Notation "{ f }" := (getF f).
 
@@ -341,7 +340,7 @@ Defined.
 
 
 Lemma timeIncludedQ : forall (ta tb : QTime),
-  included (clcr ta tb) (closel [0]).
+  included (clcr (QT2Q ta) (QT2Q tb)) (closel [0]).
 Proof.
   destruct ta as [ra pa].
   destruct tb as [rb pb].
@@ -356,17 +355,9 @@ Proof.
   eauto using leEq_transitive.
 Qed.
 
-Definition getDomPrf (f : TContR) (t : Time)
-    : Dom (toPart f) t.
-Proof.
-  destruct f.
-  destruct t.
-  destruct scs_elem.
-  simpl. exact scs_prf0.
-Defined.
 
 Lemma getFToPart (f : TContR) : forall (t : Time),
-  {f} t [=] (toPart f) t (getDomPrf f t).
+  ({f}  t) [=] (toPart f) t (scs_prf _ _ t).
 Proof.
   intros ?.
   destruct f, t.
@@ -374,11 +365,11 @@ Proof.
   apply   extToPart.
 Qed.
 
-Lemma getFToPart2 (f : TContR) : forall (t : Time) 
-  (p' : Dom (toPart f) t), (toPart f) t p' [=] {f} t.
+Lemma getFToPart2 (f : TContR) : forall (t : IR) 
+  (p : Dom (toPart f) t), (toPart f) t p [=] {f} (mkTime t p).
 Proof.
   intros ? ?. symmetry.
-  destruct f, t.
+  destruct f.
   simpl.
   apply   extToPart.
 Qed.
@@ -438,17 +429,11 @@ Proof.
   destruct Hc as [Hca Hcb].
   
   specialize (Hub (toTime _ _ Hca)).
-  rewrite <- extToPart.
-  unfold toTime in Hub.
-  destruct ta as [ra pa].
-  simpl in Hub.
-  
-  pose proof (pfwdef _ F' r r Hx
-               (definedOnNonNeg F' r (leEq_transitive IR [0] ra r pa Hca))
-                (eq_reflexive _ _) ) 
-             as Hrwa.  
-  rewrite Hrwa.
-  clear Hrwa.
+  rewrite <- extToPart2.
+  unfold getF in Hub.
+  assert ((toTime ta r Hca) [=] (mkRIntvl (closel [0]) r Hx)) as Heq
+    by (simpl; apply eq_reflexive).
+  rewrite <- Heq.
   apply Hub.
   split; auto.
 Qed.
@@ -466,15 +451,11 @@ Proof.
   unfold getF in Hub.
   destruct Hc as [Hca Hcb].
   specialize (Hub (toTime _ _ Hca)).
-  unfold toTime in Hub.
-  destruct ta as [ra pa].
-  simpl in Hub.
-  pose proof (pfwdef _ F' r r Hx
-               (definedOnNonNeg F' r (leEq_transitive IR [0] ra r pa Hca))
-                (eq_reflexive _ _) ) 
-             as Hrwa.  
-  rewrite Hrwa.
-  clear Hrwa.
+  rewrite <- extToPart2.
+  unfold getF in Hub.
+  assert ((toTime ta r Hca) [=] (mkRIntvl (closel [0]) r Hx)) as Heq
+    by (simpl; apply eq_reflexive).
+  rewrite <- Heq.
   apply Hub.
   split; auto.
 Qed.
@@ -689,39 +670,64 @@ Proof.
 Defined.
 
 Lemma contTf : forall (tf : TContR) (ta tb : Time), 
-    Continuous  (clcr ta tb) tf.
+    Continuous  (clcr ta tb) (toPart tf).
 Proof.
   intros ? ? ?.
-  pose proof (proj2_sigT _ _ tf) as Hc.
+  pose proof (scs_prf _ _ tf) as Hc.
   simpl in Hc.
   eapply Included_imp_Continuous; eauto.
   apply timeIncluded.
 Qed.
 
 Lemma contTfQ : forall (tf : TContR) (ta tb : QTime), 
-    Continuous  (clcr ta tb) tf.
+    Continuous  (clcr (QT2Q ta) (QT2Q tb)) (toPart tf).
 Proof.
   intros ? ? ?.
-  pose proof (proj2_sigT _ _ tf) as Hc.
+  pose proof (scs_prf _ _ tf) as Hc.
   simpl in Hc.
   eapply Included_imp_Continuous; eauto.
   apply timeIncludedQ.
 Qed.
 
-Lemma TContRR2QCompactIntUB : forall (tf : TContR)  (ta tb : QTime) (c : ℝ),
-(forall (t:QTime), (ta <= t <= tb) -> ({tf} t) [<=] c)
--> (forall (t:Time), ((clcr ta tb) t) -> ({tf} t) [<=] c).
+Lemma TContRExt : forall (f : TContR) a b,
+  a [=] b -> {f} a [=] {f} b.
+Proof.
+  intros ? ? ? H.
+  unfold getF. rewrite H.
+  apply eq_reflexive.
+Qed.
+
+Lemma TContRExtQ : forall (f : TContR) (a b : QTime),
+  a = b -> {f} a [=] {f} b.
+Proof.
+  intros ? ? ? H.
+  unfold getF. rewrite H.
+  apply eq_reflexive.
+Qed.
+
+Lemma TContRExtQ2 : forall (f : TContR) (a b : QTime),
+  inj_Q IR (QT2Q a) [=] inj_Q IR (QT2Q b) -> {f} a [=] {f} b.
+Proof.
+  intros ? ? ? H.
+  unfold getF. apply TContRExt. simpl. destruct a. destruct b.
+  simpl. simpl in H.
+  auto.
+Qed.
+
+Lemma TContRR2QCompactIntUB : forall (tf : TContR)  (ta tb : QTime) (c : IR),
+(forall (t:QTime), (ta <= t <= tb) -> ((getF tf) ( t)) [<=] c)
+-> (forall (t:Time), ((clcr (QT2Q ta) (QT2Q tb)) t) -> ({tf} t) [<=] c).
 Proof.
   intros ? ? ? ? Hq ? Hint.
+  rewrite getFToPart.
   apply ContFunQRLe with (a:=ta) (b:=tb); trivial;
   [apply contTfQ|].
   intros tq ? pp.
   specialize (Hq (mkQTimeInj _ _ (fst pp))).
   specialize (Hq (Q2RClCr _ _ _ pp)).
-  unfold getF in Hq.
-  simpl in Hq.
-  erewrite pfwdef; eauto using leEq_imp_eq,leEq_reflexive.
-Qed.
+  rewrite  getFToPart2.
+  erewrite TContRExt;[apply Hq|simpl; apply eq_reflexive].
+  Qed.
 
 
   Hint Rewrite <- inj_Q_One : QSimpl.
@@ -745,7 +751,7 @@ Ltac UnfoldLRA :=
       simpl; lra).
 
 Lemma QT2T_Q2R : forall (qt:QTime),
-  inj_Q IR (QT2Q qt) = T2R (QT2T qt).
+  inj_Q IR (QT2Q qt) =  (QT2T qt).
 Proof.
   intros. destruct qt as [q p].
   unfold QT2T, QT2Q, QT2R.
@@ -783,17 +789,17 @@ Qed.
 
 Lemma TContRR2QCompactIntLB : forall (tf : TContR)  (ta tb : QTime) (c : ℝ),
 (forall (t:QTime), (ta <= t <= tb) -> c [<=] ({tf} t))
--> (forall (t:Time), ((clcr ta tb) t) -> c [<=] ({tf} t)).
+-> (forall (t:Time), ((clcr (QT2Q ta) (QT2Q tb)) t) -> c [<=] ({tf} t)).
 Proof.
   intros ? ? ? ? Hq ? Hint.
+  rewrite  getFToPart.
   apply ContFunQRGe with (a:=ta) (b:=tb); trivial;
   [apply contTfQ|].
   intros tq ? pp.
   specialize (Hq (mkQTimeInj _ _ (fst pp))).
   specialize (Hq (Q2RClCr _ _ _ pp)).
-  unfold getF in Hq.
-  simpl in Hq.
-  erewrite pfwdef; eauto using leEq_imp_eq,leEq_reflexive.
+  rewrite  getFToPart2.
+  erewrite TContRExt;[apply Hq|simpl; apply eq_reflexive].
 Qed.
 
 Lemma TContRR2QLB : forall (tf : TContR) (c : ℝ),
@@ -816,12 +822,12 @@ Lemma TDerivativeUBQ :forall (F F' : TContR)
    (ta tb : QTime) (Hab : ta <= tb) (c : ℝ),
    isDerivativeOf F' F
    -> (forall (t:QTime), ta <= t <= tb -> ({F'} t) [<=] c)
-   -> ({F} tb[-] {F} ta)[<=]c[*](tb[-]ta).
+   -> ({F} tb[-] {F} ta)[<=]c[*](tb-ta).
 Proof.
   intros ? ? ? ? ? ? Hder Hub.
   apply Qle_lteq in Hab.
   destruct Hab as [Hlt| Heq].
-- unfold Q2R.
+- unfold Q2R. rewrite inj_Q_minus.
   rewrite QT2T_Q2R.
   rewrite QT2T_Q2R.
   eapply TDerivativeUB2; eauto;
@@ -833,24 +839,26 @@ Proof.
   apply TContRR2QCompactIntUB.
   trivial.
 - symmetry in Heq. apply (inj_Q_wd IR) in Heq.
-  unfold Q2R.
+  unfold Q2R. rewrite inj_Q_minus.
   rewrite x_minus_x;
     [rewrite x_minus_x; trivial|];
     [rewrite cring_mult_zero; apply leEq_reflexive|].
-  apply pfwdef.  rewrite <- QT2T_Q2R. rewrite <- QT2T_Q2R.
-  trivial.
+  apply TContRExt.
+
+   rewrite QT2T_Q2R in Heq. rewrite  QT2T_Q2R in Heq. simpl. 
+    destruct ta. destruct tb. simpl. apply Heq.
 Qed.
 
 Lemma TDerivativeLBQ :forall (F F' : TContR)
    (ta tb : QTime) (Hab : ta <= tb) (c : ℝ),
    isDerivativeOf F' F
    -> (forall (t:QTime), ta <= t <= tb -> c [<=] ({F'} t))
-   -> c[*](tb[-]ta)[<=]({F} tb[-] {F} ta).
+   -> c[*](tb-ta)[<=]({F} tb[-] {F} ta).
 Proof.
   intros ? ? ? ? ? ? Hder Hub.
   apply Qle_lteq in Hab.
   destruct Hab as [Hlt| Heq].
-- unfold Q2R.
+- unfold Q2R. rewrite inj_Q_minus.
   rewrite QT2T_Q2R.
   rewrite QT2T_Q2R.
   eapply TDerivativeLB2; eauto;
@@ -862,12 +870,14 @@ Proof.
   apply TContRR2QCompactIntLB.
   trivial.
 - symmetry in Heq. apply (inj_Q_wd IR) in Heq.
-  unfold Q2R.
+  unfold Q2R. rewrite inj_Q_minus.
   rewrite x_minus_x;
     [rewrite x_minus_x|]; trivial;
     [rewrite cring_mult_zero; apply leEq_reflexive|].
-  apply pfwdef.  rewrite <- QT2T_Q2R. rewrite <- QT2T_Q2R.
-  trivial.
+  apply TContRExt.
+
+   rewrite QT2T_Q2R in Heq. rewrite  QT2T_Q2R in Heq. simpl. 
+    destruct ta. destruct tb. simpl. apply Heq.
 Qed.
 
 Ltac AndProjNAux n H :=
@@ -897,19 +907,25 @@ Lemma mapNil {A B}: forall f : A->B,
 intros. reflexivity.
 Qed.
 
+Lemma AbsIR_ABSIR: forall x, ABSIR x = AbsIR x.
+  intros. reflexivity.
+Qed.
 
 Lemma IVTTimeMinMax: forall (F : TContR) (ta tb : Time) (e y : IR),
    ({F} ta[<]{F} tb)
    -> [0][<]e 
    -> (clcr ({F} ta) ({F} tb)) y 
-   -> {x : QTime | (clcr (Min ta tb) (Max ta tb)) x &
+   -> {x : QTime | (clcr (Min ta tb) (Max ta tb)) (QT2Q x) &
                     AbsIR ({F} x [-]y)[<=]e}.
 Proof.
   intros ? ? ? ? ?.
-  destruct F . unfold getF. simpl.
-  intros Hflt He Hy.
-  eapply Weak_IVTQ with (y:=y) (F:=x) (HFab := Hflt) in He; 
-    eauto 1 with ROSCOQ.
+  intros Hflt He Hy. simpl in Hy. 
+  apply extToPartLt2 in Hflt.
+  destruct F.
+  simpl. simpl in Hy. simpl in Hflt.
+  eapply Weak_IVTQ with (y:=y) (F:= (toPart scs_elem)) (HFab := Hflt) in He; 
+    eauto 1 with ROSCOQ;
+    [|destruct ta; destruct tb; exact Hy].
   destruct He as [t H99]. destruct H99 as [He Ha].
   unfold compact in He.
   pose proof (leEq_Min _ _ _ (timeNonNeg ta) (timeNonNeg tb)) as HH.
@@ -922,7 +938,9 @@ Proof.
   simpl in Hel.
   apply mkQTimeSnd in Hel.
   exists (mkQTime _ Hel).
+  rewrite AbsIR_ABSIR.
   dands; auto.
+  rewrite getFToPart; auto.
 Qed.
 
 Definition TMin (ta tb :Time) : Time.
@@ -943,7 +961,7 @@ Defined.
 
 
 Lemma contITf : forall (tf : TContR) (ta tb : Time), 
-    Continuous_I  (Min_leEq_Max ta tb) tf.
+    Continuous_I  (Min_leEq_Max ta tb) (toPart tf).
 Proof.
   intros ? ? ?.
   apply (contTf tf (TMin ta tb) (TMax ta tb)).
@@ -952,6 +970,7 @@ Proof.
   simpl. trivial.
 Qed.
 
+(*
 Lemma  ContinTFSimpl : 
    forall (F : TContR) (ta tb : Time) (e  : IR),
       [0][<]e ->
@@ -968,7 +987,7 @@ Proof.
   destruct Hc as [d Hdgt Hcn].
   exists d; eauto.
 Qed.
-
+*)
 
 Lemma MinTAdd : forall (tx ty : Time),
   MIN tx (tx[+]ty) [=] tx.
@@ -1032,9 +1051,6 @@ Lemma seq_refl: forall x y : IR, x = y -> x[=] y.
   apply eq_reflexive.
 Qed.
 
-Lemma AbsIR_ABSIR: forall x, ABSIR x = AbsIR x.
-  intros. reflexivity.
-Qed.
 
 
 Lemma pfstrlt:  forall (p : PartFunct IR) (x y : IR) 
@@ -1052,6 +1068,16 @@ Proof.
   destruct Hpp; tauto.
 Qed.
 
+Lemma TContRlt:  forall (p : TContR) x y,
+        {p} x [<]{p} y 
+        -> x[<=]y
+        -> x[<]y.
+Proof.
+  intros ? ? ? Hpp Hle.
+  apply extToPartLt2 in Hpp.
+  apply pfstrlt in Hpp; auto.
+Qed.
+
 Lemma pfstrgt:  forall (p : PartFunct IR) (x y : IR) 
       (Hx : Dom p x)
       (Hy : Dom p y), 
@@ -1065,6 +1091,16 @@ Proof.
   apply ap_imp_less in Hpp.
   apply leEq_def in Hle. unfold Not in Hle.
   destruct Hpp; tauto.
+Qed.
+
+Lemma TContRgt:  forall (p : TContR) x y,
+        {p} x [<]{p} y 
+        -> y[<=]x
+        -> y[<]x.
+Proof.
+  intros ? ? ? Hpp Hle.
+  apply extToPartLt2 in Hpp.
+  apply pfstrgt in Hpp; auto.
 Qed.
 
 Ltac provefalse :=
