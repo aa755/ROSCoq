@@ -8,28 +8,31 @@ Require Export ROSCyberPhysicalSystem.
 Require Export String.
 (* Require Export CoRN.ode.SimpleIntegration. *)
 
-(*
-Definition dotProduct (v1 v2 : TContR × TContR) : TContR :=
-  λ t, {fst v1} t [*] {fst v2} t  [+] {snd v1} t [*] {snd v2} t.
-*)
+Fixpoint Vector (n:nat) (T : Type)  : Type :=
+match n with
+| 0 => unit
+| S n => (Vector n T) × T
+end.
 
-Definition project2D  (vec :TContR × TContR) (angle : TContR) : TContR.
-Admitted.
+Fixpoint isVecDerivativeOf {n : nat} (f f' : Vector n TContR) : Type :=
+match (f, f') as x in (Vector n TContR × Vector n TContR) with
+| 0 => unit
+| S n => (Vector n T) × T
+end.
 
-Definition isDerivativeOf2D  (f f' :TContR × TContR) : Type :=
   isDerivativeOf (fst f) (fst f') 
-  × isDerivativeOf (fst f) (fst f').
+  × isDerivativeOf (snd f) (snd f').
 
 (** CatchFileBetweenTagsStartCreate *)
 
 Record iCreate : Type := {
-  position :> TContR × TContR;          (* x, y co-ordinates *)
+  position :> Vector 2 TContR;          (* x, y co-ordinates *)
   theta : TContR;                       (* orientation *)
-  transVel : TContR × TContR;             (* x, y velocity of center *)
+  transVel : Vector 2 TContR;             (* x, y velocity of center *)
   omega : TContR;
 
   derivRot : isDerivativeOf omega theta;
-  derivTrans : isDerivativeOf2D transVel position
+  derivTrans : isVecDerivativeOf transVel position
 }.
 
 (** CatchFileBetweenTagsEndCreate *)
