@@ -27,10 +27,16 @@ Process.vo : Process.v core.vo
 ADC.vo : ADC.v core.vo
 	$(COQC) $<
 
-core.vo : core.v CoRNMisc.vo ContField.vo
+core.vo : core.v CoRNMisc.vo ContField.vo StdlibMisc.vo
+	$(COQC) $<
+
+Fin.vo : Fin.v StdlibMisc.vo
 	$(COQC) $<
 
 ContField.vo : ContField.v
+	$(COQC) $<
+
+StdlibMisc.vo : StdlibMisc.v
 	$(COQC) $<
 
 CoRNMisc.vo : CoRNMisc.v

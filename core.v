@@ -7,17 +7,6 @@ Require Import Coq.QArith.QOrderedType.
 
 Require Export CoRN.ftc.MoreIntervals.
 
-
-  
-(* Definition N2Q (n: nat) : Q := n. *)
-
-Notation "x × y" := (prod x y) (at level 80, right associativity) : type_scope.
-
-(* Coercion N2Q : nat >-> Q. *)
-
-Definition ninv (n: nat) : Q :=
-  Qinv (n).
-
 Notation ℝ := IR.
 
 Require Export Coq.ZArith.ZArith.
@@ -25,6 +14,8 @@ Require Export Coq.ZArith.ZArith.
 Require Export CoRNMisc.
 
 Require Export ContField.
+
+Require Export StdlibMisc.
 
 Definition N2R  (n: nat) : IR := (inj_Q IR  (inject_Z n)).
 
@@ -36,8 +27,6 @@ Definition N2R  (n: nat) : IR := (inj_Q IR  (inject_Z n)).
 
 Notation "a < b < c" := (Qlt a  b /\  Qlt b  c) : Q_scope .
 
-
-Notation "A & B" := (prod A B)  (at level 80, right associativity).
 
 (** CatchFileBetweenTagsStartTime *)
 Definition Time := (RInIntvl (closel [0])).
@@ -119,82 +108,13 @@ Coercion N2T : nat >-> st_car.
 Coercion QT2T : QTime >-> st_car.
 Coercion QT2Q : QTime >-> Q.
 
-(*
-Definition N2QTime (n: nat) : QTime.
-  exists (n). destruct n; simpl; auto.
-Defined.
-Coercion N2QTime : nat >-> QTime.
-*)
-
-
-(*
-Definition fastFwdAndRestrict {A}
-    (f : Time -> A) (tstart tend : Time) :
-      (RInInterval (clcr [0] (tdiff tend tstart))) -> A :=
-restrictTill (fastFwd f tstart) (tdiff tend tstart).
-*)
 
 Definition equalUpto {Value : Type} (t: Time) (f1 f2 : Time -> Value) :=
   forall  (ti: Time), (ti [<=] t) -> f1 ti = f2 ti.
 
-Set Implicit Arguments.
-
-Definition ConjL (lp : list Prop) : Prop 
-  := (fold_left (fun A B => A/\B) lp True).
- 
-
-Inductive Cast (T: Type) : Prop :=
-cast : T -> Cast T.
-
-
-Require Import String.
-
-
-Definition InjectiveFun {A B} (f : A -> B) :=
-  forall (a1 a2: A), f a1 = f a2 -> a1 = a2.
-
-
-Class DecEq (T : Type) :=
-{
-    eqdec : forall (a b :T), {a=b} + {a<>b}
-}.
-
-
-
-Definition boolToProp (b : bool) : Prop :=
-match b with
-| true => True
-| false => False
-end.
 
 Open Scope R_scope.
 
-Definition enqueueAll {A : Type} (lel : list A) (oldQueue : list A) : list A :=
-     lel ++ oldQueue.
-
-Definition enqueue {A : Type} (el : A) (oldQueue : list A) : list A :=
-     enqueueAll (el::nil)  oldQueue.
-
-Definition dequeue {A : Type} (l: list A) : option A * list A :=
-match rev l with
-| nil => (None, nil)
-| last :: rest => (Some last, rev rest)
-end.
-
-Lemma dequeueIn : forall {A : Type} (lq: list A),
-  let (el,_) := dequeue lq in
-  match el with
-  | Some ld => In ld lq
-  | None => True
-  end.
-Proof.
-  intros. unfold dequeue.
-  remember (rev lq) as lqr.
-  destruct lqr as [| lh ltl];[tauto|].
-  rewrite in_rev.
-  rewrite <- Heqlqr.
-  auto.
-Qed.
 
 
 Require Export CoRN.reals.Q_in_CReals.
@@ -209,12 +129,6 @@ Definition overApproximate (t: ℝ) : { z:  Z | t  [<] Z2R z}.
   apply (inj_Q_leEq IR) in Hq.
   eauto  using less_leEq_trans.
 Defined.
-
-(*
-Definition overApproximateN (t: R) : { n: nat | t  [<] N2R n}.
-destruct (overApproximate t) as [zf  Hp].
-exists (Z.to_N zf).
-*)
 
 
 Definition RTime :=Time.
@@ -886,7 +800,7 @@ Lemma IVTTimeMinMax: forall (F : TContR) (ta tb : Time) (e y : IR),
    ({F} ta[<]{F} tb)
    -> [0][<]e 
    -> (clcr ({F} ta) ({F} tb)) y 
-   -> {x : QTime | (clcr (Min ta tb) (Max ta tb)) (QT2Q x) &
+   -> {x : QTime | (clcr (Min ta tb) (Max ta tb)) (QT2Q x) ×
                     AbsIR ({F} x [-]y)[<=]e}.
 Proof.
   intros ? ? ? ? ?.
