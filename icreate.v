@@ -14,14 +14,14 @@ match n with
 | S n => (Vector n T) × T
 end.
 
-Fixpoint isVecDerivativeOf {n : nat} (f f' : Vector n TContR) : Type :=
-match (f, f') as x in (Vector n TContR × Vector n TContR) with
-| 0 => unit
-| S n => (Vector n T) × T
-end.
-
-  isDerivativeOf (fst f) (fst f') 
-  × isDerivativeOf (snd f) (snd f').
+Definition isVecDerivativeOf 
+    {n : nat} (f f' : Vector n TContR) : Type.
+  revert f f'.
+  induction n as [| np Hind]; intros f f';[exact unit|].
+  destruct f as [fv ft].
+  destruct f' as [fv' ft'].
+  exact ((isDerivativeOf ft ft') × (Hind fv fv')).
+Defined.
 
 (** CatchFileBetweenTagsStartCreate *)
 
