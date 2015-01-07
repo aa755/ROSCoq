@@ -413,13 +413,13 @@ Close Scope Q_scope.
 
 Lemma DeqSendOncePair : forall ns nd sp,
   possibleDeqSendOncePair (ControllerNode sp) (localEvts SWCONTROLLER) nd ns
-  -> {es : Event | {ed : Event | isDeqEvt ed & isSendEvt es
-          & (nd < ns)
-            & (∀ n : nat, (nd < n <  ns) → isEnqEvtOp (localEvts SWCONTROLLER n))
-              & (eTime ed < eTime es < eTime ed + digiControllerTiming)%Q
-        &
+  -> {es : Event | {ed : Event | isDeqEvt ed × isSendEvt es
+          × (nd < ns)
+            × (∀ n : nat, (nd < n <  ns) → isEnqEvtOp (localEvts SWCONTROLLER n))
+              × (eTime ed < eTime es < eTime ed + digiControllerTiming)%Q
+        ×
         localEvts SWCONTROLLER nd = Some ed 
-        & localEvts SWCONTROLLER ns = Some es &
+        × localEvts SWCONTROLLER ns = Some es ×
          {dmp : bool|  eMesg ed = ((mkMesg PSENSOR dmp)::nil)
                   ∧ (mkMesg MOTOR ((SwControllerProgram sp) dmp))::nil = (eMesg es) }}}.
 Proof.
@@ -1339,6 +1339,7 @@ Close Scope nat_scope.
     eapply latestEvtStr; eauto.
     intros ? Hp. simpl. repnd.
     rewrite Hprl. dands; auto.
+    reflexivity.
 
   + unfold hd in Hm. (** last message was of negative vel *)
     destruct hlm as [hq ht].
@@ -1452,6 +1453,7 @@ Close Scope nat_scope.
     eapply latestEvtStr; eauto.
     intros ? Hp. simpl. repnd.
     rewrite Hprl. dands; auto.
+    reflexivity.
 
   + unfold hd in Hm. (** last message was of negative vel *)
     destruct hlm as [hq ht].

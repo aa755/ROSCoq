@@ -12,10 +12,10 @@ ROSCyberPhysicalSystem.vo : ROSCyberPhysicalSystem.v roscore.vo CoList.vo
 
 CoList.vo : CoList.v
 	$(COQC) $<
-	
-trainDevs.vo : trainDevs.v Process.vo
+		
+
+icreate.vo : icreate.v ROSCyberPhysicalSystem.vo Vector.vo
 	$(COQC) $<
-	
 
 roscore.vo : roscore.v Process.vo
 	$(COQC) $<

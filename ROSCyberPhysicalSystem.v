@@ -769,7 +769,7 @@ Definition RSwNodeSemanticsAux
   ∀ n : nat, 
       (isSendEvtOp (locEvts n) 
           -> {m: nat | possibleDeqSendOncePair swn locEvts m n})
-    & (isDeqEvtOp (locEvts n) 
+    × (isDeqEvtOp (locEvts n) 
           -> { m: nat| possibleDeqSendOncePair swn locEvts n m}).
 
 
@@ -920,11 +920,11 @@ Lemma PureProcDeqSendOncePair : forall ns nd TI TO qt loc
     (sp : SimplePureProcess TI TO),
   let sproc := mkPureProcess (liftToMesg sp)in
   possibleDeqSendOncePair (Build_RosSwNode sproc qt) (localEvts loc) nd ns
-  -> {es : Event | {ed : Event | isDeqEvt ed & isSendEvt es
-          & (nd < ns)
-            & (∀ n : nat, (nd < n) ∧ (n < ns) → isEnqEvtOp (localEvts loc n))
-              & (eTime ed <eTime es < eTime ed + qt)%Q
-        & localEvts loc nd = Some ed & localEvts loc ns = Some es &
+  -> {es : Event | {ed : Event | isDeqEvt ed × isSendEvt es
+          × (nd < ns)
+            × (∀ n : nat, (nd < n) ∧ (n < ns) → isEnqEvtOp (localEvts loc n))
+              × (eTime ed <eTime es < eTime ed + qt)%Q
+        × localEvts loc nd = Some ed × localEvts loc ns = Some es ×
           (validRecvMesg (TI::nil,nil) (eMesg ed)
            ->  {dmp : topicType TI |  
                       eMesg ed = ((mkMesg _ dmp)::nil)

@@ -23,6 +23,16 @@ Proof.
   omega.
 Qed.
 
+Lemma sdjflksdjsdlkf3: forall n mm: nat, 
+  (if lt_dec (S mm) (S n) then True else False)
+  -> (if lt_dec mm n then True else False).
+Proof.
+  intros. 
+  destruct (lt_dec (S mm) (S n)) as [? | nlt]; [| contradiction].
+  destruct (lt_dec mm n);trivial.
+  omega.
+Qed.
+
 Lemma sdjflksdjsdlkf: forall n mm: nat, 
   (if lt_dec mm n then True else False)
   -> (if lt_dec mm (S n) then True else False).
@@ -147,3 +157,9 @@ end.
 Definition fnil {A : Fin 0 -> Type} (fn : Fin 0) : A fn.
 destruct fn as [? Hc]. simpl in Hc. contradiction.
 Defined.
+
+(*
+Definition FinSD {n:nat} (f : Fin (S n)) : (projT1 f = n) + {fp : Fin n | projT1 fp = projT1 f}.
+induction n;[]
+simpl. 
+*)
