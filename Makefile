@@ -33,6 +33,9 @@ core.vo : core.v CoRNMisc.vo ContField.vo StdlibMisc.vo
 Fin.vo : Fin.v StdlibMisc.vo
 	$(COQC) $<
 
+Vector.vo : Vector.v Fin.vo
+	$(COQC) $<
+
 ContField.vo : ContField.v
 	$(COQC) $<
 

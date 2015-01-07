@@ -5,14 +5,7 @@ Require Export LibTactics.
 (** printing :> $:$ #:># *)
 
 Require Export ROSCyberPhysicalSystem.
-Require Export String.
-(* Require Export CoRN.ode.SimpleIntegration. *)
-
-Fixpoint Vector (n:nat) (T : Type)  : Type :=
-match n with
-| 0 => unit
-| S n => (Vector n T) × T
-end.
+Require Export Vector.
 
 Definition isVecDerivativeOf 
     {n : nat} (f f' : Vector n TContR) : Type.
