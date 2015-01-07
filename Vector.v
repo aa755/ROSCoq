@@ -11,7 +11,7 @@ Definition vnth {T : Type} {m:nat} (v : Vector m T) (n : Fin m) : T.
   simpl in v. destruct n as [n np].
   destruct n; simpl in np.
   - exact (snd v).
-  - apply fst in v. apply IHm;[exact v|].
+  - apply fst in v. apply IHm;[exact v| ].
     exists n. apply sdjflksdjsdlkf3. trivial.
 Defined.
 

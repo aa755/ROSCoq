@@ -20,9 +20,6 @@ Record Train : Type := {
   initPos : {posX} (mkQTime 0 I)  = initialPos
 }.
 
-Instance stringdeceqdsjfklsajlk : DecEq string.
-constructor. exact string_dec.
-Defined.
 
 Inductive Topic :=  MOTOR | PSENSOR.
 
@@ -32,8 +29,6 @@ Instance ldskflskdalfkTopic_eq_dec : DecEq Topic.
 constructor. exact Topic_eq_dec.
 Defined.
 
-
-Inductive Void :=.
 
 
 (** When adding a nrew topic, add cases of this function *)
@@ -62,74 +57,6 @@ Defined.
 
 Close Scope Q_scope.
 
-(** it is a pure function that repeatedly
-   reads a message from the [PSENSOR] topic
-   and publish on the [MOTOR] *)
-Definition SwControllerProgram (speed : Q):
-  SimplePureProcess PSENSOR MOTOR :=
-fun side  => match side with
-            | true => (-speed)%Q
-            | false => speed
-            end.
-
-Lemma SPP : SimplePureProcess PSENSOR MOTOR
-            = (bool -> Q).
-Proof.
-reflexivity.
-Qed.
-
-Definition SwProcess (speed : Q) 
-      : Process Message (list Message):= 
-  mkPureProcess (liftToMesg (SwControllerProgram speed)).
-
-Definition digiControllerTiming  : 
-  QTime :=  (mkQTime 1 I).
- 
-Definition ControllerNode (speed : Q): RosSwNode :=
-  Build_RosSwNode (SwProcess speed) (digiControllerTiming).
-
-
-
-
-Lemma VelPosUB :forall (tst : Train)
-   (ta tb : Time) (Hab : ta[<]tb) (c : ℝ),
-   (forall (t:Time), (clcr ta tb) t -> ({velX tst} t) [<=] c)
-   -> ({posX tst} tb[-] {posX tst} ta)[<=]c[*](tb[-]ta).
-Proof.
-  intros. apply TDerivativeUB2 with (F' := (velX tst)); auto.
-  apply deriv.
-Qed.
-
-Lemma VelPosLB :forall (tst : Train)
-   (ta tb : Time) (Hab : ta[<]tb) (c : ℝ),
-   (forall (t:Time), (clcr ta tb) t -> c [<=] ({velX tst} t))
-   -> c[*](tb[-]ta)[<=] ({posX tst} tb[-] {posX tst} ta).
-Proof.
-  intros. apply TDerivativeLB2 with (F' := (velX tst)); auto.
-  apply deriv.
-Qed.
-
-Lemma QVelPosUB :forall (tst : Train)
-   (ta tb : QTime) (Hab : (ta<=tb)%Q) (c : Q),
-   (forall (t:QTime), (ta <= t <= tb)%Q -> ({velX tst} t) [<=] c)
-   -> (({posX tst} tb[-] {posX tst} ta)[<=] c*(tb-ta))%Q.
-Proof.
-  intros. unfold Q2R.
-  rewrite inj_Q_mult.
-  apply TDerivativeUBQ with (F' := (velX tst)); auto.
-  apply deriv.
-Qed.
-
-Lemma QVelPosLB :forall (tst : Train)
-   (ta tb : QTime) (Hab : (ta<=tb)%Q) (c : Q),
-   (forall (t:QTime), (ta <= t <= tb)%Q -> Q2R c [<=] ({velX tst} t))
-   -> Q2R (c*(tb-ta))[<=] ({posX tst} tb[-] {posX tst} ta).
-Proof.
-  intros. unfold Q2R.
-  rewrite inj_Q_mult.
-  apply TDerivativeLBQ with (F' := (velX tst)); auto.
-  apply deriv.
-Qed.
 
 Definition getVelM  : Message -> option Q :=
   getPayLoad MOTOR.
@@ -256,6 +183,74 @@ Definition SlowMotorQ
 fun  (velAtTime: Time -> ℝ) (evs : nat -> option Event) 
   => forall t: QTime, corrSinceLastVel evs t velAtTime.
 
+(** it is a pure function that repeatedly
+   reads a message from the [PSENSOR] topic
+   and publish on the [MOTOR] *)
+Definition SwControllerProgram (speed : Q):
+  SimplePureProcess PSENSOR MOTOR :=
+fun side  => match side with
+            | true => (-speed)%Q
+            | false => speed
+            end.
+
+Lemma SPP : SimplePureProcess PSENSOR MOTOR
+            = (bool -> Q).
+Proof.
+reflexivity.
+Qed.
+
+Definition SwProcess (speed : Q) 
+      : Process Message (list Message):= 
+  mkPureProcess (liftToMesg (SwControllerProgram speed)).
+
+Definition digiControllerTiming  : 
+  QTime :=  (mkQTime 1 I).
+ 
+Definition ControllerNode (speed : Q): RosSwNode :=
+  Build_RosSwNode (SwProcess speed) (digiControllerTiming).
+
+
+
+
+Lemma VelPosUB :forall (tst : Train)
+   (ta tb : Time) (Hab : ta[<]tb) (c : ℝ),
+   (forall (t:Time), (clcr ta tb) t -> ({velX tst} t) [<=] c)
+   -> ({posX tst} tb[-] {posX tst} ta)[<=]c[*](tb[-]ta).
+Proof.
+  intros. apply TDerivativeUB2 with (F' := (velX tst)); auto.
+  apply deriv.
+Qed.
+
+Lemma VelPosLB :forall (tst : Train)
+   (ta tb : Time) (Hab : ta[<]tb) (c : ℝ),
+   (forall (t:Time), (clcr ta tb) t -> c [<=] ({velX tst} t))
+   -> c[*](tb[-]ta)[<=] ({posX tst} tb[-] {posX tst} ta).
+Proof.
+  intros. apply TDerivativeLB2 with (F' := (velX tst)); auto.
+  apply deriv.
+Qed.
+
+Lemma QVelPosUB :forall (tst : Train)
+   (ta tb : QTime) (Hab : (ta<=tb)%Q) (c : Q),
+   (forall (t:QTime), (ta <= t <= tb)%Q -> ({velX tst} t) [<=] c)
+   -> (({posX tst} tb[-] {posX tst} ta)[<=] c*(tb-ta))%Q.
+Proof.
+  intros. unfold Q2R.
+  rewrite inj_Q_mult.
+  apply TDerivativeUBQ with (F' := (velX tst)); auto.
+  apply deriv.
+Qed.
+
+Lemma QVelPosLB :forall (tst : Train)
+   (ta tb : QTime) (Hab : (ta<=tb)%Q) (c : Q),
+   (forall (t:QTime), (ta <= t <= tb)%Q -> Q2R c [<=] ({velX tst} t))
+   -> Q2R (c*(tb-ta))[<=] ({posX tst} tb[-] {posX tst} ta).
+Proof.
+  intros. unfold Q2R.
+  rewrite inj_Q_mult.
+  apply TDerivativeLBQ with (F' := (velX tst)); auto.
+  apply deriv.
+Qed.
 
 Variable boundary : ℝ.
 
