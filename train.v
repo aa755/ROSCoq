@@ -135,9 +135,6 @@ Notation "a <== b <== c" := ((a [<=] b) /\ (b [<=] c))
   (at level 201,left associativity).
 *)
 
-Definition between (b a c : IR) 
-  := ((Min a c [<=] b) /\ (b [<=] Max a c)) .
-
 Definition correctVelDuring
   (lastVel : Q) 
   (lastTime: QTime)

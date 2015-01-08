@@ -1011,3 +1011,6 @@ Defined.
 
 Ltac DestImp H :=
  lapply H;[clear H; intro H|].
+
+Definition between (b a c : IR) 
+  := ((Min a c [<=] b) /\ (b [<=] Max a c)) .

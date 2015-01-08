@@ -29,3 +29,132 @@ Record iCreate : Type := {
 }.
 
 (** CatchFileBetweenTagsEndCreate *)
+
+
+Inductive Topic :=  VELOCITY. (* similar to CMD_VEL *)
+
+Scheme Equality for Topic.
+
+Instance ldskflskdalfkTopic_eq_dec : DecEq Topic.
+constructor. exact Topic_eq_dec.
+Defined.
+
+
+(** When adding a nrew topic, add cases of this function *)
+Definition topic2Type (t : Topic) : Type :=
+match t with
+| MOTORVEL => Q
+end.
+
+
+Instance  ttttt : @RosTopicType Topic _.
+  constructor. exact topic2Type.
+Defined.
+
+Inductive RosLoc :=  MOVABLEBASE.
+
+Scheme Equality for RosLoc.
+
+Instance rldeqdsjfklsajlk : DecEq RosLoc.
+constructor. exact RosLoc_eq_dec.
+Defined.
+
+Close Scope Q_scope.
+
+
+Definition getVelM  : Message -> option Q :=
+  getPayLoad VELOCITY.
+
+
+Section iCREATECPS.
+
+(** To define IO devices, we already need
+    an Event type *)
+Context  
+  (minGap : Q)
+ `{etype : @EventType _ _ _ Event RosLoc minGap tdeq}.
+
+
+(** In some cases, the equations might invove transcendental 
+  functions like sine, cos which can output 
+  irrationals even on rational *)
+
+
+
+Definition getVelEv (e : Event) : option Q  :=
+  getPayloadFromEv VELOCITY e.
+
+Definition getVelOEv : (option Event) ->  option Q  :=
+getPayloadFromEvOp VELOCITY.
+
+
+Definition getVelAndTime (oev : option Event) 
+    : option (Q * Event)  :=
+getPayloadAndEv VELOCITY oev.
+
+
+Definition inIntervalDuring
+  (interval: interval) (tStart tEnd : QTime)  (f : Time -> ℝ) : Prop :=
+  Cast (forall t : QTime, ( tStart <= t <= tEnd   -> (interval) (f t)))%Q.
+  
+Definition isEqualDuring
+  (vel: Q) (tStart tEnd : QTime)  (f : Time -> ℝ) : Prop :=
+  (forall t : QTime, ( tStart <= t <= tEnd   -> (f t) [=] vel))%Q.
+
+Variable reactionTime : Q.
+Variable velAccuracy : Q.
+Variable transitionValues : interval.
+
+
+Definition between (b a c : IR) 
+  := ((Min a c [<=] b) /\ (b [<=] Max a c)) .
+
+Definition correctVelDuring
+  (lastVel : Q) 
+  (lastTime: QTime)
+  (uptoTime : QTime) 
+  (velAtTime: Time -> ℝ) :=
+
+(exists  (qt : QTime), 
+  lastTime <= qt <= (lastTime + reactionTime)
+  /\ ((forall t : QTime, (qt <= t <= uptoTime -> (velAtTime t) [=] lastVel)))
+  /\ (forall t : QTime, (lastTime <= t <= qt)  
+          -> (between (velAtTime t) (velAtTime lastTime) lastVel)))%Q.
+  
+Close Scope Q_scope.
+
+
+(** all velocity messages whose index  < numPrevEvts .
+    the second item is the time that messsage was dequed.
+    last message, if any  is the outermost (head)
+    Even though just the last message is needed,
+    this list is handy for reasoning; it is a convenient
+    thing to do induction over
+ *)
+
+Definition velocityMessages (t : QTime) :=
+  (filterPayloadsUptoTime VELOCITY (localEvts MOVABLEBASE) t).
+
+Variable initialVel : Q.
+Variable initialPos : Q.
+
+Definition lastVelAndTime (evs : nat -> option Event)
+  (t : QTime) : (Q * QTime) :=
+hd (initialVel,mkQTime 0 I) (map (fun p => (fst p, eTime (snd p)))
+                                  (velocityMessages t)) .
+
+
+Definition corrSinceLastVel
+  (evs : nat -> option Event)
+  (uptoTime : QTime) 
+  (velAtTime: Time -> ℝ) :=
+  let (lastVel, lastTime) := lastVelAndTime evs uptoTime in
+  correctVelDuring lastVel lastTime uptoTime velAtTime.
+
+
+Definition SlowMotorQ 
+   : Device ℝ :=
+fun  (velAtTime: Time -> ℝ) (evs : nat -> option Event) 
+  => forall t: QTime, corrSinceLastVel evs t velAtTime.
+
+End iCREATECPS.
