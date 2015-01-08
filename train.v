@@ -103,8 +103,8 @@ Definition ProxPossibleTimeEvPair
 
 (** [side] is just an identifier *)
 Definition ProximitySensor (alertDist : Q) (maxDelay: QTime) (side : bool)
-  : Device ℝ :=
-fun  (distanceAtTime : Time -> ℝ)
+  : Device (Time -> ℝ) :=
+fun  (distanceAtTime : (Time -> ℝ))
      (evs : nat -> option Event) 
   =>
     (∀ t:QTime,
@@ -176,7 +176,7 @@ Definition corrSinceLastVel
 
 
 Definition SlowMotorQ 
-   : Device ℝ :=
+   : Device (Time -> ℝ) :=
 fun  (velAtTime: Time -> ℝ) (evs : nat -> option Event) 
   => forall t: QTime, corrSinceLastVel evs t velAtTime.
 

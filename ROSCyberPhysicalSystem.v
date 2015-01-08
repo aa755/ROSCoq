@@ -83,7 +83,7 @@ Class EventType (T: Type)
     Right now, a device property writer can assume that these hold. *)
 
 Definition Device `{EventType Event } (PhysQ : Type ) : Type :=
-                  (Time -> PhysQ)
+                  PhysQ
                   -> (nat -> option Event)
                   -> Prop.
 
@@ -816,7 +816,7 @@ Context  {PhysicalEnvEvolutionType : Type}
    
 Definition DeviceView (PhysQ : Type) :=
     PhysicalEnvEvolutionType
-    ->  (Time -> PhysQ).
+    ->   PhysQ.
 
 
 Definition NodeSemantics  :=
