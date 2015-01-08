@@ -77,9 +77,31 @@ Proof.
   apply eq_reflexive.
 Qed.
 
+
+Lemma extToPart3 (f : RI_R) : forall (t : RInIntvl),
+  (f  t) [=] (toPart f) t (scs_prf _ _ t).
+Proof.
+  intros ?.
+  destruct t.
+  simpl.
+  apply extToPart2.
+Qed.
+
 Definition IContR := Build_SubCSetoid RI_R
     (fun f => Continuous itvl (toPart f)).
 
+Definition getF  (f : IContR) : RI_R :=
+(scs_elem _ _ f).
+
+
+Notation "{ f }" := (getF f).
+
+(* Continuous_Sin Continuous_com *)
+Require Export CoRN.transc.Trigonometric.
+
+Definition sinef (theta : IContR) : IContR.
+  exists (compose_CSetoid_fun _ _ _  {theta} Sin).
+Admitted.
 
 End ContFAlgebra.
 

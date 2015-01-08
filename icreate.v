@@ -106,17 +106,6 @@ Variable velAccuracy : Q.
 Variable transitionValues : interval.
 
 
-Definition correctVelDuring
-  (lastVel : Q) 
-  (lastTime: QTime)
-  (uptoTime : QTime) 
-  (velAtTime: Time -> ℝ) :=
-
-(exists  (qt : QTime), 
-  lastTime <= qt <= (lastTime + reactionTime)
-  /\ ((forall t : QTime, (qt <= t <= uptoTime -> (velAtTime t) [=] lastVel)))
-  /\ (forall t : QTime, (lastTime <= t <= qt)  
-          -> (between (velAtTime t) (velAtTime lastTime) lastVel)))%Q.
   
 Close Scope Q_scope.
 
@@ -139,7 +128,24 @@ Definition lastVelAndTime
   (t : QTime) : ((Q × Q) * QTime) :=
   lastPayloadAndTime VELOCITY (localEvts MOVABLEBASE) t initialVel.
 
-(*
+Definition changesTo (f : TContR)
+  (atTime uptoTime : QTime)
+  (toValue : ℝ)
+  (reactionTime eps : Q) :=
+(exists  (qt : QTime), 
+  atTime <= qt <= (atTime + reactionTime)
+  /\ ((forall t : QTime, 
+          (qt <= t <= uptoTime -> AbsIR ({f} t [-] toValue) [<=] eps)))
+  /\ (forall t : QTime, (atTime <= t <= qt)  
+          -> (between ({f} t) ({f} atTime) toValue)))%Q.
+  
+Definition correctVelDuring
+  (lastVelCms : (Q × Q)) 
+  (lastTime: QTime)
+  (uptoTime : QTime) 
+  (velAtTime: Time -> ℝ) :=
+
+
 Definition corrSinceLastVel
   (evs : nat -> option Event)
   (uptoTime : QTime)

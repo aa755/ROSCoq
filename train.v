@@ -2207,9 +2207,9 @@ Close Scope nat_scope.
       simpl; unfold inject_Z; simpl; lra).
   pose proof (plus_resp_leEq_both _ _ _ _ _ HH0 HUB) as Hf.
   rewrite <- cg_cancel_mixed in Hf.
-  rewrite <- inj_Q_Zero in Hf.
-  rewrite <- inj_Q_plus in Hf.
   pose proof (leEq_transitive _ _ _ _ Hc Hf) as XX.
+  rewrite <- inj_Q_Zero in XX.
+  rewrite <- inj_Q_plus in XX.
   apply leEq_inj_Q in XX.
   simpl in XX. unfold inject_Z in XX.
   lra.
@@ -2306,6 +2306,10 @@ Close Scope nat_scope.
   subst.
   clear Hcon Hhw Hbb Hal Hmd. 
   unfold Z2R, inject_Z in Hnc.
+  remember ({tstate} tivt) as tttt.
+  (* wierd error: Error: build_signature: 
+      no constraint can apply on a dependent argument*)
+
   rewrite <- inj_Q_Zero in Hnc.
   rewrite <- CAbGroups.minus_plus in Hnc.
   autorewrite with QSimpl in Hnc.
@@ -2415,6 +2419,7 @@ Close Scope nat_scope.
   assert (Qtadd (eTime Emr) (mkQTime 1 I) < t)%Q  
     as Hltt by (unfold Qtadd; simpl; lra).
   clear dependent Esws.
+  subst tttt.
   apply (centerPosLB _ _ _ _ (conj Htlbb Htubb)) in HLB.
   revert HLB. simplInjQ. intro HLB.
   pose proof (fun tl pm
@@ -2441,9 +2446,9 @@ Close Scope nat_scope.
       simpl; unfold inject_Z; simpl; lra).
   pose proof (plus_resp_leEq_both _ _ _ _ _ HH0 HLB) as Hf.
   rewrite <- cg_cancel_mixed in Hf.
-  rewrite <- inj_Q_Zero in Hf.
-  rewrite <- inj_Q_plus in Hf.
   pose proof (leEq_transitive _ _ _ _ Hf Hc) as XX.
+  rewrite <- inj_Q_Zero in XX.
+  rewrite <- inj_Q_plus in XX.
   apply leEq_inj_Q in XX.
   simpl in XX. unfold inject_Z in XX.
   lra.

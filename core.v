@@ -156,8 +156,6 @@ Definition TContR := (IContR (closel [0])).
 Definition isDerivativeOf (F' F : TContR) : CProp :=
 Derivative (closel [0]) I (toPart F) (toPart F').
 
-Definition getF  (f : TContR) (t : Time) : IR :=
-(scs_elem _ _ f) t.
 
 
 Notation "{ f }" := (getF f).
@@ -245,9 +243,7 @@ Lemma getFToPart (f : TContR) : forall (t : Time),
   ({f}  t) [=] (toPart f) t (scs_prf _ _ t).
 Proof.
   intros ?.
-  destruct f, t.
-  simpl.
-  apply   extToPart.
+  apply   extToPart3.
 Qed.
 
 Lemma getFToPart2 (f : TContR) : forall (t : IR) 
@@ -825,7 +821,7 @@ Proof.
   exists (mkQTime _ Hel).
   rewrite AbsIR_ABSIR.
   dands; auto.
-  rewrite getFToPart; auto.
+  rewrite extToPart3; auto.
 Qed.
 
 Definition TMin (ta tb :Time) : Time.
