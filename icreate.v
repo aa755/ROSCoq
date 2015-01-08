@@ -43,7 +43,7 @@ Defined.
 (** When adding a nrew topic, add cases of this function *)
 Definition topic2Type (t : Topic) : Type :=
 match t with
-| MOTORVEL => Q
+| MOTORVEL => (Q × Q)
 end.
 
 
@@ -62,7 +62,7 @@ Defined.
 Close Scope Q_scope.
 
 
-Definition getVelM  : Message -> option Q :=
+Definition getVelM  : Message -> option (Q × Q) :=
   getPayLoad VELOCITY.
 
 
@@ -81,15 +81,15 @@ Context
 
 
 
-Definition getVelEv (e : Event) : option Q  :=
+Definition getVelEv (e : Event) : option (Q × Q)  :=
   getPayloadFromEv VELOCITY e.
 
-Definition getVelOEv : (option Event) ->  option Q  :=
+Definition getVelOEv : (option Event) ->  option (Q × Q)  :=
 getPayloadFromEvOp VELOCITY.
 
 
 Definition getVelAndTime (oev : option Event) 
-    : option (Q * Event)  :=
+    : option ((Q × Q) * Event)  :=
 getPayloadAndEv VELOCITY oev.
 
 
@@ -105,9 +105,6 @@ Variable reactionTime : Q.
 Variable velAccuracy : Q.
 Variable transitionValues : interval.
 
-
-Definition between (b a c : IR) 
-  := ((Min a c [<=] b) /\ (b [<=] Max a c)) .
 
 Definition correctVelDuring
   (lastVel : Q) 
@@ -135,20 +132,19 @@ Close Scope Q_scope.
 Definition velocityMessages (t : QTime) :=
   (filterPayloadsUptoTime VELOCITY (localEvts MOVABLEBASE) t).
 
-Variable initialVel : Q.
+Variable initialVel : (Q × Q).
 Variable initialPos : Q.
 
-Definition lastVelAndTime (evs : nat -> option Event)
-  (t : QTime) : (Q * QTime) :=
-hd (initialVel,mkQTime 0 I) (map (fun p => (fst p, eTime (snd p)))
-                                  (velocityMessages t)) .
+Definition lastVelAndTime
+  (t : QTime) : ((Q × Q) * QTime) :=
+  lastPayloadAndTime VELOCITY (localEvts MOVABLEBASE) t initialVel.
 
-
+(*
 Definition corrSinceLastVel
   (evs : nat -> option Event)
-  (uptoTime : QTime) 
+  (uptoTime : QTime)
   (velAtTime: Time -> ℝ) :=
-  let (lastVel, lastTime) := lastVelAndTime evs uptoTime in
+  let (lastVel, lastTime) := lastVelAndTime uptoTime in
   correctVelDuring lastVel lastTime uptoTime velAtTime.
 
 
@@ -156,5 +152,7 @@ Definition SlowMotorQ
    : Device ℝ :=
 fun  (velAtTime: Time -> ℝ) (evs : nat -> option Event) 
   => forall t: QTime, corrSinceLastVel evs t velAtTime.
+
+*)
 
 End iCREATECPS.

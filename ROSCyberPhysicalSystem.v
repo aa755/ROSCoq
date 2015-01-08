@@ -394,6 +394,12 @@ Definition filterPayloadsUptoTime (tp : RosTopic)
   (evs : nat -> option Event) (t : QTime) : list ((topicType tp) * Event):=
 filterPayloadsUptoIndex tp evs (numPrevEvts evs t).
 
+Definition lastPayloadAndTime (tp : RosTopic)
+  (evs : nat -> option Event) (upto : QTime) (defPayL : (topicType tp))
+    :((topicType tp) × QTime):=
+hd (defPayL,mkQTime 0 I)
+   (map (fun p => (fst p, eTime (snd p)))
+        (filterPayloadsUptoTime tp evs upto)).
 
 Definition latestEvt (P : Event -> Prop) (ev : Event) :=
   P ev /\ (forall ev':Event, P ev' -> ((eTime ev') <= (eTime ev))%Q).

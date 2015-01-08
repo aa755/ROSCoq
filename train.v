@@ -161,17 +161,17 @@ Close Scope Q_scope.
 Definition velocityMessages (t : QTime) :=
   (filterPayloadsUptoTime MOTOR (localEvts BASEMOTOR) t).
 
-Definition lastVelAndTime (evs : nat -> option Event)
+Definition lastVelAndTime
   (t : QTime) : (Q * QTime) :=
-hd (initialVel,mkQTime 0 I) (map (fun p => (fst p, eTime (snd p)))
-                                  (velocityMessages t)) .
+  lastPayloadAndTime MOTOR (localEvts BASEMOTOR) t initialVel.
+
 
 
 Definition corrSinceLastVel
   (evs : nat -> option Event)
   (uptoTime : QTime) 
   (velAtTime: Time -> ℝ) :=
-  let (lastVel, lastTime) := lastVelAndTime evs uptoTime in
+  let (lastVel, lastTime) := lastVelAndTime uptoTime in
   correctVelDuring lastVel lastTime uptoTime velAtTime.
 
 
@@ -1262,6 +1262,7 @@ Proof.
                 BASEMOTOR t) as Hm.
   simpl in Hm.
   unfold corrSinceLastVel, lastVelAndTime, correctVelDuring in Hm.
+  unfold lastPayloadAndTime in Hm. unfold velocityMessages in Heq.
   rewrite <- Heq in Hm. unfold last in Hm.
   pose proof concreteValues as Hinit.
 Open Scope nat_scope.
@@ -1309,6 +1310,7 @@ Close Scope nat_scope.
                 BASEMOTOR t) as Hm.
   simpl in Hm.
   unfold corrSinceLastVel, lastVelAndTime, correctVelDuring in Hm.
+  unfold lastPayloadAndTime in Hm. unfold velocityMessages in Heq.
   rewrite <- Heq in Hm.
   match type of Heq with
   | ?h::_ = ?r => assert (member h r) as Hvm;
@@ -1376,6 +1378,7 @@ Proof.
                 BASEMOTOR t) as Hm.
   simpl in Hm.
   unfold corrSinceLastVel, lastVelAndTime, correctVelDuring in Hm.
+  unfold lastPayloadAndTime in Hm. unfold velocityMessages in Heq.
   rewrite <- Heq in Hm. unfold last in Hm.
   pose proof concreteValues as Hinit.
 Open Scope nat_scope.
@@ -1422,6 +1425,7 @@ Close Scope nat_scope.
                 BASEMOTOR t) as Hm.
   simpl in Hm.
   unfold corrSinceLastVel, lastVelAndTime, correctVelDuring in Hm.
+  unfold lastPayloadAndTime in Hm. unfold velocityMessages in Heq.
   rewrite <- Heq in Hm.
   match type of Heq with
   | ?h::_ = ?r => assert (member h r) as Hvm;
@@ -1726,7 +1730,7 @@ Proof.
               BASEMOTOR  (eTime ev)) as Hm.
   simpl in Hm.
   unfold corrSinceLastVel, lastVelAndTime, 
-      velocityMessages, filterPayloadsUptoTime in Hm.
+      lastPayloadAndTime, filterPayloadsUptoTime in Hm.
   rewrite numPrevEvtsEtime in Hm; [| trivial];[].
     (* we know that 
       the default case of [hd] wont get invoked in Hm
@@ -1781,7 +1785,7 @@ Proof.
               BASEMOTOR  (eTime ev)) as Hm.
   simpl in Hm.
   unfold corrSinceLastVel, lastVelAndTime, 
-      velocityMessages, filterPayloadsUptoTime in Hm.
+      lastPayloadAndTime, filterPayloadsUptoTime in Hm.
   rewrite numPrevEvtsEtime in Hm; [| trivial];[].
     (* we know that 
       the default case of [hd] wont get invoked in Hm
@@ -1836,7 +1840,7 @@ Proof.
               BASEMOTOR t) as Hm.
   simpl in Hm.
   unfold corrSinceLastVel, lastVelAndTime, 
-      velocityMessages, filterPayloadsUptoTime in Hm.
+      lastPayloadAndTime, filterPayloadsUptoTime in Hm.
     (* we know that 
       the default case of [hd] wont get invoked in Hm
       Luckily, [initialVel] is corrent,
@@ -1919,7 +1923,7 @@ Proof.
               BASEMOTOR t) as Hm.
   simpl in Hm.
   unfold corrSinceLastVel, lastVelAndTime, 
-      velocityMessages, filterPayloadsUptoTime in Hm.
+      lastPayloadAndTime, filterPayloadsUptoTime in Hm.
     (* we know that 
       the default case of [hd] wont get invoked in Hm
       Luckily, [initialVel] is corrent,
@@ -2467,11 +2471,5 @@ Qed.
 (* Add LoadPath "../../../nuprl/coq".
 Require Import UsefulTypes.
 Close Scope NupCoqScope. *)
-
-
-
-
-
-
 
 End TrainProofs.
