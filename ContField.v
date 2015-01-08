@@ -21,12 +21,30 @@ Definition toPart (f : RI_R) : PartIR.
   - intros ? ? ? ?. apply csf_strext.
 Defined.
 
-(*
-Definition fromPart (f : PartIR) : RI_R.
-  destruct f. unfold RI_R.
-  simpl. apply Build_CSetoid_fun with 
-    (csf_fun := fun x=> pfpfun (scs_elem _ _ x) (scs_prf _ _ x)).
-*)
+
+Definition fromPart (f : PartIR) (Hd : included itvl (Dom f)): RI_R.
+  apply Build_CSetoid_fun with
+    (csf_fun := (fun x : RInIntvl 
+        => f (scs_elem _ _ x) (Hd _  (scs_prf _ _ x)))).
+
+  intros ? ? Hsep.
+  apply (pfstrx _ f) in Hsep. simpl.
+  unfold subcsetoid_ap, Crestrict_relation. simpl.
+  destruct x, y. simpl in Hsep.
+  trivial.
+Defined.
+
+Lemma toFromPartId : forall (F : PartIR) p,
+  Feq itvl F (toPart (fromPart F p)).
+Proof.
+  intros ? ?.
+  split; [trivial|].
+  simpl. split;[apply included_refl|].
+  intros ? ? ? ?.
+  apply pfwdef.
+  apply eq_reflexive_unfolded.
+Qed.
+
 
 Lemma extToPart (f : RI_R) : forall (x:IR) (p : (itvl) x) 
   (p' : Dom (toPart f) x), f (mkRIntvl x p) [=] (toPart f) x p'.
@@ -99,9 +117,31 @@ Notation "{ f }" := (getF f).
 (* Continuous_Sin Continuous_com *)
 Require Export CoRN.transc.Trigonometric.
 
-Definition sinef (theta : IContR) : IContR.
-  exists (compose_CSetoid_fun _ _ _  {theta} Sin).
-Admitted.
+Definition CFSine (theta : IContR) : IContR.
+  pose proof (scs_prf _ _  theta) as Hc.
+  simpl in Hc.
+  pose proof (fun mw => Continuous_comp itvl 
+            realline (toPart theta) Sine mw Hc) as Hcomp.
+  apply Continuous_imp_maps_compacts_into in Hc.
+  apply maps_compacts_into_strict_imp_weak in Hc.
+  specialize (Hcomp Hc Continuous_Sin).
+  exists (fromPart (Sine[o]toPart theta) (fst Hcomp)).
+  eapply Continuous_wd; eauto.
+  apply toFromPartId.
+Defined.
+
+Definition CFCos (theta : IContR) : IContR.
+  pose proof (scs_prf _ _  theta) as Hc.
+  simpl in Hc.
+  pose proof (fun mw => Continuous_comp itvl 
+            realline (toPart theta) Cosine mw Hc) as Hcomp.
+  apply Continuous_imp_maps_compacts_into in Hc.
+  apply maps_compacts_into_strict_imp_weak in Hc.
+  specialize (Hcomp Hc Continuous_Cos).
+  exists (fromPart (Cosine[o]toPart theta) (fst Hcomp)).
+  eapply Continuous_wd; eauto.
+  apply toFromPartId.
+Defined.
 
 End ContFAlgebra.
 
