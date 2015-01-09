@@ -143,6 +143,58 @@ Definition CFCos (theta : IContR) : IContR.
   apply toFromPartId.
 Defined.
 
+Require Import Coq.Unicode.Utf8.
+
+Require Import CoRNMisc.
+Lemma interval_convex:
+  ∀ (a b : IR) (I : interval),
+    I a → I b → included (clcr a b) I.
+Proof.
+  intros ? ? ? Ha Hb. unfold included. intros x Hab.
+  simpl in Hab. destruct Hab as [Hab Habr].
+  destruct I; simpl in Ha, Hb; simpl; try (split; destruct Ha, Hb); 
+    eauto using leEq_less_trans, leEq_reflexive, 
+                less_leEq_trans, leEq_transitive.
+Qed.
+
+
+
+
+Lemma intvlIncluded : forall (ta tb : RInIntvl),
+  included (clcr ta tb) (itvl).
+Proof.
+ destruct ta as [ra pa].
+ destruct tb as [rb pb].
+ simpl. apply interval_convex; trivial.
+Defined.
+
+
+Lemma IContRCont : forall (tf : IContR) (ta tb : RInIntvl), 
+    Continuous  (clcr ta tb) (toPart tf).
+Proof.
+  intros ? ? ?.
+  pose proof (scs_prf _ _ tf) as Hc.
+  simpl in Hc.
+  eapply Included_imp_Continuous; eauto.
+  apply intvlIncluded.
+Defined.
+
+Lemma IContRCont_I : ∀ (f : IContR) (l r : RInIntvl) (p : l[<=]r), 
+    Continuous_I p (toPart f).
+Proof.
+  intros ? ? ? ?.
+  pose proof (IContRCont f l r) as Hc.
+  unfold Continuous in Hc.
+  apply Hc.
+  unfold compact, iprop.
+  apply included_refl.
+Defined.
+
+
+Definition CIntegral {l r : RInIntvl} (f : IContR) (p : l [<=] r) : IR :=
+  integral l r p (toPart f) (IContRCont_I f l r p).
+
+
 End ContFAlgebra.
 
 (*

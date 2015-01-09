@@ -106,7 +106,7 @@ Proof.
   - rewrite <- Integral_integral with (HF := HF).
     apply Barrow.
     eapply Derivative_imp_Continuous';
-     eauto.
+    eauto.
 Qed.
 
 Definition UBoundInCompInt {a b} (Hab : a [<]b)

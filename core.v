@@ -160,17 +160,6 @@ Derivative (closel [0]) I (toPart F) (toPart F').
 
 Notation "{ f }" := (getF f).
 
-Lemma timeIncluded : forall (ta tb : Time),
-  included (clcr ta tb) (closel [0]).
-Proof.
- destruct ta as [ra pa].
- destruct tb as [rb pb].
- simpl. simpl in pa. simpl in pb.
- unfold included. intros ? Hlft.
- simpl in Hlft.
- destruct Hlft. simpl.
- eauto using leEq_transitive.
-Qed.
 
 Lemma Qlt_le_decLeft {T} : forall (a b : Q)(x y : T),
    (a <= b) 
@@ -268,7 +257,7 @@ Proof.
  unfold isDerivativeOf in Hisd.
  apply Included_imp_Derivative with 
    (I:=closel [0]) (pI := I); trivial;[].
- apply timeIncluded.
+ apply intvlIncluded.
 Qed.
 
 Lemma TDerivativeLB :forall {F F' : TContR}
@@ -284,7 +273,7 @@ Proof.
  unfold isDerivativeOf in Hisd.
  apply Included_imp_Derivative with 
    (I:=closel [0]) (pI := I); trivial;[].
- apply timeIncluded.
+ apply intvlIncluded.
 Qed.
 
 Definition toTime (t : Time) (r : ℝ) (p :t[<=]r) : Time.
@@ -425,19 +414,6 @@ Lemma qSubLt : forall (qa qb diff: Q),
 Proof.
   intros ? ? ? Hsendlrrr.
   lra.
-
-  (*
-    apply Q.Qplus_lt_r with (z:= (-qb))  in Hsendlrrr.
-    (* ring_simplify in Hsendlrrr. *)
-
-    rewrite Qplus_assoc in Hsendlrrr.
-    rewrite <- Qplus_comm in Hsendlrrr.
-    fold (Qminus qa qb) in Hsendlrrr.
-    rewrite <- (Qplus_comm qb (-qb)) in Hsendlrrr.
-    rewrite Qplus_opp_r in Hsendlrrr.
-    rewrite Qplus_0_l in Hsendlrrr.
-    trivial. 
-*)
 Qed.
 
 Lemma realCancel : forall (R: CReals) (cpvt cpst : R), 
@@ -549,16 +525,6 @@ Proof.
   destruct pr as [pl pr].
   split; apply (leEq_inj_Q IR); trivial.
 Defined.
-
-Lemma contTf : forall (tf : TContR) (ta tb : Time), 
-    Continuous  (clcr ta tb) (toPart tf).
-Proof.
-  intros ? ? ?.
-  pose proof (scs_prf _ _ tf) as Hc.
-  simpl in Hc.
-  eapply Included_imp_Continuous; eauto.
-  apply timeIncluded.
-Qed.
 
 Lemma contTfQ : forall (tf : TContR) (ta tb : QTime), 
     Continuous  (clcr (QT2Q ta) (QT2Q tb)) (toPart tf).
@@ -840,7 +806,7 @@ Defined.
 
   
 
-
+(*
 Lemma contITf : forall (tf : TContR) (ta tb : Time), 
     Continuous_I  (Min_leEq_Max ta tb) (toPart tf).
 Proof.
@@ -850,6 +816,7 @@ Proof.
   simpl. intros ? Hc.
   simpl. trivial.
 Qed.
+*)
 
 (*
 Lemma  ContinTFSimpl : 
@@ -1010,3 +977,14 @@ Ltac DestImp H :=
 
 Definition between (b a c : IR) 
   := ((Min a c [<=] b) /\ (b [<=] Max a c)) .
+
+Definition changesTo (f : TContR)
+  (atTime uptoTime : QTime)
+  (toValue : ℝ)
+  (reactionTime eps : Q) :=
+(exists  (qt : QTime), 
+  atTime <= qt <= (atTime + reactionTime)
+  /\ ((forall t : QTime, 
+          (qt <= t <= uptoTime -> AbsIR ({f} t [-] toValue) [<=] eps)))
+  /\ (forall t : QTime, (atTime <= t <= qt)  
+          -> (between ({f} t) ({f} atTime) toValue)))%Q.

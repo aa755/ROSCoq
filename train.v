@@ -135,6 +135,7 @@ Notation "a <== b <== c" := ((a [<=] b) /\ (b [<=] c))
   (at level 201,left associativity).
 *)
 
+(** This can use [core.changsTo] *)
 Definition correctVelDuring
   (lastVel : Q) 
   (lastTime: QTime)
@@ -292,8 +293,8 @@ Definition locNode (rl : RosLoc) : NodeSemantics :=
 match rl with
 | BASEMOTOR => DeviceSemantics (fun ts => getF (velX ts)) SlowMotorQ
 | PROXSENSOR  side=> DeviceSemantics
-                    (proxView side)
-                    (ProximitySensor alertDist maxDelay side)
+                      (proxView side)
+                      (ProximitySensor alertDist maxDelay side)
 | SWCONTROLLER => RSwSemantics (ControllerNode speed)
 end.
 
@@ -378,22 +379,6 @@ Proof.
   eauto using leEq_transitive.
 Qed.
 
-(*
-Lemma motorOnlyReceives:
-  forall n : nat,
-  match motorEvents n with
-  | Some ev => isRecvEvt ev
-  | None => True
-  end.
-Proof.
-  intros n.
-  unfold motorEvents.
-  pose proof (corrNodes eo BASEMOTOR) as Hnc.
-  unfold NodeBehCorrect in Hnc.
-  simpl in Hnc.
-  unfold DeviceBehaviourCorrect in Hnc.
-  unfold SlowMotorQ in Hnc.
-*)  
 
 
 (** need to force deque events to happen

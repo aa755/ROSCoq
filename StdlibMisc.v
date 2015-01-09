@@ -103,3 +103,5 @@ Coercion assert : bool >-> Sortclass.
 
 Inductive void: Set :=.
 
+Notation π₁ := fst.
+Notation π₂ := snd.

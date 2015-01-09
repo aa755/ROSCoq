@@ -134,28 +134,17 @@ Variable initialVel : (Q × Q).
 Variable initialPos : Q.
 
 Definition lastVelAndTime
-  (t : QTime) : ((Q × Q) * QTime) :=
+  (t : QTime) : ((Q × Q) × QTime) :=
   lastPayloadAndTime VELOCITY (localEvts MOVABLEBASE) t initialVel.
 
-Definition changesTo (f : TContR)
-  (atTime uptoTime : QTime)
-  (toValue : ℝ)
-  (reactionTime eps : Q) :=
-(exists  (qt : QTime), 
-  atTime <= qt <= (atTime + reactionTime)
-  /\ ((forall t : QTime, 
-          (qt <= t <= uptoTime -> AbsIR ({f} t [-] toValue) [<=] eps)))
-  /\ (forall t : QTime, (atTime <= t <= qt)  
-          -> (between ({f} t) ({f} atTime) toValue)))%Q.
-  
 Definition correctVelDuring
-  (lastVelCms : (Q × Q)) 
+  (lastVelCmd : (Q × Q)) 
   (lastTime: QTime)
   (uptoTime : QTime) 
   (robot: iCreate) :=
 
-changesTo (speed robot) lastTime uptoTime (fst lastVelCms) reactionTime velAccuracy
-/\ changesTo (omega robot) lastTime uptoTime (snd lastVelCms) reactionTime velAccuracy.
+changesTo (speed robot) lastTime uptoTime (π₁ lastVelCmd) reactionTime velAccuracy
+∧ changesTo (omega robot) lastTime uptoTime (π₂ lastVelCmd) reactionTime velAccuracy.
 
 
 Definition corrSinceLastVel
@@ -170,5 +159,10 @@ Definition SlowMotorQ  : Device iCreate :=
 fun  (robot: iCreate) (evs : nat -> option Event) 
   => forall t: QTime, corrSinceLastVel evs t robot.
 
+(** It would be quite complicated to maintain bounds on position when both
+    [omega] and [speed] are nonzero. derivative on [X position] depends on
+    all of [speed] and [theta] and [omega] *)
+
+Require Export CoRN.ftc.IntegrationRules.
 
 End iCREATECPS.

@@ -1,5 +1,6 @@
 COQC = coqc -R ../../../ssrcorn/math-classes/src -as MathClasses -R ../../../ssrcorn -as CoRN
 
+all : icreate.vo train.vo
 train.vo : train.v ROSCyberPhysicalSystem.vo
 	$(COQC) $<
 Everything.vo  : Everything.v
