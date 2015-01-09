@@ -8,29 +8,15 @@ match n with
 | S n => (Vector n T) × T
 end.
 
-Definition VectInd {T A} 
- (bas: A)
- (rect: forall {n}, Vector n T -> A ->  T -> A) 
- {m} (v : Vector m T): A.
+Definition VectInd {T} {P : forall n, Type}
+ (bas: P 0)
+ (rect: forall {n}, Vector n T -> P n ->  T -> P (S n)) 
+ {m} (v : Vector m T): P m.
   induction m.
   - exact bas.
   - simpl in v. destruct v as [v t].
     exact (rect m v (IHm v) t).
 Defined.
-
-(*
-Definition VectInd2 {T A} 
- (bas: A)
- (rect: forall {n}, Vector n T -> A ->  T -> A) 
- {m} (v : Vector m T): A.
-  induction m.
-  - exact bas.
-  - simpl in v. destruct v as [v t].
-    exact (rect m v (IHm v) t).
-Defined.
-*)
-
-
 
 
 Definition vnth {T : Type} {m:nat} (v : Vector m T) (n : Fin m) : T.
@@ -64,13 +50,9 @@ Coercion fromVec2D : Vec2D >-> Vector.
 Coercion toVec2D : Vector >-> Vec2D.
 
 Require Export CoRN.algebra.CRings.
-Require Export CoRN.ftc.MoreIntervals.
 
-(*
-Fixpoint dotProduct {n:nat} {T : CRing} (vl vr : Vector n T)  : T :=
-match (vl,vr) with
-| (tt,tt) => [0]
-| ((ta,ha),(tb,hb)) => (ta [*] tb) [+] dotProduct ta tb
-end.
-
-*)
+Definition dotProduct {n:nat} {T : CRing} (vl vr : Vector n T) : T :=
+@VectInd _ (fun n =>  Vector n T -> T) 
+  (fun vr => [0]) 
+  (fun  b _ rec tl vr =>  
+              (tl [*]snd vr) [+] rec (fst vr)) n vl vr.

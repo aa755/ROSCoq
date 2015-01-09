@@ -16,16 +16,22 @@ Definition isVecDerivativeOf
   exact ((isDerivativeOf ft ft') × (Hind fv fv')).
 Defined.
 
+(* 
+  Axiom TCRing : TContR -> CRing.
+  Coercion TCRing :  TContR >-> CRing. *)
+
+
 (** CatchFileBetweenTagsStartCreate *)
 
 Record iCreate : Type := {
   position :> Vec2D TContR;          (* x, y co-ordinates*)
   theta : TContR;                       (* orientation *)
-  transVel : Vec2D TContR;             (* x, y velocity of center *)
+  speed : TContR;             (* speed  of the robot*)
   omega : TContR;
 
   derivRot : isDerivativeOf omega theta;
-  derivTrans : isVecDerivativeOf transVel position
+  derivX : isDerivativeOf ( (*speed [*] *) (CFCos theta)) (X position);
+  derivY : isDerivativeOf ( (*speed [*] *) (CFSine theta)) (Y position)
 }.
 
 (** CatchFileBetweenTagsEndCreate *)
@@ -33,6 +39,7 @@ Record iCreate : Type := {
 
 Definition unitVec (theta : TContR)  : Vec2D TContR :=
   {|X:= CFCos theta; Y:=CFSine theta|}.
+
 
 Inductive Topic :=  VELOCITY. (* similar to CMD_VEL *)
 
@@ -106,7 +113,6 @@ Definition isEqualDuring
 
 Variable reactionTime : Q.
 Variable velAccuracy : Q.
-Variable transitionValues : interval.
 
 
   
@@ -146,22 +152,23 @@ Definition correctVelDuring
   (lastVelCms : (Q × Q)) 
   (lastTime: QTime)
   (uptoTime : QTime) 
-  (velAtTime: Time -> ℝ) :=
+  (robot: iCreate) :=
+
+changesTo (speed robot) lastTime uptoTime (fst lastVelCms) reactionTime velAccuracy
+/\ changesTo (omega robot) lastTime uptoTime (snd lastVelCms) reactionTime velAccuracy.
 
 
 Definition corrSinceLastVel
   (evs : nat -> option Event)
   (uptoTime : QTime)
-  (velAtTime: Time -> ℝ) :=
-  let (lastVel, lastTime) := lastVelAndTime uptoTime in
-  correctVelDuring lastVel lastTime uptoTime velAtTime.
+  (robot: iCreate) :=
+let (lastVel, lastTime) := lastVelAndTime uptoTime in
+correctVelDuring lastVel lastTime uptoTime robot.
 
 
-Definition SlowMotorQ 
-   : Device ℝ :=
-fun  (velAtTime: Time -> ℝ) (evs : nat -> option Event) 
-  => forall t: QTime, corrSinceLastVel evs t velAtTime.
+Definition SlowMotorQ  : Device iCreate :=
+fun  (robot: iCreate) (evs : nat -> option Event) 
+  => forall t: QTime, corrSinceLastVel evs t robot.
 
-*)
 
 End iCREATECPS.
