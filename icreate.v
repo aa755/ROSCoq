@@ -19,9 +19,9 @@ Defined.
 (** CatchFileBetweenTagsStartCreate *)
 
 Record iCreate : Type := {
-  position :> Vector 2 TContR;          (* x, y co-ordinates *)
+  position :> Vec2D TContR;          (* x, y co-ordinates*)
   theta : TContR;                       (* orientation *)
-  transVel : Vector 2 TContR;             (* x, y velocity of center *)
+  transVel : Vec2D TContR;             (* x, y velocity of center *)
   omega : TContR;
 
   derivRot : isDerivativeOf omega theta;
@@ -30,6 +30,9 @@ Record iCreate : Type := {
 
 (** CatchFileBetweenTagsEndCreate *)
 
+
+Definition unitVec (theta : TContR)  : Vec2D TContR :=
+  {|X:= CFCos theta; Y:=CFSine theta|}.
 
 Inductive Topic :=  VELOCITY. (* similar to CMD_VEL *)
 
