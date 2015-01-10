@@ -157,8 +157,41 @@ Proof.
                 less_leEq_trans, leEq_transitive.
 Qed.
 
+Hint Resolve less_Min leEq_Min : CoRN.
 
+Lemma interval_Min:
+  ∀ {a b : IR} {I : interval},
+    I a → I b → I (Min a b).
+Proof.
+  intros ? ? ? Ha Hb.
+  destruct I; simpl in Ha, Hb; simpl; try (split; destruct Ha, Hb);
+    eauto using leEq_less_trans, leEq_reflexive, 
+                 leEq_transitive,
+                Min_leEq_lft, less_Min, leEq_Min.
+Qed.
 
+Lemma interval_Max:
+  ∀ {a b : IR} {I : interval},
+    I a → I b → I (Max a b).
+Proof.
+  intros ? ? ? Ha Hb.
+  destruct I; simpl in Ha, Hb; simpl; try (split; destruct Ha, Hb);
+  eauto using less_leEq_trans, leEq_reflexive, 
+                leEq_transitive,
+                lft_leEq_Max, Max_less, Max_leEq.
+Qed.
+
+Hint Resolve (scs_prf IR (itvl)) : CoRN.
+
+Definition TMin (ta tb :RInIntvl) : RInIntvl:= 
+  {|
+    scs_elem := Min ta tb;
+    scs_prf := interval_Min (scs_prf _ _ ta) (scs_prf _ _ tb) |}.
+
+Definition TMax (ta tb :RInIntvl) : RInIntvl:= 
+  {|
+    scs_elem := Max ta tb;
+    scs_prf := interval_Max (scs_prf _ _ ta) (scs_prf _ _ tb) |}.
 
 Lemma intvlIncluded : forall (ta tb : RInIntvl),
   included (clcr ta tb) (itvl).
@@ -190,11 +223,56 @@ Proof.
   apply included_refl.
 Defined.
 
+Lemma TMin_LeEq_Max : ∀ a b : RInIntvl , TMin a b[<=] TMax a b.
+Proof.
+  intros ? ?. simpl. apply Min_leEq_Max.
+Qed.
+
+Lemma IContRCont_IMinMax : ∀ (f : IContR) (l r : RInIntvl), 
+    Continuous_I (TMin_LeEq_Max l r) (toPart f).
+Proof.
+  intros ? ? ?.
+  apply IContRCont_I.
+Defined.
+
 
 Definition CIntegral {l r : RInIntvl} (f : IContR) (p : l [<=] r) : IR :=
   integral l r p (toPart f) (IContRCont_I f l r p).
 
+Definition CIntegralMinMax (l r : RInIntvl) (f : IContR) : IR :=
+  CIntegral f (TMin_LeEq_Max l r).
 
+Variable pItvl : proper itvl.
+
+Definition isIDerivativeOf (F' F : IContR) : CProp :=
+  Derivative _ pItvl (toPart F) (toPart F').
+
+Lemma TContRExt : forall (f : IContR) a b,
+  a [=] b -> {f} a [=] {f} b.
+Proof.
+  intros ? ? ? H.
+  unfold getF. rewrite H.
+  apply eq_reflexive.
+Qed.
+
+
+Lemma TBarrow : forall (F F': IContR)
+         (der : isIDerivativeOf F' F) (a b : RInIntvl),
+       CIntegralMinMax a b F' [=] {F} b [-] {F} a.
+Proof.
+  intros ? ? ? ? ?.
+  unfold getF, CIntegralMinMax, CIntegral.
+  pose proof (Barrow _ _ (scs_prf _ _ F') pItvl _ der a b 
+      (IContRCont_IMinMax _ _ _) (scs_prf _ _ a) (scs_prf _ _ b)) as Hb.
+  simpl in Hb.
+  rewrite TContRExt with (b:=b) in Hb by (destruct b; simpl; reflexivity).
+  remember ({F} b) as hide.
+  rewrite TContRExt with (b:=a) in Hb by (destruct a; simpl; reflexivity).
+  subst hide.
+  rewrite <- Hb.
+  rewrite <- Integral_integral with 
+    (HF := (IContRCont_IMinMax F' (TMin a b) (TMax a b))).
+Abort.
 End ContFAlgebra.
 
 (*

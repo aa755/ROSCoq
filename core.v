@@ -154,7 +154,7 @@ Definition TContR := (IContR (closel [0])).
 (* Coercion TContR2Fun : TContR >-> PartFunct. *)
   
 Definition isDerivativeOf (F' F : TContR) : CProp :=
-Derivative (closel [0]) I (toPart F) (toPart F').
+  @isIDerivativeOf (closel [0]) I F' F.
 
 
 
@@ -254,7 +254,7 @@ Proof.
  rewrite getFToPart.
  rewrite getFToPart.
  apply (AntiderivativeUB2 (toPart F) (toPart F') ta tb Hab); auto.
- unfold isDerivativeOf in Hisd.
+ unfold isDerivativeOf, isIDerivativeOf in Hisd.
  apply Included_imp_Derivative with 
    (I:=closel [0]) (pI := I); trivial;[].
  apply intvlIncluded.
@@ -536,13 +536,6 @@ Proof.
   apply timeIncludedQ.
 Qed.
 
-Lemma TContRExt : forall (f : TContR) a b,
-  a [=] b -> {f} a [=] {f} b.
-Proof.
-  intros ? ? ? H.
-  unfold getF. rewrite H.
-  apply eq_reflexive.
-Qed.
 
 Lemma TContRExtQ : forall (f : TContR) (a b : QTime),
   a = b -> {f} a [=] {f} b.
@@ -789,21 +782,6 @@ Proof.
   dands; auto.
   rewrite extToPart3; auto.
 Qed.
-
-Definition TMin (ta tb :Time) : Time.
-  exists (Min ta tb).
-  pose proof (leEq_Min _ _ _ (timeNonNeg ta) (timeNonNeg tb)).
-  trivial.
-Defined.
-
-Definition TMax (ta tb :Time) : Time.
-  exists (Max ta tb). simpl. 
-  pose proof (lft_leEq_Max ta tb) as Htm.
-  simpl in Htm.
-  pose proof (timeNonNeg ta) as Hta. simpl in Hta.
-  eauto using leEq_transitive.
-Defined.
-
   
 
 (*
