@@ -39,7 +39,7 @@ Fin.vo : Fin.v StdlibMisc.vo
 Vector.vo : Vector.v Fin.vo
 	$(COQC) $<
 
-ContField.vo : ContField.v
+ContField.vo : ContField.v PointWiseRing.vo
 	$(COQC) $<
 
 StdlibMisc.vo : StdlibMisc.v

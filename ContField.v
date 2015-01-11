@@ -12,7 +12,7 @@ Definition RInIntvl := Build_SubCSetoid IR (itvl).
 Definition mkRIntvl (r : IR) (p : (itvl) r) : RInIntvl := 
   (Build_subcsetoid_crr  _ _ r p).
 
-Definition RI_R := FS_as_SemiGroup RInIntvl IR.
+Definition RI_R := FS_as_PointWise_CSemiGroup RInIntvl IR.
 
 
 Definition toPart (f : RI_R) : PartIR.
