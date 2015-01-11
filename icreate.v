@@ -155,7 +155,7 @@ let (lastVel, lastTime) := lastVelAndTime uptoTime in
 correctVelDuring lastVel lastTime uptoTime robot.
 
 
-Definition SlowMotorQ  : Device iCreate :=
+Definition BaseMotors  : Device iCreate :=
 fun  (robot: iCreate) (evs : nat -> option Event) 
   => forall t: QTime, corrSinceLastVel evs t robot.
 
@@ -164,5 +164,19 @@ fun  (robot: iCreate) (evs : nat -> option Event)
     all of [speed] and [theta] and [omega] *)
 
 Require Export CoRN.ftc.IntegrationRules.
+
+
+Lemma TBarrowPos : forall rob (a b : Time),
+       CIntegral a b (CFCos (theta rob)) [=] {X (position rob)} b 
+                                                [-] {X (position rob)} a.
+intros. apply TBarrow with (pItvl := I).
+apply derivX.
+Qed.
+
+(** The integral is too complicated for the general case. Handle the
+    case we want in the application. Given a rough estimate of current
+    position (received by Vicon )and an idea about the goal, what
+    message should we send to iCreate? what can we prove
+    about how the robot will react to that message? *)
 
 End iCREATECPS.

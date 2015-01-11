@@ -10,6 +10,8 @@ Everything.vo  : Everything.v
 ROSCyberPhysicalSystem.vo : ROSCyberPhysicalSystem.v roscore.vo CoList.vo
 	$(COQC) $<
 
+%.vo : %.v
+	$(COQC) $<
 
 CoList.vo : CoList.v
 	$(COQC) $<

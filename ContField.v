@@ -1,5 +1,6 @@
 
 Require Export CoRN.ftc.MoreIntervals.
+Require Export PointWiseRing.
 
 Set Implicit Arguments.
 
@@ -11,7 +12,7 @@ Definition RInIntvl := Build_SubCSetoid IR (itvl).
 Definition mkRIntvl (r : IR) (p : (itvl) r) : RInIntvl := 
   (Build_subcsetoid_crr  _ _ r p).
 
-Definition RI_R := FS_as_CSetoid RInIntvl IR.
+Definition RI_R := FS_as_SemiGroup RInIntvl IR.
 
 
 Definition toPart (f : RI_R) : PartIR.
@@ -236,11 +237,8 @@ Proof.
 Defined.
 
 
-Definition CIntegral {l r : RInIntvl} (f : IContR) (p : l [<=] r) : IR :=
-  integral l r p (toPart f) (IContRCont_I f l r p).
-
-Definition CIntegralMinMax (l r : RInIntvl) (f : IContR) : IR :=
-  CIntegral f (TMin_LeEq_Max l r).
+Definition CIntegral (l r : RInIntvl) (f : IContR) : IR :=
+  Integral (IContRCont_IMinMax f l r).
 
 Variable pItvl : proper itvl.
 
@@ -258,10 +256,10 @@ Qed.
 
 Lemma TBarrow : forall (F F': IContR)
          (der : isIDerivativeOf F' F) (a b : RInIntvl),
-       CIntegralMinMax a b F' [=] {F} b [-] {F} a.
+       CIntegral a b F' [=] {F} b [-] {F} a.
 Proof.
   intros ? ? ? ? ?.
-  unfold getF, CIntegralMinMax, CIntegral.
+  unfold getF,  CIntegral.
   pose proof (Barrow _ _ (scs_prf _ _ F') pItvl _ der a b 
       (IContRCont_IMinMax _ _ _) (scs_prf _ _ a) (scs_prf _ _ b)) as Hb.
   simpl in Hb.
@@ -269,10 +267,10 @@ Proof.
   remember ({F} b) as hide.
   rewrite TContRExt with (b:=a) in Hb by (destruct a; simpl; reflexivity).
   subst hide.
-  rewrite <- Hb.
-  rewrite <- Integral_integral with 
-    (HF := (IContRCont_IMinMax F' (TMin a b) (TMax a b))).
-Abort.
+  rewrite <- Hb. apply Integral_wd'; reflexivity.
+Qed.
+
+
 End ContFAlgebra.
 
 (*
