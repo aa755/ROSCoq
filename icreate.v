@@ -30,8 +30,8 @@ Record iCreate : Type := {
   omega : TContR;
 
   derivRot : isDerivativeOf omega theta;
-  derivX : isDerivativeOf ( (*speed [*] *) (CFCos theta)) (X position);
-  derivY : isDerivativeOf ( (*speed [*] *) (CFSine theta)) (Y position)
+  derivX : isDerivativeOf (speed [*] (CFCos theta)) (X position);
+  derivY : isDerivativeOf (speed [*] (CFSine theta)) (Y position)
 }.
 
 (** CatchFileBetweenTagsEndCreate *)
@@ -167,7 +167,7 @@ Require Export CoRN.ftc.IntegrationRules.
 
 
 Lemma TBarrowPos : forall rob (a b : Time),
-       CIntegral a b (CFCos (theta rob)) [=] {X (position rob)} b 
+       CIntegral a b ((speed rob) [*] CFCos (theta rob)) [=] {X (position rob)} b 
                                                 [-] {X (position rob)} a.
 intros. apply TBarrow with (pItvl := I).
 apply derivX.

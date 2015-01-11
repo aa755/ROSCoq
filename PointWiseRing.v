@@ -55,9 +55,6 @@ Definition FS_cm_unit_pw : FSCSetoid.
   contradiction.
 Defined.
 
-Require Import Ring. 
-Require Import CoRN.algebra.CRing_as_Ring.
-Add Ring IRisaRing: (CRing_Ring B).
 
 Definition FS_as_PointWise_CMonoid : CMonoid.
   apply Build_CMonoid with (cm_crr := FS_as_PointWise_CSemiGroup)

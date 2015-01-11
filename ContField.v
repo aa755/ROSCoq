@@ -12,7 +12,18 @@ Definition RInIntvl := Build_SubCSetoid IR (itvl).
 Definition mkRIntvl (r : IR) (p : (itvl) r) : RInIntvl := 
   (Build_subcsetoid_crr  _ _ r p).
 
-Definition RI_R := FS_as_PointWise_CSemiGroup RInIntvl IR.
+Variable pItvl : proper itvl.
+
+Definition somePtInIntvl : RInIntvl.
+  apply proper_nonvoid in pItvl.
+  apply nonvoid_point in pItvl.
+  destruct pItvl as [x pf].
+  exists x; trivial.
+Defined.
+
+  
+Definition RI_R := 
+    FS_as_PointWise_CRing RInIntvl  IR somePtInIntvl.
 
 
 Definition toPart (f : RI_R) : PartIR.
@@ -48,7 +59,8 @@ Qed.
 
 
 Lemma extToPart (f : RI_R) : forall (x:IR) (p : (itvl) x) 
-  (p' : Dom (toPart f) x), f (mkRIntvl x p) [=] (toPart f) x p'.
+  (p' : Dom (toPart f) x), 
+      f (mkRIntvl x p) [=] (toPart f) x p'.
 Proof.
   intros ? ? ?.
   destruct f. unfold toPart. simpl.
@@ -63,7 +75,8 @@ Proof.
   apply eq_reflexive.
 Qed.
 
-Lemma extToPartLt (f : RI_R) : forall (x y:IR) (px : (itvl) x) (py : (itvl) y)
+Lemma extToPartLt (f : RI_R) : forall (x y:IR) 
+  (px : (itvl) x) (py : (itvl) y)
   (px': Dom (toPart f) x) (py': Dom (toPart f) y), 
     f (mkRIntvl x px) [<] f (mkRIntvl y py)
     -> (toPart f) x px' [<] (toPart f) y py'.
@@ -76,7 +89,8 @@ Qed.
 
 Lemma extToPartLt2 (f : RI_R) : forall x y,
     f x [<] f y
-    -> (toPart f) x (scs_prf _ _ x) [<] (toPart f) y (scs_prf  _ _ y).
+    -> (toPart f) x (scs_prf _ _ x) 
+        [<] (toPart f) y (scs_prf  _ _ y).
 Proof.
   intros. destruct x,y. eapply extToPartLt; eauto.
 Qed.
@@ -106,11 +120,17 @@ Proof.
   apply extToPart2.
 Qed.
 
-Definition IContR := Build_SubCSetoid RI_R
-    (fun f => Continuous itvl (toPart f)).
+Require Export SubCRing.
+
+Definition IContR : CRing.
+  apply (SubCRing RI_R
+        (fun f => Continuous itvl (toPart f))); auto;
+  admit.
+Defined.
+
 
 Definition getF  (f : IContR) : RI_R :=
-(scs_elem _ _ f).
+  (scs_elem _ _ f).
 
 
 Notation "{ f }" := (getF f).
@@ -213,7 +233,8 @@ Proof.
   apply intvlIncluded.
 Defined.
 
-Lemma IContRCont_I : ∀ (f : IContR) (l r : RInIntvl) (p : l[<=]r), 
+Lemma IContRCont_I : ∀ (f : IContR) (l r : RInIntvl) 
+    (p : l[<=]r), 
     Continuous_I p (toPart f).
 Proof.
   intros ? ? ? ?.
@@ -224,7 +245,8 @@ Proof.
   apply included_refl.
 Defined.
 
-Lemma TMin_LeEq_Max : ∀ a b : RInIntvl , TMin a b[<=] TMax a b.
+Lemma TMin_LeEq_Max : ∀ a b : RInIntvl , 
+    TMin a b[<=] TMax a b.
 Proof.
   intros ? ?. simpl. apply Min_leEq_Max.
 Qed.
@@ -240,7 +262,6 @@ Defined.
 Definition CIntegral (l r : RInIntvl) (f : IContR) : IR :=
   Integral (IContRCont_IMinMax f l r).
 
-Variable pItvl : proper itvl.
 
 Definition isIDerivativeOf (F' F : IContR) : CProp :=
   Derivative _ pItvl (toPart F) (toPart F').

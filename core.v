@@ -149,7 +149,7 @@ Close Scope R_scope.
   [PartIR] ensures functionality, unlike  [Time -> R] *)
 
 
-Definition TContR := (IContR (closel [0])).
+Definition TContR := (IContR (closel [0])) I.
 
 (* Coercion TContR2Fun : TContR >-> PartFunct. *)
   
