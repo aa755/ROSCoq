@@ -26,12 +26,12 @@ Defined.
 Record iCreate : Type := {
   position :> Vec2D TContR;          (* x, y co-ordinates*)
   theta : TContR;                       (* orientation *)
-  speed : TContR;             (* speed  of the robot*)
+  transVel : TContR;             (* translation vel (along orientation), can be negative *)
   omega : TContR;
 
   derivRot : isDerivativeOf omega theta;
-  derivX : isDerivativeOf (speed [*] (CFCos theta)) (X position);
-  derivY : isDerivativeOf (speed [*] (CFSine theta)) (Y position)
+  derivX : isDerivativeOf (transVel [*] (CFCos theta)) (X position);
+  derivY : isDerivativeOf (transVel [*] (CFSine theta)) (Y position)
 }.
 
 (** CatchFileBetweenTagsEndCreate *)
@@ -111,8 +111,9 @@ Definition isEqualDuring
   (vel: Q) (tStart tEnd : QTime)  (f : Time -> ℝ) : Prop :=
   (forall t : QTime, ( tStart <= t <= tEnd   -> (f t) [=] vel))%Q.
 
-Variable reactionTime : Q.
-Variable velAccuracy : Q.
+Variable reacTime : Q.
+Variable tVelPrec : Q.
+Variable omegaPrec : Q.
 
 
   
@@ -143,8 +144,8 @@ Definition correctVelDuring
   (uptoTime : QTime) 
   (robot: iCreate) :=
 
-changesTo (speed robot) lastTime uptoTime (π₁ lastVelCmd) reactionTime velAccuracy
-∧ changesTo (omega robot) lastTime uptoTime (π₂ lastVelCmd) reactionTime velAccuracy.
+changesTo (transVel robot) lastTime uptoTime (π₁ lastVelCmd) reacTime tVelPrec 
+∧ changesTo (omega robot) lastTime uptoTime (π₂ lastVelCmd) reacTime omegaPrec.
 
 
 Definition corrSinceLastVel
@@ -167,7 +168,7 @@ Require Export CoRN.ftc.IntegrationRules.
 
 
 Lemma TBarrowPos : forall rob (a b : Time),
-       CIntegral a b ((speed rob) [*] CFCos (theta rob)) [=] {X (position rob)} b 
+       CIntegral a b ((transVel rob) [*] CFCos (theta rob)) [=] {X (position rob)} b 
                                                 [-] {X (position rob)} a.
 intros. apply TBarrow with (pItvl := I).
 apply derivX.
@@ -179,4 +180,12 @@ Qed.
     message should we send to iCreate? what can we prove
     about how the robot will react to that message? *)
 
+
+(** for rotation, it is easy. for the change of position, we can bound
+    Cos and Sin by 1 and hence the maximal change in X/Y coordinate per second
+      is [tVelPrec] *)
+
+(** For translation. things are complicated. Ideally, done in the frame from
+    robot's position which is still not well known, such that the Y axis is
+    in the direction of the target. *)
 End iCREATECPS.
