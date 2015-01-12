@@ -58,21 +58,65 @@ Proof.
 Qed.
 
 
+Lemma toPartSum : forall (F G : RI_R),
+  Feq itvl ((toPart F) {+} (toPart G))
+           (toPart (F [+] G)).
+Proof.
+  intros ? ?. simpl.
+  unfold FS_sg_op_pointwise, toPart.
+  simpl.
+  split; simpl;
+    [apply included_conj; apply included_refl|].
+  split;[apply included_refl|].
+  intros. apply csbf_wd; apply csf_fun_wd;
+  simpl; reflexivity.
+Qed.
+
+(** This proof is exactly same as [fromPartSum]
+    above*)
+Lemma toPartMult : forall (F G : RI_R),
+  Feq itvl ((toPart F) {*} (toPart G))
+           (toPart (F [*] G)).
+Proof.
+  intros ? ?. simpl.
+  unfold FS_sg_op_pointwise, toPart.
+  simpl.
+  split; simpl; auto;
+    [apply included_conj; apply included_refl|].
+  split;[apply included_refl|].
+  intros. apply csbf_wd; apply csf_fun_wd;
+  simpl; reflexivity.
+Qed.
+
+Lemma toPartConst : forall (c:IR),
+  Feq itvl ([-C-]c)
+           (toPart ((Const_CSetoid_fun _ _ c))).
+Proof.
+  intros ?. simpl.
+  split; simpl; [intro x ; auto |].
+  split;[apply included_refl|].
+  intros. reflexivity.
+Qed.
+
+Lemma toPartInv : forall (F : RI_R),
+  Feq itvl (Finv (toPart F))
+           (toPart ([--] F)).
+Proof.
+  intros ?. simpl.
+  split; simpl; [intro x ; auto |].
+  split;[apply included_refl|].
+  intros. apply csf_fun_wd.
+  apply csf_fun_wd.
+  simpl. reflexivity.
+Qed.
+
 Lemma extToPart (f : RI_R) : forall (x:IR) (p : (itvl) x) 
   (p' : Dom (toPart f) x), 
       f (mkRIntvl x p) [=] (toPart f) x p'.
 Proof.
   intros ? ? ?.
-  destruct f. unfold toPart. simpl.
-  simpl in p'.
-  unfold fun_strext in csf_strext.
-  apply not_ap_imp_eq.
-  intros Hc.
-  apply csf_strext in Hc.
-  simpl in Hc.
-  revert Hc.
-  apply eq_imp_not_ap.
-  apply eq_reflexive.
+  simpl. apply csf_fun_wd.
+  simpl. reflexivity.
 Qed.
 
 Lemma extToPartLt (f : RI_R) : forall (x y:IR) 
@@ -99,15 +143,8 @@ Lemma extToPart2 (f : RI_R) : forall (x:IR) (p : (itvl) x),
   f (mkRIntvl x p) [=] (toPart f) x p.
 Proof.
   intros ? ?.
-  destruct f. unfold toPart. simpl.
-  unfold fun_strext in csf_strext.
-  apply not_ap_imp_eq.
-  intros Hc.
-  apply csf_strext in Hc.
-  simpl in Hc.
-  revert Hc.
-  apply eq_imp_not_ap.
-  apply eq_reflexive.
+  simpl. apply csf_fun_wd.
+  simpl. reflexivity.
 Qed.
 
 
@@ -121,11 +158,28 @@ Proof.
 Qed.
 
 Require Export SubCRing.
-
+Require Export CoRN.ftc.MoreFunctions.
 Definition IContR : CRing.
   apply (SubCRing RI_R
-        (fun f => Continuous itvl (toPart f))); auto;
-  admit.
+        (fun f => Continuous itvl (toPart f))); auto.
+- intros f g Hcf Hcg.
+  eapply Continuous_wd;
+    [apply toPartSum|].
+  apply Continuous_plus; trivial.
+- simpl. eapply Continuous_wd;
+    [apply toPartConst|].
+  apply Continuous_const; trivial.
+- intros f Hcf.
+  eapply Continuous_wd;
+    [apply toPartInv|].
+  apply Continuous_inv; trivial.
+- intros f g Hcf Hcg.
+  eapply Continuous_wd;
+    [apply toPartMult|].
+  apply Continuous_mult; trivial.
+- simpl. eapply Continuous_wd;
+    [apply toPartConst|].
+  apply Continuous_const; trivial.
 Defined.
 
 
@@ -217,9 +271,9 @@ Definition TMax (ta tb :RInIntvl) : RInIntvl:=
 Lemma intvlIncluded : forall (ta tb : RInIntvl),
   included (clcr ta tb) (itvl).
 Proof.
- destruct ta as [ra pa].
- destruct tb as [rb pb].
- simpl. apply interval_convex; trivial.
+  destruct ta as [ra pa].
+  destruct tb as [rb pb].
+  simpl. apply interval_convex; trivial.
 Defined.
 
 
@@ -269,9 +323,7 @@ Definition isIDerivativeOf (F' F : IContR) : CProp :=
 Lemma TContRExt : forall (f : IContR) a b,
   a [=] b -> {f} a [=] {f} b.
 Proof.
-  intros ? ? ? H.
-  unfold getF. rewrite H.
-  apply eq_reflexive.
+  intro f. apply  csf_fun_wd.
 Qed.
 
 

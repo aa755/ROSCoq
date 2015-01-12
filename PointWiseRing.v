@@ -46,14 +46,8 @@ Definition FS_as_PointWise_CSemiGroup : CSemiGroup.
   simpl. eauto  1 with algebra.
 Defined.
 
-Definition FS_cm_unit_pw : FSCSetoid.
-  unfold FSCSetoid.
-  apply Build_CSetoid_fun with
-    (csf_fun := (fun t : A => [0])).
-  intros ? ? Hsep.
-  apply ap_irreflexive_unfolded in Hsep.
-  contradiction.
-Defined.
+Definition FS_cm_unit_pw : FSCSetoid :=
+  (Const_CSetoid_fun _ _ [0]).
 
 
 Definition FS_as_PointWise_CMonoid : CMonoid.
@@ -126,14 +120,8 @@ Definition FS_mult_pointwise_cs : CSetoid_bin_op FSCSetoid.
   simpl; unfold ap_fun; eexists; eauto.
 Defined.
 
-Definition FS_cg_one_pw : FSCSetoid.
-  unfold FSCSetoid.
-  apply Build_CSetoid_fun with
-    (csf_fun := (fun t : A => [1])).
-  intros ? ? Hsep.
-  apply ap_irreflexive_unfolded in Hsep.
-  contradiction.
-Defined.
+Definition FS_cg_one_pw : FSCSetoid :=
+  (Const_CSetoid_fun _ _ [1]).
 
 Lemma FS_mult_pointwise_assoc 
   : associative FS_mult_pointwise.

@@ -566,7 +566,7 @@ Proof.
   specialize (Hq (mkQTimeInj _ _ (fst pp))).
   specialize (Hq (Q2RClCr _ _ _ pp)).
   rewrite  getFToPart2.
-  erewrite TContRExt;[apply Hq|simpl; apply eq_reflexive].
+  erewrite  csf_fun_wd;[apply Hq|simpl; apply eq_reflexive].
   Qed.
 
 
@@ -639,7 +639,7 @@ Proof.
   specialize (Hq (mkQTimeInj _ _ (fst pp))).
   specialize (Hq (Q2RClCr _ _ _ pp)).
   rewrite  getFToPart2.
-  erewrite TContRExt;[apply Hq|simpl; apply eq_reflexive].
+  erewrite  csf_fun_wd;[apply Hq|simpl; apply eq_reflexive].
 Qed.
 
 Lemma TContRR2QLB : forall (tf : TContR) (c : ℝ),
@@ -683,7 +683,7 @@ Proof.
   rewrite x_minus_x;
     [rewrite x_minus_x; trivial|];
     [rewrite cring_mult_zero; apply leEq_reflexive|].
-  apply TContRExt.
+  apply  csf_fun_wd.
 
    rewrite QT2T_Q2R in Heq. rewrite  QT2T_Q2R in Heq. simpl. 
     destruct ta. destruct tb. simpl. apply Heq.
@@ -714,7 +714,7 @@ Proof.
   rewrite x_minus_x;
     [rewrite x_minus_x|]; trivial;
     [rewrite cring_mult_zero; apply leEq_reflexive|].
-  apply TContRExt.
+  apply  csf_fun_wd.
 
    rewrite QT2T_Q2R in Heq. rewrite  QT2T_Q2R in Heq. simpl. 
     destruct ta. destruct tb. simpl. apply Heq.
