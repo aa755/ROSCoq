@@ -623,3 +623,18 @@ Proof.
   rewrite pfwdef with (Hy := Hx) in Hsum; trivial.
   apply eq_reflexive.
 Qed.
+
+
+Require Import Coq.Unicode.Utf8.
+Require Export CoRN.ftc.MoreIntegrals.
+
+Section Integral.
+Variables a b : IR.
+Hypothesis Hab : Min a b [<=] Max a b.
+Variables F G : PartIR.
+Hypothesis contF : Continuous_I Hab F.
+Hypothesis contG : Continuous_I Hab G.
+Lemma Integral_plus : forall (H :Continuous_I Hab (F{+}G)), 
+    Integral H [=] Integral contF[+] Integral contG.
+Abort.
+End Integral.

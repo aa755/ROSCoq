@@ -168,10 +168,10 @@ Require Export CoRN.ftc.IntegrationRules.
 
 
 Lemma TBarrowPos : forall rob (a b : Time),
-       CIntegral a b ((transVel rob) [*] CFCos (theta rob)) [=] {X (position rob)} b 
-                                                [-] {X (position rob)} a.
-intros. apply TBarrow with (pItvl := I).
-apply derivX.
+       CIntegral a b ((transVel rob) [*] CFCos (theta rob)) 
+       [=] {X (position rob)} b [-] {X (position rob)} a.
+  intros. apply TBarrow with (pItvl := I).
+  apply derivX.
 Qed.
 
 (** The integral is too complicated for the general case. Handle the
@@ -188,4 +188,8 @@ Qed.
 (** For translation. things are complicated. Ideally, done in the frame from
     robot's position which is still not well known, such that the Y axis is
     in the direction of the target. *)
+
+(** It seems that [CoRN.ftc.IntegrationRules.IntegrationBySubstition] would be
+    useful. however, the head of the integral is a multiplication and only then
+    we have a composition in the RHS of the multiplication *)
 End iCREATECPS.
