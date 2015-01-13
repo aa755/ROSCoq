@@ -634,7 +634,15 @@ Hypothesis Hab : Min a b [<=] Max a b.
 Variables F G : PartIR.
 Hypothesis contF : Continuous_I Hab F.
 Hypothesis contG : Continuous_I Hab G.
-Lemma Integral_plus : forall (H :Continuous_I Hab (F{+}G)), 
-    Integral H [=] Integral contF[+] Integral contG.
+Lemma IntegralMonotone : 
+  (forall r Hf Hg, 
+        (clcr (Min a b) (Max a b) r) -> F r Hf[<=] G r Hg)
+   ->Integral contF [<=] Integral contG.
+Proof.
+  intros  Hb.
+  pose proof (Continuous_I_minus _ _ Hab _ _ contG contF)
+     as Hc.
+  pose proof (Integral_plus _ _ Hab _ _ contF Hc).
 Abort.
+
 End Integral.
