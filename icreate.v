@@ -166,6 +166,8 @@ fun  (robot: iCreate) (evs : nat -> option Event)
 
 Require Export CoRN.ftc.IntegrationRules.
 
+(* rational_arctan *)
+
 (*
 Lemma TBarrowPos : forall rob (a b : Time),
        CIntegral a b ((transVel rob) [*] CFCos (theta rob)) 

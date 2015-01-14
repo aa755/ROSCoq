@@ -2,6 +2,11 @@ Require Export Fin.
 
 Set Implicit Arguments.
 
+
+(*
+Require Export PointWiseRing.
+  FS_as_CSetoid (Fin n) T.
+*)
 Fixpoint Vector (n:nat) (T : Type)  : Type :=
 match n with
 | 0 => unit
