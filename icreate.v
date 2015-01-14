@@ -166,14 +166,14 @@ fun  (robot: iCreate) (evs : nat -> option Event)
 
 Require Export CoRN.ftc.IntegrationRules.
 
-
+(*
 Lemma TBarrowPos : forall rob (a b : Time),
        CIntegral a b ((transVel rob) [*] CFCos (theta rob)) 
        [=] {X (position rob)} b [-] {X (position rob)} a.
   intros. apply TBarrow with (pItvl := I).
   apply derivX.
 Qed.
-
+*)
 (** The integral is too complicated for the general case. Handle the
     case we want in the application. Given a rough estimate of current
     position (received by Vicon )and an idea about the goal, what

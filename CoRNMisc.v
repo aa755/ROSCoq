@@ -623,38 +623,3 @@ Proof.
   rewrite pfwdef with (Hy := Hx) in Hsum; trivial.
   apply eq_reflexive.
 Qed.
-
-
-Require Import Coq.Unicode.Utf8.
-Require Export CoRN.ftc.MoreIntegrals.
-
-Section Integral.
-Variables a b : IR.
-Hypothesis Hab : Min a b [<=] Max a b.
-Variables F G : PartIR.
-Hypothesis contF : Continuous_I Hab F.
-Hypothesis contG : Continuous_I Hab G.
-Lemma IntegralMonotone : 
-  (forall r Hf Hg, 
-        (clcr (Min a b) (Max a b) r) -> F r Hf[<=] G r Hg)
-   ->Integral contF [<=] Integral contG.
-Proof.
-  intros  Hb.
-  pose proof (Continuous_I_minus _ _ Hab _ _ contG contF)
-     as Hc.
-  pose proof (Integral_plus _ _ Hab _ _ contF Hc).
-  assert (Feq (Compact Hab) (F{+}(G{-}F)) G).
-  split; auto.
-  clear H. apply fst in contF. apply fst in contG. 
-  eauto with included.
-  split; auto.
-  clear H. apply fst in contF. apply fst in contG. 
-  eauto with included.
-  
-  intros ? ? ? ?. simpl.
-  rewrite pfwdef with (Hy := (Prj2 (Prj2 Hx))).
-  rewrite (pfwdef _ G) with (Hy := Hx'). 
-  remember (F x (Prj2 (Prj2 Hx))).
-Abort.
-
-End Integral.

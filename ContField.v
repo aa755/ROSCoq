@@ -108,6 +108,24 @@ Proof.
   simpl; reflexivity.
 Qed.
 
+Lemma toPartMinus : forall (F G : RI_R),
+  Feq itvl ((toPart F) {-} (toPart G))
+           (toPart (F [-] G)).
+Proof.
+  intros ? ?. simpl.
+  unfold FS_sg_op_pointwise, toPart.
+  simpl.
+  split; simpl;
+    [apply included_conj; apply included_refl|].
+  split;[apply included_refl|].
+  intros. unfold cg_minus.
+  apply csbf_wd; apply csf_fun_wd;
+  simpl.
+  reflexivity.
+  apply csf_fun_wd.
+  simpl. reflexivity.
+Qed.
+
 (** This proof is exactly same as [fromPartSum]
     above*)
 Lemma toPartMult : forall (F G : RI_R),
@@ -343,12 +361,16 @@ Proof.
   apply IContRCont_I.
 Defined.
 
+(*
 Definition CIntegral (l r : RInIntvl) (f : IContR) : IR :=
-  Integral (IContRCont_IMinMax f l r).
+  integral  _ _ _ _ (IContRCont_IMinMax f l r).
+*)
 
+Definition IntgBnds : CSetoid :=
+  Build_SubCSetoid (ProdCSetoid RInIntvl RInIntvl) (fun p => fst p [<=] snd p).
 
 Definition Cintegral
-    (lr : Build_SubCSetoid (ProdCSetoid RInIntvl RInIntvl) (fun p => fst p [<=] snd p))
+    (lr : IntgBnds)
     (f : IContR) : IR :=
   integral _ _ _ _ (IContRCont_I f (scs_prf _ _ lr)).
 
@@ -357,14 +379,17 @@ Instance Cintegral_wd : Proper
       ==> (@st_eq IContR) 
       ==> (@st_eq IR)) (Cintegral).
 Proof.
-  intros la lb Hl ra rb Hr f g Hfg.
-  unfold CIntegral.
-  pose proof (Integral_wd' _ _ _ _ 
-    (IContRCont_IMinMax f la ra) _ _ _ (IContRCont_IMinMax f lb rb)) as HH.
-  simpl in HH. destruct la,lb,ra,rb. simpl in HH, Hl, Hr. simpl.
-  specialize (HH Hl Hr).
+  intros pa pb Hp f g Hfg.
+  unfold Cintegral.
+  destruct pa as [lr pa]. destruct lr as [la ra].
+  destruct pb as [lr pb]. destruct lr as [lb rb].
+  simpl.
+  pose proof (integral_wd' _ _ _ _ 
+    (IContRCont_I f pa) _ _ _ (IContRCont_I f pb)) as HH.
+  simpl in HH. destruct la,lb,ra,rb. simpl in HH, Hp. 
+  simpl. specialize (HH (proj1 Hp) (proj2 Hp)).
   rewrite HH.
-  apply Integral_wd.
+  apply integral_wd.
   pose proof (@st_eq_Feq_included f g) as Hst.
   match goal with
   [ |- Feq (Compact ?vc) _ _] => match type of vc with
@@ -384,13 +409,22 @@ Proof.
   intro f. apply  csf_fun_wd.
 Qed.
 
+Definition mkIntBnd {a b : RInIntvl} 
+    (p : a [<=] b) : IntgBnds.
+  exists (a,b).
+  exact p.
+Defined.
 
+(** This is slightly stronger than [Barrow2]
+    because it uses [cof_less] instead of [cof_leEq] *)
 Lemma TBarrow : forall (F F': IContR)
-         (der : isIDerivativeOf F' F) (a b : RInIntvl),
-       CIntegral a b F' [=] {F} b [-] {F} a.
+         (der : isIDerivativeOf F' F) (a b : RInIntvl)
+          (p: a [<=] b),
+       Cintegral (mkIntBnd p) F' [=] {F} b [-] {F} a.
 Proof.
-  intros ? ? ? ? ?.
-  unfold getF,  CIntegral.
+  intros ? ? ? ? ? ?.
+  unfold Cintegral.
+  simpl.
   pose proof (Barrow _ _ (scs_prf _ _ F') pItvl _ der a b 
       (IContRCont_IMinMax _ _ _) (scs_prf _ _ a) (scs_prf _ _ b)) as Hb.
   simpl in Hb.
@@ -398,7 +432,9 @@ Proof.
   remember ({F} b) as hide.
   rewrite TContRExt with (b:=a) in Hb by (destruct a; simpl; reflexivity).
   subst hide.
-  rewrite <- Hb. apply Integral_wd'; reflexivity.
+  rewrite <- Hb. 
+  rewrite Integral_integral.
+  reflexivity.
 Qed.
 
 Lemma includeMinMaxIntvl : 
@@ -425,85 +461,77 @@ Require Import CoRN.algebra.CRing_as_Ring.
 
 Add Ring IRisaRing: (CRing_Ring IContR).
 
-Lemma lb_CIntegral:
-  ∀ (a b : RInIntvl) (F : IContR) (c : RInIntvl),
-  (∀ x : RInIntvl, (clcr a b) x → c[<=] {F} x)
-  → c[*](b[-]a)[<=]CIntegral a b F.
-Proof.
-  intros ? ? ? ? Hle.
-  unfold CIntegral.
-  rewrite HIntegral
-
 
 
 Section CIntegralArith.
-Variable (a b : RInIntvl).
+Context {a b : RInIntvl} (p : a [<=] b).
 Variable (F G : IContR).
 
 Lemma CIntegral_plus : 
-   CIntegral a b (F [+] G) [=] CIntegral a b F [+] CIntegral a b G.
+   Cintegral (mkIntBnd p) (F [+] G) 
+    [=] Cintegral (mkIntBnd p) F [+] Cintegral (mkIntBnd p) G.
 Proof.
-  unfold CIntegral.
-  erewrite <- Integral_plus; eauto.
-  apply Integral_wd.
+  unfold Cintegral.
+  erewrite <- integral_plus; eauto.
+  apply integral_wd.
   apply Feq_symmetric.
   eapply included_Feq;[|apply toPartSum]; eauto.
-  apply includeMinMaxIntvl.
+  simpl. apply intvlIncluded.
   Grab Existential Variables.
   eapply Continuous_I_wd.
   eapply included_Feq.
   Focus 2. apply Feq_symmetric. apply toPartSum; fail.
-              apply includeMinMaxIntvl; fail.
+           simpl. apply intvlIncluded; fail.
   eapply included_imp_Continuous. apply (scs_prf _ _ (F [+]G)).
-  apply includeMinMaxIntvl.
+  simpl. apply intvlIncluded.
 Qed.
+
+Lemma CIntegral_minus : 
+   Cintegral (mkIntBnd p) (F [-] G) 
+    [=] Cintegral (mkIntBnd p) F [-] Cintegral (mkIntBnd p) G.
+Proof.
+  unfold Cintegral.
+  erewrite <- integral_minus; eauto.
+  apply integral_wd.
+  apply Feq_symmetric.
+  eapply included_Feq;[|apply toPartMinus]; eauto.
+  simpl. apply intvlIncluded.
+  Grab Existential Variables.
+  eapply Continuous_I_wd.
+  eapply included_Feq.
+  Focus 2. apply Feq_symmetric. apply toPartMinus; fail.
+           simpl. apply intvlIncluded; fail.
+  eapply included_imp_Continuous. apply (scs_prf _ _ (F [-]G)).
+  simpl. apply intvlIncluded.
+Qed.
+
 End CIntegralArith.
 
 
 
 Section CIntegralProps.
-Variable (a b : RInIntvl).
+Context {a b : RInIntvl} (p : a [<=] b).
 Variable (F G : IContR).
 
-monotonous_integral
+
 Lemma IntegralMonotone : 
    (forall (r: RInIntvl), (clcr (TMin a b) (TMax a b) r) -> {F} r[<=] {G} r)
-   -> CIntegral a b F [<=] CIntegral a b G.
+   -> Cintegral (mkIntBnd p) F [<=] Cintegral (mkIntBnd p) G.
 Proof.
   intros Hle.
-  pose proof (CIntegral_plus a b F (F [+] (G [-] F))) as Hp.
-  assert (F [+] (G [-] F) [=] G) as Heq by (unfold cg_minus; ring).
-  rewrite <- Heq. clear Heq.
-  rewrite CIntegral_plus.
-  apply shift_leEq_plus'.
-  rewrite cg_minus_correct.
-  apply equal_less_leEq with (a:= Min a b) (b:= Max a b);[| |apply Min_leEq_Max].
-- intros Hmm. apply Min_less_Max_imp_ap in Hmm.
-  apply 
+  unfold Cintegral.
+  simpl. apply monotonous_integral.
+  intros ? Hc ? ?. rewrite <- extToPart2.
+  rewrite <- extToPart2.
+  specialize (Hle (mkRIntvl x Hx)).
+  eapply leEq_transitive.
+  apply Hle. unfold compact in Hc.
+  destruct Hc. simpl. split; eauto 3 with CoRN.
+  erewrite csf_fun_wd;[ apply leEq_reflexive | ].
+  simpl. reflexivity.
+Qed.
+End CIntegralProps.
 
-  
-
-  match goal with
-  [|- [<=]
-  pose proof (equal_less_leEq _ a b [0] CIntegral a b (G[-]F)).
-
-  apply leEq_def.
-  intros Hc.
-  
-
-Abort.
-
-Lemma IntegralMonotone : 
-  (forall r Hf Hg, 
-        (clcr (Min a b) (Max a b) r) -> F r Hf[<=] G r Hg)
-   ->Integral contF [<=] Integral contG.
-Proof.
-  intros  Hb.
-  pose proof (Continuous_I_minus _ _ Hab _ _ contG contF)
-     as Hc.
-  pose proof (Integral_plus _ _ Hab _ _ contF Hc).
-  
-Abort.
 
 
 End ContFAlgebra.
