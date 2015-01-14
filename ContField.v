@@ -3,6 +3,42 @@ Require Export CoRN.ftc.MoreIntervals.
 Require Export PointWiseRing.
 
 Set Implicit Arguments.
+Require Import Coq.Unicode.Utf8.
+
+Lemma interval_convex:
+  ∀ (a b : IR) (I : interval),
+    I a → I b → included (clcr a b) I.
+Proof.
+  intros ? ? ? Ha Hb. unfold included. intros x Hab.
+  simpl in Hab. destruct Hab as [Hab Habr].
+  destruct I; simpl in Ha, Hb; simpl; try (split; destruct Ha, Hb); 
+    eauto using leEq_less_trans, leEq_reflexive, 
+                less_leEq_trans, leEq_transitive.
+Qed.
+
+Hint Resolve less_Min leEq_Min : CoRN.
+
+Lemma interval_Min:
+  ∀ {a b : IR} {I : interval},
+    I a → I b → I (Min a b).
+Proof.
+  intros ? ? ? Ha Hb.
+  destruct I; simpl in Ha, Hb; simpl; try (split; destruct Ha, Hb);
+    eauto using leEq_less_trans, leEq_reflexive, 
+                 leEq_transitive,
+                Min_leEq_lft, less_Min, leEq_Min.
+Qed.
+
+Lemma interval_Max:
+  ∀ {a b : IR} {I : interval},
+    I a → I b → I (Max a b).
+Proof.
+  intros ? ? ? Ha Hb.
+  destruct I; simpl in Ha, Hb; simpl; try (split; destruct Ha, Hb);
+  eauto using less_leEq_trans, leEq_reflexive, 
+                leEq_transitive,
+                lft_leEq_Max, Max_less, Max_leEq.
+Qed.
 
 Section ContFAlgebra.
 Variable itvl : interval.
@@ -157,6 +193,52 @@ Proof.
   apply extToPart2.
 Qed.
 
+
+Lemma st_eq_Feq : forall (f g : RI_R),
+  f [=] g
+  -> Feq itvl (toPart f) (toPart g).
+Proof.
+  intros. unfold Feq. simpl. 
+  split; [ eauto 1 with included |].
+  split; [ eauto 1 with included |].
+  intros ? ? ? ?.
+  apply FS_as_CSetoid_proper; trivial.
+  simpl. reflexivity.
+Qed.
+
+Lemma intvlIncluded : forall (ta tb : RInIntvl),
+  included (clcr ta tb) (itvl).
+Proof.
+  destruct ta as [ra pa].
+  destruct tb as [rb pb].
+  simpl. apply interval_convex; trivial.
+Defined.
+
+Definition TMin (ta tb :RInIntvl) : RInIntvl:= 
+  {|
+    scs_elem := Min ta tb;
+    scs_prf := interval_Min (scs_prf _ _ ta) (scs_prf _ _ tb) |}.
+
+Definition TMax (ta tb :RInIntvl) : RInIntvl:= 
+  {|
+    scs_elem := Max ta tb;
+    scs_prf := interval_Max (scs_prf _ _ ta) (scs_prf _ _ tb) |}.
+
+Lemma intvlIncludedCompact : forall (a b : RInIntvl) (Hab : a [<=] b),
+  included (Compact Hab) itvl.
+Proof.
+  intros. apply (intvlIncluded).
+Qed.
+
+
+Lemma st_eq_Feq_included : forall (f g : RI_R) (a b : RInIntvl) (Hab : a [<=] b),
+  f [=] g
+  -> Feq (Compact Hab) (toPart f) (toPart g).
+Proof.
+  intros. eapply included_Feq; [| apply st_eq_Feq].
+  apply (intvlIncluded). trivial.
+Qed.
+
 Require Export SubCRing.
 Require Export CoRN.ftc.MoreFunctions.
 Definition IContR : CRing.
@@ -218,63 +300,12 @@ Definition CFCos (theta : IContR) : IContR.
   apply toFromPartId.
 Defined.
 
-Require Import Coq.Unicode.Utf8.
 
 Require Import CoRNMisc.
-Lemma interval_convex:
-  ∀ (a b : IR) (I : interval),
-    I a → I b → included (clcr a b) I.
-Proof.
-  intros ? ? ? Ha Hb. unfold included. intros x Hab.
-  simpl in Hab. destruct Hab as [Hab Habr].
-  destruct I; simpl in Ha, Hb; simpl; try (split; destruct Ha, Hb); 
-    eauto using leEq_less_trans, leEq_reflexive, 
-                less_leEq_trans, leEq_transitive.
-Qed.
-
-Hint Resolve less_Min leEq_Min : CoRN.
-
-Lemma interval_Min:
-  ∀ {a b : IR} {I : interval},
-    I a → I b → I (Min a b).
-Proof.
-  intros ? ? ? Ha Hb.
-  destruct I; simpl in Ha, Hb; simpl; try (split; destruct Ha, Hb);
-    eauto using leEq_less_trans, leEq_reflexive, 
-                 leEq_transitive,
-                Min_leEq_lft, less_Min, leEq_Min.
-Qed.
-
-Lemma interval_Max:
-  ∀ {a b : IR} {I : interval},
-    I a → I b → I (Max a b).
-Proof.
-  intros ? ? ? Ha Hb.
-  destruct I; simpl in Ha, Hb; simpl; try (split; destruct Ha, Hb);
-  eauto using less_leEq_trans, leEq_reflexive, 
-                leEq_transitive,
-                lft_leEq_Max, Max_less, Max_leEq.
-Qed.
 
 Hint Resolve (scs_prf IR (itvl)) : CoRN.
 
-Definition TMin (ta tb :RInIntvl) : RInIntvl:= 
-  {|
-    scs_elem := Min ta tb;
-    scs_prf := interval_Min (scs_prf _ _ ta) (scs_prf _ _ tb) |}.
 
-Definition TMax (ta tb :RInIntvl) : RInIntvl:= 
-  {|
-    scs_elem := Max ta tb;
-    scs_prf := interval_Max (scs_prf _ _ ta) (scs_prf _ _ tb) |}.
-
-Lemma intvlIncluded : forall (ta tb : RInIntvl),
-  included (clcr ta tb) (itvl).
-Proof.
-  destruct ta as [ra pa].
-  destruct tb as [rb pb].
-  simpl. apply interval_convex; trivial.
-Defined.
 
 
 Lemma IContRCont : forall (tf : IContR) (ta tb : RInIntvl), 
@@ -287,7 +318,7 @@ Proof.
   apply intvlIncluded.
 Defined.
 
-Lemma IContRCont_I : ∀ (f : IContR) (l r : RInIntvl) 
+Lemma IContRCont_I : ∀ (f : IContR) {l r : RInIntvl} 
     (p : l[<=]r), 
     Continuous_I p (toPart f).
 Proof.
@@ -312,10 +343,34 @@ Proof.
   apply IContRCont_I.
 Defined.
 
-
 Definition CIntegral (l r : RInIntvl) (f : IContR) : IR :=
   Integral (IContRCont_IMinMax f l r).
 
+Definition Cintegral {l r : RInIntvl}  (p : l [<=] r) (f : IContR) : IR :=
+  integral _ _ _ _ (IContRCont_I f p).
+
+Instance CIntegral_wd : Proper 
+    ((@st_eq RInIntvl) 
+      ==> (@st_eq RInIntvl) 
+      ==> (@st_eq IContR) ==> (@st_eq IR)) CIntegral.
+Proof.
+  intros la lb Hl ra rb Hr f g Hfg.
+  unfold CIntegral.
+  pose proof (Integral_wd' _ _ _ _ 
+    (IContRCont_IMinMax f la ra) _ _ _ (IContRCont_IMinMax f lb rb)) as HH.
+  simpl in HH. destruct la,lb,ra,rb. simpl in HH, Hl, Hr. simpl.
+  specialize (HH Hl Hr).
+  rewrite HH.
+  apply Integral_wd.
+  pose proof (@st_eq_Feq_included f g) as Hst.
+  match goal with
+  [ |- Feq (Compact ?vc) _ _] => match type of vc with
+                                 CSetoids.scs_elem _ _ ?a [<=] CSetoids.scs_elem _ _ ?b =>  
+                                    specialize (Hst a b)
+                                 end
+  end.
+  simpl in Hst. apply Hst. destruct f, g. trivial.
+Qed.
 
 Definition isIDerivativeOf (F' F : IContR) : CProp :=
   Derivative _ pItvl (toPart F) (toPart F').
@@ -342,6 +397,109 @@ Proof.
   subst hide.
   rewrite <- Hb. apply Integral_wd'; reflexivity.
 Qed.
+
+Lemma includeMinMaxIntvl : 
+  forall (a b : RInIntvl),
+    included (Compact (TMin_LeEq_Max a b)) itvl.
+Proof.
+  intros.
+  match goal with
+    [ |- included (Compact ?vc) _] => match type of vc with
+                                   CSetoids.scs_elem _ _ ?a [<=] CSetoids.scs_elem _ _ ?b =>  
+                                   specialize (intvlIncluded a b)
+                                   end
+  end.
+  intros Hx.
+  unfold compact. simpl.
+  simpl in Hx. trivial.
+Qed.
+
+
+
+Require Import Ring. 
+Require Import CoRN.tactics.CornTac.
+Require Import CoRN.algebra.CRing_as_Ring.
+
+Add Ring IRisaRing: (CRing_Ring IContR).
+
+Lemma lb_CIntegral:
+  ∀ (a b : RInIntvl) (F : IContR) (c : RInIntvl),
+  (∀ x : RInIntvl, (clcr a b) x → c[<=] {F} x)
+  → c[*](b[-]a)[<=]CIntegral a b F.
+Proof.
+  intros ? ? ? ? Hle.
+  unfold CIntegral.
+  rewrite HIntegral
+
+
+
+Section CIntegralArith.
+Variable (a b : RInIntvl).
+Variable (F G : IContR).
+
+Lemma CIntegral_plus : 
+   CIntegral a b (F [+] G) [=] CIntegral a b F [+] CIntegral a b G.
+Proof.
+  unfold CIntegral.
+  erewrite <- Integral_plus; eauto.
+  apply Integral_wd.
+  apply Feq_symmetric.
+  eapply included_Feq;[|apply toPartSum]; eauto.
+  apply includeMinMaxIntvl.
+  Grab Existential Variables.
+  eapply Continuous_I_wd.
+  eapply included_Feq.
+  Focus 2. apply Feq_symmetric. apply toPartSum; fail.
+              apply includeMinMaxIntvl; fail.
+  eapply included_imp_Continuous. apply (scs_prf _ _ (F [+]G)).
+  apply includeMinMaxIntvl.
+Qed.
+End CIntegralArith.
+
+
+
+Section CIntegralProps.
+Variable (a b : RInIntvl).
+Variable (F G : IContR).
+
+Lemma IntegralMonotone : 
+   (forall (r: RInIntvl), (clcr (TMin a b) (TMax a b) r) -> {F} r[<=] {G} r)
+   -> CIntegral a b F [<=] CIntegral a b G.
+Proof.
+  intros Hle.
+  pose proof (CIntegral_plus a b F (F [+] (G [-] F))) as Hp.
+  assert (F [+] (G [-] F) [=] G) as Heq by (unfold cg_minus; ring).
+  rewrite <- Heq. clear Heq.
+  rewrite CIntegral_plus.
+  apply shift_leEq_plus'.
+  rewrite cg_minus_correct.
+  apply equal_less_leEq with (a:= Min a b) (b:= Max a b);[| |apply Min_leEq_Max].
+- intros Hmm. apply Min_less_Max_imp_ap in Hmm.
+  apply 
+
+  
+
+  match goal with
+  [|- [<=]
+  pose proof (equal_less_leEq _ a b [0] CIntegral a b (G[-]F)).
+
+  apply leEq_def.
+  intros Hc.
+  
+
+Abort.
+
+Lemma IntegralMonotone : 
+  (forall r Hf Hg, 
+        (clcr (Min a b) (Max a b) r) -> F r Hf[<=] G r Hg)
+   ->Integral contF [<=] Integral contG.
+Proof.
+  intros  Hb.
+  pose proof (Continuous_I_minus _ _ Hab _ _ contG contF)
+     as Hc.
+  pose proof (Integral_plus _ _ Hab _ _ contF Hc).
+  
+Abort.
 
 
 End ContFAlgebra.

@@ -159,5 +159,15 @@ Defined.
 
 End FunRing.
 
+Require Import Coq.Classes.Morphisms.
 
+(** TODO : Pull request to the file where [FS_as_CSetoid] is defined *)
+Instance FS_as_CSetoid_proper : forall A B, 
+  Proper (@st_eq  (FS_as_CSetoid A B) ==> @st_eq A ==> @st_eq B) 
+         (fun f g => f g).
+Proof.
+  intros ? ? f g Hf x y Ha.
+  rewrite Ha.
+  apply Hf.
+Qed.
 

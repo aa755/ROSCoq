@@ -249,7 +249,7 @@ Hint Resolve less_leEq_trans leEq_less_trans plus_resp_less_leEq
   Min_leEq_rht Min_leEq_lft
   shift_zero_leEq_minus shift_minus_leEq shift_zeroR_leEq_minus
   pos_two pos_one rht_leEq_Max 
-  lft_leEq_Max: CoRN.
+  lft_leEq_Max Min_leEq_Max: CoRN.
 
 Hint Immediate eq_reflexive_unfolded : CoRN.
 
@@ -643,6 +643,18 @@ Proof.
   pose proof (Continuous_I_minus _ _ Hab _ _ contG contF)
      as Hc.
   pose proof (Integral_plus _ _ Hab _ _ contF Hc).
+  assert (Feq (Compact Hab) (F{+}(G{-}F)) G).
+  split; auto.
+  clear H. apply fst in contF. apply fst in contG. 
+  eauto with included.
+  split; auto.
+  clear H. apply fst in contF. apply fst in contG. 
+  eauto with included.
+  
+  intros ? ? ? ?. simpl.
+  rewrite pfwdef with (Hy := (Prj2 (Prj2 Hx))).
+  rewrite (pfwdef _ G) with (Hy := Hx'). 
+  remember (F x (Prj2 (Prj2 Hx))).
 Abort.
 
 End Integral.
