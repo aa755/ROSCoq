@@ -346,13 +346,16 @@ Defined.
 Definition CIntegral (l r : RInIntvl) (f : IContR) : IR :=
   Integral (IContRCont_IMinMax f l r).
 
-Definition Cintegral {l r : RInIntvl}  (p : l [<=] r) (f : IContR) : IR :=
-  integral _ _ _ _ (IContRCont_I f p).
 
-Instance CIntegral_wd : Proper 
-    ((@st_eq RInIntvl) 
-      ==> (@st_eq RInIntvl) 
-      ==> (@st_eq IContR) ==> (@st_eq IR)) CIntegral.
+Definition Cintegral
+    (lr : Build_SubCSetoid (ProdCSetoid RInIntvl RInIntvl) (fun p => fst p [<=] snd p))
+    (f : IContR) : IR :=
+  integral _ _ _ _ (IContRCont_I f (scs_prf _ _ lr)).
+
+Instance Cintegral_wd : Proper 
+    ((@st_eq (Build_SubCSetoid (ProdCSetoid RInIntvl RInIntvl) (fun p => fst p [<=] snd p)))
+      ==> (@st_eq IContR) 
+      ==> (@st_eq IR)) (Cintegral).
 Proof.
   intros la lb Hl ra rb Hr f g Hfg.
   unfold CIntegral.
@@ -462,6 +465,7 @@ Section CIntegralProps.
 Variable (a b : RInIntvl).
 Variable (F G : IContR).
 
+monotonous_integral
 Lemma IntegralMonotone : 
    (forall (r: RInIntvl), (clcr (TMin a b) (TMax a b) r) -> {F} r[<=] {G} r)
    -> CIntegral a b F [<=] CIntegral a b G.
