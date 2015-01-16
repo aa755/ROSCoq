@@ -120,7 +120,7 @@ fun  (distanceAtTime : (Time -> ℝ))
 
 Definition inIntervalDuring
   (interval: interval) (tStart tEnd : QTime)  (f : Time -> ℝ) : Prop :=
-  Cast (forall t : QTime, ( tStart <= t <= tEnd   -> (interval) (f t)))%Q.
+  Squash (forall t : QTime, ( tStart <= t <= tEnd   -> (interval) (f t)))%Q.
   
 Definition isEqualDuring
   (vel: Q) (tStart tEnd : QTime)  (f : Time -> ℝ) : Prop :=

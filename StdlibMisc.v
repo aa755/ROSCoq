@@ -8,8 +8,8 @@ Definition ConjL (lp : list Prop) : Prop
   := (fold_left (fun A B => A/\B) lp True).
  
 
-Inductive Cast (T: Type) : Prop :=
-cast : T -> Cast T.
+Inductive Squash (T: Type) : Prop :=
+squash : T -> Squash T.
 
 
 
@@ -17,6 +17,7 @@ Definition InjectiveFun {A B} (f : A -> B) :=
   forall (a1 a2: A), f a1 = f a2 -> a1 = a2.
 
 
+(* switch to Require MathClasses.misc.decision. *)
 Class DecEq (T : Type) :=
 {
     eqdec : forall (a b :T), {a=b} + {a<>b}
