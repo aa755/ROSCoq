@@ -7,7 +7,6 @@ Require Export Coq.Program.Tactics.
 Require Export MathClasses.interfaces.canonical_names.
 Require Export MathClasses.misc.decision.
 
-Section Programs.
 
 Definition QSignHalf (q: Q) : Q :=
   if (decide (q < 0)) then ((-1)#2) else (1#2).
@@ -35,11 +34,12 @@ Definition Polar2Cart (pol : Polar2D CR) : Cart2D CR :=
   {|X := (rad pol) * (cos (θ pol)) 
   ; Y := (rad pol) * (sin (θ pol)) |}.
 
-Instance castCartQ2CR : Cast (Cart2D Q) (Cart2D CR) :=
-  fun c => {|X := cast Q CR (X c) ;  Y := cast Q CR (X c) |}.
+Instance castCart `{Cast A B} : Cast (Cart2D A) (Cart2D B) :=
+  fun c => {|X := cast A B (X c) ;  Y := cast A B (X c) |}.
 
 Instance EquivCart  `{Equiv A} : Equiv (Cart2D A) :=
 fun ca cb => (X ca = X cb /\ Y ca = Y cb).
+
 
 (** lets first port lemmas about IR sin cos
     to a separate file and then use them separately here *)
@@ -53,4 +53,3 @@ Proof.
   destruct (decide (cx = 0)) as [Hcx0 | Hcx0].
 - split; simpl.
 Abort.
-End Programs.
