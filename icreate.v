@@ -24,7 +24,7 @@ Defined.
 (** CatchFileBetweenTagsStartCreate *)
 
 Record iCreate : Type := {
-  position :> Vec2D TContR;          (* x, y co-ordinates*)
+  position :> Cart2D TContR;          (* x, y co-ordinates*)
   theta : TContR;                       (* orientation *)
   transVel : TContR;             (* translation vel (along orientation), can be negative *)
   omega : TContR;
@@ -37,7 +37,7 @@ Record iCreate : Type := {
 (** CatchFileBetweenTagsEndCreate *)
 
 
-Definition unitVec (theta : TContR)  : Vec2D TContR :=
+Definition unitVec (theta : TContR)  : Cart2D TContR :=
   {|X:= CFCos theta; Y:=CFSine theta|}.
 
 
