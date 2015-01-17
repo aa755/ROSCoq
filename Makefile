@@ -48,6 +48,9 @@ StdlibMisc.vo : StdlibMisc.v
 CoRNMisc.vo : CoRNMisc.v
 	$(COQC) $<
 
+CartCR.vo : CartCR.v IRLemmasAsCR.vo
+	$(COQC) $<
+
 %.tex: %.v %.vo
 	$(COQC) $<
 	coqdoc   -l --latex --interpolate --body-only $< -o $(@)	
