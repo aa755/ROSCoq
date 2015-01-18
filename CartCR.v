@@ -30,9 +30,11 @@ Definition Cart2Polar (cart :Cart2D Q) : Polar2D CR :=
   {|rad := polarRad cart 
   ; θ := polarTheta cart |}.
 
-Require Export CoRN.util.Extract.
 
-(** Time Eval vm_compute in answer 10 ((4*(polarTheta {|X:=1; Y:=1|}))).
+(**
+  Require Export CoRN.util.Extract.
+
+  Time Eval vm_compute in answer 10 ((4*(polarTheta {|X:=1; Y:=1|}))).
   = 31415926535%Z
      : Z
   Finished transaction in 0. secs (0.u,0.s)
@@ -69,13 +71,19 @@ Definition Polar2Cart (pol : Polar2D CR) : Cart2D CR :=
   ; Y := (rad pol) * (sin (θ pol)) |}.
 
 Instance castCart `{Cast A B} : Cast (Cart2D A) (Cart2D B) :=
-  fun c => {|X := cast A B (X c) ;  Y := cast A B (X c) |}.
+  fun c => {|X := cast A B (X c) ;  Y := cast A B (Y c) |}.
 
 Instance EquivCart  `{Equiv A} : Equiv (Cart2D A) :=
 fun ca cb => (X ca = X cb /\ Y ca = Y cb).
 
 Require Export IRLemmasAsCR.
+Require Import Coq.QArith.Qfield.
+Require Import Coq.QArith.Qring.
+Require Import Psatz.
 
+Ltac prepareForLra :=
+  unfold le, stdlib_rationals.Q_le,
+         lt, stdlib_rationals.Q_lt.
 
 (** lets first port lemmas about IR sin cos
     to a separate file and then use them separately here *)
@@ -87,5 +95,23 @@ Proof.
   simpl. destruct c as [cx cy].
   unfold polarTheta. simpl.
   destruct (decide (cx = 0)) as [Hcx0 | Hcx0].
-- split; simpl.
-  + 
+- 
+
+unfold QSignHalf. destruct (decide (cy < 0)) as [Hlt | Hlt];
+  unfold equiv; unfold EquivCart; simpl. 
+  + admit.
+  + rewrite CR_Sin_HalfPi.
+    rewrite CR_Cos_HalfPi.
+    unfold polarRad. simpl. rewrite Hcx0.
+    split;[CRRing|].
+    simpl. prepareForCRRing.
+    ring_simplify. QRing_simplify.
+    simpl.
+    rewrite <- CRrational_sqrt_ofsqr;[reflexivity|].
+    revert Hlt. prepareForLra. intros. lra.
+Abort.
+
+
+
+    
+

@@ -164,4 +164,111 @@ Proof.
   ring.
 Qed.
 
+Lemma CR_leEq_as_IR :
+∀ x y : CR , x ≤ y ↔ (CRasIR x [<=] CRasIR y).
+Proof.
+  intros x y.
+  pose proof (IR_leEq_as_CR (CRasIR x) (CRasIR y)) as HH.
+  rewrite CRasIRasCR_id in HH.
+  rewrite CRasIRasCR_id in HH.
+  symmetry. exact HH.
+Qed.
+
+Lemma CRasIR0 : CRasIR 0 = [0].
+Proof.
+  pose proof IR_Zero_as_CR as HH.
+  apply CRasIR_wd in HH.
+  rewrite IRasCRasIR_id in HH.
+  symmetry. exact HH.
+Qed.
+
+Hint Rewrite CRasIR0 CRasIR_inv : CRtoIR .
+
+Require Import  MathClasses.interfaces.additional_operations.
+
+Ltac prepareForCRRing := 
+  unfold zero, one, CR1, stdlib_rationals.Q_0, mult, cast.
+
+Ltac CRRing :=
+    prepareForCRRing;
+    let H:= fresh "H" in
+    match goal with
+    [|-equiv ?l ?r] => assert (st_eq l  r) as H by ring;
+                       rewrite <- H; clear H; reflexivity
+    end.
+
+Require Import Coq.QArith.Qfield.
+Require Import Coq.QArith.Qring.
+Require Import Psatz.
+
+Lemma eq_implies_Qeq: forall a b : Q,
+  eq a b -> a == b.
+Proof.
+  intros ? ?  H. rewrite H.
+  reflexivity.
+Qed.
+Ltac QRing_simplify :=
+    repeat match goal with
+    | [|- context [rational_sqrt ?q]] =>
+          let qq := fresh "qq" in
+          let Heqq := fresh "Heqq" in
+           remember q as qq eqn:Heqq;
+           apply eq_implies_Qeq in Heqq;
+           ring_simplify in Heqq;
+           rewrite Heqq;
+           try (clear Heqq qq)
+    end.
+
+
+Lemma CRpower_N_2 : forall y,
+    CRpower_N y (N.of_nat 2) = y * y.
+Proof.
+  intros y.
+  assert ((N.of_nat 2) = (1+(1+0))) as Hs by reflexivity.
+  rewrite Hs.
+  destruct NatPowSpec_instance_0.
+  rewrite nat_pow_S.
+  rewrite nat_pow_S.
+  rewrite nat_pow_0.
+  simpl. prepareForCRRing.
+  unfold CR1. CRRing.
+Qed.
+
+
+
+
+
+
+Lemma CRsqrt_ofsqr_nonneg :  
+  ∀ y: CR, 0 ≤ y -> CRsqrt (y * y) = y.
+Proof.
+  intros ? Hle.
+  apply CR_leEq_as_IR in Hle.
+  autorewrite with CRtoIR in Hle.
+  eapply NRootIR.sqrt_to_nonneg in Hle.
+  apply IRasCR_wd in Hle.
+  rewrite CRsqrt_correct in Hle.
+  rewrite CRasIRasCR_id in Hle.
+  remember (y * y) as yy.
+  rewrite <- Hle. clear Hle.
+  apply uc_wd_Proper.
+  autorewrite with IRtoCR.
+  rewrite CRasIRasCR_id.
+  subst yy.
+  rewrite <- CRpower_N_2.
+  reflexivity.
+  Grab Existential Variables.
+  apply sqr_nonneg.
+Qed.
+
+Lemma CRrational_sqrt_ofsqr :  
+  ∀ y, 0 ≤ y -> rational_sqrt (y * y) = 'y.
+Proof.
+  intros ? Hle.
+  rewrite <- CRsqrt_Qsqrt.
+  rewrite (morph_mul QCRM).
+  apply CRsqrt_ofsqr_nonneg.
+  apply CRle_Qle.
+  trivial.
+Qed.
 (*Instance castCRIR : Cast CR IR := CRasIR. *)
