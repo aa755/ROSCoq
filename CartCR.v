@@ -81,9 +81,6 @@ Require Import Coq.QArith.Qfield.
 Require Import Coq.QArith.Qring.
 Require Import Psatz.
 
-Ltac prepareForLra :=
-  unfold le, stdlib_rationals.Q_le,
-         lt, stdlib_rationals.Q_lt.
 
 (** lets first port lemmas about IR sin cos
     to a separate file and then use them separately here *)
@@ -95,21 +92,17 @@ Proof.
   simpl. destruct c as [cx cy].
   unfold polarTheta. simpl.
   destruct (decide (cx = 0)) as [Hcx0 | Hcx0].
-- 
-
-unfold QSignHalf. destruct (decide (cy < 0)) as [Hlt | Hlt];
-  unfold equiv; unfold EquivCart; simpl. 
-  + admit.
-  + rewrite CR_Sin_HalfPi.
-    rewrite CR_Cos_HalfPi.
-    unfold polarRad. simpl. rewrite Hcx0.
-    split;[CRRing|].
-    simpl. prepareForCRRing.
-    ring_simplify. QRing_simplify.
-    simpl.
-    rewrite <- CRrational_sqrt_ofsqr;[reflexivity|].
-    revert Hlt. prepareForLra. intros. lra.
-Abort.
+- unfold polarRad,equiv,EquivCart. simpl.
+  rewrite Hcx0. prepareForCRRing.
+  QRing_simplify.
+  simpl. rewrite CRrational_sqrt_ofsqr.
+  unfold QSignHalf.
+  destruct (decide (cy < 0)) as [Hlt | Hlt];
+    autorewrite with CRSimpl; 
+  prepareForCRRing; try rewrite (morph_opp QCRM);
+  split; CRRing.
+- admit.
+Qed.
 
 
 

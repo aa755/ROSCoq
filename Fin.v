@@ -1,7 +1,6 @@
 Require Import Coq.Unicode.Utf8.
 Require Export StdlibMisc.
 
-\forall
 Local Coercion toBool : sumbool >->bool. 
 
 Require Export Arith.

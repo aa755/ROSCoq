@@ -37,6 +37,61 @@ Proof.
   reflexivity.
 Qed.
 
+Lemma CR_leEq_as_IR :
+∀ x y : CR , x ≤ y ↔ (CRasIR x [<=] CRasIR y).
+Proof.
+  intros x y.
+  pose proof (IR_leEq_as_CR (CRasIR x) (CRasIR y)) as HH.
+  rewrite CRasIRasCR_id in HH.
+  rewrite CRasIRasCR_id in HH.
+  symmetry. exact HH.
+Qed.
+
+Lemma CRasIR0 : CRasIR 0 = [0].
+Proof.
+  pose proof IR_Zero_as_CR as HH.
+  apply CRasIR_wd in HH.
+  rewrite IRasCRasIR_id in HH.
+  symmetry. exact HH.
+Qed.
+
+Hint Rewrite CRasIR0 CRasIR_inv : CRtoIR .
+
+Require Import  MathClasses.interfaces.additional_operations.
+
+Ltac prepareForCRRing := 
+  unfold zero, one, CR1, stdlib_rationals.Q_0, mult, cast,
+  canonical_names.negate.
+
+Ltac CRRing :=
+    prepareForCRRing;
+    let H:= fresh "H" in
+    match goal with
+    [|-equiv ?l ?r] => assert (st_eq l  r) as H by ring;
+                       rewrite <- H; clear H; reflexivity
+    end.
+
+Require Import Coq.QArith.Qfield.
+Require Import Coq.QArith.Qring.
+Require Import Psatz.
+
+Lemma eq_implies_Qeq: forall a b : Q,
+  eq a b -> a == b.
+Proof.
+  intros ? ?  H. rewrite H.
+  reflexivity.
+Qed.
+Ltac QRing_simplify :=
+    repeat match goal with
+    | [|- context [rational_sqrt ?q]] =>
+          let qq := fresh "qq" in
+          let Heqq := fresh "Heqq" in
+           remember q as qq eqn:Heqq;
+           apply eq_implies_Qeq in Heqq;
+           ring_simplify in Heqq;
+           rewrite Heqq;
+           try (clear Heqq qq)
+    end.
   
 Require Export CoRN.reals.fast.CRArith.
 
@@ -109,6 +164,18 @@ Proof.
   ring.
 Qed.
 
+Lemma CR_Cos_Neg_HalfPi : (cos (CRpi * ' (-1 # 2)) = 0 )%CR.
+Proof.
+  rewrite <- CRCos_inv.
+  rewrite <- CR_Cos_HalfPi.
+  apply sm_proper.
+  assert  (((-1#2)) = Qopp (1#2)) as Heq by reflexivity.
+  rewrite Heq. clear Heq.
+  rewrite (morph_opp QCRM).
+  generalize (inject_Q_CR(1 # 2)).
+  intros.  CRRing. 
+Qed.
+
 Lemma CR_Sin_HalfPi : (sin (CRpi * ' (1 # 2)) = 1 )%CR.
 Proof.
   pose proof (Pi.Sin_HalfPi) as Hc.
@@ -164,60 +231,38 @@ Proof.
   ring.
 Qed.
 
-Lemma CR_leEq_as_IR :
-∀ x y : CR , x ≤ y ↔ (CRasIR x [<=] CRasIR y).
+Lemma CREquiv_st_eq: forall a b : CR,
+  st_eq (r:=CR) a  b <-> a = b.
 Proof.
-  intros x y.
-  pose proof (IR_leEq_as_CR (CRasIR x) (CRasIR y)) as HH.
-  rewrite CRasIRasCR_id in HH.
-  rewrite CRasIRasCR_id in HH.
-  symmetry. exact HH.
-Qed.
-
-Lemma CRasIR0 : CRasIR 0 = [0].
-Proof.
-  pose proof IR_Zero_as_CR as HH.
-  apply CRasIR_wd in HH.
-  rewrite IRasCRasIR_id in HH.
-  symmetry. exact HH.
-Qed.
-
-Hint Rewrite CRasIR0 CRasIR_inv : CRtoIR .
-
-Require Import  MathClasses.interfaces.additional_operations.
-
-Ltac prepareForCRRing := 
-  unfold zero, one, CR1, stdlib_rationals.Q_0, mult, cast.
-
-Ltac CRRing :=
-    prepareForCRRing;
-    let H:= fresh "H" in
-    match goal with
-    [|-equiv ?l ?r] => assert (st_eq l  r) as H by ring;
-                       rewrite <- H; clear H; reflexivity
-    end.
-
-Require Import Coq.QArith.Qfield.
-Require Import Coq.QArith.Qring.
-Require Import Psatz.
-
-Lemma eq_implies_Qeq: forall a b : Q,
-  eq a b -> a == b.
-Proof.
-  intros ? ?  H. rewrite H.
   reflexivity.
 Qed.
-Ltac QRing_simplify :=
-    repeat match goal with
-    | [|- context [rational_sqrt ?q]] =>
-          let qq := fresh "qq" in
-          let Heqq := fresh "Heqq" in
-           remember q as qq eqn:Heqq;
-           apply eq_implies_Qeq in Heqq;
-           ring_simplify in Heqq;
-           rewrite Heqq;
-           try (clear Heqq qq)
-    end.
+
+(*Lemma CREqOpp: forall a b : CR,
+  -a = -b -> a = b.
+Proof.
+  intros ? ? Heq. 
+  rewrite <- CREquiv_st_eq.
+  rewrite <- CREquiv_st_eq.
+  prepareForCRRing.
+  intros. intros.  ring.
+
+  unfold equiv. fold (st_eq (r:=CR)).
+  
+  intro.   CRRing.
+  apply  (  Ropp_ext CR_ring_eq_ext) in Heq.
+*)
+
+Lemma CR_Sin_Neg_HalfPi : (sin (CRpi * ' (-1 # 2)) = - 1 )%CR.
+Proof.
+  rewrite <- CR_Sin_HalfPi.
+  rewrite <- CRSin_inv.
+  apply sm_proper.
+  assert  (((-1#2)) = Qopp (1#2)) as Heq by reflexivity.
+  rewrite Heq. clear Heq.
+  rewrite (morph_opp QCRM).
+  generalize (inject_Q_CR(1 # 2)).
+  intros.  CRRing. 
+Qed.
 
 
 Lemma CRpower_N_2 : forall y,
@@ -233,10 +278,6 @@ Proof.
   simpl. prepareForCRRing.
   unfold CR1. CRRing.
 Qed.
-
-
-
-
 
 
 Lemma CRsqrt_ofsqr_nonneg :  
@@ -261,7 +302,30 @@ Proof.
   apply sqr_nonneg.
 Qed.
 
-Lemma CRrational_sqrt_ofsqr :  
+Lemma CRsqrt_ofsqr_nonpos :  
+  ∀ y: CR, y ≤ 0 -> CRsqrt (y * y) = -y.
+Proof.
+  intros ? Hle.
+  apply CR_leEq_as_IR in Hle.
+  autorewrite with CRtoIR in Hle.
+  eapply NRootIR.sqrt_to_nonpos in Hle.
+  apply IRasCR_wd in Hle.
+  rewrite CRsqrt_correct in Hle.
+  rewrite  IR_opp_as_CR in Hle.
+  rewrite CRasIRasCR_id in Hle.
+  remember (y * y) as yy.
+  rewrite <- Hle. clear Hle.
+  apply uc_wd_Proper.
+  autorewrite with IRtoCR.
+  rewrite CRasIRasCR_id.
+  subst yy.
+  rewrite <- CRpower_N_2.
+  reflexivity.
+  Grab Existential Variables.
+  apply sqr_nonneg.
+Qed.
+
+Lemma CRrational_sqrt_ofsqr_nonneg:  
   ∀ y, 0 ≤ y -> rational_sqrt (y * y) = 'y.
 Proof.
   intros ? Hle.
@@ -271,4 +335,35 @@ Proof.
   apply CRle_Qle.
   trivial.
 Qed.
+
+Lemma CRrational_sqrt_ofsqr_nonpos:  
+  ∀ y, y ≤ 0 -> rational_sqrt (y * y) = '(-y).
+Proof.
+  intros ? Hle.
+  rewrite <- CRsqrt_Qsqrt.
+  rewrite (morph_mul QCRM).
+  apply CRsqrt_ofsqr_nonpos.
+  apply CRle_Qle.
+  trivial.
+Qed.
+
+Ltac prepareForLra :=
+  unfold le, stdlib_rationals.Q_le,
+         lt, stdlib_rationals.Q_lt.
+
+Lemma CRrational_sqrt_ofsqr:
+  ∀ y, rational_sqrt (y * y) = 
+      '(if (decide (y < 0)) then -y else y).
+Proof.
+  intros y.
+  destruct (decide (y < 0)) as [Hd | Hd];
+    [apply CRrational_sqrt_ofsqr_nonpos|
+     apply CRrational_sqrt_ofsqr_nonneg];
+         revert Hd; prepareForLra; intro; lra.
+Qed.
+
+Hint Rewrite CR_Cos_Neg_HalfPi CR_Cos_HalfPi
+             CR_Sin_Neg_HalfPi CR_Sin_HalfPi : CRSimpl.
+
+
 (*Instance castCRIR : Cast CR IR := CRasIR. *)
