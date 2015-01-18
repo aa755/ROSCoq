@@ -101,9 +101,6 @@ Proof.
 - apply Dom_Tang_ArcTan.
 Qed.
 
-Require Import CoRN.algebra.CRing_as_Ring.
-
-Add Ring IRisaRing: (CRing_Ring IR).
 
 Lemma SinOfArcTan : forall r H,
     Sin (ArcTan r)[^]2 [=] (r[^]2[/] ([1][+]r[^]2)[//]H).
@@ -115,7 +112,7 @@ Proof.
   clear Hf Hc.
   match goal with
   [H:st_eq ?l _ |- st_eq ?lg _] => assert (l [=] lg) as Heq
-      by (unfold cg_minus; ring); rewrite Heq in Hm; clear Heq
+      by (rational); rewrite Heq in Hm; clear Heq
   end.
   rewrite Hm.
   apply cr_div_shiftr; eauto.
