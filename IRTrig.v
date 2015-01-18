@@ -81,7 +81,7 @@ Lemma CosOfArcTan : forall r H,
     Cos (ArcTan r)[^]2 [=] ([1][/] ([1][+]r[^]2)[//]H).
 Proof.
   intros.
-  rewrite CosSqrFromTan1.
+  rewrite CosSqrFromTan1 with (Hx := Dom_Tang_ArcTan _).
   apply cr_div_shiftr; eauto;[].
   symmetry.
   rewrite mult_commutes.
@@ -98,8 +98,8 @@ Proof.
   rewrite <- Tan_ArcTan; rational.
 - simpl. simpl in H. eapply ap_wd; eauto;[| reflexivity].
   rewrite <- Tan_ArcTan; rational.
-- apply Dom_Tang_ArcTan.
 Qed.
+
 
 
 Lemma SinOfArcTan : forall r H,
@@ -119,4 +119,36 @@ Proof.
   rewrite ring_distr2.
   rewrite div_1.
   rational.
+Qed.
+
+Lemma plus_resp_nonnegR_pos
+   : ∀ (R : COrdField) (x y : R), 
+      [0][<=]x → [0][<]y → [0][<]y[+]x.
+Proof.
+  intros.
+  eapply less_wdr;[| apply cag_commutes_unfolded].
+  apply plus_resp_nonneg_pos; trivial.
+Qed.
+
+Lemma  OneplusRSqrApart0 : 
+   ∀ (R : COrdField) (r:R), ([1][+]r[^]2)[#][0].
+Proof.
+  intros R r.
+  apply Greater_imp_ap.
+  apply plus_resp_nonnegR_pos;[|apply pos_one].
+  apply sqr_nonneg.
+Qed.
+
+Lemma CosOfArcTan2 : forall r,
+  Cos (ArcTan r)[^]2 
+  [=] ([1][/] ([1][+]r[^]2)[//] (OneplusRSqrApart0 _ _)).
+Proof.
+  intros. apply  CosOfArcTan.
+Qed.
+
+Lemma SinOfArcTan2 : forall r,
+  Sin (ArcTan r)[^]2 
+  [=] (r[^]2[/] ([1][+]r[^]2)[//] (OneplusRSqrApart0 _ _)).
+Proof.
+  intros. apply SinOfArcTan.
 Qed.
