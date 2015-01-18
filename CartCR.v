@@ -20,7 +20,7 @@ match (decide ((X cart) = 0)) with
 | yes _ => CRpi * ' QSignHalf (Y cart)
 | no Hdec =>
     let angle := (rational_arctan (Y cart // (X cart ↾ Hdec))) in
-    if decide (X cart < 0) then CRpi + angle else angle
+    if decide (X cart < 0) then angle + CRpi else angle
 end.
 
 Definition polarRad (cart : Cart2D Q) : CR :=
@@ -91,9 +91,9 @@ Proof.
   unfold Cart2Polar, Polar2Cart.
   simpl. destruct c as [cx cy].
   unfold polarTheta. simpl.
-  destruct (decide (cx = 0)) as [Hcx0 | Hcx0].
-- unfold polarRad,equiv,EquivCart. simpl.
-  rewrite Hcx0. prepareForCRRing.
+  destruct (decide (cx = 0)) as [Hcx0 | Hcx0];
+  unfold polarRad,equiv,EquivCart; simpl.
+- rewrite Hcx0. prepareForCRRing.
   QRing_simplify.
   simpl. rewrite CRrational_sqrt_ofsqr.
   unfold QSignHalf.
@@ -101,8 +101,10 @@ Proof.
     autorewrite with CRSimpl; 
   prepareForCRRing; try rewrite (morph_opp QCRM);
   split; CRRing.
-- admit.
-Qed.
+- destruct (decide (cx < 0)) as [HcxNeg | HcxNeg].
+  + rewrite  CRCos_plus_Pi,  CRSin_plus_Pi. admit.
+  + split.
+Abort.
 
 
 

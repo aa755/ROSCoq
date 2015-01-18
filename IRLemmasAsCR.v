@@ -264,6 +264,24 @@ Proof.
   intros.  CRRing. 
 Qed.
 
+Lemma CRCos_plus_Pi: ∀ x : CR, cos (x + CRpi) = - (cos x).
+  intros x.
+  pose proof (Pi.Cos_plus_Pi (CRasIR x)) as Hc.
+  apply IRasCR_wd in Hc.
+  autorewrite with IRtoCR in Hc.
+  rewrite CRasIRasCR_id in Hc.
+  exact Hc.
+Qed.
+
+Lemma CRSin_plus_Pi: ∀ x : CR, sin (x + CRpi) = (- sin x).
+  intros x.
+  pose proof (Pi.Sin_plus_Pi (CRasIR x)) as Hc.
+  apply IRasCR_wd in Hc.
+  autorewrite with IRtoCR in Hc.
+  rewrite CRasIRasCR_id in Hc.
+  exact Hc.
+Qed.
+
 
 Lemma CRpower_N_2 : forall y,
     CRpower_N y (N.of_nat 2) = y * y.
@@ -363,7 +381,19 @@ Proof.
 Qed.
 
 Hint Rewrite CR_Cos_Neg_HalfPi CR_Cos_HalfPi
-             CR_Sin_Neg_HalfPi CR_Sin_HalfPi : CRSimpl.
+             CR_Sin_Neg_HalfPi CR_Sin_HalfPi 
+             CRCos_plus_Pi CRSin_plus_Pi: CRSimpl.
+
+Definition projCR (cp : CR ₀) : CR.
+  destruct cp as [x ap]. exact x.
+Defined.
 
 
+
+Lemma cosArcTan : forall (cx cy: CR) xnz ,
+CRsqrt (cx * cx + cy * cy) 
+* (cos (arctan (cy // (cx ↾ xnz)))) = cx.
+Proof.
+  intros ? ?.
+Abort.
 (*Instance castCRIR : Cast CR IR := CRasIR. *)
