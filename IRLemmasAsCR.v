@@ -7,6 +7,15 @@ Require Export Coq.Program.Tactics.
 Require Export MathClasses.interfaces.canonical_names.
 Require Export MathClasses.misc.decision.
 Require Export MathClasses.interfaces.abstract_algebra.
+Require Export CoRN.transc.PowerSeries.
+Require Export CoRN.transc.Pi.
+Require Export CoRN.transc.TrigMon.
+Require Export CoRN.transc.MoreArcTan.
+Require Export CoRN.transc.Exponential.
+Require Export CoRN.transc.InvTrigonom.
+Require Export CoRN.transc.RealPowers.
+Require Export CoRN.transc.Trigonometric.
+Require Export CoRN.transc.TaylorSeries.
 
 
 Instance Injective_instance_CRasIR : Injective  CRasIR.
@@ -117,7 +126,7 @@ Require Import Coq.QArith.Qring.
 Require Import Psatz.
 
 Lemma eq_implies_Qeq: forall a b : Q,
-  eq a b -> a == b.
+  eq a b -> Qeq a b.
 Proof.
   intros ? ?  H. rewrite H.
   reflexivity.
@@ -139,6 +148,8 @@ Require Export CoRN.reals.fast.CRArith.
 Lemma sr_mult_associative `{SemiRing R} (x y z : R) : x * (y * z) = x * y * z.
 Proof. apply sg_ass, _. Qed.
 
+Open Scope Q_scope.
+
 Lemma inject_Q_CR_one  : (inject_Q_CR (1#1) [=] 1)%CR.
 ring.
 Qed.
@@ -148,16 +159,15 @@ Lemma inject_Q_CR_two  : (inject_Q_CR (2#1) = 2)%CR.
   destruct CR_Q_ring_morphism.
   idtac. unfold plus, CRplus. rewrite <- morph_add; eauto.
 Qed.
+Close Scope Q_scope.
 
 Definition QCRM := CR_Q_ring_morphism.
 
-Lemma CR_Cos_HalfPi : (cos (CRpi * ' (1 # 2)) = 0 )%CR.
+Open Scope Q_scope.
+
+Lemma CRPiBy2Correct :
+  (CRpi * ' (1 # 2))%CR = IRasCR (Pi.Pi [/]TwoNZ).
 Proof.
-  pose proof (Pi.Cos_HalfPi) as Hc.
-  apply IRasCR_wd in Hc.
-  autorewrite with IRtoCR in Hc.
-  rewrite <- Hc.
-  apply sm_proper.
   apply (right_cancellation mult 2).
   match goal with 
   [ |- ?l = _] => remember l as ll
@@ -190,6 +200,16 @@ Proof.
   reflexivity.
 Qed.
 
+Lemma CR_Cos_HalfPi : (cos (CRpi * ' (1 # 2)) = 0 )%CR.
+Proof.
+  pose proof (Pi.Cos_HalfPi) as Hc.
+  apply IRasCR_wd in Hc.
+  autorewrite with IRtoCR in Hc.
+  rewrite <- Hc.
+  apply sm_proper.
+  apply CRPiBy2Correct.
+Qed.
+
 Lemma CRCos_inv : forall x, (cos (-x) = cos x )%CR.
 Proof.
   intros. rewrite <- cos_correct_CR, <- cos_correct_CR.
@@ -203,6 +223,12 @@ Proof.
   rewrite <-  CRasIR_inv.
   apply CRasIR_wd.
   ring.
+Qed.
+
+Lemma multNegShiftOut : forall a s : CR ,
+(a * - s)%CR = (- (a * s))%CR.
+Proof.
+  intros. CRRing.
 Qed.
 
 Lemma CR_Cos_Neg_HalfPi : (cos (CRpi * ' (-1 # 2)) = 0 )%CR.
@@ -224,36 +250,7 @@ Proof.
   autorewrite with IRtoCR in Hc.
   rewrite <- Hc.
   apply sm_proper.
-  apply (right_cancellation mult 2).
-  match goal with 
-  [ |- ?l = _] => remember l as ll
-  end.
-  rewrite <- IR_One_as_CR.
-  unfold plus. unfold CRplus.
-  rewrite <- IR_plus_as_CR.
-  rewrite <- IR_mult_as_CR.
-  subst.
-  apply (injective CRasIR).
-  rewrite IRasCRasIR_id.
-  rewrite one_plus_one.
-  rewrite div_1.
-  apply (injective IRasCR).
-  rewrite CRasIRasCR_id.
-  rewrite CRpi_correct.
-  fold (mult).
-  rewrite <- sr_mult_associative.
-  match goal with 
-  [ |- ?l = _] => remember l as ll
-  end.
-  assert (CRpi [=] CRpi * 1)%CR as Hr by ring.
-  rewrite Hr.
-  subst ll.
-  fold (mult).
-  simpl. apply sg_op_proper;[reflexivity|].
-  rewrite <- inject_Q_CR_two.
-  rewrite <- (morph_mul QCRM).
-  apply (morph_eq QCRM).
-  reflexivity.
+  apply CRPiBy2Correct.
 Qed.
 
 Lemma CRSin_inv : forall x, (sin (-x) = - sin x )%CR.
@@ -293,6 +290,8 @@ Proof.
   apply  (  Ropp_ext CR_ring_eq_ext) in Heq.
 *)
 
+
+
 Lemma CR_Sin_Neg_HalfPi : (sin (CRpi * ' (-1 # 2)) = - 1 )%CR.
 Proof.
   rewrite <- CR_Sin_HalfPi.
@@ -301,20 +300,29 @@ Proof.
   assert  (((-1#2)) = Qopp (1#2)) as Heq by reflexivity.
   rewrite Heq. clear Heq.
   rewrite (morph_opp QCRM).
-  generalize (inject_Q_CR(1 # 2)).
-  intros.  CRRing. 
+  apply multNegShiftOut.
 Qed.
 
-Lemma CRCos_plus_Pi: ∀ x : CR, cos (x + CRpi) = - (cos x).
-  intros x.
-  pose proof (Pi.Cos_plus_Pi (CRasIR x)) as Hc.
+Class RealNumberPi (R : Type) := π : R.
+Instance CRpi_RealNumberPi_instance : RealNumberPi CR := CRpi.
+
+Class HalfNum (R : Type) := half_num : R.
+Notation "½" := half_num.
+Instance Q_Half_instance : HalfNum Q := (1#2).
+Instance CR_Half_instance : HalfNum CR := (inject_Q_CR (1#2)).
+
+Close Scope Q_scope.
+
+Lemma CRCos_plus_Pi: ∀θ , cos (θ + π) = - (cos θ).
+  intros θ.
+  pose proof (Pi.Cos_plus_Pi (CRasIR θ)) as Hc.
   apply IRasCR_wd in Hc.
   autorewrite with IRtoCR in Hc.
   rewrite CRasIRasCR_id in Hc.
   exact Hc.
 Qed.
 
-Lemma CRSin_plus_Pi: ∀ x : CR, sin (x + CRpi) = (- sin x).
+Lemma CRSin_plus_Pi: ∀ θ : CR, sin (θ + π) = (- sin θ).
   intros x.
   pose proof (Pi.Sin_plus_Pi (CRasIR x)) as Hc.
   apply IRasCR_wd in Hc.
@@ -323,6 +331,100 @@ Lemma CRSin_plus_Pi: ∀ x : CR, sin (x + CRpi) = (- sin x).
   exact Hc.
 Qed.
 
+
+Lemma sin_correct_CR : forall x,
+  CRasIR (sin x) = (PowerSeries.Sin (CRasIR x)).
+Proof.
+  intros x. apply (injective IRasCR). rewrite sin_correct.
+  rewrite CRasIRasCR_id,CRasIRasCR_id. reflexivity.
+Qed.
+
+Lemma cos_correct_CR : forall x,
+  CRasIR (cos x) = (PowerSeries.Cos (CRasIR x)).
+Proof.
+  intros x. apply (injective IRasCR). rewrite cos_correct.
+  rewrite CRasIRasCR_id,CRasIRasCR_id. reflexivity.
+Qed.
+
+Lemma arctan_correct_CR : forall x,
+  CRasIR (arctan x) = (ArcTan (CRasIR x)).
+Proof.
+  intros x. apply (injective IRasCR). rewrite arctan_correct.
+  rewrite CRasIRasCR_id,CRasIRasCR_id. reflexivity.
+Qed.
+
+Hint Rewrite sin_correct_CR cos_correct_CR : CRtoIR.
+
+(** One could also divide [π] by 2. However,
+    division seems to be annoyingly difficult to deal with.
+    For example, rewrite fails with an error about
+    inability to handle dependence. Also, one has
+    to carry around proofs of positivity *)
+
+Lemma CRPiBy2Correct1 :
+  ½ * π = IRasCR (Pi.Pi [/]TwoNZ).
+Proof.
+  rewrite <- CRPiBy2Correct.
+  rewrite rings.mult_comm.
+  reflexivity.
+Qed.
+
+Lemma MinusCRPiBy2Correct :
+  - (½ * π) = IRasCR ([--] (Pi.Pi [/]TwoNZ)).
+Proof.
+  autorewrite with IRtoCR.
+  rewrite <- CRPiBy2Correct.
+  rewrite rings.mult_comm.
+  reflexivity.
+Qed.
+
+Lemma CRCos_nonneg:
+  ∀ θ, -(½ * π) ≤ θ ≤ ½ * π
+        → 0 ≤ cos θ.
+Proof.
+  intros ? Hp. destruct Hp as [Hpt Htp].
+  pose proof (TrigMon.Cos_nonneg (CRasIR θ)) as Hir.
+  apply CR_leEq_as_IR.
+  autorewrite with CRtoIR.
+  rewrite CRPiBy2Correct1 in Htp.
+  apply CR_leEq_as_IR in Htp.
+  rewrite IRasCRasIR_id in Htp.
+  apply Hir; trivial;[].
+  clear Htp Hir.
+  apply IR_leEq_as_CR.
+  rewrite CRasIRasCR_id.
+  rewrite  <- MinusCRPiBy2Correct.
+  exact Hpt.
+Qed.
+
+Require Export CoRN.reals.R_morphism.
+
+
+
+Lemma CRarctan_range:
+ ∀ r : CR, (-(½ * π) < arctan r < ½ * π).
+Proof.
+  intros r.
+  pose proof (InvTrigonom.ArcTan_range (CRasIR r)) as Hir.
+  destruct Hir as [Hirl Hirr].
+  eapply less_wdl in Hirr;
+    [|symmetry; apply arctan_correct_CR].
+  eapply less_wdr in Hirl;
+    [| symmetry; apply arctan_correct_CR].
+  apply IRasCR_preserves_less in Hirr.
+  apply IRasCR_preserves_less in Hirl.
+  eapply CRltT_wdr in Hirl;
+    [| apply CRasIRasCR_id].
+  eapply CRltT_wdl in Hirr;
+    [| apply CRasIRasCR_id].
+  eapply CRltT_wdr in Hirr;
+    [| symmetry; apply CRPiBy2Correct1].
+  split; unfold lt; apply CR_lt_ltT; auto;[].
+  clear Hirr.
+  eapply CRltT_wdl in Hirl;
+    [| symmetry; apply MinusCRPiBy2Correct].
+  assumption.
+Qed.
 
 Lemma CRpower_N_2 : forall y,
     CRpower_N y (N.of_nat 2) = y * y.
