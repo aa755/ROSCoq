@@ -107,19 +107,70 @@ Qed.
 Hint Rewrite CRasIR0 CRasIR_inv CR_mult_asIR 
   CR_plus_asIR CRpower_N_asIR: CRtoIR .
 
+Require Export CoRN.reals.R_morphism.
+
+Lemma IRasCR_preserves_less : forall x y, (x[<]y -> IRasCR x < IRasCR y)%CR.
+Proof.
+ intros x y H.
+  pose proof (iso_map_rht _ _ CRIR_iso).
+  simpl. 
+  apply (map_pres_less _ _  (iso_map_rht _ _ CRIR_iso)) in H.
+  simpl in H.
+  exact H.
+Qed.
+
+Lemma  CRltT_wdl : ∀ x1 x2 y : CR,
+       x1 = x2  → (x1 < y)%CR → (x2 < y)%CR.
+Proof.
+  intros ? ? ? Heq.
+  apply CRltT_wd; auto.
+  reflexivity.
+Qed.
+
+Lemma  CRltT_wdr : ∀ x1 x2 y : CR,
+       x1 = x2  → (y < x1)%CR → (y < x2)%CR.
+Proof.
+  intros ? ? ? Heq.
+  apply CRltT_wd; auto.
+  reflexivity.
+Qed.
+
+
+Lemma CREquiv_st_eq: forall a b : CR,
+  st_eq (r:=CR) a  b <-> a = b.
+Proof.
+  reflexivity.
+Qed.
+
+Lemma CRApart_wdl :forall a b c:CR, 
+  a = b -> a ≶ c -> b ≶ c.
+Proof.
+  intros ? ? ? Heq.
+  apply strong_setoids.apart_proper; auto.
+Qed.
+
+
+Lemma  OnePlusSqrPos : forall r:CR, (1 + r ^ 2) ≶ 0.
+Proof.
+  intros.
+  symmetry.
+  apply orders.lt_iff_le_apart.
+  apply semirings.pos_plus_le_lt_compat_l; auto.
+  simpl. apply semirings.lt_0_1.
+  apply CR_leEq_as_IR.
+  autorewrite with CRtoIR.
+  apply sqr_nonneg.
+Qed.
 
 Ltac prepareForCRRing := 
   unfold zero, one, CR1, stdlib_rationals.Q_0, mult, cast,
   plus, CRplus,
-  canonical_names.negate.
+  canonical_names.negate;
+  try apply (proj1 (CREquiv_st_eq _ _)).
+
 
 Ltac CRRing :=
-    prepareForCRRing;
-    let H:= fresh "H" in
-    match goal with
-    [|-equiv ?l ?r] => assert (st_eq l  r) as H by ring;
-                       rewrite <- H; clear H; reflexivity
-    end.
+    prepareForCRRing; ring.
 
 Require Import Coq.QArith.Qfield.
 Require Import Coq.QArith.Qring.
@@ -159,6 +210,14 @@ Lemma inject_Q_CR_two  : (inject_Q_CR (2#1) = 2)%CR.
   destruct CR_Q_ring_morphism.
   idtac. unfold plus, CRplus. rewrite <- morph_add; eauto.
 Qed.
+
+Lemma multNegShiftOut : forall a s : CR ,
+(a * - s)%CR = (- (a * s))%CR.
+Proof.
+  intros. 
+  CRRing.
+Qed.
+
 Close Scope Q_scope.
 
 Definition QCRM := CR_Q_ring_morphism.
@@ -225,11 +284,6 @@ Proof.
   ring.
 Qed.
 
-Lemma multNegShiftOut : forall a s : CR ,
-(a * - s)%CR = (- (a * s))%CR.
-Proof.
-  intros. CRRing.
-Qed.
 
 Lemma CR_Cos_Neg_HalfPi : (cos (CRpi * ' (-1 # 2)) = 0 )%CR.
 Proof.
@@ -269,11 +323,6 @@ Proof.
   ring.
 Qed.
 
-Lemma CREquiv_st_eq: forall a b : CR,
-  st_eq (r:=CR) a  b <-> a = b.
-Proof.
-  reflexivity.
-Qed.
 
 (*Lemma CREqOpp: forall a b : CR,
   -a = -b -> a = b.
@@ -332,24 +381,24 @@ Lemma CRSin_plus_Pi: ∀ θ : CR, sin (θ + π) = (- sin θ).
 Qed.
 
 
-Lemma sin_correct_CR : forall x,
-  CRasIR (sin x) = (PowerSeries.Sin (CRasIR x)).
+Lemma sin_correct_CR : ∀ θ,
+  CRasIR (sin θ) = (PowerSeries.Sin (CRasIR θ)).
 Proof.
-  intros x. apply (injective IRasCR). rewrite sin_correct.
+  intros θ. apply (injective IRasCR). rewrite sin_correct.
   rewrite CRasIRasCR_id,CRasIRasCR_id. reflexivity.
 Qed.
 
-Lemma cos_correct_CR : forall x,
-  CRasIR (cos x) = (PowerSeries.Cos (CRasIR x)).
+Lemma cos_correct_CR : ∀ θ,
+  CRasIR (cos θ) = (PowerSeries.Cos (CRasIR θ)).
 Proof.
-  intros x. apply (injective IRasCR). rewrite cos_correct.
+  intros θ. apply (injective IRasCR). rewrite cos_correct.
   rewrite CRasIRasCR_id,CRasIRasCR_id. reflexivity.
 Qed.
 
-Lemma arctan_correct_CR : forall x,
-  CRasIR (arctan x) = (ArcTan (CRasIR x)).
+Lemma arctan_correct_CR : ∀ θ,
+  CRasIR (arctan θ) = (ArcTan (CRasIR θ)).
 Proof.
-  intros x. apply (injective IRasCR). rewrite arctan_correct.
+  intros θ. apply (injective IRasCR). rewrite arctan_correct.
   rewrite CRasIRasCR_id,CRasIRasCR_id. reflexivity.
 Qed.
 
@@ -378,78 +427,6 @@ Proof.
   reflexivity.
 Qed.
 
-Lemma CRCos_nonneg:
-  ∀ θ, -(½ * π) ≤ θ ≤ ½ * π
-        → 0 ≤ cos θ.
-Proof.
-  intros ? Hp. destruct Hp as [Hpt Htp].
-  pose proof (TrigMon.Cos_nonneg (CRasIR θ)) as Hir.
-  apply CR_leEq_as_IR.
-  autorewrite with CRtoIR.
-  rewrite CRPiBy2Correct1 in Htp.
-  apply CR_leEq_as_IR in Htp.
-  rewrite IRasCRasIR_id in Htp.
-  apply Hir; trivial;[].
-  clear Htp Hir.
-  apply IR_leEq_as_CR.
-  rewrite CRasIRasCR_id.
-  rewrite  <- MinusCRPiBy2Correct.
-  exact Hpt.
-Qed.
-
-Require Export CoRN.reals.R_morphism.
-
-Lemma IRasCR_preserves_less : forall x y, (x[<]y -> IRasCR x < IRasCR y)%CR.
-Proof.
- intros x y H.
-  pose proof (iso_map_rht _ _ CRIR_iso).
-  simpl. 
-  apply (map_pres_less _ _  (iso_map_rht _ _ CRIR_iso)) in H.
-  simpl in H.
-  exact H.
-Qed.
-
-Lemma  CRltT_wdl : ∀ x1 x2 y : CR,
-       x1 = x2  → (x1 < y)%CR → (x2 < y)%CR.
-Proof.
-  intros ? ? ? Heq.
-  apply CRltT_wd; auto.
-  reflexivity.
-Qed.
-
-Lemma  CRltT_wdr : ∀ x1 x2 y : CR,
-       x1 = x2  → (y < x1)%CR → (y < x2)%CR.
-Proof.
-  intros ? ? ? Heq.
-  apply CRltT_wd; auto.
-  reflexivity.
-Qed.
-
-
-Lemma CRarctan_range:
- ∀ r : CR, (-(½ * π) < arctan r < ½ * π).
-Proof.
-  intros r.
-  pose proof (InvTrigonom.ArcTan_range (CRasIR r)) as Hir.
-  destruct Hir as [Hirl Hirr].
-  eapply less_wdl in Hirr;
-    [|symmetry; apply arctan_correct_CR].
-  eapply less_wdr in Hirl;
-    [| symmetry; apply arctan_correct_CR].
-  apply IRasCR_preserves_less in Hirr.
-  apply IRasCR_preserves_less in Hirl.
-  eapply CRltT_wdr in Hirl;
-    [| apply CRasIRasCR_id].
-  eapply CRltT_wdl in Hirr;
-    [| apply CRasIRasCR_id].
-  eapply CRltT_wdr in Hirr;
-    [| symmetry; apply CRPiBy2Correct1].
-  split; unfold lt; apply CR_lt_ltT; auto;[].
-  clear Hirr.
-  eapply CRltT_wdl in Hirl;
-    [| symmetry; apply MinusCRPiBy2Correct].
-  assumption.
-Qed.
 
 Lemma CRpower_N_2 : forall y,
     CRpower_N y (N.of_nat 2) = y * y.
@@ -638,25 +615,6 @@ Proof.
   simpl.  CRRing.
 Qed.
 
-Lemma CRApart_wdl :forall a b c:CR, 
-  a = b -> a ≶ c -> b ≶ c.
-Proof.
-  intros ? ? ? Heq.
-  apply strong_setoids.apart_proper; auto.
-Qed.
-
-
-Lemma  OnePlusSqrPos : forall r:CR, (1 + r ^ 2) ≶ 0.
-Proof.
-  intros.
-  symmetry.
-  apply orders.lt_iff_le_apart.
-  apply semirings.pos_plus_le_lt_compat_l; auto.
-  simpl. apply semirings.lt_0_1.
-  apply CR_leEq_as_IR.
-  autorewrite with CRtoIR.
-  apply sqr_nonneg.
-Qed.
 
 Definition mkCr0' (a : CR) (ap : (a ≶ 0)%CR)  : CR ₀ :=
    (a ↾ ap).
@@ -673,3 +631,48 @@ Proof.
   intros. apply sqr_o_sin_o_arctan.
 Qed.
 
+Lemma CRCos_nonneg:
+  ∀ θ, -(½ * π) ≤ θ ≤ ½ * π
+        → 0 ≤ cos θ.
+Proof.
+  intros ? Hp. destruct Hp as [Hpt Htp].
+  pose proof (TrigMon.Cos_nonneg (CRasIR θ)) as Hir.
+  apply CR_leEq_as_IR.
+  autorewrite with CRtoIR.
+  rewrite CRPiBy2Correct1 in Htp.
+  apply CR_leEq_as_IR in Htp.
+  rewrite IRasCRasIR_id in Htp.
+  apply Hir; trivial;[].
+  clear Htp Hir.
+  apply IR_leEq_as_CR.
+  rewrite CRasIRasCR_id.
+  rewrite  <- MinusCRPiBy2Correct.
+  exact Hpt.
+Qed.
+
+
+
+Lemma CRarctan_range:
+ ∀ r : CR, (-(½ * π) < arctan r < ½ * π).
+Proof.
+  intros r.
+  pose proof (InvTrigonom.ArcTan_range (CRasIR r)) as Hir.
+  destruct Hir as [Hirl Hirr].
+  eapply less_wdl in Hirr;
+    [|symmetry; apply arctan_correct_CR].
+  eapply less_wdr in Hirl;
+    [| symmetry; apply arctan_correct_CR].
+  apply IRasCR_preserves_less in Hirr.
+  apply IRasCR_preserves_less in Hirl.
+  eapply CRltT_wdr in Hirl;
+    [| apply CRasIRasCR_id].
+  eapply CRltT_wdl in Hirr;
+    [| apply CRasIRasCR_id].
+  eapply CRltT_wdr in Hirr;
+    [| symmetry; apply CRPiBy2Correct1].
+  split; unfold lt; apply CR_lt_ltT; auto;[].
+  clear Hirr.
+  eapply CRltT_wdl in Hirl;
+    [| symmetry; apply MinusCRPiBy2Correct].
+  assumption.
+Qed.
