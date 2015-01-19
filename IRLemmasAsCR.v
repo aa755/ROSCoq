@@ -264,6 +264,111 @@ Proof.
   reflexivity.
 Qed.
 
+Lemma  cos_cos_slow : forall x, cos x = cos_slow x.
+Proof.
+  intros x.
+  unfold cos.
+  generalize (Qround.Qceiling (approximate (x * CRinv_pos (6 # 1) (scale 2 CRpi))
+   (1 # 2)%Qpos - (1 # 2)))%CR.
+  intros z.
+  rewrite -> compress_correct.
+  rewrite <- (CRasIRasCR_id x).
+  rewrite <- CRpi_correct, <- CRmult_scale, <- IR_inj_Q_as_CR, <- IR_mult_as_CR,
+   <- IR_minus_as_CR, <- cos_slow_correct, <- cos_slow_correct.
+  remember (CRasIR x) as y.
+  clear dependent x. rename y into x.
+  apply IRasCR_wd.
+  rewrite -> inj_Q_mult.
+  change (2:Q) with (Two:Q).
+  rewrite -> inj_Q_nring.
+  symmetry.
+  rstepr (Cos (x[+]([--](inj_Q IR z))[*](Two[*]Pi))).
+  setoid_replace (inj_Q IR z) with (zring z:IR).
+  rewrite <- zring_inv.
+  symmetry; apply Cos_periodic_Z.
+  rewrite <- inj_Q_zring.
+  apply inj_Q_wd.
+  symmetry; apply zring_Q.
+Qed.
+
+Lemma cos_correct : forall x,
+  (IRasCR (Cos x) == cos (IRasCR x))%CR.
+Proof.
+  intros x.
+  rewrite cos_cos_slow.
+  apply cos_slow_correct.
+Qed.
+
+Instance Setoid_Morphism_cos : Setoid_Morphism cos.
+Proof.
+  constructor; try apply st_isSetoid.
+  intros a b Heq.
+  rewrite cos_cos_slow, cos_cos_slow.
+  rewrite Heq.
+  reflexivity.
+Qed.
+
+
+Lemma cos_correct_CR : ∀ θ,
+  CRasIR (cos θ) = (PowerSeries.Cos (CRasIR θ)).
+Proof.
+  intros θ. apply (injective IRasCR). rewrite cos_correct.
+  rewrite CRasIRasCR_id,CRasIRasCR_id. reflexivity.
+Qed.
+
+Lemma  sin_sin_slow : forall x, sin x = sin_slow x.
+Proof.
+  intros x.
+  unfold sin.
+  generalize (Qround.Qceiling (approximate (x * CRinv_pos (6 # 1) (scale 2 CRpi))
+   (1 # 2)%Qpos - (1 # 2)))%CR.
+  intros z.
+  rewrite -> compress_correct.
+  rewrite <- (CRasIRasCR_id x).
+  rewrite <- CRpi_correct, <- CRmult_scale, <- IR_inj_Q_as_CR, <- IR_mult_as_CR,
+   <- IR_minus_as_CR, <- sin_slow_correct, <- sin_slow_correct.
+  remember (CRasIR x) as y.
+  clear dependent x. rename y into x.
+  apply IRasCR_wd.
+  rewrite -> inj_Q_mult.
+  change (2:Q) with (Two:Q).
+  rewrite -> inj_Q_nring.
+  symmetry.
+  rstepr (Sin (x[+]([--](inj_Q IR z))[*](Two[*]Pi))).
+  setoid_replace (inj_Q IR z) with (zring z:IR).
+  rewrite <- zring_inv.
+  symmetry; apply Sin_periodic_Z.
+  rewrite <- inj_Q_zring.
+  apply inj_Q_wd.
+  symmetry; apply zring_Q.
+Qed.
+
+Lemma sin_correct : forall x,
+  (IRasCR (Sin x) == sin (IRasCR x))%CR.
+Proof.
+  intros x.
+  rewrite sin_sin_slow.
+  apply sin_slow_correct.
+Qed.
+
+
+Instance Setoid_Morphism_sin : Setoid_Morphism sin.
+Proof.
+  constructor; try apply st_isSetoid.
+  intros a b Heq.
+  rewrite sin_sin_slow, sin_sin_slow.
+  rewrite Heq.
+  reflexivity.
+Qed.
+
+Lemma sin_correct_CR : ∀ θ,
+  CRasIR (sin θ) = (PowerSeries.Sin (CRasIR θ)).
+Proof.
+  intros θ. apply (injective IRasCR). rewrite sin_correct.
+  rewrite CRasIRasCR_id,CRasIRasCR_id. reflexivity.
+Qed.
+Hint Rewrite sin_correct_CR cos_correct_CR : CRtoIR.
+
 Lemma CR_Cos_HalfPi : (cos (CRpi * ' (1 # 2)) = 0 )%CR.
 Proof.
   pose proof (Pi.Cos_HalfPi) as Hc.
@@ -274,20 +379,6 @@ Proof.
   apply CRPiBy2Correct.
 Qed.
 
-Lemma CRCos_inv : forall x, (cos (-x) = cos x )%CR.
-Proof.
-  intros. rewrite <- cos_correct_CR, <- cos_correct_CR.
-  apply IRasCR_wd.
-  rewrite <- SinCos.Cos_inv.
-  apply SinCos.Cos_wd.
-  
-  pose proof (Pi.Cos_HalfPi) as Hc.
-  apply IRasCR_wd in Hc.
-  autorewrite with IRtoCR in Hc.
-  rewrite <-  CRasIR_inv.
-  apply CRasIR_wd.
-  ring.
-Qed.
 
 
 Lemma CR_Cos_Neg_HalfPi : (cos (CRpi * ' (-1 # 2)) = 0 )%CR.
@@ -302,6 +393,7 @@ Proof.
   intros.  CRRing. 
 Qed.
 
+
 Lemma CR_Sin_HalfPi : (sin (CRpi * ' (1 # 2)) = 1 )%CR.
 Proof.
   pose proof (Pi.Sin_HalfPi) as Hc.
@@ -314,20 +406,14 @@ Qed.
 
 Lemma CRSin_inv : forall x, (sin (-x) = - sin x )%CR.
 Proof.
-  intros. rewrite <- sin_correct_CR, <- sin_correct_CR.
-  rewrite <- IR_opp_as_CR.
-  apply IRasCR_wd.
-  rewrite <- SinCos.Sin_inv.
-  apply SinCos.Sin_wd.
-  
-  pose proof (Pi.Cos_HalfPi) as Hc.
-  apply IRasCR_wd in Hc.
-  autorewrite with IRtoCR in Hc.
-  rewrite <-  CRasIR_inv.
-  apply CRasIR_wd.
-  ring.
+  intros. apply (injective CRasIR).
+  rewrite sin_correct_CR.
+  rewrite  CRasIR_inv, CRasIR_inv.
+  rewrite SinCos.Sin_inv.
+  rewrite sin_correct_CR.
+  apply csf_fun_wd.
+  reflexivity.
 Qed.
-
 
 (*Lemma CREqOpp: forall a b : CR,
   -a = -b -> a = b.
@@ -386,19 +472,6 @@ Lemma CRSin_plus_Pi: ∀ θ : CR, sin (θ + π) = (- sin θ).
 Qed.
 
 
-Lemma sin_correct_CR : ∀ θ,
-  CRasIR (sin θ) = (PowerSeries.Sin (CRasIR θ)).
-Proof.
-  intros θ. apply (injective IRasCR). rewrite sin_correct.
-  rewrite CRasIRasCR_id,CRasIRasCR_id. reflexivity.
-Qed.
-
-Lemma cos_correct_CR : ∀ θ,
-  CRasIR (cos θ) = (PowerSeries.Cos (CRasIR θ)).
-Proof.
-  intros θ. apply (injective IRasCR). rewrite cos_correct.
-  rewrite CRasIRasCR_id,CRasIRasCR_id. reflexivity.
-Qed.
 
 Lemma arctan_correct_CR : ∀ θ,
   CRasIR (arctan θ) = (ArcTan (CRasIR θ)).
@@ -407,7 +480,6 @@ Proof.
   rewrite CRasIRasCR_id,CRasIRasCR_id. reflexivity.
 Qed.
 
-Hint Rewrite sin_correct_CR cos_correct_CR : CRtoIR.
 
 (** One could also divide [π] by 2. However,
     division seems to be annoyingly difficult to deal with.
