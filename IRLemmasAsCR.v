@@ -399,6 +399,31 @@ Qed.
 
 Require Export CoRN.reals.R_morphism.
 
+Lemma IRasCR_preserves_less : forall x y, (x[<]y -> IRasCR x < IRasCR y)%CR.
+Proof.
+ intros x y H.
+  pose proof (iso_map_rht _ _ CRIR_iso).
+  simpl. 
+  apply (map_pres_less _ _  (iso_map_rht _ _ CRIR_iso)) in H.
+  simpl in H.
+  exact H.
+Qed.
+
+Lemma  CRltT_wdl : ∀ x1 x2 y : CR,
+       x1 = x2  → (x1 < y)%CR → (x2 < y)%CR.
+Proof.
+  intros ? ? ? Heq.
+  apply CRltT_wd; auto.
+  reflexivity.
+Qed.
+
+Lemma  CRltT_wdr : ∀ x1 x2 y : CR,
+       x1 = x2  → (y < x1)%CR → (y < x2)%CR.
+Proof.
+  intros ? ? ? Heq.
+  apply CRltT_wd; auto.
+  reflexivity.
+Qed.
 
 
 Lemma CRarctan_range:
