@@ -150,16 +150,21 @@ Proof.
 Qed.
 
 
-Lemma  OnePlusSqrPos : forall r:CR, (1 + r ^ 2) ≶ 0.
+Lemma  OnePlusSqrPos : forall r:CR, 0 < (1 + r ^ 2).
 Proof.
   intros.
-  symmetry.
-  apply orders.lt_iff_le_apart.
   apply semirings.pos_plus_le_lt_compat_l; auto.
   simpl. apply semirings.lt_0_1.
   apply CR_leEq_as_IR.
   autorewrite with CRtoIR.
   apply sqr_nonneg.
+Qed.
+
+Lemma  OnePlusSqrAp : forall r:CR, (1 + r ^ 2) ≶ 0.
+Proof.
+  intros. symmetry.
+  apply orders.lt_iff_le_apart.
+  apply OnePlusSqrPos.
 Qed.
 
 Ltac prepareForCRRing := 
@@ -620,13 +625,13 @@ Definition mkCr0' (a : CR) (ap : (a ≶ 0)%CR)  : CR ₀ :=
    (a ↾ ap).
 
 Lemma sqr_o_cos_o_arctan2 : forall r,
-    (cos (arctan r)) ^2 = (1 //(mkCr0' (1 + r^2) (OnePlusSqrPos _))).
+    (cos (arctan r)) ^2 = (1 //(mkCr0' (1 + r^2) (OnePlusSqrAp _))).
 Proof.
   intros. apply sqr_o_cos_o_arctan.
 Qed.
 
 Lemma sqr_o_sin_o_arctan2 : forall r,
-    (sin (arctan r)) ^2 = (r^2 //(mkCr0' (1 + r^2) (OnePlusSqrPos _))).
+    (sin (arctan r)) ^2 = (r^2 //(mkCr0' (1 + r^2) (OnePlusSqrAp _))).
 Proof.
   intros. apply sqr_o_sin_o_arctan.
 Qed.
@@ -676,3 +681,124 @@ Proof.
     [| symmetry; apply MinusCRPiBy2Correct].
   assumption.
 Qed.
+
+Lemma CRweakenLt :
+  ∀ a t: CR, a < t -> a ≤ t.
+Proof.
+  intros ? ? Hlt.
+  apply orders.full_pseudo_srorder_le_iff_not_lt_flip.
+  intros Hc.
+  pose proof (conj Hc Hlt) as Hr.
+  apply orders.pseudo_order_antisym in Hr.
+  assumption.
+Qed.
+
+Hint Resolve CRweakenLt : CRBasics.
+
+
+Lemma CRweakenRange :
+  ∀ a t b: CR,
+    a < t < b
+    -> a ≤ t ≤ b.
+Proof.
+  intros ? ? ? Hr.
+  destruct Hr.
+  split; eauto using CRweakenLt.
+Qed.
+
+
+
+Lemma CRMult00Eq0 : (0 * 0 = 0)%CR.
+Proof.
+  CRRing.
+Qed.
+
+(** A and B can be different, e.g. rational_sqrt *)
+Class SqrtFun (A B : Type) := sqrtFun : A -> B.
+Notation "√" := sqrtFun.
+Instance CRsqrt_SqrtFun_instance : SqrtFun CR CR := CRsqrt.
+Instance rational_sqrt_SqrtFun_instance : SqrtFun Q CR 
+    := rational_sqrt.
+
+Lemma CRsqrt0 : (√0 = 0)%CR.
+Proof.
+  rewrite <- CRMult00Eq0.
+  apply CRsqrt_ofsqr_nonpos.
+  reflexivity.
+Qed.
+
+Lemma CRsqrt_nonneg: 
+    ∀ (x : CR),  0 ≤ x -> 0 ≤ √x.
+Proof.
+  intros x Hle.
+  apply CR_leEq_as_IR in Hle.
+  autorewrite with CRtoIR in Hle.
+  pose proof (sqrt_nonneg (CRasIR x) Hle) as Hir.
+  apply IR_leEq_as_CR in Hir.
+  autorewrite with IRtoCR in Hir.
+  rewrite CRasIRasCR_id in Hir.
+  exact Hir.
+Qed.
+
+Lemma CRrational_sqrt_nonneg: 
+    ∀ (x : Q), 0 ≤ √x.
+Proof.
+  intros x.
+  destruct (decide (0 < x)) as [Hdec | Hdec].
+- rewrite <- CRsqrt_Qsqrt.
+  apply CRsqrt_nonneg.
+  apply CRweakenLt.
+  apply CR_lt_ltT.
+  apply  CRlt_Qlt. assumption.
+- apply orders.full_pseudo_srorder_le_iff_not_lt_flip in Hdec.
+  rewrite rational_sqrt_nonpos;
+    [reflexivity|assumption].
+Qed.
+
+(* using [mult_eq_zero] will result in a lemma
+    where [a+b] needs to be strictly positive *)
+Lemma SqrEqIfEqAndPos :forall (a b : CR),
+  0 ≤ a ->   0 ≤ b   ->   a * a = b * b  -> a = b.
+Proof.
+  intros ? ? ? ?.
+Abort.
+
+
+
+Lemma cos_o_arctan_nonneg: ∀ r : CR,  0 ≤ cos (arctan r).
+Proof.
+  intros ?.
+  apply CRCos_nonneg.
+  apply CRweakenRange.
+  apply CRarctan_range.
+Qed.
+
+Lemma CRsqrt_resp_less :
+∀ (x y : CR), 0 ≤ x  → 0 ≤ y   → x < y → √x < √y.
+Proof.
+  intros ? ?.
+  pose proof (sqrt_resp_less (CRasIR x) (CRasIR y)) as Hir.
+  intros Hx Hy Hxy.
+  apply CR_leEq_as_IR in Hx.
+  apply CR_leEq_as_IR in Hy.
+  autorewrite with CRtoIR in Hy, Hx.
+  specialize (Hir Hx Hy).
+Abort.
+  
+  
+Lemma  SqrtOnePlusSqrPos : 
+    ∀ r:CR, 0 < √(1 + r ^ 2).
+Proof.
+  intros.
+Abort.
+
+
+Lemma  SqrtOnePlusSqrAp : forall r:CR, 
+    (CRsqrt (1 + r ^ 2)) ≶ 0.
+Proof.
+Abort.
+
+Lemma cos_o_arctan : forall r,
+    (√(1 + r^2)) * (cos (arctan r)) = 1.
+Proof.
+Abort.
