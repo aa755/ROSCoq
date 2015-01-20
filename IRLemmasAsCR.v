@@ -149,15 +149,20 @@ Proof.
   apply strong_setoids.apart_proper; auto.
 Qed.
 
-
-Lemma  OnePlusSqrPos : forall r:CR, 0 < (1 + r ^ 2).
+Lemma CRsqr_nonneg : forall r, 0 ≤ r ^ 2.
 Proof.
-  intros.
-  apply semirings.pos_plus_le_lt_compat_l; auto.
-  simpl. apply semirings.lt_0_1.
+  intros r.
   apply CR_leEq_as_IR.
   autorewrite with CRtoIR.
   apply sqr_nonneg.
+Qed.
+  
+Lemma  OnePlusSqrPos : forall r:CR, 0 < (1 + r ^ 2).
+Proof.
+  intros.
+  apply semirings.pos_plus_le_lt_compat_l; auto;
+    [simpl; apply semirings.lt_0_1 |].
+  apply CRsqr_nonneg.
 Qed.
 
 Lemma  OnePlusSqrAp : forall r:CR, (1 + r ^ 2) ≶ 0.
@@ -1009,3 +1014,111 @@ Abort.
 Lemma CRsqrt_mult:
   ∀ (x y : CR),  0 ≤ x → 0 ≤ y → 
   CRsqrt(x*y) = (CRsqrt x) * (CRsqrt y).
+Proof.
+  intros x ? Hx Hy.
+  apply CR_leEq_as_IR in Hx.
+  apply CR_leEq_as_IR in Hy.
+  autorewrite with CRtoIR in Hx.
+  autorewrite with CRtoIR in Hy.
+  pose proof (sqrt_mult (CRasIR x) (CRasIR y) Hx Hy 
+        (mult_resp_nonneg _ _ _ Hx Hy)) as Hir.
+  apply IRasCR_wd in Hir.
+  autorewrite with IRtoCR in Hir.
+  rewrite CRasIRasCR_id in Hir.
+  rewrite CRasIRasCR_id in Hir.
+  exact Hir.
+Qed.
+
+
+Lemma CRsqrt_sqr:
+  ∀ (x : CR), 
+  0 ≤ x
+  -> (CRsqrt x)^2 = x.
+Proof.
+  intros x Hx.
+  apply CR_leEq_as_IR in Hx.
+  autorewrite with CRtoIR in Hx.
+  pose proof (sqrt_sqr (CRasIR x) Hx) as Hir.
+  apply IRasCR_wd in Hir.
+  autorewrite with IRtoCR in Hir.
+  rewrite CRasIRasCR_id in Hir.
+  exact Hir.
+Qed.
+
+Lemma CRsqrt_sqr1:
+  ∀ (x y : CR), (CRsqrt (x^2 + y^2)) ^ 2 = (x^2 + y^2).
+Proof.
+  intros.
+  apply CRsqrt_sqr.
+  apply semirings.nonneg_plus_compat; unfold PropHolds;
+  apply CRsqr_nonneg.
+Qed.
+
+Hint Rewrite <- CRplus_Qplus CRmult_Qmult  : MoveInjQCRIn.
+
+
+Lemma CRPowOfRational : ∀ (q:Q) (n:nat),
+   (inject_Q_CR q) ^ n = '(q ^ n).
+Proof.
+  intros ? ?. idtac. unfold pow. 
+  induction n;[reflexivity|].
+  unfoldMC. simpl.
+  autorewrite with MoveInjQCRIn.
+  rewrite IHn.
+  reflexivity.
+Qed.
+
+Ltac foldZeroMC :=
+match goal with
+  [|- context [N0]] =>   fold (stdlib_binary_naturals.N_0);
+        fold (@zero N stdlib_binary_naturals.N_0)
+end.
+
+Ltac foldOneMC :=
+match goal with
+  [|- context [1%N]] =>   fold (stdlib_binary_naturals.N_1);
+        fold (@one N stdlib_binary_naturals.N_1)
+end.
+
+Ltac foldPlusMC :=
+match goal with
+  [|- context [(?a+?b)%N]] =>   fold (stdlib_binary_naturals.N_plus a b);
+        fold (@plus N stdlib_binary_naturals.N_plus a b)
+end.
+
+Lemma CRPowOfRationalN : ∀ (q:Q) (n:N),
+   (inject_Q_CR q) ^ n = '(q ^ n).
+Proof.
+  intros ? ?. idtac.
+  induction n using N.peano_ind;
+    [foldZeroMC;rewrite nat_pow_0; reflexivity|].
+  rewrite <- N.add_1_l. foldOneMC. 
+  foldPlusMC. rewrite nat_pow_S. rewrite nat_pow_S.
+  rewrite IHn.
+  autorewrite with MoveInjQCRIn.
+  reflexivity.
+Qed.
+
+Hint Rewrite <- CRPowOfRational CRPowOfRationalN  : MoveInjQCRIn.
+
+Lemma CRsqrt_sqr1Q:
+  ∀ (x y : Q), (rational_sqrt (x^2 + y^2)) ^ 2 = ' (x^2 + y^2).
+Proof.
+  intros.
+  rewrite <- CRsqrt_Qsqrt. 
+  rewrite  CRsqrt_sqr;[reflexivity|].
+  apply CRle_Qle.
+  pose proof (Qpower.Qsqr_nonneg x) as Hx.
+  pose proof (Qpower.Qsqr_nonneg y) as Hy.
+  lra.
+Qed.
+
+
+Lemma CRsqrt_sqr1Q1:
+  ∀ (x y : Q), (rational_sqrt (x^2 + y^2)) * (rational_sqrt (x^2 + y^2)) 
+      = ' (x^2 + y^2).
+Proof.
+  intros.
+  rewrite <- CRpower_N_2. 
+  simpl. apply CRsqrt_sqr1Q.
+Qed.
