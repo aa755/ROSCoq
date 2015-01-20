@@ -6,10 +6,10 @@ Require Export CoRN.reals.fast.CRtrans.
 Require Export Coq.Program.Tactics.
 Require Export MathClasses.interfaces.canonical_names.
 Require Export MathClasses.misc.decision.
-
+Require Export IRLemmasAsCR.
 
 Definition QSignHalf (q: Q) : Q :=
-  if (decide (q < 0)) then ((-1)#2) else (1#2).
+  if (decide (q < 0)) then (-½) else (½).
 
 Require Export Vector.
 Local Notation yes := left.
@@ -24,7 +24,7 @@ match (decide ((X cart) = 0)) with
 end.
 
 Definition polarRad (cart : Cart2D Q) : CR :=
-  rational_sqrt ((X cart) * (X cart) +  (Y cart) * (Y cart)).
+  (√((X cart) * (X cart) +  (Y cart) * (Y cart)))%Q.
 
 Definition Cart2Polar (cart :Cart2D Q) : Polar2D CR :=
   {|rad := polarRad cart 
@@ -76,7 +76,6 @@ Instance castCart `{Cast A B} : Cast (Cart2D A) (Cart2D B) :=
 Instance EquivCart  `{Equiv A} : Equiv (Cart2D A) :=
 fun ca cb => (X ca = X cb /\ Y ca = Y cb).
 
-Require Export IRLemmasAsCR.
 Require Import Coq.QArith.Qfield.
 Require Import Coq.QArith.Qring.
 Require Import Psatz.
@@ -103,7 +102,33 @@ Proof.
   split; CRRing.
 - destruct (decide (cx < 0)) as [HcxNeg | HcxNeg].
   + rewrite  CRCos_plus_Pi,  CRSin_plus_Pi. admit.
-  + split.
+  + apply orders.full_pseudo_srorder_le_iff_not_lt_flip in HcxNeg.
+    apply CRle_Qle in HcxNeg.
+    split.
+    * rewrite <- arctan_Qarctan. apply EqIfSqrEqNonNeg; trivial;
+        [apply orders.nonneg_mult_compat; unfold PropHolds;
+          eauto using CRrational_sqrt_nonneg, cos_o_arctan_nonneg; fail|].
+Lemma sqrProdRW : forall c d : CR , d * c * (d * c) = (d*d)*(c*c).
+Proof.
+  intros c d. CRRing.
+Qed.
+    rewrite sqrProdRW.
+
+match goal with
+  [|- context [√?a]] => remember (√a)%Q as d
+end.
+match goal with
+  [|- context[cos ?x]] => remember (cos x)%Q as c
+end.
+
+
+
+    apply .
+
+Lemma multNonNeg : forall a b,
+  
+      
+
 Abort.
 
 

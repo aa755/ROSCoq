@@ -187,9 +187,24 @@ Proof.
   intros ? ?  H. rewrite H.
   reflexivity.
 Qed.
+(** A and B can be different, e.g. rational_sqrt *)
+Class SqrtFun (A B : Type) := sqrtFun : A -> B.
+Notation "√" := sqrtFun.
+Instance CRsqrt_SqrtFun_instance : SqrtFun CR CR := CRsqrt.
+Instance rational_sqrt_SqrtFun_instance : SqrtFun Q CR 
+    := rational_sqrt.
+
 Ltac QRing_simplify :=
     repeat match goal with
     | [|- context [rational_sqrt ?q]] =>
+          let qq := fresh "qq" in
+          let Heqq := fresh "Heqq" in
+           remember q as qq eqn:Heqq;
+           apply eq_implies_Qeq in Heqq;
+           ring_simplify in Heqq;
+           rewrite Heqq;
+           try (clear Heqq qq)
+    | [|- context [@sqrtFun Q _ _ ?q]] =>
           let qq := fresh "qq" in
           let Heqq := fresh "Heqq" in
            remember q as qq eqn:Heqq;
@@ -379,6 +394,16 @@ Proof.
   apply CRPiBy2Correct.
 Qed.
 
+Lemma CRCos_inv : forall x, (cos (-x) = cos x )%CR.
+Proof.
+  intros. apply (injective CRasIR).
+  rewrite cos_correct_CR, cos_correct_CR.
+  rewrite <- SinCos.Cos_inv.
+  apply SinCos.Cos_wd.
+  rewrite <-  CRasIR_inv.
+  apply CRasIR_wd.
+  ring.
+Qed.
 
 
 Lemma CR_Cos_Neg_HalfPi : (cos (CRpi * ' (-1 # 2)) = 0 )%CR.
@@ -702,6 +727,14 @@ Proof.
   intros. apply sqr_o_cos_o_arctan.
 Qed.
 
+Lemma sqr_o_cos_o_Qarctan : forall (r:Q),
+    (cos (rational_arctan r)) ^2 = ' (1 /(1 + r^2)).
+Proof.
+  intros. rewrite <- arctan_Qarctan.
+  rewrite sqr_o_cos_o_arctan2.
+  idtac. unfold recip. 
+Abort.
+
 Lemma sqr_o_sin_o_arctan2 : forall r,
     (sin (arctan r)) ^2 = (r^2 //(mkCr0' (1 + r^2) (OnePlusSqrAp _))).
 Proof.
@@ -785,12 +818,6 @@ Proof.
   CRRing.
 Qed.
 
-(** A and B can be different, e.g. rational_sqrt *)
-Class SqrtFun (A B : Type) := sqrtFun : A -> B.
-Notation "√" := sqrtFun.
-Instance CRsqrt_SqrtFun_instance : SqrtFun CR CR := CRsqrt.
-Instance rational_sqrt_SqrtFun_instance : SqrtFun Q CR 
-    := rational_sqrt.
 
 Lemma CRsqrt0 : (√0 = 0)%CR.
 Proof.
@@ -827,14 +854,40 @@ Proof.
     [reflexivity|assumption].
 Qed.
 
+Ltac ApplyEq F H :=
+let Hf := fresh H in
+match type of H with
+equiv ?a ?b => assert (equiv (F a)  (F b)) as Hf by (rewrite H; reflexivity);
+    clear H; rename Hf into H
+end.
+
+Tactic Notation  "applyEq" constr(F) "in" ident(H) :=
+ApplyEq F H.
+
+
 (* using [mult_eq_zero] will result in a lemma
     where [a+b] needs to be strictly positive *)
-Lemma SqrEqIfEqAndPos :forall (a b : CR),
+Lemma EqIfSqrEqNonNeg :forall (a b : CR),
   0 ≤ a ->   0 ≤ b   ->   a * a = b * b  -> a = b.
 Proof.
-  intros ? ? ? ?.
-Abort.
+  intros ? ? ? ? Hsq.
+  applyEq CRsqrt in Hsq.
+  rewrite CRsqrt_ofsqr_nonneg in Hsq by assumption.
+  rewrite CRsqrt_ofsqr_nonneg in Hsq by assumption.
+  assumption.
+Qed.
 
+Lemma EqIfSqrEqNonPos :forall (a b : CR),
+  a ≤ 0 ->   b ≤ 0   ->   a * a = b * b  -> a = b.
+Proof.
+  intros ? ? ? ? Hsq.
+  applyEq CRsqrt in Hsq.
+  rewrite CRsqrt_ofsqr_nonpos in Hsq by assumption.
+  rewrite CRsqrt_ofsqr_nonpos in Hsq by assumption.
+  apply (proj2 (CREquiv_st_eq _ _)) in Hsq.
+  apply (injective CRopp) in Hsq.
+  assumption.
+Qed.
 
 
 Lemma cos_o_arctan_nonneg: ∀ r : CR,  0 ≤ cos (arctan r).
