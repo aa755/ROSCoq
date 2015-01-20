@@ -677,6 +677,28 @@ Proof.
   exact Heq.
 Qed.
 
+Lemma CRdivideToMulCRInv: 
+  forall na da dap nb db dbp,
+  na*db = nb*da
+  -> na // da ↾ dap = nb // db ↾ dbp.
+Proof.
+  intros ? ? ? ? ? ? Heq.
+  apply    fields.equal_quotients.
+  simpl.
+  exact Heq.
+Qed.
+
+Lemma CRdivideToMulCRInv2: 
+  forall na da dap nb db dbp,
+  na*db = nb*da
+  -> na * (CRinv (da ↾ dap)) = nb * (CRinv (db ↾ dbp)).
+Proof.
+  intros ? ? ? ? ? ? Heq.
+  apply    fields.equal_quotients.
+  simpl.
+  exact Heq.
+Qed.
+
 Lemma sqr_o_cos_o_arctan : forall r p,
     (cos (arctan r)) ^2 = (1 //((1 + r^2) ↾ p)).
 Proof.
@@ -732,8 +754,64 @@ Lemma sqr_o_cos_o_Qarctan : forall (r:Q),
 Proof.
   intros. rewrite <- arctan_Qarctan.
   rewrite sqr_o_cos_o_arctan2.
-  idtac. unfold recip. 
-Abort.
+  idtac. unfold recip.
+  rewrite <- CRmult_Qmult.
+  rewrite <- CRinv_Qinv.
+  rewrite CRinv_CRinvT.
+  apply CRdivideToMulCRInv2.
+  rewrite CRpower_N_2. 
+  unfold pow, stdlib_rationals.Q_Npow. simpl. 
+  rewrite <- CRplus_Qplus.
+  rewrite <- CRmult_Qmult.
+  reflexivity.
+  Grab Existential Variables.
+  unfold pow, stdlib_rationals.Q_Npow. simpl.
+  stepl (1 + (('r) ^2));
+   [|rewrite <- CRplus_Qplus, <- CRmult_Qmult, 
+          <- CRpower_N_2; reflexivity].
+  apply CR_apart_apartT.
+  apply OnePlusSqrAp.
+Qed.
+
+Ltac unfoldMC :=
+  unfold pow, stdlib_rationals.Q_Npow, plus,
+  one, zero, stdlib_rationals.Q_1, stdlib_rationals.Q_plus,
+  stdlib_binary_naturals.N_plus,
+  stdlib_binary_naturals.N_1,
+  equiv, stdlib_rationals.Q_eq, mult,
+  stdlib_rationals.Q_mult, dec_recip,
+  stdlib_rationals.Q_recip,
+  zero, stdlib_rationals.Q_0. 
+
+
+Lemma QSumOfSqr0Implies : ∀ x y,
+  (x * x + y * y == 0)%Q
+   -> (x==0)%Q.
+Proof.
+  intros ? ? Heq.
+  pose proof (Qpower.Qsqr_nonneg x) as Hx.
+  pose proof (Qpower.Qsqr_nonneg y) as Hy.
+  simpl in Hx, Hy.
+  assert (x * x ==0)%Q as Hx0 by lra.
+  clear Hx Hy.
+  apply Qmult_integral in Hx0.
+  tauto.
+Qed.
+  
+(* useful for conversion from 
+    cartesian to polar co-ordinates*)
+Lemma sqr_o_cos_o_Qarctan_o_div : forall (x y :Q),
+    x ≠ 0
+    -> (cos (rational_arctan (y/x))) ^2 = ' (x^2 /(x^2 + y^2)).
+Proof.
+  intros ? ? H. rewrite sqr_o_cos_o_Qarctan.
+  apply inject_Q_CR_wd.
+  unfoldMC. simpl.
+  field. split; auto.
+  intros Hc. apply H.
+  apply QSumOfSqr0Implies in Hc.
+  assumption.
+Qed.
 
 Lemma sqr_o_sin_o_arctan2 : forall r,
     (sin (arctan r)) ^2 = (r^2 //(mkCr0' (1 + r^2) (OnePlusSqrAp _))).
@@ -927,3 +1005,7 @@ Lemma cos_o_arctan : forall r,
     (√(1 + r^2)) * (cos (arctan r)) = 1.
 Proof.
 Abort.
+
+Lemma CRsqrt_mult:
+  ∀ (x y : CR),  0 ≤ x → 0 ≤ y → 
+  CRsqrt(x*y) = (CRsqrt x) * (CRsqrt y).

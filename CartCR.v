@@ -112,7 +112,21 @@ Lemma sqrProdRW : forall c d : CR , d * c * (d * c) = (d*d)*(c*c).
 Proof.
   intros c d. CRRing.
 Qed.
+Require Import  MathClasses.interfaces.additional_operations.
     rewrite sqrProdRW.
+    symmetry.
+    
+    rewrite rings.mult_comm.
+    rewrite <- CRpower_N_2. 
+
+    rewrite  arctan_Qarctan.
+    unfold recip, dec_fields.recip_dec_field, dec_recip,
+      stdlib_rationals.Q_recip, mult, stdlib_rationals.Q_mult.
+      simpl. idtac. fold (Qdiv cy cx).
+    rewrite sqr_o_cos_o_Qarctan_o_div;[|assumption].
+    
+
+
 
 match goal with
   [|- context [√?a]] => remember (√a)%Q as d
