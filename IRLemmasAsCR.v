@@ -786,7 +786,10 @@ Ltac unfoldMC :=
   equiv, stdlib_rationals.Q_eq, mult,
   stdlib_rationals.Q_mult, dec_recip,
   stdlib_rationals.Q_recip,
-  zero, stdlib_rationals.Q_0. 
+  zero, stdlib_rationals.Q_0,
+  le, stdlib_rationals.Q_le,
+  lt, stdlib_rationals.Q_lt.
+
 
 
 Lemma QSumOfSqr0Implies : ∀ x y,
@@ -1121,4 +1124,40 @@ Proof.
   intros.
   rewrite <- CRpower_N_2. 
   simpl. apply CRsqrt_sqr1Q.
+Qed.
+
+Lemma sqrProdRW : forall c d : CR , d * c * (d * c) = (d*d)*(c*c).
+Proof.
+  intros c d. CRRing.
+Qed.
+Require Import  MathClasses.interfaces.additional_operations.
+Hint Rewrite  CRplus_Qplus CRmult_Qmult  : MoveInjQCROut.
+
+Lemma cos_o_arctan_xpos: ∀ (cy cx : Q), 
+    (0 < cx)%Q
+    → 'cx = √ (cx * cx + cy * cy)%Q * cos (rational_arctan (cy/cx)).
+Proof.
+  intros ? ? Hcx. assert (0 ≤ cx ) as Hle by (unfoldMC; lra).
+  apply CRle_Qle in Hle.
+  rewrite <- arctan_Qarctan. apply EqIfSqrEqNonNeg; trivial;
+        [apply orders.nonneg_mult_compat; unfold PropHolds;
+          eauto using CRrational_sqrt_nonneg, cos_o_arctan_nonneg; fail|].
+  rewrite sqrProdRW.
+  symmetry.
+  rewrite rings.mult_comm.
+  rewrite <- CRpower_N_2. 
+  rewrite  arctan_Qarctan.
+  unfold recip, dec_fields.recip_dec_field, dec_recip,
+    stdlib_rationals.Q_recip, mult, stdlib_rationals.Q_mult.
+    simpl. idtac. fold (Qdiv cy cx).
+  assert ((cx ≠ 0 )) as Hneq by (unfoldMC; lra).
+  rewrite sqr_o_cos_o_Qarctan_o_div;[|assumption].
+  unfold sqrtFun, rational_sqrt_SqrtFun_instance.
+  let rs := eval simpl in (CRsqrt_sqr1Q1 cx cy) in rewrite rs.
+  autorewrite with MoveInjQCROut.
+  apply inject_Q_CR_wd.
+  unfoldMC. simpl. 
+  field.
+  intro Hc. apply Hneq.
+  apply QSumOfSqr0Implies in Hc. assumption.
 Qed.

@@ -16,12 +16,12 @@ Local Notation yes := left.
 Local Notation no := right.
 
 Definition polarTheta (cart :Cart2D Q) : CR :=
-match (decide ((X cart) = 0)) with
-| yes _ => CRpi * ' QSignHalf (Y cart)
-| no Hdec =>
-    let angle := (rational_arctan (Y cart // (X cart ↾ Hdec))) in
-    if decide (X cart < 0) then angle + CRpi else angle
-end.
+  if (decide ((X cart) = 0)) 
+    then
+      CRpi * ' QSignHalf (Y cart)
+    else
+      let angle := (rational_arctan (Y cart / (X cart))) in
+      if decide (X cart < 0) then angle + CRpi else angle.
 
 Definition polarRad (cart : Cart2D Q) : CR :=
   (√((X cart) * (X cart) +  (Y cart) * (Y cart)))%Q.
@@ -80,12 +80,6 @@ Require Import Coq.QArith.Qfield.
 Require Import Coq.QArith.Qring.
 Require Import Psatz.
 
-Lemma sqrProdRW : forall c d : CR , d * c * (d * c) = (d*d)*(c*c).
-Proof.
-  intros c d. CRRing.
-Qed.
-Require Import  MathClasses.interfaces.additional_operations.
-Hint Rewrite  CRplus_Qplus CRmult_Qmult  : MoveInjQCROut.
 
 (** lets first port lemmas about IR sin cos
     to a separate file and then use them separately here *)
@@ -107,29 +101,11 @@ Proof.
   prepareForCRRing; try rewrite (morph_opp QCRM);
   split; CRRing.
 - destruct (decide (cx < 0)) as [HcxNeg | HcxNeg].
-  + rewrite  CRCos_plus_Pi,  CRSin_plus_Pi. admit.
+  + rewrite  CRCos_plus_Pi,  CRSin_plus_Pi. 
   + apply orders.full_pseudo_srorder_le_iff_not_lt_flip in HcxNeg.
     apply CRle_Qle in HcxNeg.
     split.
-    * rewrite <- arctan_Qarctan. apply EqIfSqrEqNonNeg; trivial;
-        [apply orders.nonneg_mult_compat; unfold PropHolds;
-          eauto using CRrational_sqrt_nonneg, cos_o_arctan_nonneg; fail|].
-      rewrite sqrProdRW.
-      symmetry.
-      rewrite rings.mult_comm.
-      rewrite <- CRpower_N_2. 
-      rewrite  arctan_Qarctan.
-      unfold recip, dec_fields.recip_dec_field, dec_recip,
-        stdlib_rationals.Q_recip, mult, stdlib_rationals.Q_mult.
-        simpl. idtac. fold (Qdiv cy cx).
-      rewrite sqr_o_cos_o_Qarctan_o_div;[|assumption].
-      unfold sqrtFun, rational_sqrt_SqrtFun_instance.
-      let rs := eval simpl in (CRsqrt_sqr1Q1 cx cy) in rewrite rs.
-      autorewrite with MoveInjQCROut.
-      apply inject_Q_CR_wd.
-      unfoldMC. simpl. 
-      field.
-      intro Hc. apply Hcx0.
-      apply QSumOfSqr0Implies in Hc. assumption.
+    * apply  cos_o_arctan_xpos. apply CRle_Qle in HcxNeg. revert Hcx0 HcxNeg.
+      unfoldMC. intros. lra.
     * admit.
 Qed.
