@@ -101,7 +101,9 @@ Proof.
   prepareForCRRing; try rewrite (morph_opp QCRM);
   split; CRRing.
 - destruct (decide (cx < 0)) as [HcxNeg | HcxNeg].
-  + rewrite  CRCos_plus_Pi,  CRSin_plus_Pi. 
+  + rewrite  CRCos_plus_Pi,  CRSin_plus_Pi. split;
+    [apply cos_o_arctan_xneg; trivial|].
+    admit.
   + apply orders.full_pseudo_srorder_le_iff_not_lt_flip in HcxNeg.
     apply CRle_Qle in HcxNeg.
     split.

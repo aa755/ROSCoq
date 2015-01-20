@@ -788,7 +788,8 @@ Ltac unfoldMC :=
   stdlib_rationals.Q_recip,
   zero, stdlib_rationals.Q_0,
   le, stdlib_rationals.Q_le,
-  lt, stdlib_rationals.Q_lt.
+  lt, stdlib_rationals.Q_lt,
+  canonical_names.negate, stdlib_rationals.Q_opp.
 
 
 
@@ -1131,7 +1132,7 @@ Proof.
   intros c d. CRRing.
 Qed.
 Require Import  MathClasses.interfaces.additional_operations.
-Hint Rewrite  CRplus_Qplus CRmult_Qmult  : MoveInjQCROut.
+Hint Rewrite  CRplus_Qplus CRmult_Qmult CRopp_Qopp : MoveInjQCROut.
 
 Lemma cos_o_arctan_xpos: ∀ (cy cx : Q), 
     (0 < cx)%Q
@@ -1160,4 +1161,30 @@ Proof.
   field.
   intro Hc. apply Hneq.
   apply QSumOfSqr0Implies in Hc. assumption.
+Qed.
+
+Lemma QdivNegCancel : forall cx cy: Q,
+  (cx ≠ 0)
+  -> (- cy / - cx)%Q = (cy / cx)%Q.
+Proof.
+  intros ? ? H. unfoldMC.  idtac. idtac.
+  field. exact H.
+Qed.
+  
+Lemma cos_o_arctan_xneg: ∀ (cy cx : Q), 
+  (cx < 0)%Q
+  → ' cx = √ (cx * cx + cy * cy)%Q * - cos (rational_arctan (cy / cx)).
+Proof.
+  intros  ? ? Hneg.
+  assert (0 < (-cx))%Q as Hpos by lra.
+  assert (cx ≠ 0) as Hneq by (unfoldMC; lra).
+  pose proof (cos_o_arctan_xpos (-cy) (-cx) Hpos) as Hp.
+  idtac. rewrite QdivNegCancel in Hp by assumption.
+  assert ((- cx * - cx + - cy * - cy)%Q = (cx * cx + cy * cy)%Q ) as Heq by 
+    (unfoldMC; field).
+  rewrite Heq in Hp. clear Heq.
+  rewrite <- CRopp_Qopp in Hp.
+  apply (injective CRopp).
+  rewrite Hp.
+  unfoldMC. ring.
 Qed.
