@@ -778,6 +778,7 @@ Proof.
   apply OnePlusSqrAp.
 Qed.
 
+
 Ltac unfoldMC :=
   unfold pow, stdlib_rationals.Q_Npow, plus,
   one, zero, stdlib_rationals.Q_1, stdlib_rationals.Q_plus,
@@ -826,6 +827,45 @@ Lemma sqr_o_sin_o_arctan2 : forall r,
     (sin (arctan r)) ^2 = (r^2 //(mkCr0' (1 + r^2) (OnePlusSqrAp _))).
 Proof.
   intros. apply sqr_o_sin_o_arctan.
+Qed.
+
+Lemma sqr_o_sin_o_Qarctan : forall (r:Q),
+    (sin (rational_arctan r)) ^2 = ' (r^2 /(1 + r^2)).
+Proof.
+  intros. rewrite <- arctan_Qarctan.
+  rewrite sqr_o_sin_o_arctan2.
+  idtac. unfold recip.
+  rewrite <- CRmult_Qmult.
+  rewrite <- CRinv_Qinv.
+  rewrite CRinv_CRinvT.
+  apply CRdivideToMulCRInv2.
+  rewrite CRpower_N_2. 
+  unfold pow, stdlib_rationals.Q_Npow. simpl. 
+  rewrite <- CRplus_Qplus.
+  rewrite <- CRmult_Qmult.
+  reflexivity.
+  Grab Existential Variables.
+  unfold pow, stdlib_rationals.Q_Npow. simpl.
+  stepl (1 + (('r) ^2));
+   [|rewrite <- CRplus_Qplus, <- CRmult_Qmult, 
+          <- CRpower_N_2; reflexivity].
+  apply CR_apart_apartT.
+  apply OnePlusSqrAp.
+Qed.
+
+(* useful for conversion from 
+    cartesian to polar co-ordinates*)
+Lemma sqr_o_sin_o_Qarctan_o_div : forall (x y :Q),
+    x ≠ 0
+    -> (sin (rational_arctan (y/x))) ^2 = ' (y^2 /(x^2 + y^2)).
+Proof.
+  intros ? ? H. rewrite sqr_o_sin_o_Qarctan.
+  apply inject_Q_CR_wd.
+  unfoldMC. simpl.
+  field. split; auto.
+  intros Hc. apply H.
+  apply QSumOfSqr0Implies in Hc.
+  assumption.
 Qed.
 
 Lemma CRCos_nonneg:
@@ -1162,6 +1202,79 @@ Proof.
   intro Hc. apply Hneq.
   apply QSumOfSqr0Implies in Hc. assumption.
 Qed.
+
+Lemma CRSin_nonneg:
+  ∀ θ, 0 ≤ θ ≤  π   → 0 ≤ sin θ.
+Proof.
+  intros ? Hp. destruct Hp as [Hpt Htp].
+  pose proof (Sin_nonneg (CRasIR θ)) as Hir.
+  apply CR_leEq_as_IR.
+  autorewrite with CRtoIR.
+  apply Hir;
+  apply IR_leEq_as_CR;
+  rewrite CRasIRasCR_id;
+  autorewrite with IRtoCR; assumption.
+Qed.
+
+Hint Rewrite <- CRasIR0 : CRtoIR.
+
+Lemma CRArcTan_zero: arctan 0 = 0.
+Proof.
+  pose proof (ArcTan_zero) as HH.
+  apply (injective CRasIR).
+  rewrite arctan_correct_CR.
+  match goal with
+  | [|-?l = ?r] => remember l
+  end.
+  rewrite CRasIR0.
+  rewrite <- HH.
+  subst.
+  apply ArcTan_wd.
+  apply CRasIR0.
+Qed.
+
+Lemma CRArcTan_resp_leEq : ∀ x y, x ≤ y -> arctan x ≤ arctan y.
+Proof.
+  intros ? ? Hless.
+  apply CR_leEq_as_IR in Hless.
+  pose proof (ArcTan_resp_leEq (CRasIR x) (CRasIR y) Hless) as Hir.
+  apply IR_leEq_as_CR in Hir.
+  autorewrite with IRtoCR in Hir.
+  rewrite CRasIRasCR_id in Hir.
+  rewrite CRasIRasCR_id in Hir.
+  assumption.
+Qed.
+
+(*
+Lemma sin_o_arctan_xynonneg: ∀ (cy cx : Q), 
+    (0 ≤ cy)%Q
+    → 'cy = √ (cx * cx + cy * cy)%Q * sin (rational_arctan (cy/cx)).
+Proof.
+  intros ? ? Hle. 
+  apply CRle_Qle in Hle.
+  rewrite <- arctan_Qarctan. apply EqIfSqrEqNonNeg; trivial;
+        [apply orders.nonneg_mult_compat; unfold PropHolds;
+          eauto using CRrational_sqrt_nonneg, cos_o_arctan_nonneg; fail|].
+  rewrite sqrProdRW.
+  symmetry.
+  rewrite rings.mult_comm.
+  rewrite <- CRpower_N_2. 
+  rewrite  arctan_Qarctan.
+  unfold recip, dec_fields.recip_dec_field, dec_recip,
+    stdlib_rationals.Q_recip, mult, stdlib_rationals.Q_mult.
+    simpl. idtac. fold (Qdiv cy cx).
+  assert ((cx ≠ 0 )) as Hneq by (unfoldMC; lra).
+  rewrite sqr_o_cos_o_Qarctan_o_div;[|assumption].
+  unfold sqrtFun, rational_sqrt_SqrtFun_instance.
+  let rs := eval simpl in (CRsqrt_sqr1Q1 cx cy) in rewrite rs.
+  autorewrite with MoveInjQCROut.
+  apply inject_Q_CR_wd.
+  unfoldMC. simpl. 
+  field.
+  intro Hc. apply Hneq.
+  apply QSumOfSqr0Implies in Hc. assumption.
+Qed.
+*)
 
 Lemma QdivNegCancel : forall cx cy: Q,
   (cx ≠ 0)
