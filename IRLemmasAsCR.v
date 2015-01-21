@@ -1245,16 +1245,47 @@ Proof.
   assumption.
 Qed.
 
-(*
+
+(** a good example of proof by computation *)
+Lemma  PiHalfLt :    (½ * π) < π.
+Proof. 
+  intros. unfold lt, CRlt. exists 10.
+  simpl. vm_compute. reflexivity.
+Qed.
+
+
+Lemma sin_o_arctan_nonneg : ∀ r, 0 ≤ r  →  0 ≤ sin (arctan r).
+Proof.
+  intros r Hle.
+  apply CRSin_nonneg.
+  pose proof (CRarctan_range r) as Harc.
+  destruct Harc as [Harcl Harcr].
+  pose proof (orders.strict_po_trans _ _ _ Harcr PiHalfLt).
+  split;[| apply CRweakenLt; assumption].
+  pose proof (CRArcTan_resp_leEq 0 r Hle) as Hxx.
+  rewrite CRArcTan_zero in Hxx.
+  assumption.
+Qed.
+
+
 Lemma sin_o_arctan_xynonneg: ∀ (cy cx : Q), 
-    (0 ≤ cy)%Q
+    (0 ≤ cy)%Q → (0 < cx)%Q
     → 'cy = √ (cx * cx + cy * cy)%Q * sin (rational_arctan (cy/cx)).
 Proof.
-  intros ? ? Hle. 
-  apply CRle_Qle in Hle.
+  intros ? ? Hy Hx.
+  pose proof Hy as Hyr.
+  pose proof Hx as Hxr.
+  apply CRle_Qle in Hyr.
   rewrite <- arctan_Qarctan. apply EqIfSqrEqNonNeg; trivial;
         [apply orders.nonneg_mult_compat; unfold PropHolds;
-          eauto using CRrational_sqrt_nonneg, cos_o_arctan_nonneg; fail|].
+          eauto using CRrational_sqrt_nonneg;[] |].
+  apply sin_o_arctan_nonneg.
+  apply CRle_Qle. revert Hx Hy. unfoldMC.
+  intros. apply Qmult_le_r with (x:=0%Q) (y:=(cy / cx)%Q) in Hx.
+  apply Hx. rewrite Qmult_0_l, Qmult_comm, Qmult_div_r.
+  assumption; fail.
+  revert Hxr. unfoldMC. lra.
+
   rewrite sqrProdRW.
   symmetry.
   rewrite rings.mult_comm.
@@ -1264,7 +1295,7 @@ Proof.
     stdlib_rationals.Q_recip, mult, stdlib_rationals.Q_mult.
     simpl. idtac. fold (Qdiv cy cx).
   assert ((cx ≠ 0 )) as Hneq by (unfoldMC; lra).
-  rewrite sqr_o_cos_o_Qarctan_o_div;[|assumption].
+  rewrite sqr_o_sin_o_Qarctan_o_div;[|assumption].
   unfold sqrtFun, rational_sqrt_SqrtFun_instance.
   let rs := eval simpl in (CRsqrt_sqr1Q1 cx cy) in rewrite rs.
   autorewrite with MoveInjQCROut.
@@ -1274,7 +1305,6 @@ Proof.
   intro Hc. apply Hneq.
   apply QSumOfSqr0Implies in Hc. assumption.
 Qed.
-*)
 
 Lemma QdivNegCancel : forall cx cy: Q,
   (cx ≠ 0)
