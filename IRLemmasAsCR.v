@@ -1174,7 +1174,7 @@ Qed.
 Require Import  MathClasses.interfaces.additional_operations.
 Hint Rewrite  CRplus_Qplus CRmult_Qmult CRopp_Qopp : MoveInjQCROut.
 
-Lemma cos_o_arctan_xpos: ∀ (cy cx : Q), 
+Lemma cos_o_arctan_east: ∀ (cy cx : Q), 
     (0 < cx)%Q
     → 'cx = √ (cx * cx + cy * cy)%Q * cos (rational_arctan (cy/cx)).
 Proof.
@@ -1268,7 +1268,7 @@ Proof.
 Qed.
 
 
-Lemma sin_o_arctan_xynonneg: ∀ (cy cx : Q), 
+Lemma sin_o_arctan_northeast: ∀ (cy cx : Q), 
     (0 ≤ cy)%Q → (0 < cx)%Q
     → 'cy = √ (cx * cx + cy * cy)%Q * sin (rational_arctan (cy/cx)).
 Proof.
@@ -1306,6 +1306,58 @@ Proof.
   apply QSumOfSqr0Implies in Hc. assumption.
 Qed.
 
+Lemma CRarctan_odd : forall r : CR, arctan (-r) = - (arctan r).
+Proof.
+  intros r.
+  pose proof (ArcTan_inv (CRasIR r)) as Hir.
+  apply IRasCR_wd in Hir.
+  autorewrite with IRtoCR in Hir.
+  rewrite CRasIRasCR_id in Hir.
+  exact Hir.
+Qed.
+  
+Lemma CRQarctan_odd : forall r : Q, rational_arctan (-r) = - (rational_arctan r).
+Proof.
+  intros r.
+  rewrite <- arctan_Qarctan.
+  rewrite <- arctan_Qarctan.
+  rewrite <- CRopp_Qopp.
+  apply CRarctan_odd.
+Qed.
+
+Lemma sin_o_arctan_southeast: ∀ (cy cx : Q), 
+    (cy ≤ 0)%Q → (0 < cx)%Q
+    → 'cy = √ (cx * cx + cy * cy)%Q * sin (rational_arctan (cy/cx)).
+Proof.
+  intros ? ? Hy Hx.
+  assert (0 ≤ (-cy)) as Hpos by (revert Hy; unfoldMC; lra).
+  pose proof (sin_o_arctan_northeast (-cy) (cx) Hpos Hx) as Hp.
+  idtac. assert (- cy / cx = - (cy / cx)) as Hdiv by 
+    (unfoldMC;field; revert Hx; unfoldMC; lra).
+  rewrite  Hdiv, CRQarctan_odd, CRSin_inv in Hp.
+  rewrite <- CRopp_Qopp in Hp.
+  clear Hdiv. 
+  assert ((- cy * - cy)%Q = (cy * cy)%Q ) as Heq by 
+    (unfoldMC; field).
+  rewrite Heq in Hp. clear Heq. 
+  revert Hp. unfoldMC. fold (Qdiv cy cx). 
+  prepareForCRRing. intros. idtac. 
+  apply CRopp_wd in Hp.
+  assert ( (- - ' cy) [=]  ' cy)%CR as Hr by ring.
+  rewrite Hr in Hp.
+  rewrite Hp. ring.
+Qed.
+
+Lemma sin_o_arctan_east: ∀ (cy cx : Q), 
+    (0 < cx)%Q
+    → 'cy = √ (cx * cx + cy * cy)%Q * sin (rational_arctan (cy/cx)).
+Proof.
+  intros ? ? Hx.
+  destruct (decide (0 < cy)) as [Hd | Hd];
+    [apply sin_o_arctan_northeast | apply sin_o_arctan_southeast];
+       try assumption; revert Hd; unfoldMC; intros; lra.
+Qed.
+
 Lemma QdivNegCancel : forall cx cy: Q,
   (cx ≠ 0)
   -> (- cy / - cx)%Q = (cy / cx)%Q.
@@ -1314,14 +1366,32 @@ Proof.
   field. exact H.
 Qed.
   
-Lemma cos_o_arctan_xneg: ∀ (cy cx : Q), 
+Lemma cos_o_arctan_west: ∀ (cy cx : Q), 
   (cx < 0)%Q
   → ' cx = √ (cx * cx + cy * cy)%Q * - cos (rational_arctan (cy / cx)).
 Proof.
   intros  ? ? Hneg.
   assert (0 < (-cx))%Q as Hpos by lra.
   assert (cx ≠ 0) as Hneq by (unfoldMC; lra).
-  pose proof (cos_o_arctan_xpos (-cy) (-cx) Hpos) as Hp.
+  pose proof (cos_o_arctan_east (-cy) (-cx) Hpos) as Hp.
+  idtac. rewrite QdivNegCancel in Hp by assumption.
+  assert ((- cx * - cx + - cy * - cy)%Q = (cx * cx + cy * cy)%Q ) as Heq by 
+    (unfoldMC; field).
+  rewrite Heq in Hp. clear Heq.
+  rewrite <- CRopp_Qopp in Hp.
+  apply (injective CRopp).
+  rewrite Hp.
+  unfoldMC. ring.
+Qed.
+
+Lemma sin_o_arctan_west: ∀ (cy cx : Q), 
+  (cx < 0)%Q
+    → 'cy = √ (cx * cx + cy * cy)%Q * - sin (rational_arctan (cy/cx)).
+Proof.
+  intros  ? ? Hneg.
+  assert (0 < (-cx))%Q as Hpos by lra.
+  assert (cx ≠ 0) as Hneq by (unfoldMC; lra).
+  pose proof (sin_o_arctan_east (-cy) (-cx) Hpos) as Hp.
   idtac. rewrite QdivNegCancel in Hp by assumption.
   assert ((- cx * - cx + - cy * - cy)%Q = (cx * cx + cy * cy)%Q ) as Heq by 
     (unfoldMC; field).

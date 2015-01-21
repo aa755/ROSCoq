@@ -81,8 +81,6 @@ Require Import Coq.QArith.Qring.
 Require Import Psatz.
 
 
-(** lets first port lemmas about IR sin cos
-    to a separate file and then use them separately here *)
 Lemma Cart2Polar2CartID : forall (c :Cart2D Q),
   ' c = Polar2Cart (Cart2Polar c).
 Proof.
@@ -102,12 +100,11 @@ Proof.
   split; CRRing.
 - destruct (decide (cx < 0)) as [HcxNeg | HcxNeg].
   + rewrite  CRCos_plus_Pi,  CRSin_plus_Pi. split;
-    [apply cos_o_arctan_xneg; trivial|].
-    admit.
+    [apply cos_o_arctan_west| apply sin_o_arctan_west]; assumption.
   + apply orders.full_pseudo_srorder_le_iff_not_lt_flip in HcxNeg.
     apply CRle_Qle in HcxNeg.
-    split.
-    * apply  cos_o_arctan_xpos. apply CRle_Qle in HcxNeg. revert Hcx0 HcxNeg.
-      unfoldMC. intros. lra.
-    * admit.
+    split; [apply cos_o_arctan_east |  apply sin_o_arctan_east];
+       apply CRle_Qle in HcxNeg; revert Hcx0 HcxNeg;
+        unfoldMC; intros; lra.
 Qed.
+(* Print Assumptions Cart2Polar2CartID : Closed under the global context *)
