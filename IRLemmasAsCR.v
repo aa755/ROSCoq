@@ -1401,3 +1401,18 @@ Proof.
   rewrite Hp.
   unfoldMC. ring.
 Qed.
+
+Notation "¼" := (QposMake xH (xO (xO xH))).
+Notation  "2" := (QposMake (xO xH) xH).
+Require Export CoRN.util.Extract.
+
+(*
+Eval vm_compute in (answer 2 (√(cos ½))).
+Eval vm_compute in (answer 2 (exp (cos (sin (arctan π))))).
+Lemma demo :  √(cos ½) < exp (cos (sin (arctan (π)))).
+Proof.
+  unfold lt, CRlt, CR_epsilon_sign_dec. unfold cast, stdlib_binary_integers.inject_nat_Z.
+     exists 1%nat.  vm_compute. 
+  (* the price we pay is P or not P. actuall it is not a price. robotics*)
+Abort.
+*)
