@@ -107,4 +107,6 @@ Proof.
        apply CRle_Qle in HcxNeg; revert Hcx0 HcxNeg;
         unfoldMC; intros; lra.
 Qed.
+
+
 (* Print Assumptions Cart2Polar2CartID : Closed under the global context *)
