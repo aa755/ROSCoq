@@ -337,17 +337,17 @@ Qed.
 
 Lemma MsgEta: forall tp m pl,
  getPayLoad tp m = Some pl
-  -> m = mkMesg tp pl.
+  -> π₁ m = (mkMesg tp pl).
 Proof.
-  unfold getPayLoad. intros ? ? ? Heq.
-  destruct m.
-  unfold mkMesg.
+  unfold getPayLoad,getPayLoadR. intros ? ? ? Heq.
+  destruct m as [m hdr]. destruct m as [x].
+  unfold mkMesg. simpl. simpl in Heq.
   destruct (eqdec x tp);simpl in Heq; inversion Heq; subst; reflexivity.
 Qed.
 
 Lemma getPayloadFromEvSpecMesg: forall tp ev tv,
       getPayloadFromEv tp ev = Some tv
-      -> isDeqEvt ev /\ eMesg ev = (mkMesg tp tv)::nil.
+      -> isDeqEvt ev /\ map fst (eMesg ev) = (mkMesg tp tv)::nil.
 Proof.
   unfold getPayloadFromEv. intros ? ? ? Heq.
   pose proof (deqMesgSome ev) as Hd.
@@ -356,13 +356,14 @@ Proof.
   simpl in Heq. specialize (Hd _ eq_refl).
   dands; [trivial; fail|].
   apply deqSingleMessage in Hd.
-  destruct Hd as [smm Hd].
+  destruct Hd as [mhd Hd].
   repnd.
   rewrite Hdr in Heqdm.
   inverts Heqdm.
   apply MsgEta in Heq.
-  subst smm.
-  auto.
+  rewrite <- Hdl.
+  simpl. rewrite Heq.
+  reflexivity.
 Qed.
 
 Definition getPayloadFromEvOp (tp : RosTopic) 
@@ -871,7 +872,7 @@ Definition AllNodeBehCorrect : Type:=
 
 Definition PossibleSendRecvPair
   (Es  Er : Event) : Prop :=
-   (eMesg Es = eMesg Er)
+   (map fst (eMesg Es) = map fst (eMesg Er))
    /\ (validRecvMesg (validTopics (eLoc Er)) (eMesg Er))
    /\ (validSendMesg (validTopics (eLoc Es)) (eMesg Es))
    /\ (match (maxDeliveryDelay  (eLoc Es) (eLoc Er)) with
@@ -933,8 +934,8 @@ Lemma PureProcDeqSendOncePair : forall ns nd TI TO qt loc
         × localEvts loc nd = Some ed × localEvts loc ns = Some es ×
           (validRecvMesg (TI::nil,nil) (eMesg ed)
            ->  {dmp : topicType TI |  
-                      eMesg ed = ((mkMesg _ dmp)::nil)
-                      ∧ (mkMesg TO (sp dmp) )::nil = (eMesg es)})}}.
+                      map fst (eMesg ed) = ((mkMesg _ dmp)::nil)
+                      ∧ (mkImmMesg TO (sp dmp) )::nil = (eMesg es)})}}.
 Proof.
   intros ? ? ? ? ? ? ?. simpl. intro Hnc.
   unfold possibleDeqSendOncePair in Hnc.
@@ -974,12 +975,13 @@ Proof.
   clear Hdeql Hdeqr. 
   simpl. inversion Hnc as [Hncc]. clear Hnc Hncc.
   unfold liftToMesg. unfold getPayLoad.
+  destruct dm as [dm hdr].
   destruct dm as [dmt dmp].
   simpl in Hsub.  destruct Hsub.
-  simpl. split;[reflexivity|].
+  simpl. unfold mtopic. simpl. split;[reflexivity|].
   destruct (eqdec dmt dmt) as [Heq| Hneq];
     [| apply False_rect; apply Hneq; reflexivity].
-
+  simpl.
   pose proof (@UIPReflDeq RosTopic _ _ Heq) as Heqr.
   rewrite Heqr.
   simpl. reflexivity.

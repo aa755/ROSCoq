@@ -99,7 +99,7 @@ Definition ProxPossibleTimeEvPair
   (t: QTime) (ev: Event) 
   :=
    (t < (eTime ev) < (t + maxDelay))%Q
-  /\ (eMesg ev) = (mkMesg PSENSOR side)::nil.
+  /\ (eMesg ev) = (mkImmMesg PSENSOR side)::nil.
 
 (** [side] is just an identifier *)
 Definition ProximitySensor (alertDist : Q) (maxDelay: QTime) (side : bool)
@@ -397,8 +397,8 @@ Lemma DeqSendOncePair : forall ns nd sp,
         ×
         localEvts SWCONTROLLER nd = Some ed 
         × localEvts SWCONTROLLER ns = Some es ×
-         {dmp : bool|  eMesg ed = ((mkMesg PSENSOR dmp)::nil)
-                  ∧ (mkMesg MOTOR ((SwControllerProgram sp) dmp))::nil = (eMesg es) }}}.
+         {dmp : bool|  map fst (eMesg ed) = ((mkMesg PSENSOR dmp)::nil)
+                  ∧ (mkImmMesg MOTOR ((SwControllerProgram sp) dmp))::nil = (eMesg es) }}}.
 Proof.
   intros ? ? ? Hnc.
   apply PureProcDeqSendOncePair in Hnc.
@@ -419,8 +419,8 @@ Lemma swControllerMessages :
   forall es : Event,
   SWCONTROLLER = eLoc es
   -> sendEvt = eKind es
-  -> {(eMesg es) = (mkMesg MOTOR speed)::nil}
-      + {(eMesg es) = (mkMesg MOTOR (-speed))%Q::nil}.
+  -> {(eMesg es) = (mkImmMesg MOTOR speed)::nil}
+      + {(eMesg es) = (mkImmMesg MOTOR (-speed))%Q::nil}.
 Proof.
   intros es Hsw Hsend.
   pose proof (locEvtIndex 
@@ -442,9 +442,11 @@ Proof.
   apply DeqSendOncePair in Hnc.
   simpl in Hnc. exrepd. 
   rewrite  e0 in Hiff. inversion Hiff as [Heq]. clear Hiff.
-  subst.
+  subst. unfold mkImmMesg. unfold mkMesg in H2.
+  destruct (eMesg es) as [|hm mtl]; [|destruct mtl as [nil |ll];[|destruct ll]];
+     inverts H2.
   destruct dmp;[right | left];
-  simpl in H2; inversion H2; reflexivity.
+  reflexivity.
 Qed.
 
 
@@ -488,6 +490,7 @@ Proof.
   specialize (Hrecvrl _ (or_introl eq_refl)).
   rewrite  RemoveOrFalse in Hrecvrl.
   unfold validSendMesg in Hrecvrrl.
+  simpl. simpl. simpl. simpl in Hrecvrrl.
   rewrite Hrecvl in Hrecvrrl.
   remember (eLoc es) as sloc.
   rewrite <- Hem in Hrecvrrl.
@@ -504,9 +507,13 @@ Proof.
   symmetry in Hsend.
   apply swControllerMessages in Hsend;
     [| trivial].
-  rewrite Hrecvl in Hsend.
-  rewrite <- Hem in Hsend.
-  destruct Hsend as [Hsend | Hsend]; inverts Hsend; simpl; auto.
+  destruct Hsend as [Hsend | Hsend];
+  apply (f_equal (map π₁)) in Hsend;
+  simpl in Hsend;
+  rewrite Hrecvl in Hsend;
+  rewrite <- Hem in Hsend;
+  unfold getPayLoad;
+  inverts Hsend as Hsend; simpl; rewrite Hsend; simpl; auto.
 Qed.
 
 Lemma  TrainVelBounded : forall (t:QTime),
@@ -535,16 +542,17 @@ Proof.
   pose proof (deqSingleMessage _ Hr) as XX.
   destruct XX as [m XX].
   repnd. rewrite <- XXl in Hsendlrl.
-  rewrite <- Hsendll in XXl.
-  rewrite <- XXl in Hsendlrrl.
+  simpl in  XXl.
+  apply (f_equal (map fst)) in XXl.
+  rewrite <- Hsendll in XXl. simpl in Hsendlrrl.
   specialize (Hsendlrl _ (or_introl eq_refl)).
   rewrite Hl in Hsendlrl.
   simpl in Hsendlrl.
   rewrite RemoveOrFalse in Hsendlrl.
   unfold validSendMesg in Hsendlrrl.
-  simpl in Hsendlrrl.
+  rewrite <- XXl in Hsendlrrl.
   specialize (Hsendlrrl _ (or_introl eq_refl)).
-  rewrite <- Hsendlrl in Hsendlrrl.
+  simpl in Hsendlrrl. rewrite <- Hsendlrl in Hsendlrrl.
   destruct (eLoc Es); simpl in Hsendlrrl;
     try contradiction;
     inversion Hsendlrrl; 
@@ -568,16 +576,17 @@ Proof.
   pose proof (deqSingleMessage _ Hr) as XX.
   destruct XX as [m XX].
   repnd. rewrite <- XXl in Hsendlrl.
-  rewrite <- Hsendll in XXl.
-  rewrite <- XXl in Hsendlrrl.
+  simpl in  XXl.
+  apply (f_equal (map fst)) in XXl.
+  rewrite <- Hsendll in XXl. simpl in Hsendlrrl.
   specialize (Hsendlrl _ (or_introl eq_refl)).
   rewrite Hl in Hsendlrl.
   simpl in Hsendlrl.
   rewrite RemoveOrFalse in Hsendlrl.
   unfold validSendMesg in Hsendlrrl.
-  simpl in Hsendlrrl.
+  rewrite <- XXl in Hsendlrrl.
   specialize (Hsendlrrl _ (or_introl eq_refl)).
-  rewrite <- Hsendlrl in Hsendlrrl.
+  simpl in Hsendlrrl. rewrite <- Hsendlrl in Hsendlrrl.
   destruct (eLoc Es); simpl in Hsendlrrl;
     try contradiction;
     try rewrite  RemoveOrFalse in Hsendlrrl; 
@@ -795,7 +804,7 @@ Proof.
 Qed.
 
 Definition posVelMeg : list Message :=
-  (mkMesg MOTOR speed)::nil.
+  (mkImmMesg MOTOR speed)::nil.
 
 Open Scope Z_scope.
 
@@ -803,15 +812,15 @@ Definition MotorRecievesPositivVelAtLHS (ev : Event)  :=
 match (eLoc  ev) with
 | BASEMOTOR => 
             isDeqEvt ev
-              -> (eMesg ev) = posVelMeg
+              -> map fst (eMesg ev) = map fst posVelMeg
               -> (centerPosAtTime tstate (eTime ev)) [<=]  -78
 | SWCONTROLLER => 
             match eKind ev with
             | sendEvt => 
-                (eMesg ev) = posVelMeg
+                map fst (eMesg ev) = map fst posVelMeg
                 -> (centerPosAtTime tstate (eTime ev)) [<=] -79
             | deqEvt => 
-                (eMesg ev) = (mkMesg PSENSOR false)::nil
+                map fst (eMesg ev) = (mkMesg PSENSOR false)::nil
                 -> (centerPosAtTime tstate (eTime ev)) [<=] -80
             | _ => True
             end
@@ -821,7 +830,7 @@ end.
 Ltac SensorMsgInvert Hmd :=
     (apply (f_equal (hd (mkMesg PSENSOR false))) in Hmd;
     simpl in Hmd;
-    apply (f_equal getSensorSide) in Hmd;
+    let T:= constr:(f_equal (getPayLoadR PSENSOR)) in apply T in Hmd;
     simpl in Hmd;
     apply (f_equal (fun op => opExtract op false)) in Hmd;
     simpl in Hmd).
@@ -892,8 +901,10 @@ Proof.
     inversion H5 as [Heqs].  clear H5.
     symmetry in Heqs. subst es0. rename H0 into H7.
     rewrite <- H7. intro Heq. clear H7.
-    inversion Heq as [Heqq]. clear Heq.
-    apply (f_equal getVelM) in Heqq.
+    apply (f_equal (hd (mkMesg PSENSOR false))) in Heq.
+    simpl in Heq. 
+    let T:= constr:(f_equal (getPayLoadR MOTOR)) in 
+    apply T in Heq. rename Heq into Heqq.
     simpl in Heqq. inversion Heqq as [Heq]. clear Heqq.
     unfold speed in Heq.
     destruct dmp; simpl in Heq;[inversion Heq; fail| clear Heq].
@@ -983,7 +994,7 @@ Qed.
 Close Scope Z_scope.
 
 Definition negVelMeg : list Message :=
-  (mkMesg MOTOR (-speed))::nil.
+  (mkImmMesg MOTOR (-speed))::nil.
 
 Open Scope Z_scope.
 
@@ -991,15 +1002,15 @@ Definition MotorRecievesNegVelAtRHS (ev : Event)  :=
 match (eLoc  ev) with
 | BASEMOTOR => 
             isDeqEvt ev
-              -> (eMesg ev) = negVelMeg
+              -> map fst (eMesg ev) = map fst negVelMeg
               -> 78 [<=]  (centerPosAtTime tstate (eTime ev))
 | SWCONTROLLER => 
             match eKind ev with
             | sendEvt => 
-                (eMesg ev) = negVelMeg
+                 map fst  (eMesg ev) =  map fst negVelMeg
                 -> 79 [<=] (centerPosAtTime tstate (eTime ev))
             | deqEvt => 
-                (eMesg ev) = (mkMesg PSENSOR true)::nil
+                map fst (eMesg ev) = (mkMesg PSENSOR true)::nil
                 -> 80 [<=] (centerPosAtTime tstate (eTime ev))
             | _ => True
             end
@@ -1073,8 +1084,9 @@ Proof.
     inversion H5 as [Heqs].  clear H5.
     symmetry in Heqs. subst es0. rename H0 into H7.
     rewrite <- H7. intro Heq. clear H7.
-    inversion Heq as [Heqq]. clear Heq.
-    apply (f_equal getVelM) in Heqq.
+    apply (f_equal (hd (mkMesg PSENSOR false))) in Heq.
+        let T:= constr:(f_equal (getPayLoadR MOTOR)) in 
+    apply T in Heq. rename Heq into Heqq.
     simpl in Heqq. inversion Heqq as [Heq]. clear Heqq.
     unfold speed in Heq.
     destruct dmp; simpl in Heq;[clear Heq| inversion Heq; fail].
@@ -1499,8 +1511,9 @@ Proof.
   pose proof (deqSingleMessage _ Hr) as XX.
   destruct XX as [m XX].
   repnd. rewrite <- XXl in Hsendlrl.
-  rewrite <- Hsendll in XXl.
-  rewrite <- XXl in Hsendlrrl.
+  apply (f_equal (map fst)) in XXl.
+  rewrite <- Hsendll in XXl. simpl in Hsendlrrl.
+  simpl in Hsendlrrl, XXl. rewrite <- XXl in Hsendlrrl.
   specialize (Hsendlrl _ (or_introl eq_refl)).
   specialize (Hsendlrrl _ (or_introl eq_refl)).
   rewrite Hl in Hsendlrrl.
@@ -1508,7 +1521,7 @@ Proof.
   rewrite RemoveOrFalse in Hsendlrrl.
   unfold validSendMesg in Hsendlrrl.
   simpl in Hsendlrrl.
-  rewrite <- Hsendlrrl in Hsendlrl.
+  simpl in Hsendlrl. rewrite <- Hsendlrrl in Hsendlrl.
   destruct (eLoc Er); simpl in Hsendlrl;
     try rewrite RemoveOrFalse in Hsendlrl;
     try contradiction;
@@ -1532,8 +1545,9 @@ Proof.
   pose proof (deqSingleMessage _ Hr) as XX.
   destruct XX as [m XX].
   repnd. rewrite <- XXl in Hsendlrl.
-  rewrite <- Hsendll in XXl.
-  rewrite <- XXl in Hsendlrrl.
+  apply (f_equal (map fst)) in XXl.
+  rewrite <- Hsendll in XXl. simpl in Hsendlrrl.
+  simpl in Hsendlrrl, XXl. rewrite <- XXl in Hsendlrrl.
   specialize (Hsendlrl _ (or_introl eq_refl)).
   specialize (Hsendlrrl _ (or_introl eq_refl)).
   rewrite Hl in Hsendlrrl.
@@ -1541,7 +1555,7 @@ Proof.
   rewrite RemoveOrFalse in Hsendlrrl.
   unfold validSendMesg in Hsendlrrl.
   simpl in Hsendlrrl.
-  rewrite <- Hsendlrrl in Hsendlrl.
+  simpl in Hsendlrl. rewrite <- Hsendlrrl in Hsendlrl.
   destruct (eLoc Er); simpl in Hsendlrl;
     try rewrite RemoveOrFalse in Hsendlrl;
     try contradiction;
@@ -1550,7 +1564,7 @@ Proof.
     try contradiction.
   reflexivity.
 Qed.
-
+  
 Lemma timeDiffLBPosVel : forall (ts te : Time) (ps pe : ℝ),
   {tstate} ts [<=] ps
   -> pe [<=] {tstate} te
@@ -2119,7 +2133,7 @@ Close Scope nat_scope.
   exrepd. rewrite ((proj1 Hxx) (conj Hsw eq_refl)) in e.
   symmetry in e. inverts e.
   rename es0 into Esws.
-  rewrite <- Hmeq in H1.
+  simpl in H1, Hmeq. rewrite <- Hmeq in H1.
   SensorMsgInvert H1. subst dmp.
   clear Hmeq.
   rename H2 into Hmot.
@@ -2173,8 +2187,14 @@ Close Scope nat_scope.
       => VelNegAfterLatestPos evMp Emr t tl pm Hlatb) as Hv.
   specialize (fun tl pm => Hv tl pm Hql).
   unfold priorMotorMesg, getPayloadFromEv, deqMesg in Hv.
-  rewrite Hmrecrr in Hv. rewrite <- Hmeq in Hv.
+  rewrite Hmrecrr in Hv. simpl in Hv, Hmeq. 
+Lemma moveMapInsideFst : forall tp lm,
+  opBind (getPayLoad tp)  (head lm)
+  = opBind (getPayLoadR tp) (head (map fst lm)).
+Admitted.
   simpl in Hv.
+  rewrite (moveMapInsideFst MOTOR) in Hv.
+  simpl in Hv. rewrite <- Hmeq in Hv.
   clear Hql.
   specialize (fun tl => Hv tl (conj Hlt (conj eq_refl HmotR))).
   pose proof (QVelPosUB tstate _ _ (Qlt_le_weak _ _ Hltt) (inject_Z (-1))) 
@@ -2356,7 +2376,7 @@ Close Scope nat_scope.
   exrepd. rewrite ((proj1 Hxx) (conj Hsw eq_refl)) in e.
   symmetry in e. inverts e.
   rename es0 into Esws.
-  rewrite <- Hmeq in H1.
+  simpl in Hmeq, H1. rewrite <- Hmeq in H1.
   SensorMsgInvert H1. subst dmp.
   clear Hmeq.
   rename H2 into Hmot.
@@ -2411,7 +2431,9 @@ Close Scope nat_scope.
       => VelPosAfterLatestNeg evMp Emr t tl pm Hlatb) as Hv.
   specialize (fun tl pm => Hv tl pm Hql).
   unfold priorMotorMesg, getPayloadFromEv, deqMesg in Hv.
-  rewrite Hmrecrr in Hv. rewrite <- Hmeq in Hv.
+  rewrite Hmrecrr in Hv. 
+  rewrite (moveMapInsideFst MOTOR) in Hv.
+  simpl in Hv. simpl in Hmeq. rewrite <- Hmeq in Hv.
   simpl in Hv.
   clear Hql.
   specialize (fun tl => Hv tl (conj Hlt (conj eq_refl HmotR))).

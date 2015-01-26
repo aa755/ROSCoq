@@ -12,25 +12,27 @@ Class RosTopicType (RT : Type) {deq : DecEq RT}
     topicType : RT -> Type
 }.
 
-(** the [RosTopic] "selfTCP" is reserved.
-    it is subscribed by only the node with that
-    TCP adress and anyone can write to it *)
+Record Header := mkHeader
+{
+  (** how much should message be delayed from the soonest time it can be sent
+    If it is the first message resulting from processing of an event,
+    the soonest time is the time when the processing was compete.
+    If this is a later message, then the soonest time is the time 
+    when the provious message was sent *)
+    
+  delay : Q
+}.
 
 Section RosCore.
 
 Context  `{rtopic : RosTopicType RosTopic}.
 
-Definition Message := sigT topicType.
+Definition Message := (sigT topicType) × Header .
 (* string could be rrplaced by a list bool to indicate a binary blob *)
 
 
 Require Export Process.
 
-(*
-Definition ProcessTiming 
-  (p : Process Message (list Message)) :=
-  Message -> QTime.
-*)
 
 (** needs to be made more general. 
     previously it used to depend on a proces
@@ -67,41 +69,64 @@ Definition transport {T:Type} {a b:T} {P:T -> Type} (eq:a=b) (pa: P a) : (P b):=
 @eq_rect T a P pa b eq.
 
 
-Definition getPayLoad  (topic : RosTopic) (m : Message) :
+Definition getPayLoadR  (topic : RosTopic) (m : sigT topicType) :
 option (topicType topic) :=
 match m with
-| existT tp pl => match (eqdec  tp topic) with
+| (existT tp pl) => match (eqdec  tp topic) with
                   | left peq =>  Some (@transport _ _ _ (fun tpp => ( (topicType tpp))) peq pl)
                   | right _ => None
                   end
 end.
+
+Definition getPayLoad  (topic : RosTopic) (m : Message) :
+option (topicType topic) := getPayLoadR topic (fst m).
+
+Definition defHdr :=  mkHeader 0.
+
+Definition mkImmMesg (outTopic : RosTopic)
+  (payload : ( (topicType outTopic))) : Message.
+econstructor; eauto;[].
+exact defHdr.
+  (* in this context, there is only one possible message *)
+Defined.
 
 Definition liftToMesg {InTopic OutTopic} 
   (f : SimplePureProcess InTopic OutTopic) 
     : Message -> (list Message) :=
 ( fun inpMesg : Message => 
 match (getPayLoad InTopic inpMesg ) with
-| Some tmesg => cons (existT  _ _ (f tmesg)) nil
+| Some tmesg => cons ((mkImmMesg _ (f tmesg))) nil
 | None => nil
 end).
 
 
-Definition mtopic (m : Message) :=
-(proj1_sigT _ _ m).
+Definition mtopicR (m : sigT topicType) :=
+(proj1_sigT _ _  m).
+
+Definition mtopic (m : Message) := 
+mtopicR (fst m).
 
 Definition mPayLoad (m : Message) : topicType (mtopic m) :=
-(proj2_sigT _ _ m).
+(proj2_sigT _ _ (fst m)).
 
 Definition validRecvMesg (rn : TopicInfo) (lm : list Message) :=
-∀ m, In m lm -> In (mtopic m) (subscribeTopics rn).
+∀ m, In m (map fst lm) -> In (mtopicR m) (subscribeTopics rn).
 
 Definition validSendMesg (rn : TopicInfo) (lm : list Message) :=
-∀ m, In m lm -> In (mtopic m) (publishTopics rn).
+∀ m, In m (map fst lm) -> In (mtopicR m) (publishTopics rn).
 
 
 Definition mkMesg (outTopic : RosTopic)
-  (payload : ( (topicType outTopic))) : Message.
-econstructor; eauto. 
+  (payload : ( (topicType outTopic))) : (sigT topicType).
+econstructor; eauto.
+  (* in this context, there is only one possible message *)
+Defined.
+
+
+Definition mkDelayedMesg (outTopic : RosTopic)
+  (delay : Q) (payload : ( (topicType outTopic))) : Message.
+econstructor; eauto;[].
+exact (mkHeader 0).
   (* in this context, there is only one possible message *)
 Defined.
 
