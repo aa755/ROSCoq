@@ -134,5 +134,12 @@ Definition filterMegsByTopic (lm : list Message)
   (topic : RosTopic) : list ( (topicType topic)) :=
 flat_map (fun m => op2List (getPayLoad topic m)) lm.
 
+Lemma moveMapInsideFst : forall tp lm,
+  opBind (getPayLoad tp)  (head lm)
+  = opBind (getPayLoadR tp) (head (map fst lm)).
+Proof.
+  intros ?. destruct lm; reflexivity.
+Qed.
+
 End RosCore.
 

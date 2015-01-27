@@ -12,7 +12,7 @@ Require Import Psatz.
 (** received messages are enqued in a mailbox
     and the dequed *)
 Inductive EventKind := 
-sendEvt | enqEvt | deqEvt.
+sendEvt (dnqIndex: nat) | enqEvt | deqEvt (enqIndex: nat).
 
 
 Section Event.
@@ -33,8 +33,8 @@ Class EventType (T: Type)
   
   enQDeq1Mesg : forall t, match eKind t with
                           | enqEvt => length (eMesg t) = 1%nat
-                          | deqEvt => length (eMesg t) = 1%nat
-                          | sendEvt => True
+                          | deqEvt _ => length (eMesg t) = 1%nat
+                          | sendEvt _ => True
                           end;
 
   eTime : T -> QTime;
@@ -172,20 +172,28 @@ Proof.
   apply Hs.
 Qed.
 
-Definition isSendEvt (ev: Event) :Prop :=
- eKind ev = sendEvt.
+(* Prop because the index is there in [ev] anyways *)
+Definition isSendEvt (ev: Event) : bool :=
+  match (eKind ev) with
+  | sendEvt _ => true
+  | _ => false
+  end.
+   
 
-Definition isSendEvtOp (ev: option Event) :Prop :=
-  opApPure isSendEvt False ev.
+Definition isSendEvtOp (ev: option Event) : bool :=
+  opApPure isSendEvt false ev.
 
 
 
-Definition isDeqEvt (ev: Event) :Prop :=
-eKind ev = deqEvt.
+Definition isDeqEvt (ev: Event) : bool :=
+  match (eKind ev) with
+  | deqEvt _ => true
+  | _ => false
+  end.
 
 
-Definition isDeqEvtOp (ev: option Event) :Prop :=
-  opApPure isDeqEvt False ev.
+Definition isDeqEvtOp (ev: option Event) : bool :=
+  opApPure isDeqEvt false ev.
 
 Definition isEnqEvt (ev: Event) :Prop :=
 eKind ev = enqEvt.
@@ -209,9 +217,9 @@ match upto with
     | None => (pr, queue)
     | Some ev => 
           match (eKind ev) with
-          | sendEvt => (pr,queue)
+          | sendEvt _ => (pr,queue)
           | enqEvt =>  (pr, enqueueAll (eMesg ev) queue)
-          | deqEvt => 
+          | deqEvt _ => 
               let (el, newQueue) := dequeue queue in
               match el with
               | None => (False, queue)
@@ -228,7 +236,7 @@ forall (l: LocT)
 
 Definition deqMesg (ev : Event) : option Message :=
 match eKind ev with
- | deqEvt => head (eMesg ev)
+ | deqEvt _ => head (eMesg ev)
 (** BTW, [(eMesg ev)] is supposed to be a singletop *)
  | _ => None
 end.
@@ -240,7 +248,7 @@ Proof.
   intros ? Hd.
   pose proof (enQDeq1Mesg evD) as XX.
   unfold isDeqEvt in Hd.
-  unfold deqMesg. rewrite Hd in XX. rewrite Hd.
+  unfold deqMesg. destruct (eKind evD); try (inversion Hd; fail);[].
   destruct ((eMesg evD)); inversion XX.
   destruct l; inversion H0.
   eexists; eauto.
@@ -248,12 +256,13 @@ Defined.
 
 Lemma deqMesgSome : forall ev sm,
     Some sm = deqMesg ev
-    -> eKind ev = deqEvt.
+    -> isDeqEvt ev.
 Proof.
   intros ? ? Heq.
   unfold deqMesg in Heq.
+  unfold isDeqEvt.
   destruct (eKind ev); auto;
-  inversion Heq.
+  inversion Heq. reflexivity.
 Qed.
 
 Lemma deqSingleMessage2 : forall evD m,
@@ -276,7 +285,7 @@ end.
 
 Definition sentMesg (ev : Event) : list Message :=
 match eKind ev with
-| sendEvt =>  (eMesg ev)
+| sendEvt _ =>  (eMesg ev)
 | _ => nil
 end.
 
@@ -294,7 +303,7 @@ Proof.
   unfold deqMesg in Heq.
   unfold isRecvEvt, isDeqEvt.
   destruct (eKind ev); auto;
-  inversion Heq.
+  inversion Heq. reflexivity.
 Qed.
 
 
@@ -332,7 +341,7 @@ Proof.
   unfold isDeqEvt in Hs.
   unfold deqMesg in Hp, Hs.
   destruct (eKind ev); simpl in Hp; try discriminate;[].
-  reflexivity.
+  eexists; eauto.
 Qed.
 
 Lemma MsgEta: forall tp m pl,
@@ -347,7 +356,7 @@ Qed.
 
 Lemma getPayloadFromEvSpecMesg: forall tp ev tv,
       getPayloadFromEv tp ev = Some tv
-      -> isDeqEvt ev /\ map fst (eMesg ev) = (mkMesg tp tv)::nil.
+      -> isDeqEvt ev ∧ map fst (eMesg ev) = (mkMesg tp tv)::nil.
 Proof.
   unfold getPayloadFromEv. intros ? ? ? Heq.
   pose proof (deqMesgSome ev) as Hd.
@@ -366,6 +375,28 @@ Proof.
   reflexivity.
 Qed.
 
+
+Lemma isSendEvtIf : ∀ {ed deqIndex}, 
+    eKind ed = sendEvt deqIndex
+    -> isSendEvt ed.
+Proof.
+  intros ? ? Heq.
+  unfold isSendEvt.
+  destruct  (eKind ed); inversion Heq.
+  reflexivity.
+Qed.
+
+Lemma isDeqEvtIf : ∀ {ed enqIndex}, 
+    eKind ed = deqEvt enqIndex
+    -> isDeqEvt ed.
+Proof.
+  intros ? ? Heq.
+  unfold isDeqEvt.
+  destruct  (eKind ed); inversion Heq.
+  reflexivity.
+Qed.
+
+  
 Definition getPayloadFromEvOp (tp : RosTopic) 
   : (option Event) ->  option (topicType tp)  :=
 opBind (getPayloadFromEv tp).
@@ -736,7 +767,7 @@ Fixpoint prevProcessedEvents (m : nat)
   | 0 => nil
   | S m' => (match locEvents m' with
               | Some ev => match (eKind ev) with
-                            | deqEvt => (ev)::nil
+                            | deqEvt _ => (ev)::nil
                             | _ => nil
                             end
               | None => nil (* this will never happen *)
