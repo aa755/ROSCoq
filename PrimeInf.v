@@ -1,3 +1,6 @@
+(** Based on proof submitted by Ilmārs Cīrulis to coq-club on 
+      1/26/2015 *)
+
 Require Import PArith Psatz.
 
 Definition divide n m := exists k, n * k = m.
@@ -169,4 +172,4 @@ Defined.
 
 (*
 Eval compute in 
-  ( π₁ (prime_infinitude [2,3,5,9])). *)
+  ( π₁ (prime_infinitude [2,3,5,7])). *)
