@@ -106,3 +106,10 @@ Inductive void: Set :=.
 
 Notation π₁ := fst.
 Notation π₂ := snd.
+
+Definition subList {T : Type} (start length : nat) (l : list T) : list T :=
+  firstn length (skipn start l).
+
+Definition isPrefixOf {T : Type} (lp l : list T) : Prop :=
+  firstn  (length lp) l =lp.
+

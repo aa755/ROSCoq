@@ -1402,7 +1402,7 @@ Proof.
   unfoldMC. ring.
 Qed.
 
-
+(*
 Notation "¼" := (QposMake xH (xO (xO xH))).
 Notation  "2" := (QposMake (xO xH) xH).
 Require Export CoRN.util.Extract.
@@ -1417,3 +1417,4 @@ Proof.
   (* the price we pay is P or not P. actuall it is not a price. robotics*)
   reflexivity.
 Qed.
+*)

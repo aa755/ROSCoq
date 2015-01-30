@@ -8,11 +8,25 @@ Require Import Coq.QArith.QOrderedType.
 Require Import Psatz.
 
 
+Record SendEvtInfo := mkSendEvtInfo  {
+    (** index of the corresponding enq message which trigerred this processing *)
+    enqIndex : nat;
+    (** [startIndex] into the list of messages output by the process
+        on the message received at index [enqIndex]. In this send event,
+        some message starting at that index were sent *)
+    startIndex : nat
+}.
 
 (** received messages are enqued in a mailbox
-    and the dequed *)
-Inductive EventKind := 
-sendEvt (dnqIndex: nat) | enqEvt | deqEvt (enqIndex: nat).
+    and the dequed.
+    Should we add another event to mark the time when processing of an
+    event finished. Now, one has to compute this from the particular
+    s/w.
+ *)
+Inductive EventKind : Set := 
+  | sendEvt (inf : SendEvtInfo) 
+  | enqEvt 
+  | deqEvt (enqIndex: nat).
 
 
 Section Event.
@@ -56,7 +70,7 @@ Class EventType (T: Type)
     ((eLoc t) = l /\ (eLocIndex t) = n)
     <-> localEvts l n = Some t;
 
-  localIndexDense : forall (l: Loc) n t (m : nat),
+  localIndexDense : ∀ (l: Loc) n t (m : nat),
     ((eLoc t) = l /\ (eLocIndex t) = n)
     -> m <n 
     -> {tm : T | ((eLoc tm) = l /\ (eLocIndex tm) = m)};
@@ -798,6 +812,44 @@ Definition possibleDeqSendOncePair
       let lastProc := getNewProcL (process swNode) procMsgs in
       (getDeqOutput lastProc (locEvts nd)) = opBind2 eMesg (locEvts ns)
   
+  | _ => False
+  end.
+
+Definition getDeqOutput2 (proc: Process Message (list Message))
+  (ev : Event) : (list Message) :=
+   flat_map (getOutput proc) (eMesg ev).
+
+Require Export Coq.Program.Basics.
+
+Open Scope program_scope.
+
+Definition minDelayForIndex (lm : list Message) (index : nat) : Q :=
+  let delays := map (delay ∘ (π₂)) (firstn index lm) in
+  fold_right Qplus 0 delays.
+
+
+Close Scope program_scope.
+
+(** assuming all outgoing messages resulting from processing
+    an event happen in a single send event (send once) *)
+Definition possibleDeqSendOncePair2
+  (swNode : RosSwNode)
+  (locEvts: nat -> option Event)
+  (nd ns: nat) := 
+  match (locEvts nd, locEvts ns) with
+  | (Some evd, Some evs) =>
+      match (eKind evd, eKind evs) with
+      | (deqEvt enqIndex , sendEvt sinf) =>
+          (∀ n: nat, nd < n < ns -> isEnqEvtOp (locEvts n))
+          ∧ let procEvts := prevProcessedEvents nd locEvts in
+            let procMsgs := flat_map eMesg procEvts in
+            let lastProc := getNewProcL (process swNode) procMsgs in
+            let procOutMsgs := (getDeqOutput2 lastProc evd) in
+            let minDelay := (minDelayForIndex procOutMsgs (startIndex sinf)) in
+              isPrefixOf (eMesg evs) (skipn (startIndex sinf) procOutMsgs)
+              ∧ (eTime evd +  minDelay < eTime evs < (eTime evd) + minDelay + (pTiming swNode))%Q
+      | (_,_) => False
+      end
   | _ => False
   end.
 

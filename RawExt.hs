@@ -2692,7 +2692,7 @@ answer n r =
 
 test :: Z
 test =
-  answer (((XI XH))) (exp (inject_Q_CR (Qmake (Zpos XH) XH)))
+  answer ((XI (XI XH))) (exp (inject_Q_CR (Qmake (Zpos XH) XH)))
 
 {-the code below was manually written, not extracted from Coq-}
 pos2Int :: Positive -> Prelude.Integer
