@@ -828,7 +828,6 @@ Definition minDelayForIndex (lm : list Message) (index : nat) : Q :=
   fold_right Qplus 0 delays.
 
 
-Close Scope program_scope.
 
 (** assuming all outgoing messages resulting from processing
     an event happen in a single send event (send once) *)
@@ -848,6 +847,7 @@ Definition possibleDeqSendOncePair2
             let minDelay := (minDelayForIndex procOutMsgs (startIndex sinf)) in
               isPrefixOf (eMesg evs) (skipn (startIndex sinf) procOutMsgs)
               ∧ (eTime evd +  minDelay < eTime evs < (eTime evd) + minDelay + (pTiming swNode))%Q
+              ∧ (nth (startIndex sinf) (map (delay ∘ (π₂)) procOutMsgs) 0)  = 0
       | (_,_) => False
       end
   | _ => False

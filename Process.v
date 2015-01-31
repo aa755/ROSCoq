@@ -9,6 +9,16 @@ CoFixpoint mkPureProcess {In Out}
  (f : In -> Out) : Process In Out :=
 buildP (fun inp => (mkPureProcess f, f inp)).
 
+(** cofix works
+Definition SPP1 := mkPureProcess (fun n:nat => 1).
+
+Goal forall x, ((match SPP1 with
+| buildP f =>  (f 0)
+end) = x).
+intros.
+vm_compute.
+*)
+
 Definition getOutput {In Out : Type}
   (p: Process In Out) (inp : In ): Out :=
 
