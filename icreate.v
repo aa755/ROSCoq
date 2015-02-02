@@ -16,9 +16,6 @@ Definition isVecDerivativeOf
   exact ((isDerivativeOf ft ft') × (Hind fv fv')).
 Defined.
 
-(* 
-  Axiom TCRing : TContR -> CRing.
-  Coercion TCRing :  TContR >-> CRing. *)
 
 
 (** CatchFileBetweenTagsStartCreate *)
@@ -41,7 +38,32 @@ Definition unitVec (theta : TContR)  : Cart2D TContR :=
   {|X:= CFCos theta; Y:=CFSine theta|}.
 
 
-Inductive Topic :=  VELOCITY. (* similar to CMD_VEL *)
+Require Export CartCR.
+(** Robot is asked to go to the  [target] relative to current position.
+    This function defines the list of messages that the robot will send to
+    the motor so that it will go to the target position.
+    [X] axis of target points towards the direction that robot will move
+    and [Y] points to its left side. it might be better to make Y
+    point in robot's direction. Then add 90 in cartesian <-> polar conversion. *)
+
+Section RobotProgam.
+Variables   rotspeed speed anglePrec distPrec delay : Qpos.
+
+Definition robotPureProgam 
+      (target : Cart2D Q) : list (Q × Polar2D Q):=
+    let polarTarget : (Polar2D CR) := Cart2Polar target in
+    let approxTheta : Q := approximate (θ polarTarget) anglePrec in
+    let approxDist : Q := approximate (rad polarTarget) distPrec in
+    let rotDuration : Q :=  approxTheta / (QposAsQ rotspeed) in
+    let translDuration : Q :=  approxDist / (QposAsQ speed) in
+    [ (0,{|rad:= 0 ; θ := QposAsQ rotspeed |}) 
+        ; (rotDuration, {|rad:= 0 ; θ := 0 |}) 
+        ; (QposAsQ delay , {|rad:= QposAsQ speed ; θ := 0 |}) 
+        ; (translDuration , {|rad:= 0 ; θ := 0 |}) 
+    ].
+
+
+Inductive Topic :=  VELOCITY | TARGETPOS. (* similar to CMD_VEL *)
 
 Scheme Equality for Topic.
 
@@ -53,7 +75,8 @@ Defined.
 (** When adding a nrew topic, add cases of this function *)
 Definition topic2Type (t : Topic) : Type :=
 match t with
-| MOTORVEL => (Q × Q)
+| VELOCITY => Polar2D Q
+| TARGETPOS => Cart2D Q 
 end.
 
 
@@ -61,18 +84,18 @@ Instance  ttttt : @RosTopicType Topic _.
   constructor. exact topic2Type.
 Defined.
 
-Inductive RosLoc :=  MOVABLEBASE.
+Inductive RosLoc :=  MOVABLEBASE | EXTERNALCMD.
 
 Scheme Equality for RosLoc.
 
 Instance rldeqdsjfklsajlk : DecEq RosLoc.
-constructor. exact RosLoc_eq_dec.
+  constructor. exact RosLoc_eq_dec.
 Defined.
 
 Close Scope Q_scope.
 
 
-Definition getVelM  : Message -> option (Q × Q) :=
+Definition getVelM  : Message -> option (Polar2D Q) :=
   getPayLoad VELOCITY.
 
 
@@ -91,16 +114,16 @@ Context
 
 
 
-Definition getVelEv (e : Event) : option (Q × Q)  :=
+Definition getVelEv (e : Event) : option (Polar2D Q)  :=
   getPayloadFromEv VELOCITY e.
 
-Definition getVelOEv : (option Event) ->  option (Q × Q)  :=
+Definition getVelOEv : (option Event) ->  option (Polar2D Q)  :=
 getPayloadFromEvOp VELOCITY.
 
 
 Definition getVelAndTime (oev : option Event) 
-    : option ((Q × Q) * Event)  :=
-getPayloadAndEv VELOCITY oev.
+    : option ((Polar2D Q) * Event)  :=
+  getPayloadAndEv VELOCITY oev.
 
 
 Definition inIntervalDuring
@@ -131,21 +154,21 @@ Close Scope Q_scope.
 Definition velocityMessages (t : QTime) :=
   (filterPayloadsUptoTime VELOCITY (localEvts MOVABLEBASE) t).
 
-Variable initialVel : (Q × Q).
+Variable initialVel : (Polar2D Q).
 Variable initialPos : Q.
 
 Definition lastVelAndTime
-  (t : QTime) : ((Q × Q) × QTime) :=
+  (t : QTime) : ((Polar2D Q) × QTime) :=
   lastPayloadAndTime VELOCITY (localEvts MOVABLEBASE) t initialVel.
 
 Definition correctVelDuring
-  (lastVelCmd : (Q × Q)) 
+  (lastVelCmd : (Polar2D Q)) 
   (lastTime: QTime)
   (uptoTime : QTime) 
   (robot: iCreate) :=
 
-changesTo (transVel robot) lastTime uptoTime (π₁ lastVelCmd) reacTime tVelPrec 
-∧ changesTo (omega robot) lastTime uptoTime (π₂ lastVelCmd) reacTime omegaPrec.
+changesTo (transVel robot) lastTime uptoTime (rad lastVelCmd) reacTime tVelPrec 
+∧ changesTo (omega robot) lastTime uptoTime (θ lastVelCmd) reacTime omegaPrec.
 
 
 Definition corrSinceLastVel
@@ -157,16 +180,21 @@ correctVelDuring lastVel lastTime uptoTime robot.
 
 
 Definition BaseMotors  : Device iCreate :=
-fun  (robot: iCreate) (evs : nat -> option Event) 
-  => forall t: QTime, corrSinceLastVel evs t robot.
+λ (robot: iCreate) (evs : nat -> option Event) ,
+  (∀ t: QTime, corrSinceLastVel evs t robot).
+
+
+
+Definition PureSwProc (speed: Qpos):
+  PureProcWDelay TARGETPOS VELOCITY:=
+  robotPureProgam.
+
 
 (** It would be quite complicated to maintain bounds on position when both
     [omega] and [speed] are nonzero. derivative on [X position] depends on
     all of [speed] and [theta] and [omega] *)
 
 Require Export CoRN.ftc.IntegrationRules.
-
-(* rational_arctan *)
 
 (*
 Lemma TBarrowPos : forall rob (a b : Time),
@@ -195,3 +223,4 @@ Qed.
     useful. however, the head of the integral is a multiplication and only then
     we have a composition in the RHS of the multiplication *)
 End iCREATECPS.
+End RobotProgam.

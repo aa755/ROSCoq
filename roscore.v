@@ -123,7 +123,7 @@ econstructor; eauto.
 Defined.
 
 
-Definition mkDelayedMesg (outTopic : RosTopic)
+Definition mkDelayedMesg {outTopic : RosTopic}
   (delay : Q) (payload : ( (topicType outTopic))) : Message.
 econstructor; eauto;[].
 exact (mkHeader 0).
@@ -140,6 +140,19 @@ Lemma moveMapInsideFst : forall tp lm,
 Proof.
   intros ?. destruct lm; reflexivity.
 Qed.
+
+
+Definition PureProcWDelay (inT outT : RosTopic)
+  := (topicType inT) -> list (Q * (topicType outT)).
+
+Definition delayedLift2Mesg {InTopic OutTopic} 
+  (f : PureProcWDelay InTopic OutTopic) 
+   (inpMesg : Message) : (list Message) :=
+  match (getPayLoad InTopic inpMesg ) with
+  | Some tmesg => map (λ p, (mkDelayedMesg (π₁ p) (π₂ p))) (f tmesg)
+  | None => nil
+  end.
+
 
 End RosCore.
 
