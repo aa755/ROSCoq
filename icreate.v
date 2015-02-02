@@ -190,6 +190,38 @@ Definition PureSwProc (speed: Qpos):
   robotPureProgam.
 
 
+Definition locTopics (rl : RosLoc) : TopicInfo :=
+match rl with
+| MOVABLEBASE => ((VELOCITY::nil), nil)
+| EXTERNALCMD => (nil, (TARGETPOS::nil))
+end.
+
+Instance Equiv_instance_event : Equiv Event := eq.
+Instance Equiv_instance_option_event : Equiv (option Event) := eq.
+
+Definition externalCmdSemantics {Phys : Type} 
+ : @NodeSemantics Phys Event :=
+  λ _ evs , ∀ n, match n with
+                 | 0 => {ev: Event | isSendEvt ev ∧ evs n= Some ev} 
+                        (** also put some bounds on target *)
+                 | S _ => evs n = None
+                 end.
+
+
+Definition locNode (rl : RosLoc) : NodeSemantics :=
+match rl with
+| MOVABLEBASE => DeviceSemantics (λ ts,  ts) BaseMotors
+| EXTERNALCMD  => externalCmdSemantics
+end.
+
+Instance rllllfjkfhsdakfsdakh : @RosLocType iCreate Topic Event  RosLoc _.
+  apply Build_RosLocType.
+  - exact locNode.
+  - exact locTopics.
+  - exact (fun srs dest => Some (mkQTime 1 I)).
+Defined.
+
+
 (** It would be quite complicated to maintain bounds on position when both
     [omega] and [speed] are nonzero. derivative on [X position] depends on
     all of [speed] and [theta] and [omega] *)
