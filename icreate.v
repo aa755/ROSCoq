@@ -51,7 +51,7 @@ Variables   rotspeed speed anglePrec distPrec delay : Qpos.
 
 Definition robotPureProgam 
       (target : Cart2D Q) : list (Q × Polar2D Q):=
-    let polarTarget : (Polar2D CR) := Cart2Polar target in
+    let polarTarget : Polar2D CR := Cart2Polar target in
     let approxTheta : Q := approximate (θ polarTarget) anglePrec in
     let approxDist : Q := approximate (rad polarTarget) distPrec in
     let rotDuration : Q :=  approxTheta / (QposAsQ rotspeed) in
@@ -84,7 +84,7 @@ Instance  ttttt : @RosTopicType Topic _.
   constructor. exact topic2Type.
 Defined.
 
-Inductive RosLoc :=  MOVABLEBASE | EXTERNALCMD.
+Inductive RosLoc :=  MOVABLEBASE | EXTERNALCMD | SWNODE.
 
 Scheme Equality for RosLoc.
 
@@ -169,7 +169,11 @@ Definition correctVelDuring
 
 changesTo (transVel robot) lastTime uptoTime (rad lastVelCmd) reacTime tVelPrec 
 ∧ changesTo (omega robot) lastTime uptoTime (θ lastVelCmd) reacTime omegaPrec.
-
+(** TODO : second bit of conjunction is incorrect it will force the
+   orientation in [iCreate] to jump from [2π] to [0] while turning.
+   changes_to is based on a notion of distance or norm. we need to generalize 
+    it to use the norm typeclass and then define appropriate notion for distance
+    for angles*)
 
 Definition corrSinceLastVel
   (evs : nat -> option Event)
@@ -190,20 +194,32 @@ Definition PureSwProc (speed: Qpos):
   robotPureProgam.
 
 
+(** The software could reply back to the the external agent saying "done".
+    Then the s/w will output messages to two different topics
+    In that case, change the [SWNODE] claue *)
 Definition locTopics (rl : RosLoc) : TopicInfo :=
 match rl with
 | MOVABLEBASE => ((VELOCITY::nil), nil)
+| SWNODE => ((TARGETPOS::nil), (VELOCITY::nil))
 | EXTERNALCMD => (nil, (TARGETPOS::nil))
 end.
 
 Instance Equiv_instance_event : Equiv Event := eq.
 Instance Equiv_instance_option_event : Equiv (option Event) := eq.
+Instance Equiv_instance_option_message : Equiv (option Message) := eq.
 
+Variable targetPos : Cart2D Q.
+
+(** 10 should be replaced by something which is a function of 
+    velocity accuracy, angle accuracy, max velocity etc *)
 Definition externalCmdSemantics {Phys : Type} 
  : @NodeSemantics Phys Event :=
   λ _ evs , ∀ n, match n with
-                 | 0 => {ev: Event | isSendEvt ev ∧ evs n= Some ev} 
-                        (** also put some bounds on target *)
+                 | 0 => {m : Message | isSendEvtOp (evs n) (*∧
+                                      getPayLoad
+                                          TARGETPOS
+                                          m
+                                      = (Some targetPos) *)} 
                  | S _ => evs n = None
                  end.
 
@@ -211,6 +227,7 @@ Definition externalCmdSemantics {Phys : Type}
 Definition locNode (rl : RosLoc) : NodeSemantics :=
 match rl with
 | MOVABLEBASE => DeviceSemantics (λ ts,  ts) BaseMotors
+| SWNODE => DeviceSemantics (λ ts,  ts) BaseMotors (* FIX *)
 | EXTERNALCMD  => externalCmdSemantics
 end.
 

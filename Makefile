@@ -17,7 +17,7 @@ CoList.vo : CoList.v
 	$(COQC) $<
 		
 
-icreate.vo : icreate.v ROSCyberPhysicalSystem.vo Vector.vo
+icreate.vo : icreate.v ROSCyberPhysicalSystem.vo Vector.vo CartCR.vo
 	$(COQC) $<
 
 roscore.vo : roscore.v Process.vo
@@ -45,13 +45,13 @@ ContField.vo : ContField.v PointWiseRing.vo SubCRing.vo CoRNMisc.vo
 StdlibMisc.vo : StdlibMisc.v
 	$(COQC) $<
 
-CoRNMisc.vo : CoRNMisc.v
+CoRNMisc.vo : CoRNMisc.v CanonicalNotations.vo
 	$(COQC) $<
 
 CartCR.vo : CartCR.v IRLemmasAsCR.vo
 	$(COQC) $<
 
-IRLemmasAsCR.vo : IRLemmasAsCR.v IRTrig.vo
+IRLemmasAsCR.vo : IRLemmasAsCR.v IRTrig.vo CanonicalNotations.vo
 
 %.tex: %.v %.vo
 	$(COQC) $<

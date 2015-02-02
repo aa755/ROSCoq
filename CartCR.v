@@ -23,11 +23,17 @@ Definition polarTheta (cart :Cart2D Q) : CR :=
       let angle := (rational_arctan (Y cart / (X cart))) in
       if decide (X cart < 0) then angle + CRpi else angle.
 
-Definition polarRad (cart : Cart2D Q) : CR :=
-  (√((X cart) * (X cart) +  (Y cart) * (Y cart)))%Q.
+Require Export CanonicalNotations.
+
+Instance NormSpace_instance_Cart2D 
+  (A B : Type) `{SqrtFun A B} 
+  `{Ring A} : NormSpace (Cart2D A) B :=
+ λ (cart : Cart2D A), 
+    (√((X cart) * (X cart) +  (Y cart) * (Y cart))).
+
 
 Definition Cart2Polar (cart :Cart2D Q) : Polar2D CR :=
-  {|rad := polarRad cart 
+  {|rad := ( |cart| )  
   ; θ := polarTheta cart |}.
 
 
@@ -89,9 +95,9 @@ Proof.
   simpl. destruct c as [cx cy].
   unfold polarTheta. simpl.
   destruct (decide (cx = 0)) as [Hcx0 | Hcx0];
-  unfold polarRad,equiv,EquivCart; simpl.
+  unfold equiv,EquivCart,CanonicalNotations.norm, NormSpace_instance_Cart2D ; simpl. simpl.
 - rewrite Hcx0. prepareForCRRing.
-  QRing_simplify.
+  unfold stdlib_rationals.Q_mult, stdlib_rationals.Q_plus. QRing_simplify.
   simpl. rewrite CRrational_sqrt_ofsqr.
   unfold QSignHalf.
   destruct (decide (cy < 0)) as [Hlt | Hlt];

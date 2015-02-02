@@ -1,5 +1,8 @@
 Require Export CoRN.ftc.FTC.
 
+Require Export CanonicalNotations.
+Instance NormSpace_instance_IR : NormSpace IR IR := AbsIR.
+
 Definition Q2R  (q: Q) : IR := (inj_Q IR q).
 Coercion  Q2R : Q >-> st_car.
 

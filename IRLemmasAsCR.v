@@ -193,8 +193,7 @@ Proof.
   reflexivity.
 Qed.
 (** A and B can be different, e.g. rational_sqrt *)
-Class SqrtFun (A B : Type) := sqrtFun : A -> B.
-Notation "√" := sqrtFun.
+Require Export CanonicalNotations.
 Instance CRsqrt_SqrtFun_instance : SqrtFun CR CR := CRsqrt.
 Instance rational_sqrt_SqrtFun_instance : SqrtFun Q CR 
     := rational_sqrt.
@@ -472,12 +471,8 @@ Proof.
   rewrite (morph_opp QCRM).
   apply multNegShiftOut.
 Qed.
-
-Class RealNumberPi (R : Type) := π : R.
 Instance CRpi_RealNumberPi_instance : RealNumberPi CR := CRpi.
 
-Class HalfNum (R : Type) := half_num : R.
-Notation "½" := half_num.
 Instance Q_Half_instance : HalfNum Q := (1#2).
 Instance CR_Half_instance : HalfNum CR := (inject_Q_CR (1#2)).
 

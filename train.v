@@ -2467,8 +2467,6 @@ Close Scope nat_scope.
   lra.
 Qed.
 
-Notation "| x |" := (AbsIR x) (at level 300).
-
 
 Coercion Z2R : Z >-> st_car.
 
