@@ -189,9 +189,19 @@ Definition BaseMotors  : Device iCreate :=
 
 
 
-Definition PureSwProc (speed: Qpos):
+Definition PureSwProgram:
   PureProcWDelay TARGETPOS VELOCITY:=
   robotPureProgam.
+
+Definition SwProcess 
+      : Process Message (list Message):= 
+  mkPureProcess (delayedLift2Mesg (PureSwProgram)).
+
+Definition digiControllerTiming  : 
+  QTime :=  (mkQTime 1 I).
+ 
+Definition ControllerNode : RosSwNode :=
+  Build_RosSwNode (SwProcess) (digiControllerTiming).
 
 
 (** The software could reply back to the the external agent saying "done".
@@ -204,30 +214,29 @@ match rl with
 | EXTERNALCMD => (nil, (TARGETPOS::nil))
 end.
 
-Instance Equiv_instance_event : Equiv Event := eq.
-Instance Equiv_instance_option_event : Equiv (option Event) := eq.
-Instance Equiv_instance_option_message : Equiv (option Message) := eq.
 
 Variable targetPos : Cart2D Q.
+
+Definition externalCmdFstEvt (oev :option Event) :=
+  match oev with
+  | Some ev => isSendEvt ev 
+                ∧ (opBind (getPayLoad TARGETPOS) (head (eMesg ev))) 
+                   ≡ (Some targetPos)
+  | None => False
+  end.
 
 (** 10 should be replaced by something which is a function of 
     velocity accuracy, angle accuracy, max velocity etc *)
 Definition externalCmdSemantics {Phys : Type} 
  : @NodeSemantics Phys Event :=
-  λ _ evs , ∀ n, match n with
-                 | 0 => {m : Message | isSendEvtOp (evs n) (*∧
-                                      getPayLoad
-                                          TARGETPOS
-                                          m
-                                      = (Some targetPos) *)} 
-                 | S _ => evs n = None
-                 end.
+  λ _ evs , (externalCmdFstEvt (evs 0)) ∧ ∀ n : nat, (evs n) ≡ None.
+
 
 
 Definition locNode (rl : RosLoc) : NodeSemantics :=
 match rl with
 | MOVABLEBASE => DeviceSemantics (λ ts,  ts) BaseMotors
-| SWNODE => DeviceSemantics (λ ts,  ts) BaseMotors (* FIX *)
+| SWNODE => RSwSemantics ControllerNode
 | EXTERNALCMD  => externalCmdSemantics
 end.
 
@@ -235,7 +244,7 @@ Instance rllllfjkfhsdakfsdakh : @RosLocType iCreate Topic Event  RosLoc _.
   apply Build_RosLocType.
   - exact locNode.
   - exact locTopics.
-  - exact (fun srs dest => Some (mkQTime 1 I)).
+  - exact (λ _ _ , Some (mkQTime 1 I)).
 Defined.
 
 

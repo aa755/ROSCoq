@@ -25,7 +25,7 @@ Record Header := mkHeader
 
 Section RosCore.
 
-Context  `{rtopic : RosTopicType RosTopic}.
+Context  `{RosTopicType RosTopic}.
 
 Definition Message := (sigT topicType) × Header .
 (* string could be rrplaced by a list bool to indicate a binary blob *)

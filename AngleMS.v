@@ -23,4 +23,5 @@ Inductive AngleRad : Type :=
     Either way, distance is supposed to be between [0] and [π]. 
     It is a conitnuous function; implementable using min, max etc *)
 Definition AngleMS : MetricSpace.
+Abort.
 End Angles.
