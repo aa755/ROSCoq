@@ -1397,6 +1397,26 @@ Proof.
   unfoldMC. ring.
 Qed.
 
+Lemma CRLtAddLHS : forall (c a b : CR),
+  a < b
+  → c + a  < c + b.
+Proof.
+  intros  ? ? ?  Hab.
+  apply orders.strictly_order_preserving; eauto with *.
+Qed.
+
+Lemma CRLtAddRHS : forall (c a b : CR),
+  a < b
+  → a+c < b+c.
+Proof.
+  intros  ? ? ?  Hab.
+  rewrite rings.plus_comm.
+  remember (c+a) as ac. rewrite rings.plus_comm.
+  subst ac.
+  apply CRLtAddLHS.
+  trivial.
+Qed.
+
 (*
 Notation "¼" := (QposMake xH (xO (xO xH))).
 Notation  "2" := (QposMake (xO xH) xH).

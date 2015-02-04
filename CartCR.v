@@ -21,7 +21,7 @@ Definition polarTheta (cart :Cart2D Q) : CR :=
       CRpi * ' QSignHalf (Y cart)
     else
       let angle := (rational_arctan (Y cart / (X cart))) in
-      if decide (X cart < 0) then angle + CRpi else angle.
+      if decide (X cart < 0) then angle + π else angle.
 
 Require Export CanonicalNotations.
 
@@ -114,5 +114,38 @@ Proof.
         unfoldMC; intros; lra.
 Qed.
 
+Require Export orders.
 
+Hint Resolve CRweakenLt CRLtAddLHS CRLtAddRHS : CRBasics.
+Lemma Cart2PolarAngleRange : forall (c :Cart2D Q),
+  -(½*π)  ≤ θ (Cart2Polar c) ≤ ('(3*½))*π.
+Proof.
+  intro c.
+  destruct c. simpl.
+  unfold polarTheta.
+  simpl. destruct (decide (X = 0)).
+- clear. unfold QSignHalf.
+  destruct (decide (Y < 0));
+  [split;[|apply CRweakenLt]|apply CRweakenRange; split];  
+    try(exists (1%nat); vm_compute; reflexivity).
+  rewrite rings.mult_comm, <- multNegShiftOut.
+  rewrite <- CRopp_Qopp. reflexivity.
+- destruct (CRarctan_range ('(Y/X)%Q)) as [Hl Hr].
+  destruct (decide (X < 0)); rewrite <- arctan_Qarctan.
+  + apply (CRLtAddRHS π) in Hr.
+    apply (CRLtAddRHS π) in Hl.
+    apply CRweakenLt in Hr.
+    assert (½ * π + π = (½+1)%CR*π) as Heq by CRRing.
+    rewrite Heq in Hr. clear Heq.
+    assert ((½ + 1) = 3*½)%Q as Heq by reflexivity.
+    rewrite <- Heq. clear Heq.
+    split;[apply CRweakenLt|].
+    * eapply (orders.strict_po_trans); [| apply Hl].
+      exists 1%nat. vm_compute. reflexivity.
+    * eapply CRle_trans; [apply Hr|]. rewrite <- CRplus_Qplus.
+      reflexivity.
+  + apply CRweakenRange. split; [trivial|].
+    eapply (orders.strict_po_trans); eauto.
+    exists 1%nat. vm_compute. reflexivity.
+Qed.
 (* Print Assumptions Cart2Polar2CartID : Closed under the global context *)
