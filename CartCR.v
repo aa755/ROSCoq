@@ -8,8 +8,11 @@ Require Export MathClasses.interfaces.canonical_names.
 Require Export MathClasses.misc.decision.
 Require Export IRLemmasAsCR.
 
+Definition QSign (q r: Q) : Q :=
+  if (decide (q < 0)) then (-r) else (r).
+
 Definition QSignHalf (q: Q) : Q :=
-  if (decide (q < 0)) then (-½) else (½).
+  QSign q ½ .
 
 Require Export Vector.
 Local Notation yes := left.
@@ -99,7 +102,7 @@ Proof.
 - rewrite Hcx0. prepareForCRRing.
   unfold stdlib_rationals.Q_mult, stdlib_rationals.Q_plus. QRing_simplify.
   simpl. rewrite CRrational_sqrt_ofsqr.
-  unfold QSignHalf.
+  unfold QSignHalf, QSign.
   destruct (decide (cy < 0)) as [Hlt | Hlt];
     autorewrite with CRSimpl; 
   prepareForCRRing; try rewrite (morph_opp QCRM);
@@ -124,7 +127,7 @@ Proof.
   destruct c. simpl.
   unfold polarTheta.
   simpl. destruct (decide (X = 0)).
-- clear. unfold QSignHalf.
+- clear. unfold QSignHalf, QSign.
   destruct (decide (Y < 0));
   [split;[|apply CRweakenLt]|apply CRweakenRange; split];  
     try(exists (1%nat); vm_compute; reflexivity).
@@ -148,4 +151,11 @@ Proof.
     eapply (orders.strict_po_trans); eauto.
     exists 1%nat. vm_compute. reflexivity.
 Qed.
-(* Print Assumptions Cart2Polar2CartID : Closed under the global context *)
+
+Lemma Cart2PolarRadRange : forall (c :Cart2D Q),
+  0  ≤ rad (Cart2Polar c).
+Proof.
+  intros c.
+  unfold Cart2Polar. unfold CanonicalNotations.norm, NormSpace_instance_Cart2D.
+  simpl.
+Abort.
