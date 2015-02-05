@@ -497,7 +497,6 @@ Lemma CRSin_plus_Pi: ∀ θ : CR, sin (θ + π) = (- sin θ).
 Qed.
 
 
-
 Lemma arctan_correct_CR : ∀ θ,
   CRasIR (arctan θ) = (ArcTan (CRasIR θ)).
 Proof.

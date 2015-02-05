@@ -3,6 +3,7 @@ Require Export Coq.Program.Tactics.
 Require Export LibTactics.
 (** printing × $\times$ #×# *)
 (** printing :> $:$ #:># *)
+Require Export CartCR.
 
 Require Export ROSCyberPhysicalSystem.
 Require Export Vector.
@@ -15,20 +16,26 @@ Definition isVecDerivativeOf
   destruct f' as [fv' ft'].
   exact ((isDerivativeOf ft ft') × (Hind fv fv')).
 Defined.
-
-
-
+Require Import MathClasses.interfaces.canonical_names.
+Require Import MCInstances.
 (** CatchFileBetweenTagsStartCreate *)
 
 Record iCreate : Type := {
   position :> Cart2D TContR;          (* x, y co-ordinates*)
   theta : TContR;                       (* orientation *)
-  transVel : TContR;             (* translation vel (along orientation), can be negative *)
+  transVel : TContR;             (* translation vel (along [theta]) *)
   omega : TContR;
 
+  (** derivatives *)
   derivRot : isDerivativeOf omega theta;
   derivX : isDerivativeOf (transVel [*] (CFCos theta)) (X position);
-  derivY : isDerivativeOf (transVel [*] (CFSine theta)) (Y position)
+  derivY : isDerivativeOf (transVel [*] (CFSine theta)) (Y position);
+
+  (** Initial (at time:=0) Conditions *)  
+
+  initPos:  ({X position} 0) = 0 ∧ ({Y position} 0) = 0;
+  initTheta:  ({theta} 0) = 0
+  
 }.
 
 (** CatchFileBetweenTagsEndCreate *)
@@ -38,7 +45,6 @@ Definition unitVec (theta : TContR)  : Cart2D TContR :=
   {|X:= CFCos theta; Y:=CFSine theta|}.
 
 
-Require Export CartCR.
 (** Robot is asked to go to the  [target] relative to current position.
     This function defines the list of messages that the robot will send to
     the motor so that it will go to the target position.
@@ -250,6 +256,20 @@ Instance rllllfjkfhsdakfsdakh : @RosLocType iCreate Topic Event  RosLoc _.
   - exact (λ _ _ , Some (mkQTime 1 I)).
 Defined.
 
+Variable acceptableDist : Q.
+Variable icreate : iCreate.
+Variable eo : (@PossibleEventOrder _  icreate minGap _ _ _ _ _ _ _ _ _).
+
+Definition posAtTime (t: Time) : Cart2D IR :=
+  {| X:= {X (position icreate)} t ; Y := {Y (position icreate)} t |}.
+
+Instance Lt_instance_QTime : Lt QTime := Qlt.
+Definition targetPosR : Cart2D IR := ' targetPos.
+(* Lemma Liveness :
+  ∃ (ts : QTime), ∀ (t : QTime), 
+      ts < t → (|(posAtTime t) - targetPosR|) [<=] 0. *)
+(** need to define instance of norm *)    
+(** need to define instance ring on Cart2D *)    
 
 (** It would be quite complicated to maintain bounds on position when both
     [omega] and [speed] are nonzero. derivative on [X position] depends on

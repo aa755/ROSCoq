@@ -30,7 +30,7 @@ Require Export CanonicalNotations.
 
 Instance NormSpace_instance_Cart2D 
   (A B : Type) `{SqrtFun A B} 
-  `{Ring A} : NormSpace (Cart2D A) B :=
+  `{Plus A} `{Mult A} : NormSpace (Cart2D A) B :=
  λ (cart : Cart2D A), 
     (√((X cart) * (X cart) +  (Y cart) * (Y cart))).
 
@@ -157,5 +157,12 @@ Lemma Cart2PolarRadRange : forall (c :Cart2D Q),
 Proof.
   intros c.
   unfold Cart2Polar. unfold CanonicalNotations.norm, NormSpace_instance_Cart2D.
+  simpl. rewrite <- CRsqrt_Qsqrt. apply CRsqrt_nonneg.
+  destruct c.
   simpl.
-Abort.
+  apply CRle_Qle. unfoldMC. apply Q.Qplus_nonneg;apply Qpower.Qsqr_nonneg.
+Qed.
+
+(** Ring on Cart2D *)
+Require Export RPointWiseRing.
+

@@ -17,7 +17,7 @@ CoList.vo : CoList.v
 	$(COQC) $<
 		
 
-icreate.vo : icreate.v ROSCyberPhysicalSystem.vo Vector.vo CartCR.vo
+icreate.vo : icreate.v ROSCyberPhysicalSystem.vo Vector.vo CartCR.vo MCInstances.vo
 	$(COQC) $<
 
 roscore.vo : roscore.v Process.vo
