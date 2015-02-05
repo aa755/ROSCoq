@@ -1,4 +1,4 @@
-COQC = coqc -R ../../../ssrcorn/math-classes/src -as MathClasses -R ../../../ssrcorn -as CoRN
+COQC = coqc -R . ROSCOQ -R ../../../ssrcorn/math-classes/src -as MathClasses -R ../../../ssrcorn -as CoRN
 
 all : icreate.vo train.vo CartCR.vo
 train.vo : train.v ROSCyberPhysicalSystem.vo
@@ -30,7 +30,7 @@ Process.vo : Process.v core.vo
 ADC.vo : ADC.v core.vo
 	$(COQC) $<
 
-core.vo : core.v CoRNMisc.vo ContField.vo StdlibMisc.vo
+core.vo : core.v IRMisc/CoRNMisc.vo CRMisc/ContField.vo StdlibMisc.vo
 	$(COQC) $<
 
 Fin.vo : Fin.v StdlibMisc.vo
@@ -39,13 +39,13 @@ Fin.vo : Fin.v StdlibMisc.vo
 Vector.vo : Vector.v Fin.vo
 	$(COQC) $<
 
-ContField.vo : ContField.v PointWiseRing.vo SubCRing.vo CoRNMisc.vo
+CRMisc/ContField.vo : CRMisc/ContField.v CRMisc/PointWiseRing.vo CRMisc/SubCRing.vo IRMisc/CoRNMisc.vo
 	$(COQC) $<
 
 StdlibMisc.vo : StdlibMisc.v
 	$(COQC) $<
 
-CoRNMisc.vo : CoRNMisc.v CanonicalNotations.vo
+IRMisc/CoRNMisc.vo : IRMisc/CoRNMisc.v CanonicalNotations.vo
 	$(COQC) $<
 
 CartCR.vo : CartCR.v IRLemmasAsCR.vo

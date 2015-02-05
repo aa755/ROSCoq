@@ -1,89 +1,34 @@
-
-Require Export CoRN.ftc.MoreIntervals.
-Require Export PointWiseRing.
+Require Import IRMisc.ContField.
 
 Set Implicit Arguments.
 Require Import Coq.Unicode.Utf8.
 
-Lemma interval_convex:
-  ∀ (a b : IR) (I : interval),
-    I a → I b → included (clcr a b) I.
-Proof.
-  intros ? ? ? Ha Hb. unfold included. intros x Hab.
-  simpl in Hab. destruct Hab as [Hab Habr].
-  destruct I; simpl in Ha, Hb; simpl; try (split; destruct Ha, Hb); 
-    eauto using leEq_less_trans, leEq_reflexive, 
-                less_leEq_trans, leEq_transitive.
-Qed.
-
-Hint Resolve less_Min leEq_Min : CoRN.
-
-Lemma interval_Min:
-  ∀ {a b : IR} {I : interval},
-    I a → I b → I (Min a b).
-Proof.
-  intros ? ? ? Ha Hb.
-  destruct I; simpl in Ha, Hb; simpl; try (split; destruct Ha, Hb);
-    eauto using leEq_less_trans, leEq_reflexive, 
-                 leEq_transitive,
-                Min_leEq_lft, less_Min, leEq_Min.
-Qed.
-
-Lemma interval_Max:
-  ∀ {a b : IR} {I : interval},
-    I a → I b → I (Max a b).
-Proof.
-  intros ? ? ? Ha Hb.
-  destruct I; simpl in Ha, Hb; simpl; try (split; destruct Ha, Hb);
-  eauto using less_leEq_trans, leEq_reflexive, 
-                leEq_transitive,
-                lft_leEq_Max, Max_less, Max_leEq.
-Qed.
 
 Section ContFAlgebra.
-Variable itvl : interval.
+Require Import CRMisc.IRLemmasAsCR.
 
-Definition RInIntvl := Build_SubCSetoid IR (itvl).
-
-Definition mkRIntvl (r : IR) (p : (itvl) r) : RInIntvl := 
-  (Build_subcsetoid_crr  _ _ r p).
-
-Variable pItvl : proper itvl.
-
-Definition somePtInIntvl : RInIntvl.
-  apply proper_nonvoid in pItvl.
-  apply nonvoid_point in pItvl.
-  destruct pItvl as [x pf].
-  exists x; trivial.
-Defined.
-
-  
-Definition RI_R := 
-    FS_as_PointWise_CRing RInIntvl  IR somePtInIntvl.
-
-
-Definition toPart (f : RI_R) : PartIR.
-  apply Build_PartFunct with (pfdom := (itvl)) 
-    (pfpfun := fun ir pp => f (mkRIntvl ir pp)).
+Open Scope uc_scope.
+Definition toPart (f : (CR --> CR)) : PartIR.
+  apply Build_PartFunct with (pfdom := (realline)) 
+    (pfpfun := fun ir pp => CRasIR (f (IRasCR ir))).
   - apply iprop_wd.
-  - intros ? ? ? ?. apply csf_strext.
+  - intros ? ? ? ?. admit.
 Defined.
 
-
-Definition fromPart (f : PartIR) (Hd : included itvl (Dom f)): RI_R.
-  apply Build_CSetoid_fun with
-    (csf_fun := (fun x : RInIntvl 
-        => f (scs_elem _ _ x) (Hd _  (scs_prf _ _ x)))).
-
+(*
+Definition fromPart (f : PartIR) (Hd : included realline (Dom f)): (CR --> CR).
+  
   intros ? ? Hsep.
   apply (pfstrx _ f) in Hsep. simpl.
   unfold subcsetoid_ap, Crestrict_relation. simpl.
   destruct x, y. simpl in Hsep.
   trivial.
 Defined.
+*)
 
+(*
 Lemma toFromPartId : forall (F : PartIR) p,
-  Feq itvl F (toPart (fromPart F p)).
+  Feq realline F (toPart (fromPart F p)).
 Proof.
   intros ? ?.
   split; [trivial|].
@@ -92,11 +37,12 @@ Proof.
   apply pfwdef.
   apply eq_reflexive_unfolded.
 Qed.
+*)
 
 
-Lemma toPartSum : forall (F G : RI_R),
-  Feq itvl ((toPart F) {+} (toPart G))
-           (toPart (F [+] G)).
+Lemma toPartSum : forall (F G : CR --> CR),
+  Feq realline ((toPart F) {+} (toPart G))
+           (toPart (F + G)).
 Proof.
   intros ? ?. simpl.
   unfold FS_sg_op_pointwise, toPart.

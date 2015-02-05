@@ -11,7 +11,7 @@ Notation ℝ := IR.
 
 Require Export Coq.ZArith.ZArith.
 
-Require Export CoRNMisc.
+Require Export IRMisc.CoRNMisc.
 
 Require Export ContField.
 
