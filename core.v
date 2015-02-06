@@ -13,7 +13,7 @@ Require Export Coq.ZArith.ZArith.
 
 Require Export IRMisc.CoRNMisc.
 
-Require Export ContField.
+Require Export IRMisc.ContField.
 
 Require Export StdlibMisc.
 

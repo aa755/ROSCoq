@@ -3,7 +3,6 @@ Require Export Coq.Program.Tactics.
 Require Export LibTactics.
 (** printing × $\times$ #×# *)
 (** printing :> $:$ #:># *)
-Require Export CartCR.
 
 Require Export ROSCyberPhysicalSystem.
 Require Export Vector.
@@ -18,6 +17,8 @@ Definition isVecDerivativeOf
 Defined.
 Require Import MathClasses.interfaces.canonical_names.
 Require Import MCInstances.
+Require Export CartCR.
+
 (** CatchFileBetweenTagsStartCreate *)
 
 Record iCreate : Type := {
@@ -265,9 +266,14 @@ Definition posAtTime (t: Time) : Cart2D IR :=
 
 Instance Lt_instance_QTime : Lt QTime := Qlt.
 Definition targetPosR : Cart2D IR := ' targetPos.
-(* Lemma Liveness :
+
+
+Lemma Liveness :
   ∃ (ts : QTime), ∀ (t : QTime), 
-      ts < t → (|(posAtTime t) - targetPosR|) [<=] 0. *)
+      ts < t → (|(posAtTime t) - targetPosR|) ≤ cast Q IR acceptableDist.
+Abort.
+
+
 (** need to define instance of norm *)    
 (** need to define instance ring on Cart2D *)    
 

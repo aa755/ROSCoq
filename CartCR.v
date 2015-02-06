@@ -164,5 +164,29 @@ Proof.
 Qed.
 
 (** Ring on Cart2D *)
-Require Export RPointWiseRing.
+Require Import IRMisc.RPointWiseRing.
+Require Import MathClasses.implementations.bool.
 
+
+Instance Zero_instance_Cart2D `{Zero A} : Zero (Cart2D A):= (({|X:=0 ; Y:=0|}))%mc.
+Instance One_instance_Cart2D `{One A} : One (Cart2D A):= (({|X:=1 ; Y:=1|}))%mc.
+Instance Plus_instance_Cart2D `{Plus A} : Plus (Cart2D A):= (λ a b, ({|X:= X a + X b ; Y:= Y a + Y b|}))%mc.
+Instance Mutt_instance_Cart2D `{Mult A} : Mult (Cart2D A):= (λ a b, ({|X:= X a * X b ; Y:= Y a * Y b|}))%mc.
+Instance Negate_instance_Cart2D `{Negate A} : Negate (Cart2D A):= (λ a, ({|X:= -(X a) ; Y:= -(Y a)|}))%mc.
+
+Section Cart2DRing.
+
+Context `{Ring A}.
+  
+
+Add Ring  stdlib_ring_theoryldsjfsd : (rings.stdlib_ring_theory A).
+
+Instance Ring_instance_Cart2D : Ring (Cart2D A).
+  repeat(split);
+  (repeat match goal with
+  | [ H: Cart2D A |- _ ] => destruct H
+  | [ H: equiv _ _ |- _ ] => unfold equiv, EquivCart in H; simpl in H; destruct H
+  end);
+  simpl; subst; eauto 2 with *; try ring; try( apply sg_op_proper; auto).
+Qed.
+End Cart2DRing.

@@ -30,7 +30,7 @@ Process.vo : Process.v core.vo
 ADC.vo : ADC.v core.vo
 	$(COQC) $<
 
-core.vo : core.v IRMisc/CoRNMisc.vo CRMisc/ContField.vo StdlibMisc.vo
+core.vo : core.v IRMisc/CoRNMisc.vo IRMisc/ContField.vo StdlibMisc.vo
 	$(COQC) $<
 
 Fin.vo : Fin.v StdlibMisc.vo
@@ -39,7 +39,7 @@ Fin.vo : Fin.v StdlibMisc.vo
 Vector.vo : Vector.v Fin.vo
 	$(COQC) $<
 
-CRMisc/ContField.vo : CRMisc/ContField.v CRMisc/PointWiseRing.vo CRMisc/SubCRing.vo IRMisc/CoRNMisc.vo
+IRMisc/ContField.vo : IRMisc/ContField.v IRMisc/PointWiseRing.vo IRMisc/SubCRing.vo IRMisc/CoRNMisc.vo
 	$(COQC) $<
 
 StdlibMisc.vo : StdlibMisc.v
@@ -48,10 +48,10 @@ StdlibMisc.vo : StdlibMisc.v
 IRMisc/CoRNMisc.vo : IRMisc/CoRNMisc.v CanonicalNotations.vo
 	$(COQC) $<
 
-CartCR.vo : CartCR.v IRLemmasAsCR.vo
+CartCR.vo : CartCR.v IRLemmasAsCR.vo IRMisc/RPointWiseRing.vo
 	$(COQC) $<
 
-IRLemmasAsCR.vo : IRLemmasAsCR.v IRTrig.vo CanonicalNotations.vo
+CRMisc/IRLemmasAsCR.vo : CRMisc/IRLemmasAsCR.v IRMisc/IRTrig.vo CanonicalNotations.vo
 
 %.tex: %.v %.vo
 	$(COQC) $<
