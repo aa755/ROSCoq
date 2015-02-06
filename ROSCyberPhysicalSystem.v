@@ -828,7 +828,7 @@ Definition minDelayForIndex (lm : list Message) (index : nat) : Q :=
   fold_right Qplus 0 delays.
 
 
-
+Open Scope mc_scope.
 (** assuming all outgoing messages resulting from processing
     an event happen in a single send event (send once) *)
 Definition possibleDeqSendOncePair2
@@ -846,8 +846,8 @@ Definition possibleDeqSendOncePair2
             let procOutMsgs := (getDeqOutput2 lastProc evd) in
             let minDelay := (minDelayForIndex procOutMsgs (startIndex sinf)) in
               isPrefixOf (eMesg evs) (skipn (startIndex sinf) procOutMsgs)
-              ∧ (eTime evd +  minDelay < eTime evs < (eTime evd) + minDelay + (pTiming swNode))%Q
-              ∧ (nth (startIndex sinf) (map (delay ∘ (π₂)) procOutMsgs) 0)  = 0
+              ∧ (eTime evd +  minDelay <= eTime evs <= (eTime evd) + minDelay + (pTiming swNode))%Q
+              ∧ length (eMesg evs) =1
       | (_,_) => False
       end
   | _ => False
@@ -858,9 +858,9 @@ Definition RSwNodeSemanticsAux
   (locEvts: nat -> option Event) :=
   ∀ n : nat, 
       (isSendEvtOp (locEvts n) 
-          -> {m: nat | possibleDeqSendOncePair swn locEvts m n})
+          -> {m: nat | possibleDeqSendOncePair2 swn locEvts m n})
     × (isDeqEvtOp (locEvts n) 
-          -> { m: nat| possibleDeqSendOncePair swn locEvts n m}).
+          -> { m: nat| possibleDeqSendOncePair2 swn locEvts n m}).
 
 
 

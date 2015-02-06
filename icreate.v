@@ -207,11 +207,10 @@ Definition SwProcess
       : Process Message (list Message):= 
   mkPureProcess (delayedLift2Mesg (PureSwProgram)).
 
-Definition digiControllerTiming  : 
-  QTime :=  (mkQTime 1 I).
+Variable processingTime : QTime.
  
 Definition ControllerNode : RosSwNode :=
-  Build_RosSwNode (SwProcess) (digiControllerTiming).
+  Build_RosSwNode (SwProcess) (processingTime).
 
 
 (** The software could reply back to the the external agent saying "done".
@@ -270,22 +269,26 @@ Definition targetPosR : Cart2D IR := ' targetPos.
 Open Scope nat_scope.
 Lemma SwEvents : ∀ (ev : Event),
   let response := robotPureProgam targetPos in
-  eLoc ev ≡ EXTERNALCMD
+  let respPayLoads := (List.map π₂ response) in
+  let respDelays := (List.map π₁ response) in
+  eLoc ev ≡ SWNODE
   → match eLocIndex ev with
     | 0 => getRecdPayload TARGETPOS ev ≡ Some targetPos
-    | S n => n < 4 
-              ∧ isSendEvt ev 
-              ∧ getPayloadOp VELOCITY (head (eMesg ev)) 
-                 ≡ (nth_error (List.map snd response) n)
-              ∧ (0 < eTime ev)%Q
+    | S n => 
+          ∃ delay , nth_error respDelays n ≡ Some delay
+            ∧ isSendEvt ev 
+            ∧ getPayloadOp VELOCITY (head (eMesg ev)) 
+               ≡ (nth_error respPayLoads n)
+            ∧ (∃ evp,  eLoc evp ≡ SWNODE ∧ eLocIndex evp = n 
+                      ∧ (eTime evp) + delay <=  eTime ev <= eTime ev + delay)%Q
     end.
 Proof.
-  pose proof (corrNodes eo EXTERNALCMD) as Hex.
-  simpl in Hex. unfold externalCmdSemantics, externalCmdFstEvt in Hex.
-  destruct Hex as [Hexl Hexr].
+  pose proof (corrNodes eo SWNODE) as Hex.
+  simpl in Hex. unfold RSwSemantics, RSwNodeSemanticsAux in Hex.
+  (* destruct Hex as [Hexl Hexr].
   match type of Hexl with
   context [localEvts ?a ?b] => destruct (localEvts a b)
-  end.
+  end. *)
 Abort.
 
 Close Scope nat_scope.

@@ -207,6 +207,11 @@ Definition digiControllerTiming  :
 Definition ControllerNode (speed : Q): RosSwNode :=
   Build_RosSwNode (SwProcess speed) (digiControllerTiming).
 
+Lemma onlyNeededForOldProofs:
+  ∀ q le nd ns,
+     possibleDeqSendOncePair2 (ControllerNode q) le nd ns
+     → possibleDeqSendOncePair (ControllerNode q) le nd ns.
+Admitted.
 
 
 
@@ -438,6 +443,7 @@ Proof.
   TrimAndRHS Hnc. unfold isSendEvtOp in Hnc.
   simpl in Hnc.
   specialize (Hnc Hsend). destruct Hnc as [mDeq  Hnc].
+  apply onlyNeededForOldProofs in Hnc.
   apply DeqSendOncePair in Hnc.
   simpl in Hnc. exrepd. 
   rewrite  e0 in Hiff. inversion Hiff as [Heq]. clear Hiff.
@@ -886,6 +892,7 @@ Proof.
     simpl  in Hnc. TrimAndRHS Hnc. clear Hxx.
     specialize (Hnc (isSendEvtIf Heqeks)).
     destruct Hnc as [m Hnc].
+    apply onlyNeededForOldProofs in Hnc.
     apply DeqSendOncePair in Hnc.
     simpl in Hnc. 
     destruct Hnc as [es0 Hnc].
@@ -1072,6 +1079,7 @@ Proof.
     simpl  in Hnc. TrimAndRHS Hnc. clear Hxx.
     specialize (Hnc (isSendEvtIf Heqeks)).
     destruct Hnc as [m Hnc].
+    apply onlyNeededForOldProofs in Hnc.
     apply DeqSendOncePair in Hnc.
     simpl in Hnc. 
     destruct Hnc as [es0 Hnc].
@@ -2132,6 +2140,7 @@ Close Scope nat_scope.
   simpl  in Hnc.
   specialize (Hnc Hrecrr).
   destruct Hnc as [m Hnc].
+  apply onlyNeededForOldProofs in Hnc.
   apply DeqSendOncePair in Hnc.
   simpl in Hnc. 
   destruct Hnc as [es0 Hnc].
@@ -2373,6 +2382,7 @@ Close Scope nat_scope.
   simpl  in Hnc.
   specialize (Hnc Hrecrr).
   destruct Hnc as [m Hnc].
+  apply onlyNeededForOldProofs in Hnc.
   apply DeqSendOncePair in Hnc.
   simpl in Hnc. 
   destruct Hnc as [es0 Hnc].
