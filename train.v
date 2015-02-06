@@ -59,13 +59,13 @@ Close Scope Q_scope.
 
 
 Definition getVelM  : Message -> option Q :=
-  getPayLoad MOTOR.
+  getPayload MOTOR.
 
 Definition getSensorSide (m : Message ) : option bool :=
-  getPayLoad PSENSOR m.
+  getPayload PSENSOR m.
 
 Definition getProxSide (m : Message) : option bool :=
-  getPayLoad PSENSOR m.
+  getPayload PSENSOR m.
 
 Section TrainProofs.
 
@@ -83,10 +83,10 @@ Context
 
 
 Definition getVelEv (e : Event) : option Q  :=
-  getPayloadFromEv MOTOR e.
+  getRecdPayload MOTOR e.
 
 Definition getVelOEv : (option Event) ->  option Q  :=
-getPayloadFromEvOp MOTOR.
+getRecdPayloadOp MOTOR.
 
 
 Definition getVelAndTime (oev : option Event) 
@@ -458,7 +458,7 @@ Lemma velMessages:
      end.
 Proof.
   intros n.
-  unfold motorEvents,getVelOEv, getPayloadFromEvOp, getPayloadFromEv.
+  unfold motorEvents,getVelOEv, getRecdPayloadOp, getRecdPayload.
   remember (localEvts BASEMOTOR n)  as oev.
   destruct oev as [ ev| ]; simpl; [| auto; fail].
   remember (deqMesg ev)  as om.
@@ -510,7 +510,7 @@ Proof.
   simpl in Hsend;
   rewrite Hrecvl in Hsend;
   rewrite <- Hem in Hsend;
-  unfold getPayLoad;
+  unfold getPayload;
   inverts Hsend as Hsend; simpl; rewrite Hsend; simpl; auto.
 Qed.
 
@@ -828,7 +828,7 @@ end.
 Ltac SensorMsgInvert Hmd :=
     (apply (f_equal (hd (mkMesg PSENSOR false))) in Hmd;
     simpl in Hmd;
-    let T:= constr:(f_equal (getPayLoadR PSENSOR)) in apply T in Hmd;
+    let T:= constr:(f_equal (getPayloadR PSENSOR)) in apply T in Hmd;
     simpl in Hmd;
     apply (f_equal (fun op => opExtract op false)) in Hmd;
     simpl in Hmd).
@@ -902,7 +902,7 @@ Proof.
     rewrite <- H7. intro Heq. clear H7.
     apply (f_equal (hd (mkMesg PSENSOR false))) in Heq.
     simpl in Heq. 
-    let T:= constr:(f_equal (getPayLoadR MOTOR)) in 
+    let T:= constr:(f_equal (getPayloadR MOTOR)) in 
     apply T in Heq. rename Heq into Heqq.
     simpl in Heqq. inversion Heqq as [Heq]. clear Heqq.
     unfold speed in Heq.
@@ -1087,7 +1087,7 @@ Proof.
     symmetry in Heqs. subst es0. rename H0 into H7.
     rewrite <- H7. intro Heq. clear H7.
     apply (f_equal (hd (mkMesg PSENSOR false))) in Heq.
-        let T:= constr:(f_equal (getPayLoadR MOTOR)) in 
+        let T:= constr:(f_equal (getPayloadR MOTOR)) in 
     apply T in Heq. rename Heq into Heqq.
     simpl in Heqq. inversion Heqq as [Heq]. clear Heqq.
     unfold speed in Heq.
@@ -1184,9 +1184,9 @@ Lemma velocityMessagesAuxMsg: forall upto mt,
 Proof.
   induction upto as [ | upt Hind]; simpl; intros mt Hmem;[contradiction|].
   pose proof (velMessages upt) as Hvm.
-  unfold getPayloadAndEv, getPayloadFromEv in Hmem.
-  unfold getVelOEv, getPayloadFromEvOp, 
-    getPayloadFromEv, motorEvents in Hvm. simpl in Hvm.
+  unfold getPayloadAndEv, getRecdPayload in Hmem.
+  unfold getVelOEv, getRecdPayloadOp, 
+    getRecdPayload, motorEvents in Hvm. simpl in Hvm.
   simpl in Hmem.
   destruct (localEvts BASEMOTOR upt) as [ev|]; simpl in Hvm, Hmem;
     [| auto; fail].
@@ -1210,7 +1210,7 @@ Qed.
 Open Scope Z_scope.
 
 Lemma posVelAtLHS : forall evp,
-  getPayloadFromEv MOTOR evp = Some speed
+  getRecdPayload MOTOR evp = Some speed
   -> eLoc evp = BASEMOTOR
   -> (centerPosAtTime tstate (eTime evp)) [<=]  -78.
 Proof.
@@ -1218,7 +1218,7 @@ Proof.
   pose proof (PosVelAtLHSAux evp) as Hev.
   unfold MotorRecievesPositivVelAtLHS in Hev.
   rewrite Hl in Hev.
-  pose proof (getPayloadFromEvSpecMesg MOTOR) as Hd.
+  pose proof (getRecdPayloadSpecMesg MOTOR) as Hd.
   simpl in Hd.
   specialize (Hd _ _ Hp). repnd.
   specialize (Hev Hdl Hdr).
@@ -1226,7 +1226,7 @@ Proof.
 Qed.
   
 Lemma negVelAtRHS : forall evp,
-  getPayloadFromEv MOTOR evp = Some (-speed)%Q
+  getRecdPayload MOTOR evp = Some (-speed)%Q
   -> eLoc evp = BASEMOTOR
   -> 78 [<=] (centerPosAtTime tstate (eTime evp)) .
 Proof.
@@ -1234,7 +1234,7 @@ Proof.
   pose proof (NegVelAtRHSAux evp) as Hev.
   unfold MotorRecievesNegVelAtRHS in Hev.
   rewrite Hl in Hev.
-  pose proof (getPayloadFromEvSpecMesg MOTOR) as Hd.
+  pose proof (getRecdPayloadSpecMesg MOTOR) as Hd.
   simpl in Hd.
   specialize (Hd _ _ Hp). repnd.
   specialize (Hev Hdl Hdr).
@@ -1246,7 +1246,7 @@ Close Scope Z_scope.
 Definition priorMotorMesg (vel: Q) (t : QTime):=
 (λ ev : Event,
          eTime ev < t
-         ∧ getPayloadFromEv MOTOR ev = Some vel 
+         ∧ getRecdPayload MOTOR ev = Some vel 
           ∧ eLoc ev = BASEMOTOR).
 
 Open Scope Z_scope.
@@ -1648,7 +1648,7 @@ Proof.
   remember (localEvts BASEMOTOR np) as oev.
   destruct oev as [ev|];
   simpl in Heqoplev;[|inverts Heqoplev; fail].
-  destruct (getPayloadFromEv MOTOR ev); inverts Heqoplev.
+  destruct (getRecdPayload MOTOR ev); inverts Heqoplev.
   simpl in Hplt. simpl.
   intro Hcc. assert (eTime evMp < eTime ev)%Q;[| lra].
   clear Hcc.
@@ -1702,7 +1702,7 @@ Proof.
   remember (localEvts BASEMOTOR np) as oev.
   destruct oev as [ev|];
   simpl in Heqoplev;[|inverts Heqoplev; fail].
-  destruct (getPayloadFromEv MOTOR ev); inverts Heqoplev.
+  destruct (getRecdPayload MOTOR ev); inverts Heqoplev.
   simpl in Hplt. simpl.
   intro Hcc. assert (eTime evMp < eTime ev)%Q;[| lra].
   clear Hcc.
@@ -2192,7 +2192,7 @@ Close Scope nat_scope.
   pose proof (fun tl pm
       => VelNegAfterLatestPos evMp Emr t tl pm Hlatb) as Hv.
   specialize (fun tl pm => Hv tl pm Hql).
-  unfold priorMotorMesg, getPayloadFromEv, deqMesg in Hv.
+  unfold priorMotorMesg, getRecdPayload, deqMesg in Hv.
   unfold isRecvEvt, isDeqEvt in Hmrecrr.
   destruct (eKind Emr); inversion Hmrecrr; [].
   simpl in Hv, Hmeq. 
@@ -2434,7 +2434,7 @@ Close Scope nat_scope.
   pose proof (fun tl pm
       => VelPosAfterLatestNeg evMp Emr t tl pm Hlatb) as Hv.
   specialize (fun tl pm => Hv tl pm Hql).
-  unfold priorMotorMesg, getPayloadFromEv, deqMesg in Hv.
+  unfold priorMotorMesg, getRecdPayload, deqMesg in Hv.
   unfold isRecvEvt, isDeqEvt in Hmrecrr.
   destruct (eKind Emr); inversion Hmrecrr; [].
   simpl in Hv, Hmeq. 

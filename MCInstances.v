@@ -3,6 +3,8 @@ Require Import CanonicalNotations.
 Require Export core.
 Instance Zero_instance_QTime : Zero QTime := (mkQTime 0 I).
 Instance Zero_instance_Time : Zero Time := (QT2T (mkQTime 0 I)).
+Instance Lt_instance_QTime : Lt QTime := Qlt.
+Instance Le_instance_QTime : Lt QTime := Qlt.
 
 Instance SqrtFun_instancee_IR : SqrtFun IR IR.
 intros r. apply (sqrt (AbsIR r)). apply AbsIR_nonneg.

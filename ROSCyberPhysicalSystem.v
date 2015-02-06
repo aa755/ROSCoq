@@ -338,18 +338,18 @@ Proof.
   reflexivity.
 Qed.
 
-Definition getPayloadFromEv (tp : RosTopic) (ev : Event) 
+Definition getRecdPayload (tp : RosTopic) (ev : Event) 
   : option (topicType tp)  :=
-opBind (getPayLoad tp) (deqMesg ev).
+opBind (getPayload tp) (deqMesg ev).
 Require Import LibTactics.
 
-Lemma getPayloadFromEvSpecDeq: 
+Lemma getRecdPayloadSpecDeq: 
     forall tp ev tv,
-      getPayloadFromEv tp ev = Some tv
+      getRecdPayload tp ev = Some tv
       -> isDeqEvt ev.
 Proof.
   intros ? ? ? Hp.
-  unfold getPayloadFromEv in Hp.
+  unfold getRecdPayload in Hp.
   pose proof (deqSingleMessage ev) as Hs.
   unfold isDeqEvt.
   unfold isDeqEvt in Hs.
@@ -359,20 +359,20 @@ Proof.
 Qed.
 
 Lemma MsgEta: forall tp m pl,
- getPayLoad tp m = Some pl
+ getPayload tp m = Some pl
   -> π₁ m = (mkMesg tp pl).
 Proof.
-  unfold getPayLoad,getPayLoadR. intros ? ? ? Heq.
+  unfold getPayload,getPayloadR. intros ? ? ? Heq.
   destruct m as [m hdr]. destruct m as [x].
   unfold mkMesg. simpl. simpl in Heq.
   destruct (eqdec x tp);simpl in Heq; inversion Heq; subst; reflexivity.
 Qed.
 
-Lemma getPayloadFromEvSpecMesg: forall tp ev tv,
-      getPayloadFromEv tp ev = Some tv
+Lemma getRecdPayloadSpecMesg: forall tp ev tv,
+      getRecdPayload tp ev = Some tv
       -> isDeqEvt ev ∧ map fst (eMesg ev) = (mkMesg tp tv)::nil.
 Proof.
-  unfold getPayloadFromEv. intros ? ? ? Heq.
+  unfold getRecdPayload. intros ? ? ? Heq.
   pose proof (deqMesgSome ev) as Hd.
   remember (deqMesg ev) as dm.
   destruct dm as [sm|]; [| inverts Heq; fail].
@@ -411,15 +411,15 @@ Proof.
 Qed.
 
   
-Definition getPayloadFromEvOp (tp : RosTopic) 
+Definition getRecdPayloadOp (tp : RosTopic) 
   : (option Event) ->  option (topicType tp)  :=
-opBind (getPayloadFromEv tp).
+opBind (getRecdPayload tp).
 
 
 Definition getPayloadAndEv  (tp : RosTopic) (oev : option Event) 
     : option ((topicType tp) * Event)  :=
 match oev with
-| Some ev => match getPayloadFromEv tp ev with
+| Some ev => match getRecdPayload tp ev with
              | Some vq => Some (vq, ev)
              | None => None
              end
@@ -468,7 +468,7 @@ Lemma filterPayloadsIndexCorr : forall tp loc (n:nat) mev lmev,
   (mev::lmev = filterPayloadsUptoIndex tp (localEvts loc) n)
   ->  let m:= fst mev in
       let ev := snd mev in
-        (getPayloadFromEv tp ev) = Some m
+        (getRecdPayload tp ev) = Some m
          /\ eLoc ev = loc
          /\ (eLocIndex ev < n)%nat
          /\ lmev = filterPayloadsUptoIndex tp (localEvts loc) (eLocIndex ev).
@@ -480,7 +480,7 @@ Proof.
   destruct oev as [ev|];
     [|specialize (Hind _ _ Hmem); simpl in Hind; repnd; dands; auto; fail].
   unfold getPayloadAndEv in Hmem.
-  remember (getPayloadFromEv tp ev) as osp.
+  remember (getRecdPayload tp ev) as osp.
   destruct osp as [sp | ];
     [|specialize (Hind _ _ Hmem); simpl in Hind; repnd; dands; auto; fail].
   inverts Hmem.
@@ -494,7 +494,7 @@ Lemma filterPayloadsIndexCorr2 : forall tp loc (n:nat) mev,
   member mev (filterPayloadsUptoIndex tp (localEvts loc) n)
   ->  let m:= fst mev in
       let ev := snd mev in
-         (getPayloadFromEv tp ev) = Some m
+         (getRecdPayload tp ev) = Some m
          /\ eLoc ev = loc
          /\ (eLocIndex ev < n).
 Proof.
@@ -514,7 +514,7 @@ Lemma filterPayloadsTimeCorr2 : forall tp loc (t:QTime) mev,
   member mev (filterPayloadsUptoTime tp (localEvts loc) t)
   ->  let m:= fst mev in
       let ev := snd mev in
-         (getPayloadFromEv tp ev) = Some m
+         (getRecdPayload tp ev) = Some m
          /\ eLoc ev = loc
          /\ (eTime ev < t)%Q.
 Proof.
@@ -559,7 +559,7 @@ Lemma filterPayloadsTimeCorr : forall tp loc (t:QTime) mev lmev,
   (mev::lmev = filterPayloadsUptoTime tp (localEvts loc) t)
   ->  let m:= fst mev in
       let ev := snd mev in
-        (getPayloadFromEv tp ev) = Some m
+        (getRecdPayload tp ev) = Some m
          /\ eLoc ev = loc
          /\ (eTime ev < t)%Q
          /\ lmev = filterPayloadsUptoTime tp (localEvts loc) (eTime ev).
@@ -600,7 +600,7 @@ Qed.
 
   
 Lemma filterPayloadsIndexComp : forall tp loc (n:nat) pl ev,
-  (getPayloadFromEv tp ev) = Some pl
+  (getRecdPayload tp ev) = Some pl
   -> eLoc ev = loc
   -> (eLocIndex ev < n)
   -> member (pl,ev) (filterPayloadsUptoIndex tp (localEvts loc) n).
@@ -613,7 +613,7 @@ Proof.
     [|specialize (Hind _ _ Hp); simpl in Hind; apply Hind; auto;
                       eapply locNoneIndex; eauto; fail].
   unfold getPayloadAndEv.
-  remember (getPayloadFromEv tp evnp) as osp.
+  remember (getRecdPayload tp evnp) as osp.
   destruct osp as [sp | ];
     [|specialize (Hind _ _ Hp); simpl in Hind].
 - pose proof (eq_nat_dec (eLocIndex ev) np) as Hd.
@@ -633,7 +633,7 @@ Proof.
 Qed.
   
 Lemma filterPayloadsTimeComp : forall tp loc (t: QTime) ev pl,
-  (getPayloadFromEv tp ev) = Some pl
+  (getRecdPayload tp ev) = Some pl
   -> eLoc ev = loc
   -> (eTime ev < t)%Q
   -> member (pl,ev) (filterPayloadsUptoTime tp (localEvts loc) t).
@@ -648,7 +648,7 @@ Coercion is_true  : bool >-> Sortclass.
 
 Lemma filterPayloadsTimeLatest : forall tp loc (t:QTime) mev ll,
   (mev::ll = filterPayloadsUptoTime tp (localEvts loc) t)
-  -> latestEvt (fun ev => notNone (getPayloadFromEv tp ev)
+  -> latestEvt (fun ev => notNone (getRecdPayload tp ev)
                             /\ eLoc ev = loc
                             /\ (eTime ev < t)%Q) (snd mev).
 Proof.
@@ -660,7 +660,7 @@ Proof.
   intros evp Hp.
   repnd. 
   pose proof (filterPayloadsTimeComp tp loc t evp) as Hc.
-  destruct (getPayloadFromEv tp evp) as [plp|]; inversion Hpl.
+  destruct (getRecdPayload tp evp) as [plp|]; inversion Hpl.
   specialize (Hc _ eq_refl Hprl Hprr).
   rewrite <- Heqb in Hc.
   simpl in Hc.
@@ -870,7 +870,7 @@ End EvtProps.
 Definition isSendOnTopic
   (tp: RosTopic) (property : (topicType tp) -> Prop) (ev: Event) : Prop :=
 isSendEvt ev /\ 
-(opApPure property False (getPayLoad tp (eMesg ev))).
+(opApPure property False (getPayload tp (eMesg ev))).
 *)
 
 Close Scope Q_scope.
@@ -1049,7 +1049,7 @@ Proof.
   specialize (Hsub _ (or_introl  eq_refl)).
   rewrite RemoveOrFalse in Hsub.
   symmetry in Hsub.
-  exists (transport Hsub (mPayLoad dm)).
+  exists (transport Hsub (mPayload dm)).
   unfold getDeqOutput in Hnc.
   simpl in Hnc. rewrite Hdeqr in Hnc.
   simpl in Hnc.
@@ -1057,7 +1057,7 @@ Proof.
   rewrite <- Hdeql.
   clear Hdeql Hdeqr. 
   simpl. inversion Hnc as [Hncc]. clear Hnc Hncc.
-  unfold liftToMesg. unfold getPayLoad.
+  unfold liftToMesg. unfold getPayload.
   destruct dm as [dm hdr].
   destruct dm as [dmt dmp].
   simpl in Hsub.  destruct Hsub.

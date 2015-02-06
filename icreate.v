@@ -106,7 +106,7 @@ Close Scope Q_scope.
 
 
 Definition getVelM  : Message -> option (Polar2D Q) :=
-  getPayLoad VELOCITY.
+  getPayload VELOCITY.
 
 
 Section iCREATECPS.
@@ -125,10 +125,10 @@ Context
 
 
 Definition getVelEv (e : Event) : option (Polar2D Q)  :=
-  getPayloadFromEv VELOCITY e.
+  getRecdPayload VELOCITY e.
 
 Definition getVelOEv : (option Event) ->  option (Polar2D Q)  :=
-getPayloadFromEvOp VELOCITY.
+getRecdPayloadOp VELOCITY.
 
 
 Definition getVelAndTime (oev : option Event) 
@@ -230,7 +230,7 @@ Variable targetPos : Cart2D Q.
 Definition externalCmdFstEvt (oev :option Event) :=
   match oev with
   | Some ev => isSendEvt ev 
-                ∧ (opBind (getPayLoad TARGETPOS) (head (eMesg ev))) 
+                ∧ (opBind (getPayload TARGETPOS) (head (eMesg ev))) 
                    ≡ (Some targetPos)
   | None => False
   end.
@@ -264,18 +264,37 @@ Variable eo : (@PossibleEventOrder _  icreate minGap _ _ _ _ _ _ _ _ _).
 Definition posAtTime (t: Time) : Cart2D IR :=
   {| X:= {X (position icreate)} t ; Y := {Y (position icreate)} t |}.
 
-Instance Lt_instance_QTime : Lt QTime := Qlt.
 Definition targetPosR : Cart2D IR := ' targetPos.
 
+
+Open Scope nat_scope.
+Lemma SwEvents : ∀ (ev : Event),
+  let response := robotPureProgam targetPos in
+  eLoc ev ≡ EXTERNALCMD
+  → match eLocIndex ev with
+    | 0 => getRecdPayload TARGETPOS ev ≡ Some targetPos
+    | S n => n < 4 
+              ∧ isSendEvt ev 
+              ∧ getPayloadOp VELOCITY (head (eMesg ev)) 
+                 ≡ (nth_error (List.map snd response) n)
+              ∧ (0 < eTime ev)%Q
+    end.
+Proof.
+  pose proof (corrNodes eo EXTERNALCMD) as Hex.
+  simpl in Hex. unfold externalCmdSemantics, externalCmdFstEvt in Hex.
+  destruct Hex as [Hexl Hexr].
+  match type of Hexl with
+  context [localEvts ?a ?b] => destruct (localEvts a b)
+  end.
+Abort.
+
+Close Scope nat_scope.
 
 Lemma Liveness :
   ∃ (ts : QTime), ∀ (t : QTime), 
       ts < t → (|(posAtTime t) - targetPosR|) ≤ cast Q IR acceptableDist.
 Abort.
 
-
-(** need to define instance of norm *)    
-(** need to define instance ring on Cart2D *)    
 
 (** It would be quite complicated to maintain bounds on position when both
     [omega] and [speed] are nonzero. derivative on [X position] depends on
