@@ -165,7 +165,6 @@ Qed.
 
 (** Ring on Cart2D *)
 Require Import IRMisc.RPointWiseRing.
-Require Import MathClasses.implementations.bool.
 
 
 Instance Zero_instance_Cart2D `{Zero A} : Zero (Cart2D A):= (({|X:=0 ; Y:=0|}))%mc.

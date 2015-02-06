@@ -48,7 +48,7 @@ StdlibMisc.vo : StdlibMisc.v
 IRMisc/CoRNMisc.vo : IRMisc/CoRNMisc.v CanonicalNotations.vo
 	$(COQC) $<
 
-CartCR.vo : CartCR.v IRLemmasAsCR.vo IRMisc/RPointWiseRing.vo
+CartCR.vo : CartCR.v CRMisc/IRLemmasAsCR.vo IRMisc/RPointWiseRing.vo
 	$(COQC) $<
 
 CRMisc/IRLemmasAsCR.vo : CRMisc/IRLemmasAsCR.v IRMisc/IRTrig.vo CanonicalNotations.vo

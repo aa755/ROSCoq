@@ -634,7 +634,7 @@ Definition projCR (cp : CR ₀) : CR.
   destruct cp as [x ap]. exact x.
 Defined.
 
-Require Export IRTrig.
+Require Export IRMisc.IRTrig.
 
 
 (*Instance castCRIR : Cast CR IR := CRasIR. *)
