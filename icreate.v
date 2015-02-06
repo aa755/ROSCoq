@@ -207,10 +207,17 @@ Definition SwProcess
       : Process Message (list Message):= 
   mkPureProcess (delayedLift2Mesg (PureSwProgram)).
 
-Variable processingTime : QTime.
- 
+Variable procTime : QTime.
+Variable timingAcc : Qpos.
+Require Import CoRN.model.metric2.Qmetric.
+
+Definition qtball : Q → Q → Prop :=
+  (ball timingAcc).
+
+Notation "a ≊t b" := (qtball  a b) (at level 100).
+
 Definition ControllerNode : RosSwNode :=
-  Build_RosSwNode (SwProcess) (processingTime).
+  Build_RosSwNode (SwProcess) (procTime, timingAcc).
 
 
 (** The software could reply back to the the external agent saying "done".
@@ -266,7 +273,7 @@ Definition posAtTime (t: Time) : Cart2D IR :=
 Definition targetPosR : Cart2D IR := ' targetPos.
 
 
-Open Scope nat_scope.
+Open Scope mc_scope.
 Lemma SwEvents : ∀ (ev : Event),
   let response := robotPureProgam targetPos in
   let respPayLoads := (List.map π₂ response) in
@@ -280,11 +287,18 @@ Lemma SwEvents : ∀ (ev : Event),
             ∧ getPayloadOp VELOCITY (head (eMesg ev)) 
                ≡ (nth_error respPayLoads n)
             ∧ (∃ evp,  eLoc evp ≡ SWNODE ∧ eLocIndex evp = n 
-                      ∧ (eTime evp) + delay <=  eTime ev <= eTime ev + delay)%Q
+                      ∧ (eTime evp + delay ≊t eTime ev))
     end.
 Proof.
-  pose proof (corrNodes eo SWNODE) as Hex.
+  simpl. intros ev Heq.
+  remember (eLocIndex ev) as n.
+  generalize dependent ev.
+  induction n as [ | n' Hind]; intros ev Hl Hn.
+- unfold getRecdPayload, deqMesg. admit.
+-   pose proof (corrNodes eo SWNODE) as Hex.
   simpl in Hex. unfold RSwSemantics, RSwNodeSemanticsAux in Hex.
+
+
   (* destruct Hex as [Hexl Hexr].
   match type of Hexl with
   context [localEvts ?a ?b] => destruct (localEvts a b)

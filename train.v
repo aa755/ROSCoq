@@ -146,7 +146,7 @@ Definition correctVelDuring
   lastTime <= qt <= (lastTime + reactionTime)
   /\ ((forall t : QTime, (qt <= t <= uptoTime -> (velAtTime t) [=] lastVel)))
   /\ (forall t : QTime, (lastTime <= t <= qt)  
-          -> (between (velAtTime t) (velAtTime lastTime) lastVel)))%Q.
+          -> (core.between (velAtTime t) (velAtTime lastTime) lastVel)))%Q.
   
 Close Scope Q_scope.
 
@@ -205,7 +205,7 @@ Definition digiControllerTiming  :
   QTime :=  (mkQTime 1 I).
  
 Definition ControllerNode (speed : Q): RosSwNode :=
-  Build_RosSwNode (SwProcess speed) (digiControllerTiming).
+  Build_RosSwNode (SwProcess speed) (digiControllerTiming, 1%Qpos).
 
 Lemma onlyNeededForOldProofs:
   ∀ q le nd ns,
@@ -1298,7 +1298,7 @@ Close Scope nat_scope.
     destruct Hd as [Hd|Hd];[clear Hmrl | clear Hmrr].
     apply Qlt_le_weak in Hd.
     * rewrite Hv in Hmrr. specialize (Hmrr qt (conj (proj1 H0t) Hd)).
-      unfold between in Hmrr.
+      unfold core.between in Hmrr.
       apply proj2 in Hmrr.
       eapply leEq_transitive; eauto.
       rewrite Max_id. apply inj_Q_leEq.
@@ -1414,7 +1414,7 @@ Close Scope nat_scope.
     destruct Hd as [Hd|Hd];[clear Hmrl | clear Hmrr].
     apply Qlt_le_weak in Hd.
     * rewrite Hv in Hmrr. specialize (Hmrr qt (conj (proj1 H0t) Hd)).
-      unfold between in Hmrr.
+      unfold core.between in Hmrr.
       apply proj1 in Hmrr.
       eapply leEq_transitive; eauto.
       rewrite Min_id. UnfoldLRA.
@@ -1895,7 +1895,7 @@ Proof.
   destruct Hdec as [Hdec | Hdec]; [clear Hmrr|clear Hmrl].
   + apply Qlt_le_weak in Hdec.
     rewrite Hmrl; [| split]; auto;[|]; apply leEq_reflexive.
-  + unfold between in Hmrr.
+  + unfold core.between in Hmrr.
     specialize (Hmrr _ (conj Hlt Hdec)).
     repnd.
     trivial. unfold speed in Hmrrr.
@@ -1979,7 +1979,7 @@ Proof.
   + apply Qlt_le_weak in Hdec.
     rewrite Hmrl; [| split]; auto;[|];
      apply leEq_reflexive.
-  + unfold between in Hmrr.
+  + unfold core.between in Hmrr.
     specialize (Hmrr _ (conj Hlt Hdec)).
     repnd.
     trivial. unfold speed in Hmrrr.

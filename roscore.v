@@ -49,6 +49,7 @@ Definition TopicInfo := (list RosTopic) × (list RosTopic).
 Definition  subscribeTopics (t: TopicInfo ):= fst t.
 Definition  publishTopics (t: TopicInfo ):= snd t.
 
+Require Export CoRN.model.structures.Qpossec.
 Record RosSwNode :=
 {
     process :> Process Message (list Message);
@@ -57,10 +58,19 @@ Record RosSwNode :=
     (** The following is only for reasoning purposes
       and will not be extracted *)
 
-    pTiming : QTime
-  
+    pTiming : QTime × Qpos
+    (** processing time and accuracy of message timing, used by
+      [ball] of [MetricSpace *)
 }.
 
+Require Export Program.Basics.
+Open Scope program_scope.
+
+Definition procTime :=
+  (π₁) ∘ pTiming.
+
+Definition timingAcc :=
+  (π₂) ∘ pTiming.
 
 Definition SimplePureProcess (inT outT : RosTopic)
   := (topicType inT) -> (topicType outT).

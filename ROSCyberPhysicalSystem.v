@@ -806,7 +806,7 @@ Definition possibleDeqSendOncePair
   | (Some evd, Some evs) => 
     isDeqEvt evd ∧ isSendEvt evs ∧ nd < ns (** the last bit is redundant because of time *)
     ∧ (forall n: nat, nd < n < ns -> isEnqEvtOp (locEvts n))
-    ∧ (eTime evd < eTime evs < (eTime evd) + (pTiming swNode))%Q
+    ∧ (eTime evd < eTime evs < (eTime evd) + (procTime swNode))%Q
     ∧ let procEvts := prevProcessedEvents nd locEvts in
       let procMsgs := flat_map eMesg procEvts in
       let lastProc := getNewProcL (process swNode) procMsgs in
@@ -827,7 +827,7 @@ Definition minDelayForIndex (lm : list Message) (index : nat) : Q :=
   let delays := map (delay ∘ (π₂)) (firstn index lm) in
   fold_right Qplus 0 delays.
 
-
+Require Import CoRN.model.metric2.Qmetric.
 Open Scope mc_scope.
 (** assuming all outgoing messages resulting from processing
     an event happen in a single send event (send once) *)
@@ -846,7 +846,7 @@ Definition possibleDeqSendOncePair2
             let procOutMsgs := (getDeqOutput2 lastProc evd) in
             let minDelay := (minDelayForIndex procOutMsgs (startIndex sinf)) in
               isPrefixOf (eMesg evs) (skipn (startIndex sinf) procOutMsgs)
-              ∧ (eTime evd +  minDelay <= eTime evs <= (eTime evd) + minDelay + (pTiming swNode))%Q
+              ∧ ball  (timingAcc swNode) (eTime evd + minDelay + procTime swNode)%Q (QT2Q (eTime evs))
               ∧ length (eMesg evs) =1
       | (_,_) => False
       end
@@ -918,7 +918,7 @@ Definition DeviceSemantics
 Definition RSwSemantics
     (swn : RosSwNode)
        : NodeSemantics :=
- (fun penv evts => RSwNodeSemanticsAux swn evts).
+ (fun penv evts => RSwNodeSemanticsAux  swn evts).
 
 Class RosLocType (RosLoc: Type) 
      {rldeq : DecEq RosLoc} :=
@@ -1006,10 +1006,10 @@ Record PossibleEventOrder  := {
 }.
 
 
-Lemma PureProcDeqSendOncePair : forall ns nd TI TO qt loc
+Lemma PureProcDeqSendOncePair : forall ns nd TI TO qt qac loc
     (sp : SimplePureProcess TI TO),
   let sproc := mkPureProcess (liftToMesg sp)in
-  possibleDeqSendOncePair (Build_RosSwNode sproc qt) (localEvts loc) nd ns
+  possibleDeqSendOncePair (Build_RosSwNode sproc (qt,qac)) (localEvts loc) nd ns
   -> {es : Event | {ed : Event | isDeqEvt ed × isSendEvt es
           × (nd < ns)
             × (∀ n : nat, (nd < n) ∧ (n < ns) → isEnqEvtOp (localEvts loc n))
@@ -1020,14 +1020,14 @@ Lemma PureProcDeqSendOncePair : forall ns nd TI TO qt loc
                       map fst (eMesg ed) = ((mkMesg _ dmp)::nil)
                       ∧ (mkImmMesg TO (sp dmp) )::nil = (eMesg es)})}}.
 Proof.
-  intros ? ? ? ? ? ? ?. simpl. intro Hnc.
+  intros ? ? ? ? ? ? ? ?. simpl. intro Hnc.
   unfold possibleDeqSendOncePair in Hnc.
   remember (localEvts loc nd) as oevD.
   destruct oevD as [evD |]; [| contradiction].
   remember (localEvts loc ns) as oevS.
   destruct oevS as [evS |]; [| contradiction].
   destruct Hnc as [Hdeq  Hnc].
-  exists evS. exists evD.  simpl in Hnc.
+  exists evS. exists evD. unfold procTime, compose in Hnc. simpl in Hnc.
   remember (eTime evD < eTime evS ∧ eTime evS < eTime evD + qt)%Q as dontSplit.
   repnd.
   split; [trivial |].
