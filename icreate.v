@@ -294,10 +294,11 @@ Proof.
   remember (eLocIndex ev) as n.
   generalize dependent ev.
   induction n as [ | n' Hind]; intros ev Hl Hn.
-- unfold getRecdPayload, deqMesg. admit.
+- unfold getRecdPayload, deqMesg.
+  
 -   pose proof (corrNodes eo SWNODE) as Hex.
   simpl in Hex. unfold RSwSemantics, RSwNodeSemanticsAux in Hex.
-
+  
 
   (* destruct Hex as [Hexl Hexr].
   match type of Hexl with

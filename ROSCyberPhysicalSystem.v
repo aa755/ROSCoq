@@ -993,7 +993,7 @@ Record PossibleEventOrder  := {
                   /\ causedBy Es Er /\ isSendEvt Es};
 
     corrFIFO : CorrectFIFOQueue;
-    corrNodes : AllNodeBehCorrect;
+    corrNodes : AllNodeBehCorrect × ∀ ev, ~ (isEnqEvt ev) ;
 
     (** the stuff below can probably be
       derived from the stuff above *)
