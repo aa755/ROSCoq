@@ -245,7 +245,7 @@ Definition externalCmdFstEvt (oev :option Event) :=
     velocity accuracy, angle accuracy, max velocity etc *)
 Definition externalCmdSemantics {Phys : Type} 
  : @NodeSemantics Phys Event :=
-  λ _ evs , (externalCmdFstEvt (evs 0)) ∧ ∀ n : nat, (evs n) ≡ None.
+  λ _ evs , (externalCmdFstEvt (evs 0)) ∧ ∀ n : nat, (evs (S n)) ≡ None.
 
 
 
@@ -272,17 +272,63 @@ Definition posAtTime (t: Time) : Cart2D IR :=
 
 Definition targetPosR : Cart2D IR := ' targetPos.
 
+Variable  enquesNotUsed : ∀ ev, ~ (isEnqEvt ev).
 
-Open Scope mc_scope.
+Require Import Coq.Lists.List.
+Hint Resolve (fun a b x => proj1 (locEvtIndex a b x)) : ROSCOQ.
+
+Ltac contra :=
+  match goal with
+  | [H: ~(assert true) |- _ ] => provefalse; apply H; reflexivity
+  end.
+
+(** No Change at All from the train proof *)
+Lemma SwOnlyReceivesFromExt :   forall Es Er,
+  isSendEvt Es
+  -> isRecvEvt Er
+  -> PossibleSendRecvPair Es Er
+  -> eLoc Er ≡ SWNODE
+  -> eLoc Es ≡ EXTERNALCMD.
+Proof.
+  intros ? ? Hs Hr Hsendl Hl.
+  unfold PossibleSendRecvPair in Hsendl.
+  repnd. clear Hsendlrrr.
+  unfold validRecvMesg in Hsendlrl.
+  pose proof (deqSingleMessage _ Hr) as XX.
+  destruct XX as [m XX].
+  repnd. rewrite <- XXl in Hsendlrl.
+  simpl in  XXl.
+  apply (f_equal (map fst)) in XXl.
+  rewrite <- Hsendll in XXl. simpl in Hsendlrrl.
+  specialize (Hsendlrl _ (or_introl eq_refl)).
+  rewrite Hl in Hsendlrl.
+  simpl in Hsendlrl.
+  rewrite RemoveOrFalse in Hsendlrl.
+  unfold validSendMesg in Hsendlrrl.
+  rewrite <- XXl in Hsendlrrl.
+  specialize (Hsendlrrl _ (or_introl eq_refl)).
+  simpl in Hsendlrrl. rewrite <- Hsendlrl in Hsendlrrl.
+  destruct (eLoc Es); simpl in Hsendlrrl;
+    try contradiction;
+    inversion Hsendlrrl; 
+    try discriminate;
+    try contradiction.
+  reflexivity.
+Qed.
+
+
+
+(** Nice warm up proof.
+    Got many mistakes in definitions corrected *)
 Lemma SwEvents : ∀ (ev : Event),
   let response := robotPureProgam targetPos in
-  let respPayLoads := (List.map π₂ response) in
-  let respDelays := (List.map π₁ response) in
+  let respPayLoads := (map π₂ response) in
+  let respDelays := (map π₁ response) in
   eLoc ev ≡ SWNODE
   → match eLocIndex ev with
     | 0 => getRecdPayload TARGETPOS ev ≡ Some targetPos
     | S n => 
-          ∃ delay , nth_error respDelays n ≡ Some delay
+          ∃ delay , nth_error respDelays n ≡ Some delay (*enforces n<|response|*)
             ∧ isSendEvt ev 
             ∧ getPayloadOp VELOCITY (head (eMesg ev)) 
                ≡ (nth_error respPayLoads n)
@@ -293,18 +339,44 @@ Proof.
   simpl. intros ev Heq.
   remember (eLocIndex ev) as n.
   generalize dependent ev.
+  pose proof (corrNodes eo SWNODE) as Hex.
+  simpl in Hex.
   induction n as [ | n' Hind]; intros ev Hl Hn.
 - unfold getRecdPayload, deqMesg.
-  
--   pose proof (corrNodes eo SWNODE) as Hex.
-  simpl in Hex. unfold RSwSemantics, RSwNodeSemanticsAux in Hex.
+  apply SwFirstMessageIsNotASend with (ev0:=ev) in Hex;[|eauto 4 with ROSCOQ].
+  unfold isSendEvt in Hex.
+  pose proof (enquesNotUsed ev) as Hneq.
+  unfold isEnqEvt in Hneq. remember (eKind ev) as evk.
+  destruct evk; simpl in Hex; try contra; try tauto.
+  clear Hneq Hex.
+  symmetry in Heqevk. apply isDeqEvtIf in Heqevk.
+  pose proof (recvSend eo ev Heqevk) as Hsend.
+  destruct Hsend as [Es Hsend].
+  repnd. pose proof (globalCausal _ _ _ Hsendrl) as Htlt.
+  pose proof (SwOnlyReceivesFromExt _ _  Hsendrr Heqevk Hsendl Hl) as Hex.
+  pose proof (corrNodes eo EXTERNALCMD) as Hc.
+  simpl in Hc. unfold externalCmdSemantics in Hc.
+  repnd. remember (eLocIndex Es) as esn.
+  destruct esn;
+    [|specialize (Hcr esn);
+      rewrite (locEvtIndexRW Es) in Hcr; eauto; inversion Hcr].
+  clear Hcr.
+  rewrite (locEvtIndexRW Es) in Hcl; eauto.
+  simpl in Hcl.
+  apply proj2 in Hcl.
+  apply proj1 in Hsendl.
+  rewrite moveMapInsideFst.
+  rewrite <- Hsendl.
+  rewrite <- moveMapInsideFst.
+  trivial.
+- admit.
+Qed.
   
 
   (* destruct Hex as [Hexl Hexr].
   match type of Hexl with
   context [localEvts ?a ?b] => destruct (localEvts a b)
   end. *)
-Abort.
 
 Close Scope nat_scope.
 

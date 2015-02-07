@@ -1,7 +1,6 @@
 Add LoadPath "../../../nuprl/coq".
 
 Require Export roscore.
-Require Export CoList.
 Require Import Coq.QArith.QArith.
 Require Import Coq.QArith.Qabs.
 Require Import Coq.QArith.QOrderedType.
@@ -597,6 +596,8 @@ Proof.
   discriminate.
 Qed.
 
+Definition locEvtIndexRW :=
+(λ c a b p, proj1 (locEvtIndex a b c) p).
 
   
 Lemma filterPayloadsIndexComp : forall tp loc (n:nat) pl ev,
@@ -839,7 +840,8 @@ Definition possibleDeqSendOncePair2
   | (Some evd, Some evs) =>
       match (eKind evd, eKind evs) with
       | (deqEvt enqIndex , sendEvt sinf) =>
-          (∀ n: nat, nd < n < ns -> isEnqEvtOp (locEvts n))
+          nd < ns (* does it follow from the timing property? *)
+          ∧ (∀ n: nat, nd < n < ns -> isEnqEvtOp (locEvts n))
           ∧ let procEvts := prevProcessedEvents nd locEvts in
             let procMsgs := flat_map eMesg procEvts in
             let lastProc := getNewProcL (process swNode) procMsgs in
@@ -930,6 +932,33 @@ Class RosLocType (RosLoc: Type)
    maxDeliveryDelay : RosLoc -> RosLoc -> option QTime
 }.
 
+Lemma possibleDeqSendOncePair2_index : ∀ (swn : RosSwNode) evs m n,
+  possibleDeqSendOncePair2 swn evs m n
+  → m < n.
+Proof.
+  intros ? ? ? ? Hp.
+  unfold possibleDeqSendOncePair2 in Hp.
+  destruct (evs m), (evs n); simpl in Hp; try contradiction.
+  destruct (eKind e), (eKind e0); try contradiction.
+  tauto.
+Qed.
+
+Lemma SwFirstMessageIsNotASend:  ∀ (swn : RosSwNode) pp evs ev,
+  RSwSemantics swn pp evs
+  → evs 0 = Some ev
+  → ~ (isSendEvt ev).
+Proof.
+  intros ? ? ? ? Hrw Heq His.
+  specialize (Hrw 0).
+  rewrite Heq in Hrw.
+  simpl in Hrw.
+  apply π₁ in Hrw.
+  apply Hrw in His. clear Hrw.
+  destruct His as [m His].
+  apply possibleDeqSendOncePair2_index in His.
+  omega.
+Qed.
+
 
 End DeviceAndLoc.
 
@@ -993,7 +1022,7 @@ Record PossibleEventOrder  := {
                   /\ causedBy Es Er /\ isSendEvt Es};
 
     corrFIFO : CorrectFIFOQueue;
-    corrNodes : AllNodeBehCorrect × ∀ ev, ~ (isEnqEvt ev) ;
+    corrNodes : AllNodeBehCorrect;
 
     (** the stuff below can probably be
       derived from the stuff above *)
