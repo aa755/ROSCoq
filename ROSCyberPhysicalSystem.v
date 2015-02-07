@@ -1024,14 +1024,22 @@ Record PossibleEventOrder  := {
     corrFIFO : CorrectFIFOQueue;
     corrNodes : AllNodeBehCorrect;
 
-    (** the stuff below can probably be
-      derived from the stuff above *)
-
-    causalWf : well_founded _ causedBy;
 
     noSpamRecv : forall ev, 
-      isDeqEvt ev -> validRecvMesg (validTopics (eLoc ev)) (eMesg ev)
-      (** !FIX! change above to [isEnqEvt] *)
+      isDeqEvt ev -> validRecvMesg (validTopics (eLoc ev)) (eMesg ev);
+      (* !FIX! change above to [isEnqEvt] *)
+
+    noDuplicateDelivery : ∀ evs evr1 evr2,
+      (eLoc evs ≠ eLoc evr1)
+      → (eLoc evr1 = eLoc evr2) (* multicast is allowed*)
+      → causedBy evs evr1
+      → causedBy evs evr2
+      → evr1 = evr2;
+      
+    (** the stuff below can probably be
+      derived from the stuff above *)
+    causalWf : well_founded _ causedBy
+
 }.
 
 

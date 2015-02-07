@@ -232,20 +232,20 @@ end.
 
 
 Variable targetPos : Cart2D Q.
+Variable eCmdEv0 : Event.
 
-Definition externalCmdFstEvt (oev :option Event) :=
-  match oev with
-  | Some ev => isSendEvt ev 
-                ∧ (opBind (getPayload TARGETPOS) (head (eMesg ev))) 
-                   ≡ (Some targetPos)
-  | None => False
-  end.
 
 (** 10 should be replaced by something which is a function of 
     velocity accuracy, angle accuracy, max velocity etc *)
 Definition externalCmdSemantics {Phys : Type} 
  : @NodeSemantics Phys Event :=
-  λ _ evs , (externalCmdFstEvt (evs 0)) ∧ ∀ n : nat, (evs (S n)) ≡ None.
+  λ _ evs , ((evs 0) ≡ Some eCmdEv0) 
+              ∧  isSendEvt eCmdEv0 
+              ∧ ((opBind (getPayload TARGETPOS) (head (eMesg eCmdEv0))) 
+                   ≡ (Some targetPos))
+              ∧ ∀ n : nat, (evs (S n)) ≡ None.
+
+
 
 
 
@@ -292,8 +292,9 @@ Lemma SwOnlyReceivesFromExt :   forall Es Er,
 Proof.
   intros ? ? Hs Hr Hsendl Hl.
   unfold PossibleSendRecvPair in Hsendl.
+  repnd.
   repnd. clear Hsendlrrr.
-  unfold validRecvMesg in Hsendlrl.
+  unfold validRecvMesg  in Hsendlrl.
   pose proof (deqSingleMessage _ Hr) as XX.
   destruct XX as [m XX].
   repnd. rewrite <- XXl in Hsendlrl.
@@ -317,6 +318,47 @@ Proof.
 Qed.
 
 
+Lemma SwRecv : ∀ ev:Event,
+  eLoc ev ≡ SWNODE
+  -> isDeqEvt ev
+  -> (opBind (getPayload TARGETPOS) (hd_error (eMesg ev)) ≡ Some targetPos
+            ∧ causedBy eo eCmdEv0 ev).
+Proof.
+  intros ev Hl Heqevk.
+  pose proof (recvSend eo ev Heqevk) as Hsend.
+  destruct Hsend as [Es Hsend].
+  repnd. pose proof (globalCausal _ _ _ Hsendrl) as Htlt.
+  pose proof (SwOnlyReceivesFromExt _ _  Hsendrr Heqevk Hsendl Hl) as Hex.
+  pose proof (corrNodes eo EXTERNALCMD) as Hc.
+  simpl in Hc. unfold externalCmdSemantics in Hc.
+  repnd. remember (eLocIndex Es) as esn.
+  destruct esn;
+    [|specialize (Hcrrr esn);
+      rewrite (locEvtIndexRW Es) in Hcrrr; eauto; inversion Hcrrr].
+  clear Hcrrr.
+  rewrite (locEvtIndexRW Es) in Hcl; eauto.
+  inverts Hcl.
+  apply proj1 in Hsendl.
+  rewrite moveMapInsideFst.
+  rewrite <- Hsendl.
+  rewrite <- moveMapInsideFst.
+  dands; assumption.
+Qed.
+
+Open Scope nat_scope.
+Theorem comp_ind_type :
+  ∀ P: nat → Type,
+    (∀ n: nat, (∀ m: nat, m < n → P m) → P n)
+    → ∀ n:nat, P n.
+Proof.
+ intros P H n.
+ assert (∀ n:nat , ∀ m:nat, m < n → P m).
+ intro n0. induction n0 as [| n']; intros.
+ omega.
+ destruct (eq_nat_dec m n'); subst; auto.
+ apply IHn'; omega.
+ apply H; apply X.
+Qed.
 
 (** Nice warm up proof.
     Got many mistakes in definitions corrected *)
@@ -326,7 +368,8 @@ Lemma SwEvents : ∀ (ev : Event),
   let respDelays := substHead (map π₁ response) procTime in
   eLoc ev ≡ SWNODE
   → match eLocIndex ev with
-    | 0 => getRecdPayload TARGETPOS ev ≡ Some targetPos
+    | 0 => (getRecdPayload TARGETPOS ev ≡ Some targetPos) 
+            ∧ causedBy eo eCmdEv0 ev
     | S n => 
           ∃ delay , nth_error respDelays n ≡ Some delay (*enforces n<|response|*)
             ∧ isSendEvt ev 
@@ -341,7 +384,8 @@ Proof.
   generalize dependent ev.
   pose proof (corrNodes eo SWNODE) as Hex.
   simpl in Hex.
-  induction n as [ | n' Hind]; intros ev Hl Hn.
+  induction n as [n Hind] using comp_ind_type; intros ev Hl Hn.
+  destruct n as [ | n'].
 - unfold getRecdPayload, deqMesg.
   apply SwFirstMessageIsNotASend with (ev0:=ev) in Hex;[|eauto 4 with ROSCOQ].
   unfold isSendEvt in Hex.
@@ -350,37 +394,18 @@ Proof.
   destruct evk; simpl in Hex; try contra; try tauto.
   clear Hneq Hex.
   symmetry in Heqevk. apply isDeqEvtIf in Heqevk.
-  pose proof (recvSend eo ev Heqevk) as Hsend.
-  destruct Hsend as [Es Hsend].
-  repnd. pose proof (globalCausal _ _ _ Hsendrl) as Htlt.
-  pose proof (SwOnlyReceivesFromExt _ _  Hsendrr Heqevk Hsendl Hl) as Hex.
-  pose proof (corrNodes eo EXTERNALCMD) as Hc.
-  simpl in Hc. unfold externalCmdSemantics in Hc.
-  repnd. remember (eLocIndex Es) as esn.
-  destruct esn;
-    [|specialize (Hcr esn);
-      rewrite (locEvtIndexRW Es) in Hcr; eauto; inversion Hcr].
-  clear Hcr.
-  rewrite (locEvtIndexRW Es) in Hcl; eauto.
-  simpl in Hcl.
-  apply proj2 in Hcl.
-  apply proj1 in Hsendl.
-  rewrite moveMapInsideFst.
-  rewrite <- Hsendl.
-  rewrite <- moveMapInsideFst.
-  trivial.
-- pose proof (enquesNotUsed ev) as Hneq.
-  (** one of the conjuncts of goal says that [ev] is a [sendEvt].
-      Why can't this be a deque event?
-      The [EXTERNALCMD] indeed sent a message, which could be received now.
-      
-      There is nothing which says that messages are only received only once.
-      In the train case, probably the timebound on message delivery saved
-      us. Indeed, we considered the case of contigous duplicate message.
-      But the train would have to go to the other side to send a different message
-      By this time, all earlier messages must have been delivered
+  apply SwRecv; auto.
 
-*)
+- pose proof (enquesNotUsed ev) as Hneq.
+  unfold isEnqEvt in Hneq.
+  remember (eKind ev) as evk.
+  destruct evk; try tauto.
+  Focus 2.
+  symmetry in Heqevk; apply isDeqEvtIf in Heqevk.
+  apply SwRecv in Heqevk; auto.
+  apply proj2 in Heqevk.
+
+  
 Abort.
   
 
