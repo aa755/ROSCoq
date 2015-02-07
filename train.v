@@ -2138,8 +2138,8 @@ Close Scope nat_scope.
   pose proof (locEvtIndex SWCONTROLLER (eLocIndex Eswr) Eswr) as Hxx.
   rewrite (proj1 Hxx) in Hnc;[| split; auto; fail].
   simpl  in Hnc.
-  specialize (Hnc Hrecrr).
-  destruct Hnc as [m Hnc].
+  specialize (Hnc Hrecrr (0%nat)).
+  destruct Hnc as [m Hnc ];[admit|]. apply proj2 in Hnc.
   apply onlyNeededForOldProofs in Hnc.
   apply DeqSendOncePair in Hnc.
   simpl in Hnc. 
@@ -2380,8 +2380,8 @@ Close Scope nat_scope.
   pose proof (locEvtIndex SWCONTROLLER (eLocIndex Eswr) Eswr) as Hxx.
   rewrite (proj1 Hxx) in Hnc;[| split; auto; fail].
   simpl  in Hnc.
-  specialize (Hnc Hrecrr).
-  destruct Hnc as [m Hnc].
+  specialize (Hnc Hrecrr (1%nat)).
+  destruct Hnc as [m Hnc];[admit|]. apply proj2 in Hnc.
   apply onlyNeededForOldProofs in Hnc.
   apply DeqSendOncePair in Hnc.
   simpl in Hnc. 

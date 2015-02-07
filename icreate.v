@@ -317,6 +317,8 @@ Proof.
   reflexivity.
 Qed.
 
+(** No Change at All from the train proof *)
+
 Lemma ExCMDOnlySendsToSw :   forall Es Er,
   isSendEvt Es
   -> isRecvEvt Er

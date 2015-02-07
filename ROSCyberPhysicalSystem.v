@@ -81,7 +81,15 @@ Class EventType (T: Type)
   eventSpacing :  forall (e1 e2 : T),
     (eTime e1 >  minGap)%Q
     /\ (eLoc e1 = eLoc e2 
-        -> minGap <= (Qabs ((eTime e1) - (eTime e2))))%Q
+        -> minGap <= (Qabs ((eTime e1) - (eTime e2))))%Q;
+
+  (** While this definitely a sensible property, is it needed anywhere? *)
+  uniqueSendInfo :
+    ∀ (si : SendEvtInfo) ev1 ev2,
+      eLoc ev1 = eLoc ev2
+      → eKind ev1 = sendEvt si
+      → eKind ev2 = sendEvt si
+      → ev1=ev2
  }.
 
 
@@ -828,6 +836,18 @@ Definition minDelayForIndex (lm : list Message) (index : nat) : Q :=
   let delays := map (delay ∘ (π₂)) (firstn index lm) in
   fold_right Qplus 0 delays.
 
+Definition procOutMsgs
+  (swNode : RosSwNode)
+  (locEvts: nat -> option Event)
+  (nd : nat) : list Message := 
+    let procEvts := prevProcessedEvents nd locEvts in
+    let procMsgs := flat_map eMesg procEvts in
+    let lastProc := getNewProcL (process swNode) procMsgs in
+    match (locEvts nd) with
+    | Some evd => (getDeqOutput2 lastProc evd)
+    | None => nil
+    end.
+
 Require Import CoRN.model.metric2.Qmetric.
 Open Scope mc_scope.
 (** assuming all outgoing messages resulting from processing
@@ -842,10 +862,7 @@ Definition possibleDeqSendOncePair2
       | (deqEvt enqIndex , sendEvt sinf) =>
           nd < ns (* does it follow from the timing property? *)
           ∧ (∀ n: nat, nd < n < ns -> isEnqEvtOp (locEvts n))
-          ∧ let procEvts := prevProcessedEvents nd locEvts in
-            let procMsgs := flat_map eMesg procEvts in
-            let lastProc := getNewProcL (process swNode) procMsgs in
-            let procOutMsgs := (getDeqOutput2 lastProc evd) in
+          ∧ let procOutMsgs := (procOutMsgs swNode locEvts nd) in
             let minDelay := (minDelayForIndex procOutMsgs (startIndex sinf)) in
               isPrefixOf (eMesg evs) (skipn (startIndex sinf) procOutMsgs)
               ∧ ball  (timingAcc swNode) (eTime evd + minDelay + procTime swNode)%Q (QT2Q (eTime evs))
@@ -855,15 +872,26 @@ Definition possibleDeqSendOncePair2
   | _ => False
   end.
 
+Definition sendInfoStartIndex (ev: Event) : option nat :=
+match eKind ev with
+| sendEvt sinf => Some (startIndex sinf)
+| _ => None
+end.
+
+
 Definition RSwNodeSemanticsAux
   (swn : RosSwNode)
   (locEvts: nat -> option Event) :=
   ∀ n : nat, 
       (isSendEvtOp (locEvts n) 
           -> {m: nat | possibleDeqSendOncePair2 swn locEvts m n})
-    × (isDeqEvtOp (locEvts n) 
-          -> { m: nat| possibleDeqSendOncePair2 swn locEvts n m}).
-
+    × (isDeqEvtOp (locEvts n)
+        → ∀ (ni : nat), 
+              ni < length (procOutMsgs swn locEvts n)
+              → { m: nat |  opBind sendInfoStartIndex (locEvts m) = Some ni 
+                             ∧ possibleDeqSendOncePair2 swn locEvts n m}).
+(** If the functional process does not output anything,
+    no send event takes place *)
 
 
 
