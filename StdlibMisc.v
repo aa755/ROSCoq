@@ -104,6 +104,9 @@ Coercion assert : bool >-> Sortclass.
 
 Inductive void: Set :=.
 
+(** Using typeclasses, this can be made to work for other types of products,
+    e.g. propositional conjunctions *)
+
 Notation π₁ := fst.
 Notation π₂ := snd.
 
@@ -113,3 +116,8 @@ Definition subList {T : Type} (start length : nat) (l : list T) : list T :=
 Definition isPrefixOf {T : Type} (lp l : list T) : Prop :=
   firstn  (length lp) l =lp.
 
+Definition substHead {A : Type} (l : list A) (h' : A) :=
+match l with
+| nil => nil
+| h::tl => h'::tl
+end.

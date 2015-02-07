@@ -323,7 +323,7 @@ Qed.
 Lemma SwEvents : ∀ (ev : Event),
   let response := robotPureProgam targetPos in
   let respPayLoads := (map π₂ response) in
-  let respDelays := (map π₁ response) in
+  let respDelays := substHead (map π₁ response) procTime in
   eLoc ev ≡ SWNODE
   → match eLocIndex ev with
     | 0 => getRecdPayload TARGETPOS ev ≡ Some targetPos
@@ -369,8 +369,19 @@ Proof.
   rewrite <- Hsendl.
   rewrite <- moveMapInsideFst.
   trivial.
-- admit.
-Qed.
+- pose proof (enquesNotUsed ev) as Hneq.
+  (** one of the conjuncts of goal says that [ev] is a [sendEvt].
+      Why can't this be a deque event?
+      The [EXTERNALCMD] indeed sent a message, which could be received now.
+      
+      There is nothing which says that messages are only received only once.
+      In the train case, probably the timebound on message delivery saved
+      us. Indeed, we considered the case of contigous duplicate message.
+      But the train would have to go to the other side to send a different message
+      By this time, all earlier messages must have been delivered
+
+*)
+Abort.
   
 
   (* destruct Hex as [Hexl Hexr].
