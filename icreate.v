@@ -317,6 +317,39 @@ Proof.
   reflexivity.
 Qed.
 
+Lemma ExCMDOnlySendsToSw :   forall Es Er,
+  isSendEvt Es
+  -> isRecvEvt Er
+  -> PossibleSendRecvPair Es Er
+  -> eLoc Es ≡ EXTERNALCMD
+  -> eLoc Er ≡ SWNODE.
+Proof.
+  intros ? ? Hs Hr Hsendl Hl.
+  unfold PossibleSendRecvPair in Hsendl.
+  repnd. clear Hsendlrrr.
+  unfold validSendMesg in Hsendlrrl.
+  pose proof (deqSingleMessage _ Hr) as XX.
+  destruct XX as [m XX].
+  repnd. rewrite <- XXl in Hsendlrl.
+  apply (f_equal (map fst)) in XXl.
+  rewrite <- Hsendll in XXl. simpl in Hsendlrrl.
+  simpl in Hsendlrrl, XXl. rewrite <- XXl in Hsendlrrl.
+  specialize (Hsendlrl _ (or_introl eq_refl)).
+  specialize (Hsendlrrl _ (or_introl eq_refl)).
+  rewrite Hl in Hsendlrrl.
+  simpl in Hsendlrrl.
+  rewrite RemoveOrFalse in Hsendlrrl.
+  unfold validSendMesg in Hsendlrrl.
+  simpl in Hsendlrrl.
+  simpl in Hsendlrl. rewrite <- Hsendlrrl in Hsendlrl.
+  destruct (eLoc Er); simpl in Hsendlrl;
+    try rewrite RemoveOrFalse in Hsendlrl;
+    try contradiction;
+    inversion Hsendlrrl; 
+    try discriminate;
+    try contradiction.
+  reflexivity.
+Qed.
 
 Lemma SwRecv : ∀ ev:Event,
   eLoc ev ≡ SWNODE
@@ -345,6 +378,30 @@ Proof.
   dands; assumption.
 Qed.
 
+
+
+Lemma SwLiveness : notNone (localEvts SWNODE 0).
+Proof.
+  pose proof (corrNodes eo EXTERNALCMD) as Hc.
+  simpl in Hc. unfold externalCmdSemantics in Hc.
+  repnd. 
+  pose proof (eventualDelivery eo _ Hcrl) as Hsend.
+  destruct Hsend as [Er  Hsend]. repnd.
+  apply locEvtIndex in Hcl.
+  repnd.
+  apply ExCMDOnlySendsToSw in Hsendl; auto.
+  remember (eLocIndex Er) as ern.
+  destruct ern.
+  - unfold notNone. rewrite (locEvtIndexRW Er); auto. reflexivity.
+  - pose proof (localIndexDense _ _ _ 0 (conj Hsendl eq_refl)) as Hx.
+    rewrite <- Heqern in Hx.
+    clear Heqern.
+    lapply Hx; [clear Hx; intro Hx |omega].
+    destruct Hx as [Err ]. repnd.
+    rewrite (locEvtIndexRW Err); auto.
+    reflexivity.
+Qed.
+
 Open Scope nat_scope.
 Theorem comp_ind_type :
   ∀ P: nat → Type,
@@ -360,33 +417,37 @@ Proof.
  apply H; apply X.
 Qed.
 
+Open Scope nat_scope.
+
 (** Nice warm up proof.
     Got many mistakes in definitions corrected *)
-Lemma SwEvents : ∀ (ev : Event),
+Lemma SwEvents :
   let response := robotPureProgam targetPos in
   let respPayLoads := (map π₂ response) in
   let respDelays := substHead (map π₁ response) procTime in
-  eLoc ev ≡ SWNODE
-  → match eLocIndex ev with
+  ∀ n: nat , n < 5 -> ∃ ev, eLocIndex ev ≡ n ∧ eLoc ev ≡ SWNODE ∧
+    match n with
     | 0 => (getRecdPayload TARGETPOS ev ≡ Some targetPos) 
-            ∧ causedBy eo eCmdEv0 ev
-    | S n => 
-          ∃ delay , nth_error respDelays n ≡ Some delay (*enforces n<|response|*)
+             ∧ causedBy eo eCmdEv0 ev
+    | S n' => 
+          ∃ delay , nth_error respDelays n' ≡ Some delay (*enforces n<|response|*)
             ∧ isSendEvt ev 
             ∧ getPayloadOp VELOCITY (head (eMesg ev)) 
-               ≡ (nth_error respPayLoads n)
-            ∧ (∃ evp,  eLoc evp ≡ SWNODE ∧ eLocIndex evp = n 
+               ≡ (nth_error respPayLoads n')
+            ∧ (∃ evp,  eLoc evp ≡ SWNODE ∧ eLocIndex evp = n' 
                       ∧ (eTime evp + delay ≊t eTime ev))
     end.
 Proof.
-  simpl. intros ev Heq.
-  remember (eLocIndex ev) as n.
-  generalize dependent ev.
+  induction n as [n Hind] using comp_ind_type; intros Hlt.
+  destruct n as [ | n'].
+- unfold getRecdPayload, deqMesg. clear Hind.
+  pose proof SwLiveness as Hlive.
+  remember (localEvts SWNODE 0) as oev.
+  destruct oev as [ev |]; inversion Hlive.
+  clear Hlive. exists ev.
+  symmetry in Heqoev. 
   pose proof (corrNodes eo SWNODE) as Hex.
   simpl in Hex.
-  induction n as [n Hind] using comp_ind_type; intros ev Hl Hn.
-  destruct n as [ | n'].
-- unfold getRecdPayload, deqMesg.
   apply SwFirstMessageIsNotASend with (ev0:=ev) in Hex;[|eauto 4 with ROSCOQ].
   unfold isSendEvt in Hex.
   pose proof (enquesNotUsed ev) as Hneq.
@@ -394,17 +455,10 @@ Proof.
   destruct evk; simpl in Hex; try contra; try tauto.
   clear Hneq Hex.
   symmetry in Heqevk. apply isDeqEvtIf in Heqevk.
-  apply SwRecv; auto.
+  apply locEvtIndex in Heqoev. repnd.
+  apply  SwRecv in Heqevk  ; auto.
 
-- pose proof (enquesNotUsed ev) as Hneq.
-  unfold isEnqEvt in Hneq.
-  remember (eKind ev) as evk.
-  destruct evk; try tauto.
-  Focus 2.
-  symmetry in Heqevk; apply isDeqEvtIf in Heqevk.
-  apply SwRecv in Heqevk; auto.
-  apply proj2 in Heqevk.
-
+- 
   
 Abort.
   
