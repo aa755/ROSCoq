@@ -941,6 +941,9 @@ Definition RSwSemantics
        : NodeSemantics :=
  (fun penv evts => RSwNodeSemanticsAux  swn evts).
 
+Record MessageDeliveryParams :=
+{ expectedDelay : option QTime; maxVariation : QTime}.
+
 Class RosLocType (RosLoc: Type) 
      {rldeq : DecEq RosLoc} :=
 {
@@ -948,7 +951,7 @@ Class RosLocType (RosLoc: Type)
 
    validTopics : RosLoc -> (@TopicInfo RosTopic);
 
-   maxDeliveryDelay : RosLoc -> RosLoc -> option QTime
+   accDelDelay : RosLoc -> RosLoc -> Q -> Prop
 }.
 
 Lemma possibleDeqSendOncePair2_index : ∀ proc pt tacc evs m n si,
@@ -1006,10 +1009,7 @@ Definition PossibleSendRecvPair
    (fst (eMesg Es) = fst (eMesg Er))
    /\ (validRecvMesg (validTopics (eLoc Er)) (eMesg Er))
    /\ (validSendMesg (validTopics (eLoc Es)) (eMesg Es))
-   /\ (match (maxDeliveryDelay  (eLoc Es) (eLoc Er)) with
-      | Some td => (eTime Es < eTime Er <  eTime Es + td)%Q
-      | None => True (* None stands for infinity *)
-      end).
+   /\ (accDelDelay  (eLoc Es) (eLoc Er) (eTime Er - eTime Es)).
     
 
 
@@ -1047,12 +1047,14 @@ Record PossibleEventOrder  := {
       isDeqEvt ev -> validRecvMesg (validTopics (eLoc ev)) (eMesg ev);
       (* !FIX! change above to [isEnqEvt] *)
 
-    noDuplicateDelivery : ∀ evs evr1 evr2,
-      (eLoc evs ≠ eLoc evr1)
+    orderRespectingDelivery : ∀ evs1 evs2 evr1 evr2,
+      (eLoc evs1 = eLoc evs2)
       → (eLoc evr1 = eLoc evr2) (* multicast is allowed*)
-      → causedBy evs evr1
-      → causedBy evs evr2
-      → evr1 = evr2;
+      → (eLoc evs1 ≠ eLoc evr1)
+      → causedBy evs1 evr1
+      → causedBy evs2 evr2
+      → (eLocIndex evs1 < eLocIndex evs2
+         ↔ eLocIndex evr1 < eLocIndex evr2);
       
     (** the stuff below can probably be
       derived from the stuff above *)
@@ -1060,6 +1062,35 @@ Record PossibleEventOrder  := {
 
 }.
 
+Section EOProps.
+Variable eo : PossibleEventOrder.
+
+Definition  NoDuplicateDelivery : Prop := ∀ evs evr1 evr2,
+      (eLoc evs ≠ eLoc evr1)
+      → (eLoc evr1 = eLoc evr2) (* multicast is allowed*)
+      → causedBy eo evs evr1
+      → causedBy eo evs evr2
+      → evr1 = evr2.
+
+Lemma noDuplicateDelivery : NoDuplicateDelivery.
+Proof.
+  pose proof (orderRespectingDelivery eo) as Hord.
+  unfold NoDuplicateDelivery.
+  intros ? ? ? Hneq Heq H1c H2c.
+  pose proof (lt_eq_lt_dec (eLocIndex evr1) (eLocIndex evr2)) as Htric.
+  destruct Htric as[Htric| Htric];
+    [ destruct Htric as[Htric| Htric]|].
+- specialize (Hord evs evs evr1 evr2 eq_refl Heq Hneq H1c H2c).
+  apply Hord in Htric.
+  omega.
+- eauto using indexDistinct.
+- symmetry in Heq.
+  specialize (λ hn, Hord evs evs evr2 evr1 eq_refl Heq hn H2c H1c).
+  apply Hord in Htric;[ | congruence].
+  omega.
+Qed.
+
+End EOProps.  
 
 Lemma PureProcDeqSendOncePair : forall ns nd TI TO qt qac loc
     (sp : SimplePureProcess TI TO),

@@ -255,12 +255,14 @@ match rl with
 | EXTERNALCMD  => externalCmdSemantics
 end.
 
-Variable deliveryTime : QTime.
+Variable expectedDelay : Qpos.
+Variable maxVariation : Qpos.
+
 Instance rllllfjkfhsdakfsdakh : @RosLocType iCreate Topic Event  RosLoc _.
   apply Build_RosLocType.
   - exact locNode.
   - exact locTopics.
-  - exact (λ _ _ , Some (deliveryTime)).
+  - exact (λ _ _ t , ball maxVariation t (QposAsQ expectedDelay)).
 Defined.
 
 Variable acceptableDist : Q.
@@ -327,6 +329,43 @@ Lemma ExCMDOnlySendsToSw :   forall Es Er,
   -> PossibleSendRecvPair Es Er
   -> eLoc Es ≡ EXTERNALCMD
   -> eLoc Er ≡ SWNODE.
+Proof.
+  intros ? ? Hs Hr Hsendl Hl.
+  unfold PossibleSendRecvPair in Hsendl.
+  repnd. clear Hsendlrrr.
+  unfold validSendMesg in Hsendlrrl.
+  pose proof (deqSingleMessage _ Hr) as XX.
+  destruct XX as [m XX].
+  repnd. rewrite <- XXl in Hsendlrl.
+  apply (f_equal fst) in XXl.
+  rewrite <- Hsendll in XXl. simpl in Hsendlrrl.
+  simpl in Hsendlrrl, XXl. 
+  unfold mtopic in Hsendlrrl. simpl in XXl, Hsendlrrl.
+  rewrite <- XXl in Hsendlrrl.
+  rewrite Hl in Hsendlrrl.
+  simpl in Hsendlrrl.
+  rewrite RemoveOrFalse in Hsendlrrl.
+  unfold validSendMesg in Hsendlrrl.
+  simpl in Hsendlrrl.
+  simpl in Hsendlrl.
+  unfold validRecvMesg, mtopic in Hsendlrl.
+  simpl in Hsendlrrl, Hsendlrl.
+  rewrite <- Hsendlrrl in Hsendlrl.
+  destruct (eLoc Er); simpl in Hsendlrl;
+    try rewrite RemoveOrFalse in Hsendlrl;
+    try contradiction;
+    inversion Hsendlrrl; 
+    try discriminate;
+    try contradiction.
+  reflexivity.
+Qed.
+
+Lemma SWOnlySendsToMotor :   forall Es Er,
+  isSendEvt Es
+  -> isRecvEvt Er
+  -> PossibleSendRecvPair Es Er
+  -> eLoc Es ≡ SWNODE
+  -> eLoc Er ≡ MOVABLEBASE.
 Proof.
   intros ? ? Hs Hr Hsendl Hl.
   unfold PossibleSendRecvPair in Hsendl.
@@ -500,9 +539,10 @@ Proof.
   repnd.
   destruct SwEvents0 as [ev0 Hev0].
   repnd. pose proof eCmdEv0Loc.
-  eapply noDuplicateDelivery in Hev0rrr;[| | | apply Hdr];
-    try congruence. Focus 2. congruence; fail.
-  subst. assumption.
+  pose proof (noDuplicateDelivery eo) as Hh.
+  unfold NoDuplicateDelivery in Hh.
+  eapply Hh with (evr2:=ev0) in Hdr; eauto;
+    try congruence.
 Qed.
 
 Lemma  nth_error_nil :
@@ -575,20 +615,29 @@ Lemma MotorEvents :
   let resp := PureSwProgram targetPos in
   ∀ n: nat, 
       n < 4
-      → {ev : Event | eLocIndex ev ≡ n ∧ eLoc ev ≡ MOVABLEBASE
-            ∧ (isSendEvt ev) 
+      → {ev : Event | (isRecvEvt ev)  ∧ eLoc ev ≡ MOVABLEBASE
+            ∧ eLocIndex ev ≡ n
             ∧ Some (eMesg ev) 
                ≡ nth_error
                     (map (λ p, mkDelayedMesg (π₁ p) (π₂ p)) resp) n
-            ∧ ball (2*timingAcc)%mc
-                ( eTime (projT1 SwEvents0) + deliveryTime
+            ∧ ball (timingAcc+maxVariation)
+                ( eTime (projT1 SwEvents0) + expectedDelay
                      + minDelayForIndex
                          (map (λ p, mkDelayedMesg (π₁ p) (π₂ p)) resp) 
                          n 
                      + procTime)%Q 
                 (QT2Q (eTime ev)) }.
+Proof.
+  intros ? n Hlt.
+  pose proof (SwEventsSn n Hlt) as Hsws.
+  destruct Hsws as [ev Hsws]. repnd.
+  pose proof (eventualDelivery eo _ Hswsrrl) as Hsend.
+  destruct Hsend as [Er  Hsend]. repnd. exists Er.
+  eapply SWOnlySendsToMotor in Hsendl; eauto.
+  split;[trivial|].
+  split;[trivial|].
 Abort.
-
+  
 Lemma MotorEventsOnly4 :
   ∀ n : nat, 3 < n -> (localEvts MOVABLEBASE n) ≡ None.
 Abort.
