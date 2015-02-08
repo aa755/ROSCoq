@@ -419,6 +419,8 @@ Proof.
  apply H; apply X.
 Qed.
 
+
+
 Open Scope nat_scope.
 
 (** Nice warm up proof.
@@ -440,7 +442,7 @@ Lemma SwEvents :
                       ∧ (eTime evp + delay ≊t eTime ev))
     end.
 Proof.
-  induction n as [n Hind] using comp_ind_type; intros Hlt.
+  simpl. induction n as [n Hind] using comp_ind_type; intros Hlt.
   destruct n as [ | n'].
 - unfold getRecdPayload, deqMesg. clear Hind.
   pose proof SwLiveness as Hlive.
@@ -460,8 +462,27 @@ Proof.
   apply locEvtIndex in Heqoev. repnd.
   apply  SwRecv in Heqevk  ; auto.
 
-- 
-  
+- specialize (Hind 0).
+  DestImp Hind;[| omega].
+  DestImp Hind;[| omega].
+  destruct Hind as [ev0 Hind].
+  repnd.
+  pose proof (getRecdPayloadSpecDeq TARGETPOS _ _ Hindrrl) as Hdeq.
+  pose proof (corrNodes eo SWNODE 0) as Hex.
+  apply snd in Hex.
+  rewrite (locEvtIndexRW ev0) in Hex; [| auto; fail].
+  specialize (Hex Hdeq). unfold procOutMsgs in Hex.
+  unfold ControllerNode in Hex. simpl in Hex.
+  unfold getDeqOutput2, SwProcess in Hex.
+  rewrite (locEvtIndexRW ev0) in Hex; [| auto; fail].
+  apply deqSingleMessage in Hdeq.
+  destruct Hdeq as [m Hdeq]. repnd.
+  rewrite <- Hdeql in Hex.
+  simpl in Hex. unfold delayedLift2Mesg in Hex.
+  simpl in Hex.
+  unfold getRecdPayload in Hindrrl.
+  rewrite  Hdeqr in Hindrrl. simpl in Hindrrl.
+  rewrite Hindrrl in Hex. simpl in Hex.
 Abort.
   
 

@@ -90,6 +90,7 @@ Class EventType (T: Type)
       → eKind ev1 = sendEvt si
       → eKind ev2 = sendEvt si
       → ev1=ev2
+
  }.
 
 
@@ -853,19 +854,20 @@ Open Scope mc_scope.
 (** assuming all outgoing messages resulting from processing
     an event happen in a single send event (send once) *)
 Definition possibleDeqSendOncePair2
-  (swNode : RosSwNode)
+  (procOutMsgs : list Message)
+  (procTime : QTime)
+  (timingAcc : Qpos)
   (locEvts: nat -> option Event)
-  (nd ns: nat) := 
+  (nd ns sindex : nat) := 
   match (locEvts nd, locEvts ns) with
   | (Some evd, Some evs) =>
       match (eKind evd, eKind evs) with
       | (deqEvt enqIndex , sendEvt sinf) =>
-          nd < ns (* does it follow from the timing property? *)
-          ∧ (∀ n: nat, nd < n < ns -> isEnqEvtOp (locEvts n))
-          ∧ let procOutMsgs := (procOutMsgs swNode locEvts nd) in
             let minDelay := (minDelayForIndex procOutMsgs (startIndex sinf)) in
-              isPrefixOf (eMesg evs) (skipn (startIndex sinf) procOutMsgs)
-              ∧ ball  (timingAcc swNode) (eTime evd + minDelay + procTime swNode)%Q (QT2Q (eTime evs))
+              ns = (S nd) + sindex
+              ∧ sindex = (startIndex sinf)
+              ∧ isPrefixOf (eMesg evs) (skipn sindex procOutMsgs)
+              ∧ ball timingAcc (eTime evd + minDelay + procTime)%Q (QT2Q (eTime evs))
               ∧ length (eMesg evs) =1
       | (_,_) => False
       end
@@ -882,14 +884,17 @@ end.
 Definition RSwNodeSemanticsAux
   (swn : RosSwNode)
   (locEvts: nat -> option Event) :=
+  let procTime := procTime swn in
+  let timeAcc := timingAcc swn in
   ∀ n : nat, 
       (isSendEvtOp (locEvts n) 
-          -> {m: nat | possibleDeqSendOncePair2 swn locEvts m n})
+       → {m : nat| {si : nat | let procMsgs := (procOutMsgs swn locEvts m) in
+            possibleDeqSendOncePair2 procMsgs procTime timeAcc locEvts m n si}})
     × (isDeqEvtOp (locEvts n)
-        → ∀ (ni : nat), 
-              ni < length (procOutMsgs swn locEvts n)
-              → { m: nat |  opBind sendInfoStartIndex (locEvts m) = Some ni 
-                             ∧ possibleDeqSendOncePair2 swn locEvts n m}).
+      → ∀ (ni : nat), let procMsgs:= (procOutMsgs swn locEvts n) in
+        ni < length procMsgs
+        → { m: nat |
+              possibleDeqSendOncePair2 procMsgs procTime timeAcc locEvts n m ni}).
 (** If the functional process does not output anything,
     no send event takes place *)
 
@@ -960,15 +965,15 @@ Class RosLocType (RosLoc: Type)
    maxDeliveryDelay : RosLoc -> RosLoc -> option QTime
 }.
 
-Lemma possibleDeqSendOncePair2_index : ∀ (swn : RosSwNode) evs m n,
-  possibleDeqSendOncePair2 swn evs m n
+Lemma possibleDeqSendOncePair2_index : ∀ proc pt tacc evs m n si,
+  possibleDeqSendOncePair2 proc pt tacc evs m n si
   → m < n.
 Proof.
-  intros ? ? ? ? Hp.
+  intros ? ? ? ? ? ? ?  Hp.
   unfold possibleDeqSendOncePair2 in Hp.
   destruct (evs m), (evs n); simpl in Hp; try contradiction.
   destruct (eKind e), (eKind e0); try contradiction.
-  tauto.
+  repnd. omega.
 Qed.
 
 Lemma SwFirstMessageIsNotASend:  ∀ (swn : RosSwNode) pp evs ev,
@@ -982,7 +987,7 @@ Proof.
   simpl in Hrw.
   apply π₁ in Hrw.
   apply Hrw in His. clear Hrw.
-  destruct His as [m His].
+  destruct His as [m His]. destruct His as [si His].
   apply possibleDeqSendOncePair2_index in His.
   omega.
 Qed.

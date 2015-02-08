@@ -208,8 +208,9 @@ Definition ControllerNode (speed : Q): RosSwNode :=
   Build_RosSwNode (SwProcess speed) (digiControllerTiming, 1%Qpos).
 
 Lemma onlyNeededForOldProofs:
-  ∀ q le nd ns,
-     possibleDeqSendOncePair2 (ControllerNode q) le nd ns
+  ∀ q pt ta le nd ns si,
+     possibleDeqSendOncePair2 (procOutMsgs (ControllerNode q) le nd) 
+                              pt ta  le nd ns si
      → possibleDeqSendOncePair (ControllerNode q) le nd ns.
 Admitted.
 
@@ -443,6 +444,7 @@ Proof.
   TrimAndRHS Hnc. unfold isSendEvtOp in Hnc.
   simpl in Hnc.
   specialize (Hnc Hsend). destruct Hnc as [mDeq  Hnc].
+  destruct Hnc as [si Hnc].
   apply onlyNeededForOldProofs in Hnc.
   apply DeqSendOncePair in Hnc.
   simpl in Hnc. exrepd. 
@@ -892,6 +894,7 @@ Proof.
     simpl  in Hnc. TrimAndRHS Hnc. clear Hxx.
     specialize (Hnc (isSendEvtIf Heqeks)).
     destruct Hnc as [m Hnc].
+    destruct Hnc as [si Hnc].
     apply onlyNeededForOldProofs in Hnc.
     apply DeqSendOncePair in Hnc.
     simpl in Hnc. 
@@ -1079,6 +1082,7 @@ Proof.
     simpl  in Hnc. TrimAndRHS Hnc. clear Hxx.
     specialize (Hnc (isSendEvtIf Heqeks)).
     destruct Hnc as [m Hnc].
+    destruct Hnc as [si Hnc].
     apply onlyNeededForOldProofs in Hnc.
     apply DeqSendOncePair in Hnc.
     simpl in Hnc. 
@@ -2139,7 +2143,7 @@ Close Scope nat_scope.
   rewrite (proj1 Hxx) in Hnc;[| split; auto; fail].
   simpl  in Hnc.
   specialize (Hnc Hrecrr (0%nat)).
-  destruct Hnc as [m Hnc ];[admit|]. apply proj2 in Hnc.
+  destruct Hnc as [m Hnc ];[admit|].
   apply onlyNeededForOldProofs in Hnc.
   apply DeqSendOncePair in Hnc.
   simpl in Hnc. 
@@ -2381,7 +2385,7 @@ Close Scope nat_scope.
   rewrite (proj1 Hxx) in Hnc;[| split; auto; fail].
   simpl  in Hnc.
   specialize (Hnc Hrecrr (1%nat)).
-  destruct Hnc as [m Hnc];[admit|]. apply proj2 in Hnc.
+  destruct Hnc as [m Hnc];[admit|].
   apply onlyNeededForOldProofs in Hnc.
   apply DeqSendOncePair in Hnc.
   simpl in Hnc. 
