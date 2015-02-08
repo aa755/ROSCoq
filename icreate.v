@@ -255,11 +255,12 @@ match rl with
 | EXTERNALCMD  => externalCmdSemantics
 end.
 
+Variable deliveryTime : QTime.
 Instance rllllfjkfhsdakfsdakh : @RosLocType iCreate Topic Event  RosLoc _.
   apply Build_RosLocType.
   - exact locNode.
   - exact locTopics.
-  - exact (λ _ _ , Some (mkQTime 1 I)).
+  - exact (λ _ _ , Some (deliveryTime)).
 Defined.
 
 Variable acceptableDist : Q.
@@ -567,22 +568,25 @@ Proof.
   omega.
 Qed.
 
+(** change message semantics so that message receipt 
+    is at a ball near ed + deliveryTime.
+    make the balls size be a parameter *)
 Lemma MotorEvents :
   let resp := PureSwProgram targetPos in
   ∀ n: nat, 
       n < 4
-      → {ev : Event |{ tt : QTime | eLocIndex ev ≡ n ∧ eLoc ev ≡ MOVABLEBASE
+      → {ev : Event | eLocIndex ev ≡ n ∧ eLoc ev ≡ MOVABLEBASE
             ∧ (isSendEvt ev) 
             ∧ Some (eMesg ev) 
                ≡ nth_error
                     (map (λ p, mkDelayedMesg (π₁ p) (π₂ p)) resp) n
             ∧ ball (2*timingAcc)%mc
-                ( tt
+                ( eTime (projT1 SwEvents0) + deliveryTime
                      + minDelayForIndex
                          (map (λ p, mkDelayedMesg (π₁ p) (π₂ p)) resp) 
                          n 
                      + procTime)%Q 
-                (QT2Q (eTime ev)) } }.
+                (QT2Q (eTime ev)) }.
 Abort.
 
 Lemma MotorEventsOnly4 :
