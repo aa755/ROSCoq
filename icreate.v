@@ -480,9 +480,14 @@ Proof.
   rewrite <- Hdeql in Hex.
   simpl in Hex. unfold delayedLift2Mesg in Hex.
   simpl in Hex.
+  match type of Hex with 
   unfold getRecdPayload in Hindrrl.
   rewrite  Hdeqr in Hindrrl. simpl in Hindrrl.
   rewrite Hindrrl in Hex. simpl in Hex.
+  unfold possibleDeqSendOncePair2, 
+    roscore.procTime, roscore.timingAcc, Basics.compose in Hex.
+  simpl in Hex.
+  
 Abort.
   
 
