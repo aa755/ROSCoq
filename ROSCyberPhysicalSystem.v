@@ -1139,6 +1139,12 @@ reflexivity. Qed.
 
 Hint Resolve assertTrueAuto.
 
+Definition eTimeDef0 (oev : option Event) : QTime :=
+match oev with
+| Some ev => eTime ev
+| None => mkQTime 0 I
+end.
+
 Lemma DelayedPureProcDeqSendPair : ∀ TI TO (sp : PureProcWDelay TI TO)
     qt qac nd (pl : topicType TI) evs ,
   let sproc := mkPureProcess (delayedLift2Mesg sp) in
@@ -1150,7 +1156,16 @@ Lemma DelayedPureProcDeqSendPair : ∀ TI TO (sp : PureProcWDelay TI TO)
       n < length response
       → {ev : Event | evs (S nd + n) = Some ev
             ∧ (isSendEvt ev) 
-            ∧ getPayload TO (eMesg ev) = (nth_error respPayLoads n)}.
+            ∧ Some (eMesg ev) 
+               = nth_error
+                    (map (λ p, mkDelayedMesg (π₁ p) (π₂ p)) (sp pl)) n
+            ∧ ball qac
+                (eTimeDef0  (evs nd)
+                     + minDelayForIndex
+                         (map (λ p, mkDelayedMesg (π₁ p) (π₂ p))(sp pl)) 
+                         n 
+                     + qt)%Q 
+                (QT2Q (eTime ev))}.
 Proof.
   simpl. intros ? ? ? ? ? ? ?  ? Hrs Hrcd.
   unfold RSwNodeSemanticsAux, procTime, timingAcc, compose in Hrs.
@@ -1183,9 +1198,10 @@ Proof.
   rewrite isDeqEvtImplies  in Hrs;[| assumption].
   destruct (eKind es); [| contradiction].
   repnd. subst ns.
-  dands; auto;[].
-  clear Hrsrrr.
-Abort.
+  dands; auto.
+  clear Hrsrrl.
+  simpl. rewrite Hrsrl. assumption.
+Qed.
     
 
 Lemma  sameELoc : forall loc nd ns ed es,

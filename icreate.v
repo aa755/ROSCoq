@@ -397,14 +397,13 @@ Proof.
   apply ExCMDOnlySendsToSw in Hsendl; auto.
   remember (eLocIndex Er) as ern.
   destruct ern.
-  - unfold notNone. rewrite (locEvtIndexRW Er); auto. reflexivity.
+  - unfold notNone. rewrite (locEvtIndexRW Er); auto.
   - pose proof (localIndexDense _ _ _ 0 (conj Hsendl eq_refl)) as Hx.
     rewrite <- Heqern in Hx.
     clear Heqern.
     lapply Hx; [clear Hx; intro Hx |omega].
     destruct Hx as [Err ]. repnd.
     rewrite (locEvtIndexRW Err); auto.
-    reflexivity.
 Qed.
 
 Open Scope nat_scope.
@@ -427,9 +426,9 @@ Qed.
 Open Scope nat_scope.
 
 Lemma SwEvents0 :
-  ∃ ev, eLocIndex ev ≡ 0 ∧ eLoc ev ≡ SWNODE ∧
+  {ev | eLocIndex ev ≡ 0 ∧ eLoc ev ≡ SWNODE ∧
        (getRecdPayload TARGETPOS ev ≡ Some targetPos) 
-             ∧ causedBy eo eCmdEv0 ev.
+             ∧ causedBy eo eCmdEv0 ev}.
 Proof.
   unfold getRecdPayload, deqMesg. 
   pose proof SwLiveness as Hlive.
@@ -452,45 +451,143 @@ Qed.
 (** Nice warm up proof.
     Got many mistakes in definitions corrected *)
 Lemma SwEventsSn :
-  let response := robotPureProgam targetPos in
-  let respPayLoads := (map π₂ response) in
-  ∀ n: nat , n < 4 -> ∃ ev, eLocIndex ev ≡ S n ∧ eLoc ev ≡ SWNODE ∧
-            isSendEvt ev 
-            ∧ getPayload VELOCITY (eMesg ev) ≡ (nth_error respPayLoads n).
+  let resp := PureSwProgram targetPos in
+  ∀ n: nat, 
+      n < 4
+      → {ev : Event | eLocIndex ev ≡ S n ∧ eLoc ev ≡ SWNODE
+            ∧ (isSendEvt ev) 
+            ∧ Some (eMesg ev) 
+               ≡ nth_error
+                    (map (λ p, mkDelayedMesg (π₁ p) (π₂ p)) resp) n
+            ∧ ball timingAcc
+                (eTime (projT1 SwEvents0)
+                     + minDelayForIndex
+                         (map (λ p, mkDelayedMesg (π₁ p) (π₂ p)) resp) 
+                         n 
+                     + procTime)%Q 
+                (QT2Q (eTime ev))}.
 Proof.
-  destruct (SwEvents0) as [ev0 Hind].
+  simpl.
+  destruct (SwEvents0) as [ev0 Hind]. simpl.
   repnd.
-  pose proof (getRecdPayloadSpecDeq TARGETPOS _ _ Hindrrl) as Hdeq.
-  pose proof (corrNodes eo SWNODE 0) as Hex.
-  apply snd in Hex.
-  rewrite (locEvtIndexRW ev0) in Hex; [| auto; fail].
-  specialize (Hex Hdeq). unfold procOutMsgs in Hex.
-  unfold ControllerNode in Hex. simpl in Hex.
-  unfold  PureSwProgram, roscore.procTime, roscore.timingAcc, Basics.compose in Hex.
-  simpl in Hex.
-  remember (robotPureProgam) as pp.
-  unfold getDeqOutput2, SwProcess in Hex.
-  rewrite (locEvtIndexRW ev0) in Hex; [| auto; fail].
-  apply deqSingleMessage in Hdeq.
-  destruct Hdeq as [m Hdeq]. repnd.
-  rewrite <- Hdeql in Hex.
-  simpl in Hex. unfold delayedLift2Mesg in Hex.
-  simpl in Hex.
-  match type of Hex with 
-  unfold getRecdPayload in Hindrrl.
-  rewrite  Hdeqr in Hindrrl. simpl in Hindrrl.
-  rewrite Hindrrl in Hex. simpl in Hex.
-  unfold possibleDeqSendOncePair2, 
-    roscore.procTime, roscore.timingAcc, Basics.compose in Hex.
-  simpl in Hex.
-  
-Abort.
-  
+  pose proof (corrNodes eo SWNODE) as Hex.
+  simpl in Hex. intros n Hlt.
+  apply DelayedPureProcDeqSendPair with (nd:=0) (pl:=targetPos) (n:=n)
+      in Hex; eauto;
+  [|rewrite (locEvtIndexRW ev0); auto; fail].
+  simpl in Hex. destruct Hex as [evs Hex]. repnd.
+  exists evs.
+  apply locEvtIndex in Hexl. repnd.
+  rewrite (locEvtIndexRW ev0) in Hexrrr; auto.
+Qed.
 
-  (* destruct Hex as [Hexl Hexr].
-  match type of Hexl with
-  context [localEvts ?a ?b] => destruct (localEvts a b)
-  end. *)
+Lemma eCmdEv0Loc :  eLoc eCmdEv0 ≡ EXTERNALCMD.
+Proof.
+  pose proof (corrNodes eo EXTERNALCMD) as Hc.
+  simpl in Hc. unfold externalCmdSemantics in Hc.
+  repnd. apply locEvtIndex in Hcl. repnd.
+  assumption.
+Qed.
+
+Lemma SwRecvDeqOnly0 : ∀ ev:Event,
+  eLoc ev ≡ SWNODE
+  -> isDeqEvt ev
+  -> eLocIndex ev ≡ 0.
+Proof.
+  intros ev Hl Hd.
+  apply SwRecv in Hd;[| assumption].
+  repnd.
+  destruct SwEvents0 as [ev0 Hev0].
+  repnd. pose proof eCmdEv0Loc.
+  eapply noDuplicateDelivery in Hev0rrr;[| | | apply Hdr];
+    try congruence. Focus 2. congruence; fail.
+  subst. assumption.
+Qed.
+
+Lemma  nth_error_nil :
+  ∀ (A : Type) (n : nat), nth_error (@nil A) n ≡ None.
+Proof.
+  induction n ;auto.
+Qed.
+
+Hint Rewrite nth_error_nil : Basics.
+
+
+Lemma SwEventsOnly5 :
+  ∀ n : nat, 4 < n -> (localEvts SWNODE n) ≡ None.
+Proof.
+  intros n Hlt.
+  remember (localEvts SWNODE n) as oevn.
+  destruct oevn as [evn|]; [| reflexivity].
+  provefalse.
+  remember (eKind evn) as evnk.
+  destruct evnk.
+- pose proof (corrNodes eo SWNODE n) as Hex.
+  apply fst in Hex.
+  unfold isSendEvt in Hex.
+  symmetry in Heqoevn. apply locEvtIndex in Heqoevn.
+  rewrite  (locEvtIndexRW evn) in Hex; [| assumption].
+  simpl in Hex. unfold isSendEvt in Hex.
+  rewrite <- Heqevnk in Hex; auto.
+  specialize (Hex eq_refl).
+  destruct Hex as [nd Hex].
+  destruct Hex as [si Hex].
+  (* pose proof Hex as Hltt.
+   apply possibleDeqSendOncePair2_index in Hltt. *)
+  unfold possibleDeqSendOncePair2 in Hex.
+  remember (localEvts SWNODE nd) as oed.
+  destruct oed as [ed |];[| contradiction].
+  apply locEvtIndex in Heqoevn.
+  rewrite Heqoevn in Hex.
+  remember (eKind ed) as edk.
+  destruct edk;[contradiction|].
+  rewrite <- Heqevnk in Hex.
+  symmetry in Heqedk. apply isDeqEvtIf in Heqedk.
+  symmetry in Heqoed. apply locEvtIndex in Heqoed.
+  apply SwRecvDeqOnly0 in Heqedk; [|tauto].
+  repnd. rewrite Heqoedr in Heqedk. subst.
+  rewrite Heqedk in Heqoevn.
+  rewrite Heqedk in Hlt.
+  remember (startIndex inf) as si.
+  assert (si≡4+(si-4))%nat as H3s by omega.
+  rewrite H3s in Hexrrl.
+  simpl in Hexrrl.
+  unfold procOutMsgs, ControllerNode, SwProcess  in Hexrrl.
+  simpl in Hexrrl.
+  rewrite getNewProcLPure in Hexrrl.
+  unfold delayedLift2Mesg, PureSwProgram in Hexrrl.
+  simpl in Hexrrl. rewrite (locEvtIndexRW ed) in Hexrrl; auto.
+  destruct (getPayload TARGETPOS (eMesg ed)); simpl in Hexrrl;
+    try discriminate.
+  rewrite  nth_error_nil in Hexrrl; discriminate.
+  
+- symmetry in Heqevnk. apply isDeqEvtIf in Heqevnk.
+  symmetry in  Heqoevn. apply locEvtIndex in Heqoevn.
+  repnd.  apply SwRecvDeqOnly0 in Heqevnk; auto.
+  omega.
+Qed.
+
+Lemma MotorEvents :
+  let resp := PureSwProgram targetPos in
+  ∀ n: nat, 
+      n < 4
+      → {ev : Event |{ tt : QTime | eLocIndex ev ≡ n ∧ eLoc ev ≡ MOVABLEBASE
+            ∧ (isSendEvt ev) 
+            ∧ Some (eMesg ev) 
+               ≡ nth_error
+                    (map (λ p, mkDelayedMesg (π₁ p) (π₂ p)) resp) n
+            ∧ ball (2*timingAcc)%mc
+                ( tt
+                     + minDelayForIndex
+                         (map (λ p, mkDelayedMesg (π₁ p) (π₂ p)) resp) 
+                         n 
+                     + procTime)%Q 
+                (QT2Q (eTime ev)) } }.
+Abort.
+
+Lemma MotorEventsOnly4 :
+  ∀ n : nat, 3 < n -> (localEvts MOVABLEBASE n) ≡ None.
+Abort.
 
 Close Scope nat_scope.
 
