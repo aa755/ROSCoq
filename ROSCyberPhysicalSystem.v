@@ -329,6 +329,21 @@ Proof.
   eexists; eauto.
 Qed.
 
+Lemma getRecdPayloadSpecMsg: 
+    forall tp ev tv,
+      getRecdPayload tp ev = Some tv
+      -> getPayload tp (eMesg ev) = Some tv.
+Proof.
+  intros ? ? ? Hp.
+  unfold getRecdPayload in Hp.
+  pose proof (deqSingleMessage ev) as Hs.
+  unfold isDeqEvt.
+  unfold isDeqEvt in Hs.
+  unfold deqMesg in Hp, Hs.
+  destruct (eKind ev); simpl in Hp; try discriminate;[].
+   eauto.
+Qed.
+
 Lemma MsgEta: forall tp m pl,
  getPayload tp m = Some pl
   -> π₁ m = (mkMesg tp pl).
@@ -816,8 +831,6 @@ Definition procOutMsgs
 
 Require Import CoRN.model.metric2.Qmetric.
 Open Scope mc_scope.
-(** assuming all outgoing messages resulting from processing
-    an event happen in a single send event (send once) *)
 Definition possibleDeqSendOncePair2
   (procOutMsgs : list Message)
   (procTime : QTime)
@@ -837,6 +850,15 @@ Definition possibleDeqSendOncePair2
       end
   | _ => False
   end.
+
+(* When will the next deque happen? Assume webserver with
+    infinite threads. These start working as soon as a message
+    comes. Therefore, no enque event.
+    So, the answer is that the next deq happens
+    as soon as the message gets delivered *)
+
+
+
 
 Definition sendInfoStartIndex (ev: Event) : option nat :=
 match eKind ev with
@@ -1104,6 +1126,68 @@ Proof.
   simpl. reflexivity.
 Qed.
 
+Lemma isDeqEvtImplies : forall ev,
+  isDeqEvt ev -> eKind ev = deqEvt.
+Proof.
+  intros ev Hd.
+  unfold isDeqEvt in Hd.
+  destruct (eKind ev); try reflexivity; try discriminate.
+Qed.
+
+Lemma assertTrueAuto : assert true.
+reflexivity. Qed.
+
+Hint Resolve assertTrueAuto.
+
+Lemma DelayedPureProcDeqSendPair : ∀ TI TO (sp : PureProcWDelay TI TO)
+    qt qac nd (pl : topicType TI) evs ,
+  let sproc := mkPureProcess (delayedLift2Mesg sp) in
+  let response :=  sp pl in
+  let respPayLoads := (map π₂ response) in
+  RSwNodeSemanticsAux (Build_RosSwNode sproc (qt,qac)) evs
+  → (getRecdPayloadOp TI (evs nd) = Some pl)
+  →  ∀ n: nat, 
+      n < length response
+      → {ev : Event | evs (S nd + n) = Some ev
+            ∧ (isSendEvt ev) 
+            ∧ getPayload TO (eMesg ev) = (nth_error respPayLoads n)}.
+Proof.
+  simpl. intros ? ? ? ? ? ? ?  ? Hrs Hrcd.
+  unfold RSwNodeSemanticsAux, procTime, timingAcc, compose in Hrs.
+  simpl in Hrs.
+  specialize (Hrs nd). apply snd in Hrs.
+  unfold getRecdPayloadOp in Hrcd.
+  remember ((evs nd)) as oevd.
+  destruct oevd as [evd|]; inverts Hrcd as Hcrd.
+  simpl in Hrs.
+  assert (isDeqEvt evd) as Hdeqd by eauto using getRecdPayloadSpecDeq.
+  specialize (Hrs Hdeqd).
+  unfold procOutMsgs in Hrs.
+  rewrite <- Heqoevd in Hrs.
+  simpl in Hrs.
+  rewrite getNewProcLPure in Hrs.
+  unfold getDeqOutput2 in Hrs.
+  unfold delayedLift2Mesg in Hrs.
+  simpl in Hrs. apply getRecdPayloadSpecMsg in Hcrd.
+  rewrite Hcrd in Hrs. simpl in Hrs.
+  rewrite map_length in Hrs.
+  parallelForall Hrs. rename x into si.
+  parallelForall Hrs. clear x.
+  destruct Hrs as [ns  Hrs].
+  unfold possibleDeqSendOncePair2 in Hrs.
+  rewrite <- Heqoevd in Hrs.
+  remember (evs ns) as oes.
+  destruct oes as [es|];[| contradiction].
+  exists es.
+  unfold isSendEvt.
+  rewrite isDeqEvtImplies  in Hrs;[| assumption].
+  destruct (eKind es); [| contradiction].
+  repnd. subst ns.
+  dands; auto;[].
+  clear Hrsrrr.
+Abort.
+    
+
 Lemma  sameELoc : forall loc nd ns ed es,
   localEvts loc nd = Some ed 
   -> localEvts loc ns = Some es
@@ -1146,3 +1230,5 @@ Definition holdsUptoNextEvent (prp : Time -> ℝ -> Prop)
   end.
 
 End Global.
+
+Hint Resolve assertTrueAuto.

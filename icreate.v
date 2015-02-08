@@ -426,27 +426,12 @@ Qed.
 
 Open Scope nat_scope.
 
-(** Nice warm up proof.
-    Got many mistakes in definitions corrected *)
-Lemma SwEvents :
-  let response := robotPureProgam targetPos in
-  let respPayLoads := (map π₂ response) in
-  let respDelays := substHead (map π₁ response) procTime in
-  ∀ n: nat , n < 5 -> ∃ ev, eLocIndex ev ≡ n ∧ eLoc ev ≡ SWNODE ∧
-    match n with
-    | 0 => (getRecdPayload TARGETPOS ev ≡ Some targetPos) 
-             ∧ causedBy eo eCmdEv0 ev
-    | S n' => 
-          ∃ delay , nth_error respDelays n' ≡ Some delay (*enforces n<|response|*)
-            ∧ isSendEvt ev 
-            ∧ getPayload VELOCITY (eMesg ev) ≡ (nth_error respPayLoads n')
-            ∧ (∃ evp,  eLoc evp ≡ SWNODE ∧ eLocIndex evp = n' 
-                      ∧ (eTime evp + delay ≊t eTime ev))
-    end.
+Lemma SwEvents0 :
+  ∃ ev, eLocIndex ev ≡ 0 ∧ eLoc ev ≡ SWNODE ∧
+       (getRecdPayload TARGETPOS ev ≡ Some targetPos) 
+             ∧ causedBy eo eCmdEv0 ev.
 Proof.
-  simpl. induction n as [n Hind] using comp_ind_type; intros Hlt.
-  destruct n as [ | n'].
-- unfold getRecdPayload, deqMesg. clear Hind.
+  unfold getRecdPayload, deqMesg. 
   pose proof SwLiveness as Hlive.
   remember (localEvts SWNODE 0) as oev.
   destruct oev as [ev |]; inversion Hlive.
@@ -456,18 +441,24 @@ Proof.
   simpl in Hex.
   apply SwFirstMessageIsNotASend with (ev0:=ev) in Hex;[|eauto 4 with ROSCOQ].
   unfold isSendEvt in Hex.
-  pose proof (enquesNotUsed ev) as Hneq.
-  unfold isEnqEvt in Hneq. remember (eKind ev) as evk.
+  remember (eKind ev) as evk.
   destruct evk; simpl in Hex; try contra; try tauto.
-  clear Hneq Hex.
+  clear Hex.
   symmetry in Heqevk. apply isDeqEvtIf in Heqevk.
   apply locEvtIndex in Heqoev. repnd.
   apply  SwRecv in Heqevk  ; auto.
+Qed.
 
-- specialize (Hind 0).
-  DestImp Hind;[| omega].
-  DestImp Hind;[| omega].
-  destruct Hind as [ev0 Hind].
+(** Nice warm up proof.
+    Got many mistakes in definitions corrected *)
+Lemma SwEventsSn :
+  let response := robotPureProgam targetPos in
+  let respPayLoads := (map π₂ response) in
+  ∀ n: nat , n < 4 -> ∃ ev, eLocIndex ev ≡ S n ∧ eLoc ev ≡ SWNODE ∧
+            isSendEvt ev 
+            ∧ getPayload VELOCITY (eMesg ev) ≡ (nth_error respPayLoads n).
+Proof.
+  destruct (SwEvents0) as [ev0 Hind].
   repnd.
   pose proof (getRecdPayloadSpecDeq TARGETPOS _ _ Hindrrl) as Hdeq.
   pose proof (corrNodes eo SWNODE 0) as Hex.
@@ -475,6 +466,9 @@ Proof.
   rewrite (locEvtIndexRW ev0) in Hex; [| auto; fail].
   specialize (Hex Hdeq). unfold procOutMsgs in Hex.
   unfold ControllerNode in Hex. simpl in Hex.
+  unfold  PureSwProgram, roscore.procTime, roscore.timingAcc, Basics.compose in Hex.
+  simpl in Hex.
+  remember (robotPureProgam) as pp.
   unfold getDeqOutput2, SwProcess in Hex.
   rewrite (locEvtIndexRW ev0) in Hex; [| auto; fail].
   apply deqSingleMessage in Hdeq.
