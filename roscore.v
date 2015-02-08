@@ -121,11 +121,11 @@ Definition mPayload (m : Message) : topicType (mtopic m) :=
 
 Definition getPayloadOp t := opBind (getPayload t).
 
-Definition validRecvMesg (rn : TopicInfo) (lm : list Message) :=
-∀ m, In m (map fst lm) -> In (mtopicR m) (subscribeTopics rn).
+Definition validRecvMesg (rn : TopicInfo) (m : Message) :=
+  In (mtopic m) (subscribeTopics rn).
 
-Definition validSendMesg (rn : TopicInfo) (lm : list Message) :=
-∀ m, In m (map fst lm) -> In (mtopicR m) (publishTopics rn).
+Definition validSendMesg (rn : TopicInfo) (m : Message) :=
+  In (mtopic m) (publishTopics rn).
 
 
 Definition mkMesg (outTopic : RosTopic)

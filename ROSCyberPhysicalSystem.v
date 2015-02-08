@@ -24,8 +24,7 @@ Record SendEvtInfo := mkSendEvtInfo  {
  *)
 Inductive EventKind : Set := 
   | sendEvt (inf : SendEvtInfo) 
-  | enqEvt 
-  | deqEvt (enqIndex: nat).
+  | deqEvt.
 
 
 Section Event.
@@ -41,14 +40,9 @@ Class EventType (T: Type)
     	(minGap : Q) 
       {tdeq: DecEq T}  := {
   eLoc : T ->  Loc;
-  eMesg : T -> list Message;
+  eMesg : T -> Message;
   eKind : T -> EventKind;
   
-  enQDeq1Mesg : forall t, match eKind t with
-                          | enqEvt => length (eMesg t) = 1%nat
-                          | deqEvt _ => length (eMesg t) = 1%nat
-                          | sendEvt _ => True
-                          end;
 
   eTime : T -> QTime;
   timeDistinct : forall (a b : T), 
@@ -209,7 +203,7 @@ Definition isSendEvtOp (ev: option Event) : bool :=
 
 Definition isDeqEvt (ev: Event) : bool :=
   match (eKind ev) with
-  | deqEvt _ => true
+  | deqEvt => true
   | _ => false
   end.
 
@@ -217,18 +211,14 @@ Definition isDeqEvt (ev: Event) : bool :=
 Definition isDeqEvtOp (ev: option Event) : bool :=
   opApPure isDeqEvt false ev.
 
-Definition isEnqEvt (ev: Event) :Prop :=
-eKind ev = enqEvt.
 
-Definition isEnqEvtOp (ev: option Event) :Prop :=
-  opApPure isEnqEvt False ev.
 
 (** !!FIX!! this should be [isEnqEvt] *)
 Definition isRecvEvt := isDeqEvt.
 
 Close Scope Q_scope.
 
-(** FIFO queue axiomatization *)
+(** FIFO queue axiomatization 
 Fixpoint CorrectFIFOQueueUpto   (upto : nat)
     (locEvts: nat -> option Event) :  Prop * list Message :=
 match upto with
@@ -255,24 +245,22 @@ end.
 Definition CorrectFIFOQueue    :  Prop :=
 forall (l: LocT)
  (upto : nat), fst (CorrectFIFOQueueUpto upto (localEvts l)).
+*)
 
-Definition deqMesg (ev : Event) : option Message :=
+Definition deqMesg (ev : Event): option Message :=
 match eKind ev with
- | deqEvt _ => head (eMesg ev)
+ | deqEvt => Some (eMesg ev)
 (** BTW, [(eMesg ev)] is supposed to be a singletop *)
  | _ => None
 end.
 
 Lemma deqSingleMessage : forall evD,
   isDeqEvt evD
-  -> {m : Message | m::nil = eMesg evD /\ (deqMesg evD = Some m)}.
+  -> {m : Message |  m = eMesg evD ∧ (deqMesg evD = Some m)}.
 Proof.
   intros ? Hd.
-  pose proof (enQDeq1Mesg evD) as XX.
   unfold isDeqEvt in Hd.
   unfold deqMesg. destruct (eKind evD); try (inversion Hd; fail);[].
-  destruct ((eMesg evD)); inversion XX.
-  destruct l; inversion H0.
   eexists; eauto.
 Defined.
 
@@ -289,31 +277,22 @@ Qed.
 
 Lemma deqSingleMessage2 : forall evD m,
   Some m = deqMesg evD
-  -> m::nil = eMesg evD.
+  -> m = eMesg evD.
 Proof.
-  intros ? ? Hd. pose proof Hd as Hdb.
-  apply deqMesgSome in Hd.
-  apply deqSingleMessage in Hd.
-  destruct Hd as [m' Hd].
-  repnd.
-  congruence.
+  intros ? ? Hd. unfold deqMesg in Hd.
+  destruct (eKind evD); inversion Hd.
+  reflexivity.
 Defined.
 
-Definition enqMesg (ev : Event) : option Message :=
-match eKind ev with
-| enqEvt => head (eMesg ev)
-| _ => None
-end.
 
-Definition sentMesg (ev : Event) : list Message :=
+Definition sentMesg (ev : Event) : option Message :=
 match eKind ev with
-| sendEvt _ =>  (eMesg ev)
-| _ => nil
+| sendEvt _ =>  Some (eMesg ev)
+| _ => None
 end.
 
 (* these notations have to be defined again at the end of the section *)
 Definition deqMesgOp := (opBind deqMesg).
-Definition enqMesgOp := (opBind enqMesg).
 (* Definition sentMesgOp := (opBind sentMesg). *)
 
 
@@ -329,22 +308,6 @@ Proof.
 Qed.
 
 
-
-
-
-Lemma evEnqHead : forall ev m, 
-    enqEvt = eKind ev
-    -> In m (eMesg ev)
-    -> Some m = head (eMesg ev).
-Proof.
-  intros ? ? Heq Hin.
-  pose proof (enQDeq1Mesg ev) as XX.
-  rewrite <- Heq in XX.
-  eapply length1In in XX; eauto.
-  rewrite <- XX.
-  simpl.
-  reflexivity.
-Qed.
 
 Definition getRecdPayload (tp : RosTopic) (ev : Event) 
   : option (topicType tp)  :=
@@ -378,7 +341,7 @@ Qed.
 
 Lemma getRecdPayloadSpecMesg: forall tp ev tv,
       getRecdPayload tp ev = Some tv
-      -> isDeqEvt ev ∧ map fst (eMesg ev) = (mkMesg tp tv)::nil.
+      -> isDeqEvt ev ∧ π₁ (eMesg ev) = (mkMesg tp tv).
 Proof.
   unfold getRecdPayload. intros ? ? ? Heq.
   pose proof (deqMesgSome ev) as Hd.
@@ -391,7 +354,7 @@ Proof.
   repnd.
   rewrite Hdr in Heqdm.
   inverts Heqdm.
-  apply MsgEta in Heq.
+  apply MsgEta in Heq. 
   rewrite <- Hdl.
   simpl. rewrite Heq.
   reflexivity.
@@ -408,11 +371,11 @@ Proof.
   reflexivity.
 Qed.
 
-Lemma isDeqEvtIf : ∀ {ed enqIndex}, 
-    eKind ed = deqEvt enqIndex
+Lemma isDeqEvtIf : ∀ {ed}, 
+    eKind ed = deqEvt
     -> isDeqEvt ed.
 Proof.
-  intros ? ? Heq.
+  intros ? Heq.
   unfold isDeqEvt.
   destruct  (eKind ed); inversion Heq.
   reflexivity.
@@ -694,6 +657,7 @@ Proof.
 Close Scope Q_scope.
 
 
+(*
 Lemma queueContents : forall  (locEvts: nat -> option Event)
      (upto : nat),
    let (prp, queue) := CorrectFIFOQueueUpto upto locEvts  in
@@ -781,6 +745,7 @@ Proof.
   destruct l1; inversion H1.
   simpl in Heqm. inversion Heqm. reflexivity.
 Qed.
+*)
 
 
 (** first event is innermost, last event is outermost.
@@ -791,7 +756,7 @@ Fixpoint prevProcessedEvents (m : nat)
   | 0 => nil
   | S m' => (match locEvents m' with
               | Some ev => match (eKind ev) with
-                            | deqEvt _ => (ev)::nil
+                            | deqEvt => (ev)::nil
                             | _ => nil
                             end
               | None => nil (* this will never happen *)
@@ -805,6 +770,9 @@ Definition getDeqOutput (proc: Process Message (list Message))
 
 Close Scope Q_scope.
 
+Require Export Coq.Program.Basics.
+
+Open Scope program_scope.
   
 (** assuming all outgoing messages resulting from processing
     an event happen in a single send event (send once) *)
@@ -815,23 +783,20 @@ Definition possibleDeqSendOncePair
   match (locEvts nd, locEvts ns) with
   | (Some evd, Some evs) => 
     isDeqEvt evd ∧ isSendEvt evs ∧ nd < ns (** the last bit is redundant because of time *)
-    ∧ (forall n: nat, nd < n < ns -> isEnqEvtOp (locEvts n))
     ∧ (eTime evd < eTime evs < (eTime evd) + (procTime swNode))%Q
     ∧ let procEvts := prevProcessedEvents nd locEvts in
-      let procMsgs := flat_map eMesg procEvts in
+      let procMsgs := map eMesg procEvts in
       let lastProc := getNewProcL (process swNode) procMsgs in
-      (getDeqOutput lastProc (locEvts nd)) = opBind2 eMesg (locEvts ns)
+      (getDeqOutput lastProc (locEvts nd)) 
+        = opBind2 ((λ m, m::nil)∘ eMesg) (locEvts ns)
   
   | _ => False
   end.
 
 Definition getDeqOutput2 (proc: Process Message (list Message))
   (ev : Event) : (list Message) :=
-   flat_map (getOutput proc) (eMesg ev).
+    (getOutput proc) (eMesg ev).
 
-Require Export Coq.Program.Basics.
-
-Open Scope program_scope.
 
 Definition minDelayForIndex (lm : list Message) (index : nat) : Q :=
   let delays := map (delay ∘ (π₂)) (firstn index lm) in
@@ -842,7 +807,7 @@ Definition procOutMsgs
   (locEvts: nat -> option Event)
   (nd : nat) : list Message := 
     let procEvts := prevProcessedEvents nd locEvts in
-    let procMsgs := flat_map eMesg procEvts in
+    let procMsgs := map eMesg procEvts in
     let lastProc := getNewProcL (process swNode) procMsgs in
     match (locEvts nd) with
     | Some evd => (getDeqOutput2 lastProc evd)
@@ -862,13 +827,12 @@ Definition possibleDeqSendOncePair2
   match (locEvts nd, locEvts ns) with
   | (Some evd, Some evs) =>
       match (eKind evd, eKind evs) with
-      | (deqEvt enqIndex , sendEvt sinf) =>
+      | (deqEvt, sendEvt sinf) =>
             let minDelay := (minDelayForIndex procOutMsgs (startIndex sinf)) in
               ns = (S nd) + sindex
               ∧ sindex = (startIndex sinf)
-              ∧ isPrefixOf (eMesg evs) (skipn sindex procOutMsgs)
+              ∧ Some (eMesg evs) = (nth_error procOutMsgs sindex)
               ∧ ball timingAcc (eTime evd + minDelay + procTime)%Q (QT2Q (eTime evs))
-              ∧ length (eMesg evs) =1
       | (_,_) => False
       end
   | _ => False
@@ -1017,7 +981,7 @@ Definition AllNodeBehCorrect : Type:=
 
 Definition PossibleSendRecvPair
   (Es  Er : Event) : Prop :=
-   (map fst (eMesg Es) = map fst (eMesg Er))
+   (fst (eMesg Es) = fst (eMesg Er))
    /\ (validRecvMesg (validTopics (eLoc Er)) (eMesg Er))
    /\ (validSendMesg (validTopics (eLoc Es)) (eMesg Es))
    /\ (match (maxDeliveryDelay  (eLoc Es) (eLoc Er)) with
@@ -1054,7 +1018,6 @@ Record PossibleEventOrder  := {
                   PossibleSendRecvPair Es Er
                   /\ causedBy Es Er /\ isSendEvt Es};
 
-    corrFIFO : CorrectFIFOQueue;
     corrNodes : AllNodeBehCorrect;
 
 
@@ -1082,13 +1045,12 @@ Lemma PureProcDeqSendOncePair : forall ns nd TI TO qt qac loc
   possibleDeqSendOncePair (Build_RosSwNode sproc (qt,qac)) (localEvts loc) nd ns
   -> {es : Event | {ed : Event | isDeqEvt ed × isSendEvt es
           × (nd < ns)
-            × (∀ n : nat, (nd < n) ∧ (n < ns) → isEnqEvtOp (localEvts loc n))
               × (eTime ed <eTime es < eTime ed + qt)%Q
         × localEvts loc nd = Some ed × localEvts loc ns = Some es ×
           (validRecvMesg (TI::nil,nil) (eMesg ed)
            ->  {dmp : topicType TI |  
-                      map fst (eMesg ed) = ((mkMesg _ dmp)::nil)
-                      ∧ (mkImmMesg TO (sp dmp) )::nil = (eMesg es)})}}.
+                      fst (eMesg ed) = ((mkMesg _ dmp))
+                      ∧ (mkImmMesg TO (sp dmp) ) = (eMesg es)})}}.
 Proof.
   intros ? ? ? ? ? ? ? ?. simpl. intro Hnc.
   unfold possibleDeqSendOncePair in Hnc.
@@ -1104,11 +1066,10 @@ Proof.
   split; [trivial |].
   split; [trivial |].
   split; [trivial |].
-  split; [trivial |].
   split; [reflexivity |].
   split; [reflexivity |].
-  clear Hncrrrl Hncrrl Hncrl Hncl.
-  rename Hncrrrr into Hnc.
+  clear  Hncrrl Hncrl Hncl.
+  rename Hncrrr into Hnc.
   unfold validRecvMesg. simpl.
   intro Hsub.
   apply deqSingleMessage in Hdeq.
@@ -1116,7 +1077,6 @@ Proof.
   clear HeqoevS.
   destruct Hdeq as [dm Hdeq]. repnd.
   rewrite <- Hdeql in Hsub.
-  specialize (Hsub _ (or_introl  eq_refl)).
   rewrite RemoveOrFalse in Hsub.
   symmetry in Hsub.
   exists (transport Hsub (mPayload dm)).
@@ -1126,14 +1086,18 @@ Proof.
   rewrite getNewProcLPure in Hnc.
   rewrite <- Hdeql.
   clear Hdeql Hdeqr. 
-  simpl. inversion Hnc as [Hncc]. clear Hnc Hncc.
-  unfold liftToMesg. unfold getPayload.
+  simpl. inverts Hnc as Hnc. 
+  unfold liftToMesg in Hnc. unfold getPayload in Hnc.
   destruct dm as [dm hdr].
   destruct dm as [dmt dmp].
-  simpl in Hsub.  destruct Hsub.
-  simpl. unfold mtopic. simpl. split;[reflexivity|].
+  simpl in Hnc, Hsub.
+  destruct Hsub.
+  simpl. simpl in Hnc. 
+  unfold mtopic. unfold mtopic in Hnc. simpl. 
+  simpl in Hnc. split;[reflexivity|].
   destruct (eqdec dmt dmt) as [Heq| Hneq];
     [| apply False_rect; apply Hneq; reflexivity].
+  inversion Hnc.
   simpl.
   pose proof (@UIPReflDeq RosTopic _ _ Heq) as Heqr.
   rewrite Heqr.

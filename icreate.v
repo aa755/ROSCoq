@@ -241,8 +241,7 @@ Definition externalCmdSemantics {Phys : Type}
  : @NodeSemantics Phys Event :=
   λ _ evs , ((evs 0) ≡ Some eCmdEv0) 
               ∧  isSendEvt eCmdEv0 
-              ∧ ((opBind (getPayload TARGETPOS) (head (eMesg eCmdEv0))) 
-                   ≡ (Some targetPos))
+              ∧ (getPayload TARGETPOS (eMesg eCmdEv0) ≡ Some targetPos)
               ∧ ∀ n : nat, (evs (S n)) ≡ None.
 
 
@@ -272,7 +271,6 @@ Definition posAtTime (t: Time) : Cart2D IR :=
 
 Definition targetPosR : Cart2D IR := ' targetPos.
 
-Variable  enquesNotUsed : ∀ ev, ~ (isEnqEvt ev).
 
 Require Import Coq.Lists.List.
 Hint Resolve (fun a b x => proj1 (locEvtIndex a b x)) : ROSCOQ.
@@ -282,7 +280,8 @@ Ltac contra :=
   | [H: ~(assert true) |- _ ] => provefalse; apply H; reflexivity
   end.
 
-(** No Change at All from the train proof *)
+(** No Change at All from the train proof.
+    However, it was changed later when ROSCPS was simplified*)
 Lemma SwOnlyReceivesFromExt :   forall Es Er,
   isSendEvt Es
   -> isRecvEvt Er
@@ -299,16 +298,18 @@ Proof.
   destruct XX as [m XX].
   repnd. rewrite <- XXl in Hsendlrl.
   simpl in  XXl.
-  apply (f_equal (map fst)) in XXl.
+  apply (f_equal (fst)) in XXl.
   rewrite <- Hsendll in XXl. simpl in Hsendlrrl.
-  specialize (Hsendlrl _ (or_introl eq_refl)).
   rewrite Hl in Hsendlrl.
   simpl in Hsendlrl.
   rewrite RemoveOrFalse in Hsendlrl.
   unfold validSendMesg in Hsendlrrl.
+  unfold mtopic in Hsendlrrl.
   rewrite <- XXl in Hsendlrrl.
-  specialize (Hsendlrrl _ (or_introl eq_refl)).
-  simpl in Hsendlrrl. rewrite <- Hsendlrl in Hsendlrrl.
+  simpl in Hsendlrrl. 
+  unfold mtopic in  Hsendlrl. 
+  simpl in Hsendlrl, Hsendlrrl.
+  rewrite <- Hsendlrl in Hsendlrrl.
   destruct (eLoc Es); simpl in Hsendlrrl;
     try contradiction;
     inversion Hsendlrrl; 
@@ -333,17 +334,20 @@ Proof.
   pose proof (deqSingleMessage _ Hr) as XX.
   destruct XX as [m XX].
   repnd. rewrite <- XXl in Hsendlrl.
-  apply (f_equal (map fst)) in XXl.
+  apply (f_equal fst) in XXl.
   rewrite <- Hsendll in XXl. simpl in Hsendlrrl.
-  simpl in Hsendlrrl, XXl. rewrite <- XXl in Hsendlrrl.
-  specialize (Hsendlrl _ (or_introl eq_refl)).
-  specialize (Hsendlrrl _ (or_introl eq_refl)).
+  simpl in Hsendlrrl, XXl. 
+  unfold mtopic in Hsendlrrl. simpl in XXl, Hsendlrrl.
+  rewrite <- XXl in Hsendlrrl.
   rewrite Hl in Hsendlrrl.
   simpl in Hsendlrrl.
   rewrite RemoveOrFalse in Hsendlrrl.
   unfold validSendMesg in Hsendlrrl.
   simpl in Hsendlrrl.
-  simpl in Hsendlrl. rewrite <- Hsendlrrl in Hsendlrl.
+  simpl in Hsendlrl.
+  unfold validRecvMesg, mtopic in Hsendlrl.
+  simpl in Hsendlrrl, Hsendlrl.
+  rewrite <- Hsendlrrl in Hsendlrl.
   destruct (eLoc Er); simpl in Hsendlrl;
     try rewrite RemoveOrFalse in Hsendlrl;
     try contradiction;
@@ -356,7 +360,7 @@ Qed.
 Lemma SwRecv : ∀ ev:Event,
   eLoc ev ≡ SWNODE
   -> isDeqEvt ev
-  -> (opBind (getPayload TARGETPOS) (hd_error (eMesg ev)) ≡ Some targetPos
+  -> (getPayload TARGETPOS (eMesg ev) ≡ Some targetPos
             ∧ causedBy eo eCmdEv0 ev).
 Proof.
   intros ev Hl Heqevk.
@@ -374,9 +378,8 @@ Proof.
   rewrite (locEvtIndexRW Es) in Hcl; eauto.
   inverts Hcl.
   apply proj1 in Hsendl.
-  rewrite moveMapInsideFst.
+  unfold getPayload.
   rewrite <- Hsendl.
-  rewrite <- moveMapInsideFst.
   dands; assumption.
 Qed.
 
@@ -436,8 +439,7 @@ Lemma SwEvents :
     | S n' => 
           ∃ delay , nth_error respDelays n' ≡ Some delay (*enforces n<|response|*)
             ∧ isSendEvt ev 
-            ∧ getPayloadOp VELOCITY (head (eMesg ev)) 
-               ≡ (nth_error respPayLoads n')
+            ∧ getPayload VELOCITY (eMesg ev) ≡ (nth_error respPayLoads n')
             ∧ (∃ evp,  eLoc evp ≡ SWNODE ∧ eLocIndex evp = n' 
                       ∧ (eTime evp + delay ≊t eTime ev))
     end.
