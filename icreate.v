@@ -36,10 +36,10 @@ Record iCreate : Type := {
 
   (** Initial (at time:=0) Conditions *)  
 
-  initPos:  ({X position} 0) = 0 ∧ ({Y position} 0) = 0;
-  initTheta:  ({theta} 0) = 0;
-  initTransVel : ({transVel} 0) = (rad initialVel);
-  initOmega : ({transVel} 0) = (θ initialVel)
+  initPos:  ({X position} 0) ≡ 0 ∧ ({Y position} 0) ≡ 0;
+  initTheta:  ({theta} 0) ≡ 0;
+  initTransVel : ({transVel} 0) ≡ (rad initialVel);
+  initOmega : ({omega} 0) ≡ (θ initialVel)
 }.
 
 (** CatchFileBetweenTagsEndCreate *)
@@ -148,10 +148,14 @@ Definition isEqualDuring
   (forall t : QTime, ( tStart <= t <= tEnd   -> (f t) [=] vel))%Q.
 
 Variable reacTime : QTime.
-Variable tVelPrec : Q.
-Variable omegaPrec : Q.
+(** It is more sensible to change the type o [QNonNeg]
+    as the value certainly does not represent time.
+    However, the coercion QT2Q does not work then *)
+Variable tVelPrec : Q → QTime.
+Variable omegaPrec : Q → QTime.
 
-
+Variable tVelPrec0 : tVelPrec 0 ≡ 0.
+Variable omegaPrec0 : omegaPrec 0 ≡ 0.
   
 Close Scope Q_scope.
 
@@ -172,14 +176,36 @@ Definition lastVelAndTime
   (t : QTime) : ((Polar2D Q) × QTime) :=
   lastPayloadAndTime VELOCITY (localEvts MOVABLEBASE) t initialVel.
 
+
+Instance ProjectionFst_instance_sig 
+   (A : Type) (P: A → Prop):  
+    ProjectionFst (sig P) A := (@projT1 A P) .
+
+Instance ProjectionFst_instance_sigT 
+   (A : Type) (P: A → Type):  
+    ProjectionFst (sigT P) A := (@projT1 A P) .
+
+
 Definition correctVelDuring
   (lastVelCmd : (Polar2D Q)) 
   (lastTime: QTime)
   (uptoTime : QTime) 
   (robot: iCreate) :=
 
-changesTo (transVel robot) lastTime uptoTime (rad lastVelCmd) reacTime tVelPrec 
-∧ changesTo (omega robot) lastTime uptoTime (θ lastVelCmd) reacTime omegaPrec.
+  changesTo 
+    (transVel robot) 
+    lastTime uptoTime 
+    (rad lastVelCmd) 
+    reacTime 
+    (tVelPrec (rad lastVelCmd))
+  ∧ 
+  changesTo 
+    (omega robot) 
+    lastTime uptoTime 
+    (θ lastVelCmd) 
+    reacTime 
+    (omegaPrec (θ lastVelCmd)).
+
 (** TODO : second bit of conjunction is incorrect it will force the
    orientation in [iCreate] to jump from [2π] to [0] while turning.
    changes_to is based on a notion of distance or norm. we need to generalize 
@@ -872,6 +898,7 @@ Instance Plus_instance_QTime : Plus QTime := Qtadd.
 Lemma TurnCompleteTime :
   ∃ (t : QTime), 
       ((|({theta icreate} t) - CRasIR (θ (Cart2Polar targetPos))|) ≤ [0]).
+(** replace [0] by the appropriate value *)
 Proof.
   pose proof (MotorEvents 1) as H1m.
   DestImp H1m; [|omega].
@@ -900,7 +927,19 @@ Proof.
   rewrite H0mrrl in Hc.
   simpl in Hc.
   unfold correctVelDuring in Hc.
-  
+  apply proj2 in Hc.
+  unfold changesTo in Hc.
+
+Ltac Replace T :=
+assert T as Heq by reflexivity; rewrite Heq; clear Heq.
+
+Ltac ReplaceH T H :=
+assert T as Heq by reflexivity; rewrite Heq in H; clear Heq.
+
+  setoid_rewrite (initOmega icreate) in Hc.
+  ReplaceH ((θ initialVel) ≡ 0)%Q Hc.
+  rewrite omegaPrec0 in Hc.
+
 Abort.
 
 Lemma Liveness :
