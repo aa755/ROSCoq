@@ -19,6 +19,8 @@ Require Import MathClasses.interfaces.canonical_names.
 Require Import MCInstances.
 Require Export CartCR.
 
+Definition initialVel : (Polar2D Q) := {|rad:=0; θ:=0|}.
+
 (** CatchFileBetweenTagsStartCreate *)
 
 Record iCreate : Type := {
@@ -35,8 +37,9 @@ Record iCreate : Type := {
   (** Initial (at time:=0) Conditions *)  
 
   initPos:  ({X position} 0) = 0 ∧ ({Y position} 0) = 0;
-  initTheta:  ({theta} 0) = 0
-  
+  initTheta:  ({theta} 0) = 0;
+  initTransVel : ({transVel} 0) = (rad initialVel);
+  initOmega : ({transVel} 0) = (θ initialVel)
 }.
 
 (** CatchFileBetweenTagsEndCreate *)
@@ -144,7 +147,7 @@ Definition isEqualDuring
   (vel: Q) (tStart tEnd : QTime)  (f : Time -> ℝ) : Prop :=
   (forall t : QTime, ( tStart <= t <= tEnd   -> (f t) [=] vel))%Q.
 
-Variable reacTime : Q.
+Variable reacTime : QTime.
 Variable tVelPrec : Q.
 Variable omegaPrec : Q.
 
@@ -164,8 +167,6 @@ Close Scope Q_scope.
 Definition velocityMessages (t : QTime) :=
   (filterPayloadsUptoTime VELOCITY (localEvts MOVABLEBASE) t).
 
-Variable initialVel : (Polar2D Q).
-Variable initialPos : Q.
 
 Definition lastVelAndTime
   (t : QTime) : ((Polar2D Q) × QTime) :=
@@ -833,6 +834,70 @@ Lemma MotorEventsOnly4 :
 Abort.
 
 Close Scope nat_scope.
+
+Definition ltac_something (P:Type) (e:P) := e.
+
+Notation "'Something'" := 
+  (@ltac_something _ _).
+
+Lemma ltac_something_eq : forall (e:Type),
+  e ≡ (@ltac_something _ e).
+Proof. auto. Qed.
+
+Lemma ltac_something_hide : forall (e:Type),
+  e -> (@ltac_something _ e).
+Proof. auto. Qed.
+
+Lemma ltac_something_show : forall (e:Type),
+  (@ltac_something _ e) -> e.
+Proof. auto. Qed.
+
+Ltac show_hyp H :=
+  apply ltac_something_show in H.
+
+Ltac hide_hyp H :=
+  apply ltac_something_hide in H.
+
+
+Ltac show_hyps :=
+  repeat match goal with
+    H: @ltac_something _ _ |- _ => show_hyp H end.
+
+Instance Plus_instance_QTime : Plus QTime := Qtadd.
+
+Lemma TurnCompleteTime :
+  ∃ (t : QTime), 
+      ((|({theta icreate} t) - CRasIR (θ (Cart2Polar targetPos))|) ≤ [0]).
+Proof.
+  pose proof (MotorEvents 1) as H1m.
+  DestImp H1m; [|omega].
+  destruct H1m as [evStopTurn  H1m].
+  unfold minDelayForIndex, roscore.delay, Basics.compose in H1m.
+  simpl in H1m. hide_hyp H1m.
+
+  exists ((eTime evStopTurn)+reacTime).
+  pose proof (corrNodes eo MOVABLEBASE) as Hc.
+  simpl in Hc.
+  unfold DeviceSemantics, BaseMotors in Hc.
+  apply proj1 in Hc.
+  (** lets go one by one starting from the first message *)
+
+  pose proof (MotorEvents 0) as H0m.
+  DestImp H0m; [|omega].
+  destruct H0m as [evStartTurn  H0m].
+  unfold minDelayForIndex, roscore.delay, Basics.compose in H0m.
+  simpl in H0m.
+  hide_hyp H0m.
+  specialize (Hc (eTime evStartTurn)).
+  unfold corrSinceLastVel in Hc.
+  unfold lastVelAndTime, lastPayloadAndTime, filterPayloadsUptoTime in Hc.
+  show_hyp H0m. repnd.
+  rewrite numPrevEvtsEtime in Hc;[|assumption].
+  rewrite H0mrrl in Hc.
+  simpl in Hc.
+  unfold correctVelDuring in Hc.
+  
+Abort.
 
 Lemma Liveness :
   ∃ (ts : QTime), ∀ (t : QTime), 
