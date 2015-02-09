@@ -2,6 +2,8 @@ Add LoadPath "../../../ssrcorn" as CoRN.
 Add LoadPath "../../../ssrcorn/math-classes/src" as MathClasses.
 Require Export core.
 
+Local  Notation π₁ := fst.
+Local  Notation π₂ := snd.
 
 
 Set Implicit Arguments.

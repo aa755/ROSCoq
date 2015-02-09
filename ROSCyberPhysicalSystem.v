@@ -819,6 +819,8 @@ Definition getDeqOutput2 (proc: Process Message (list Message))
   (ev : Event) : (list Message) :=
     (getOutput proc) (eMesg ev).
 
+Local  Notation π₁ := fst.
+Local  Notation π₂ := snd.
 
 Definition minDelayForIndex (lm : list Message) (index : nat) : Q :=
   let delays := map (delay ∘ (π₂)) (firstn index lm) in
@@ -1210,6 +1212,9 @@ match oev with
 | Some ev => eTime ev
 | None => mkQTime 0 I
 end.
+
+Local  Notation π₁ := fst.
+Local  Notation π₂ := snd.
 
 Lemma DelayedPureProcDeqSendPair : ∀ TI TO (sp : PureProcWDelay TI TO)
     qt qac nd (pl : topicType TI) evs ,

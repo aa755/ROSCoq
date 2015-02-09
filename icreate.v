@@ -510,6 +510,7 @@ Proof.
   apply locEvtIndex in Heqoev. repnd.
   apply  SwRecv in Heqevk  ; auto.
 Qed.
+Local  Notation π₂ := snd.
 
 (** Nice warm up proof.
     Got many mistakes in definitions corrected *)
@@ -796,7 +797,9 @@ Proof.
   unfold SwRecvEventsNth in Hrrr, Hl.
   destruct (SwEventsSn _ Hlt) as [Es Hes].
   simpl in Hrrr, Hl. repnd. clear Hesrrl Hesrl Hesl.
-  subst resp. simpl. rewrite <- Hl.
+  subst resp. simpl. unfold π₁, ProjectionFst_instance_prod.
+  simpl.
+  rewrite <- Hl.
   rename Hesrrrl into Hm.
   simpl in Hm.
   apply (f_equal (option_map π₁)) in Hm.
@@ -805,7 +808,8 @@ Proof.
   simpl in Hm.
   dands; [assumption|].
   clear Hm. rename Hesrrrr into Ht.
-  simpl in Ht.
+  unfold π₁, ProjectionFst_instance_prod in Ht.
+  simpl in Ht. simpl.
   match type of Ht with
   context [Qball _ (?l + ?sd + _) _] => 
     remember l as est;
