@@ -675,7 +675,8 @@ Lemma SwMotorPrevSend : ∀ Es Er ern,
                           ∧ isSendEvt Esp 
                           ∧ isRecvEvt Erp
                           ∧ eLocIndex Esp < eLocIndex Es
-                          ∧ eLocIndex Erp ≡ ern}.
+                          ∧ eLocIndex Erp ≡ ern
+                          ∧ causedBy eo Esp Erp}.
 Proof.
   intros ? ? ? Hlt Hsendrl Hmot Hswsrl Hswsrrl Hsendrr.
   pose proof Hlt as Hltb.
@@ -694,8 +695,22 @@ Proof.
   try congruence. dands; auto.
 Qed.
 
+Lemma SwEv0IsNotASend: ∀ Esp,
+    eLocIndex Esp ≡ 0 
+    → (eLoc Esp ≡ SWNODE)
+    → ~ (isSendEvt Esp).
+Proof.
+  intros ? Hs0 Hltrl.
+  destruct SwEvents0 as [Esp' H0s]. repnd.
+  assert (Esp ≡ Esp') by
+    (eapply indexDistinct; eauto; try congruence).
+  subst. pose proof (getRecdPayloadSpecDeq TARGETPOS) as Hpp.
+  simpl in Hpp. apply Hpp in H0srrl.
+  apply DeqNotSend in H0srrl. assumption.
+Qed.
 
-Lemma MotorEvents:
+
+Lemma MotorEventsCausal:
   ∀ (n: nat) (p:n < 4),
       {Er : Event | let Es := (SwRecvEventsNth n p) in
               PossibleSendRecvPair Es Er 
@@ -704,7 +719,8 @@ Lemma MotorEvents:
               ∧ eLoc Er ≡ MOVABLEBASE
               ∧  eLocIndex Er ≡ n }.
 Proof.
-  induction n; intros p.
+  induction n  as [n Hind] using comp_ind_type. intros p.
+  destruct n as [| n'].
 - unfold SwRecvEventsNth.
   destruct (SwEventsSn 0 p) as [Es Hsws]. simpl. 
   repnd. clear Hswsrrrr Hswsrrrl.
@@ -721,12 +737,8 @@ Proof.
   destruct Hlt as [Esp Hlt]. repnd.
   rewrite Hswsl in Hltrrrrl.
   assert (eLocIndex Esp ≡ 0) as Hs0 by omega.
-  destruct SwEvents0 as [Esp' H0s]. repnd.
-  assert (Esp ≡ Esp') by
-    (eapply indexDistinct; eauto; try congruence).
-  subst. pose proof (getRecdPayloadSpecDeq TARGETPOS) as Hpp.
-  simpl in Hpp. apply Hpp in H0srrl.
-  apply DeqNotSend in H0srrl. tauto.
+  apply SwEv0IsNotASend in Hs0; auto.
+
 - unfold SwRecvEventsNth.
   destruct (SwEventsSn _ p) as [Es Hsws]. simpl. 
   repnd. clear Hswsrrrr Hswsrrrl.
@@ -735,17 +747,47 @@ Proof.
   pose proof  Hsendl as Hmot.
   eapply SWOnlySendsToMotor in Hmot; eauto.
   repeat(split;[assumption|]).
-  pose proof (lt_eq_lt_dec (eLocIndex Er) (S n)) as Htric.
+  pose proof (lt_eq_lt_dec (eLocIndex Er) (S n')) as Htric.
   destruct Htric as[Htric| Htric];
-    [ destruct Htric as[Htric| Htric]|]; [|assumption|].
-  + admit.
-  + rename n into ern.
-    assert (ern < eLocIndex Er) as Hlt by omega.
-    apply SwMotorPrevSend with (Es:=Es) in Hlt; try assumption.
-    destruct Hlt as [Erp Hlt].
+    [ destruct Htric as[Htric| Htric]|]; [|assumption|]; provefalse.
+  + assert (eLocIndex Er  < 4) as Hpp by omega.
+    (** we show that a message of index [eLocIndex Er] was already
+        received due to a previous send *)
+    specialize (Hind _ Htric  Hpp). unfold SwRecvEventsNth in Hind.
+    destruct (SwEventsSn _ Hpp) as [Esp Hsws].
+    simpl in Hind.
+    repnd. clear Hswsrrrr Hswsrrrl.
+    destruct Hind as [Erp Hind].
+    repnd. apply indexDistinct in Hindrrrr; try congruence.
+    subst. 
+    assert (eLocIndex Esp <eLocIndex Es) as Hlt by omega.
+    eapply orderRespectingDeliverySR with (evr1:=Er) (evr2:=Er) in Hlt; eauto;
+    try congruence. omega.
+  + apply SwMotorPrevSend with (Es:=Es) in Htric; try assumption.
+    destruct Htric as [Erp Hlt].
     destruct Hlt as [Esp Hlt]. repnd.
     rewrite Hswsl in Hltrrrrl.
-Abort.
+    remember (eLocIndex Esp) as esn.
+    symmetry in Heqesn.
+    destruct esn; 
+      [apply SwEv0IsNotASend in Heqesn; tauto |].
+    apply NPeano.Nat.succ_lt_mono in Hltrrrrl.
+    assert (esn  < 4) as Hpp by omega.
+    specialize (Hind _ Hltrrrrl  Hpp). unfold SwRecvEventsNth in Hind.
+    destruct (SwEventsSn _ Hpp) as [Esp' Hsws].
+    simpl in Hind.
+    repnd. clear Hswsrrrr Hswsrrrl.
+    assert (Esp' ≡ Esp) by
+      (eapply indexDistinct; eauto; try congruence).
+    subst.
+    destruct Hind as [Erpp Hind].
+    repnd.
+    pose proof (noDuplicateDelivery eo) as Hh.
+    unfold NoDuplicateDelivery in Hh.
+    eapply Hh with (evr2:=Erp) in Hindrl; eauto;
+    try congruence. clear dependent Esp.
+    subst. omega.
+Qed.
 
 
 
