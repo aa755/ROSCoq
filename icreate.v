@@ -659,6 +659,42 @@ Proof.
   destruct (eKind ev); try congruence.
 Qed.
 
+Notation "{ a , b : T | P }" :=
+  {a : T | {b : T | P} }
+    (at level 0, a at level 99, b at level 99).
+
+Lemma SwMotorPrevSend : ∀ Es Er ern,
+  ern < eLocIndex Er
+  → causedBy eo Es Er
+  → eLoc Er ≡ MOVABLEBASE
+  → eLoc Es ≡ SWNODE 
+  → isSendEvt Es 
+  → isRecvEvt Er 
+  → {Erp, Esp: Event |  eLoc Erp ≡ MOVABLEBASE 
+                          ∧ eLoc Esp ≡ SWNODE 
+                          ∧ isSendEvt Esp 
+                          ∧ isRecvEvt Erp
+                          ∧ eLocIndex Esp < eLocIndex Es
+                          ∧ eLocIndex Erp ≡ ern}.
+Proof.
+  intros ? ? ? Hlt Hsendrl Hmot Hswsrl Hswsrrl Hsendrr.
+  pose proof Hlt as Hltb.
+  eapply localIndexDense in Hlt; eauto.
+  destruct Hlt as [Erp  Hevp]. exists Erp.
+  pose proof (corrNodes eo MOVABLEBASE) as Hb.
+  simpl in Hb. apply proj2 in Hb.
+  specialize (Hb ern).
+  rewrite (locEvtIndexRW Erp) in Hb; [| assumption].
+  simpl in Hb.
+  pose proof (recvSend eo Erp Hb) as Hsend.
+  destruct Hsend as [Esp Hsend]. exists Esp.
+  repnd. apply MotorOnlyReceivesFromSw in Hsendl; eauto.
+  assert (eLocIndex Erp < eLocIndex Er) as Hlt by omega.
+  eapply orderRespectingDeliveryRS with (evs1:=Esp) (evs2:=Es) in Hlt; eauto;
+  try congruence. dands; auto.
+Qed.
+
+
 Lemma MotorEvents:
   ∀ (n: nat) (p:n < 4),
       {Er : Event | let Es := (SwRecvEventsNth n p) in
@@ -676,38 +712,43 @@ Proof.
   destruct Hsend as [Er  Hsend]. repnd. exists Er.
   pose proof  Hsendl as Hmot.
   eapply SWOnlySendsToMotor in Hmot; eauto.
-  split;[assumption|].
-  split;[assumption|].
-  split;[assumption|].
-  split;[assumption|].
+  repeat(split;[assumption|]).
   remember (eLocIndex Er) as ern.
   destruct ern; [reflexivity| provefalse].
   assert (ern < eLocIndex Er) as Hlt by omega.
-  eapply localIndexDense in Hlt; eauto.
-  destruct Hlt as [Erp  Hevp].
-  pose proof (corrNodes eo MOVABLEBASE) as Hb.
-  simpl in Hb. apply proj2 in Hb.
-  specialize (Hb ern).
-  rewrite (locEvtIndexRW Erp) in Hb; [| assumption].
-  simpl in Hb.
-  pose proof (recvSend eo Erp Hb) as Hsend.
-  destruct Hsend as [Esp Hsend].
-  repnd. apply MotorOnlyReceivesFromSw in Hsendl0; eauto.
-  assert (eLocIndex Erp < eLocIndex Er) as Hlt by omega.
-  eapply orderRespectingDeliveryRS with (evs1:=Esp) (evs2:=Es) in Hlt; eauto;
-  try congruence.
-  rewrite Hswsl in Hlt.
+  apply SwMotorPrevSend with (Es:=Es) in Hlt; try assumption.
+  destruct Hlt as [Erp Hlt].
+  destruct Hlt as [Esp Hlt]. repnd.
+  rewrite Hswsl in Hltrrrrl.
   assert (eLocIndex Esp ≡ 0) as Hs0 by omega.
   destruct SwEvents0 as [Esp' H0s]. repnd.
   assert (Esp ≡ Esp') by
     (eapply indexDistinct; eauto; try congruence).
-  subst.
-  pose proof (getRecdPayloadSpecDeq TARGETPOS) as Hpp.
+  subst. pose proof (getRecdPayloadSpecDeq TARGETPOS) as Hpp.
   simpl in Hpp. apply Hpp in H0srrl.
-  apply DeqNotSend in H0srrl. apply H0srrl in Hsendrr0.
-  contradiction.
-
+  apply DeqNotSend in H0srrl. tauto.
+- unfold SwRecvEventsNth.
+  destruct (SwEventsSn _ p) as [Es Hsws]. simpl. 
+  repnd. clear Hswsrrrr Hswsrrrl.
+  pose proof (eventualDelivery eo _ Hswsrrl) as Hsend.
+  destruct Hsend as [Er  Hsend]. repnd. exists Er.
+  pose proof  Hsendl as Hmot.
+  eapply SWOnlySendsToMotor in Hmot; eauto.
+  repeat(split;[assumption|]).
+  pose proof (lt_eq_lt_dec (eLocIndex Er) (S n)) as Htric.
+  destruct Htric as[Htric| Htric];
+    [ destruct Htric as[Htric| Htric]|]; [|assumption|].
+  + admit.
+  + rename n into ern.
+    assert (ern < eLocIndex Er) as Hlt by omega.
+    apply SwMotorPrevSend with (Es:=Es) in Hlt; try assumption.
+    destruct Hlt as [Erp Hlt].
+    destruct Hlt as [Esp Hlt]. repnd.
+    rewrite Hswsl in Hltrrrrl.
 Abort.
+
+
+
 
 (** change message semantics so that message receipt 
     is at a ball near ed + deliveryTime.
