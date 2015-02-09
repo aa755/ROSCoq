@@ -121,3 +121,37 @@ match l with
 | nil => nil
 | h::tl => h'::tl
 end.
+
+Lemma  nth_error_map :
+  ∀ (A B: Type) (f:A->B) 
+     (n : nat) (l: list A),
+      option_map f (nth_error l n) = 
+        nth_error (map f l) n.
+Proof.
+  induction n; destruct l as [| h tl]; auto.
+  simpl. rewrite IHn. reflexivity.
+Qed.
+
+Lemma  nth_error_nil :
+  ∀ (A : Type) (n : nat), nth_error (@nil A) n = None.
+Proof.
+  induction n ;auto.
+Qed.
+
+Hint Rewrite nth_error_nil : Basics.
+
+Require Import Omega.
+Theorem comp_ind_type :
+  ∀ P: nat → Type,
+    (∀ n: nat, (∀ m: nat, m < n → P m) → P n)
+    → ∀ n:nat, P n.
+Proof.
+ intros P H n.
+ assert (∀ n:nat , ∀ m:nat, m < n → P m).
+ intro n0. induction n0 as [| n']; intros.
+ omega.
+ destruct (eq_nat_dec m n'); subst; auto.
+ apply IHn'; omega.
+ apply H; apply X.
+Qed.
+

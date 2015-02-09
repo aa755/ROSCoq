@@ -484,22 +484,6 @@ Proof.
     rewrite (locEvtIndexRW Err); auto.
 Qed.
 
-Open Scope nat_scope.
-Theorem comp_ind_type :
-  ∀ P: nat → Type,
-    (∀ n: nat, (∀ m: nat, m < n → P m) → P n)
-    → ∀ n:nat, P n.
-Proof.
- intros P H n.
- assert (∀ n:nat , ∀ m:nat, m < n → P m).
- intro n0. induction n0 as [| n']; intros.
- omega.
- destruct (eq_nat_dec m n'); subst; auto.
- apply IHn'; omega.
- apply H; apply X.
-Qed.
-
-
 
 Open Scope nat_scope.
 
@@ -583,13 +567,6 @@ Proof.
     try congruence.
 Qed.
 
-Lemma  nth_error_nil :
-  ∀ (A : Type) (n : nat), nth_error (@nil A) n ≡ None.
-Proof.
-  induction n ;auto.
-Qed.
-
-Hint Rewrite nth_error_nil : Basics.
 
 
 Lemma SwEventsOnly5 :
@@ -651,13 +628,6 @@ Definition SwRecvEventsNth (n:nat) (p :  n < 4) : Event.
   exact (projT1 p).
 Defined.
 
-Lemma DeqNotSend: forall ev,
-  isDeqEvt ev
-  → (~ isSendEvt ev).
-Proof.
-  unfold isDeqEvt, isSendEvt. intros ? Hd Hc.
-  destruct (eKind ev); try congruence.
-Qed.
 
 Notation "{ a , b : T | P }" :=
   {a : T | {b : T | P} }
@@ -789,15 +759,6 @@ Proof.
     subst. omega.
 Qed.
 
-Lemma  nth_error_map :
-  ∀ (A B: Type) (f:A->B) 
-     (n : nat) (l: list A),
-      option_map f (nth_error l n) ≡ 
-        nth_error (map f l) n.
-Proof.
-  induction n; destruct l as [| h tl]; auto.
-  simpl. rewrite IHn. reflexivity.
-Qed.
 
 Require Import Psatz.
 

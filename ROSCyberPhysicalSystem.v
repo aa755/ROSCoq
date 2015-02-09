@@ -207,6 +207,13 @@ Definition isDeqEvt (ev: Event) : bool :=
   | _ => false
   end.
 
+Lemma DeqNotSend: forall ev,
+  isDeqEvt ev
+  → (~ isSendEvt ev).
+Proof.
+  unfold isDeqEvt, isSendEvt. intros ? Hd Hc.
+  destruct (eKind ev); try congruence.
+Qed.
 
 Definition isDeqEvtOp (ev: option Event) : bool :=
   opApPure isDeqEvt false ev.
