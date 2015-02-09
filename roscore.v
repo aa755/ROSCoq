@@ -138,7 +138,7 @@ Defined.
 Definition mkDelayedMesg {outTopic : RosTopic}
   (delay : Q) (payload : ( (topicType outTopic))) : Message.
 econstructor; eauto;[].
-exact (mkHeader 0).
+exact (mkHeader delay).
   (* in this context, there is only one possible message *)
 Defined.
 

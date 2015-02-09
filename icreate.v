@@ -789,7 +789,17 @@ Proof.
     subst. omega.
 Qed.
 
+Lemma  nth_error_map :
+  ∀ (A B: Type) (f:A->B) 
+     (n : nat) (l: list A),
+      option_map f (nth_error l n) ≡ 
+        nth_error (map f l) n.
+Proof.
+  induction n; destruct l as [| h tl]; auto.
+  simpl. rewrite IHn. reflexivity.
+Qed.
 
+Require Import Psatz.
 
 
 (** change message semantics so that message receipt 
@@ -801,9 +811,9 @@ Lemma MotorEvents:
       n < 4
       → {ev : Event | (isRecvEvt ev)  ∧ eLoc ev ≡ MOVABLEBASE
             ∧ eLocIndex ev ≡ n
-            ∧ Some (eMesg ev) 
+            ∧ Some (π₁ (eMesg ev))
                ≡ nth_error
-                    (map (λ p, mkDelayedMesg (π₁ p) (π₂ p)) resp) n
+                    (map (λ p, existT topicType VELOCITY (π₂ p)) resp) n
             ∧ ball (timingAcc+maxVariation)
                 ( eTime (projT1 SwEvents0) + expectedDelay
                      + minDelayForIndex
@@ -813,14 +823,49 @@ Lemma MotorEvents:
                 (QT2Q (eTime ev)) }.
 Proof.
   intros ? n Hlt.
-  pose proof (SwEventsSn n Hlt) as Hsws.
-  destruct Hsws as [ev Hsws]. repnd.
-  pose proof (eventualDelivery eo _ Hswsrrl) as Hsend.
-  destruct Hsend as [Er  Hsend]. repnd. exists Er.
-  eapply SWOnlySendsToMotor in Hsendl; eauto.
-  split;[trivial|].
-  split;[trivial|].
-Abort.
+  pose proof (MotorEventsCausal n Hlt) as Hsws.
+  destruct Hsws as [Er Hsws]. repnd. exists Er.
+  simpl in Hsws. repnd.
+  repeat(split;[trivial|];[]).
+  clear Hswsrrrr Hswsrrrl Hswsrrl Hswsrl.
+  unfold PossibleSendRecvPair in Hswsl.
+  rename Hswsl into H.
+  repnd. clear Hrrl Hrl. simpl in Hrrr.
+  unfold SwRecvEventsNth in Hrrr, Hl.
+  destruct (SwEventsSn _ Hlt) as [Es Hes].
+  simpl in Hrrr, Hl. repnd. clear Hesrrl Hesrl Hesl.
+  subst resp. simpl. rewrite <- Hl.
+  rename Hesrrrl into Hm.
+  simpl in Hm.
+  apply (f_equal (option_map π₁)) in Hm.
+  simpl in Hm.
+  rewrite nth_error_map in Hm.
+  simpl in Hm.
+  dands; [assumption|].
+  clear Hm. rename Hesrrrr into Ht.
+  simpl in Ht.
+  match type of Ht with
+  context [Qball _ (?l + ?sd + _) _] => 
+    remember l as est;
+    remember sd as sdt
+  end.
+  clear Heqsdt Heqest.
+  revert Ht Hrrr. clear.
+  repeat (rewrite Qball_Qabs).
+  intros H1q H2q.
+  remember (QT2Q (eTime Er)) as Ert.
+  remember (QT2Q (eTime Es)) as Est.
+  clear HeqErt HeqEst.
+  apply Q.Qabs_diff_Qle in H1q.
+  apply Q.Qabs_diff_Qle in H2q.
+  apply Q.Qabs_diff_Qle.
+  destruct timingAcc as [tAcc ?].
+  destruct expectedDelay  as [expD ?].
+  destruct maxVariation   as [maxVar ?].
+  simpl.
+  simpl in H2q, H1q.
+  split; lra.
+Qed.
   
 Lemma MotorEventsOnly4 :
   ∀ n : nat, 3 < n -> (localEvts MOVABLEBASE n) ≡ None.
