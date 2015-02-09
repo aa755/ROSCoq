@@ -195,8 +195,8 @@ correctVelDuring lastVel lastTime uptoTime robot.
 
 Definition BaseMotors  : Device iCreate :=
 λ (robot: iCreate) (evs : nat -> option Event) ,
-  (∀ t: QTime, corrSinceLastVel evs t robot).
-
+  (∀ t: QTime, corrSinceLastVel evs t robot)
+  ∧ ∀ n:nat, isDeqEvtOp (evs n).
 
 
 Definition PureSwProgram:
@@ -291,6 +291,44 @@ Lemma SwOnlyReceivesFromExt :   forall Es Er,
   -> PossibleSendRecvPair Es Er
   -> eLoc Er ≡ SWNODE
   -> eLoc Es ≡ EXTERNALCMD.
+Proof.
+  intros ? ? Hs Hr Hsendl Hl.
+  unfold PossibleSendRecvPair in Hsendl.
+  repnd.
+  repnd. clear Hsendlrrr.
+  unfold validRecvMesg  in Hsendlrl.
+  pose proof (deqSingleMessage _ Hr) as XX.
+  destruct XX as [m XX].
+  repnd. rewrite <- XXl in Hsendlrl.
+  simpl in  XXl.
+  apply (f_equal (fst)) in XXl.
+  rewrite <- Hsendll in XXl. simpl in Hsendlrrl.
+  rewrite Hl in Hsendlrl.
+  simpl in Hsendlrl.
+  rewrite RemoveOrFalse in Hsendlrl.
+  unfold validSendMesg in Hsendlrrl.
+  unfold mtopic in Hsendlrrl.
+  rewrite <- XXl in Hsendlrrl.
+  simpl in Hsendlrrl. 
+  unfold mtopic in  Hsendlrl. 
+  simpl in Hsendlrl, Hsendlrrl.
+  rewrite <- Hsendlrl in Hsendlrrl.
+  destruct (eLoc Es); simpl in Hsendlrrl;
+    try contradiction;
+    inversion Hsendlrrl; 
+    try discriminate;
+    try contradiction.
+  reflexivity.
+Qed.
+
+(** No Change at All from the train proof.
+    However, it was changed later when ROSCPS was simplified*)
+Lemma MotorOnlyReceivesFromSw :   forall Es Er,
+  isSendEvt Es
+  -> isRecvEvt Er
+  -> PossibleSendRecvPair Es Er
+  -> eLoc Er ≡ MOVABLEBASE
+  -> eLoc Es ≡ SWNODE.
 Proof.
   intros ? ? Hs Hr Hsendl Hl.
   unfold PossibleSendRecvPair in Hsendl.
@@ -608,10 +646,73 @@ Proof.
   omega.
 Qed.
 
+Definition SwRecvEventsNth (n:nat) (p :  n < 4) : Event.
+  apply SwEventsSn in p.
+  exact (projT1 p).
+Defined.
+
+Lemma DeqNotSend: forall ev,
+  isDeqEvt ev
+  → (~ isSendEvt ev).
+Proof.
+  unfold isDeqEvt, isSendEvt. intros ? Hd Hc.
+  destruct (eKind ev); try congruence.
+Qed.
+
+Lemma MotorEvents:
+  ∀ (n: nat) (p:n < 4),
+      {Er : Event | let Es := (SwRecvEventsNth n p) in
+              PossibleSendRecvPair Es Er 
+              ∧ causedBy eo Es Er 
+              ∧ isRecvEvt Er
+              ∧ eLoc Er ≡ MOVABLEBASE
+              ∧  eLocIndex Er ≡ n }.
+Proof.
+  induction n; intros p.
+- unfold SwRecvEventsNth.
+  destruct (SwEventsSn 0 p) as [Es Hsws]. simpl. 
+  repnd. clear Hswsrrrr Hswsrrrl.
+  pose proof (eventualDelivery eo _ Hswsrrl) as Hsend.
+  destruct Hsend as [Er  Hsend]. repnd. exists Er.
+  pose proof  Hsendl as Hmot.
+  eapply SWOnlySendsToMotor in Hmot; eauto.
+  split;[assumption|].
+  split;[assumption|].
+  split;[assumption|].
+  split;[assumption|].
+  remember (eLocIndex Er) as ern.
+  destruct ern; [reflexivity| provefalse].
+  assert (ern < eLocIndex Er) as Hlt by omega.
+  eapply localIndexDense in Hlt; eauto.
+  destruct Hlt as [Erp  Hevp].
+  pose proof (corrNodes eo MOVABLEBASE) as Hb.
+  simpl in Hb. apply proj2 in Hb.
+  specialize (Hb ern).
+  rewrite (locEvtIndexRW Erp) in Hb; [| assumption].
+  simpl in Hb.
+  pose proof (recvSend eo Erp Hb) as Hsend.
+  destruct Hsend as [Esp Hsend].
+  repnd. apply MotorOnlyReceivesFromSw in Hsendl0; eauto.
+  assert (eLocIndex Erp < eLocIndex Er) as Hlt by omega.
+  eapply orderRespectingDeliveryRS with (evs1:=Esp) (evs2:=Es) in Hlt; eauto;
+  try congruence.
+  rewrite Hswsl in Hlt.
+  assert (eLocIndex Esp ≡ 0) as Hs0 by omega.
+  destruct SwEvents0 as [Esp' H0s]. repnd.
+  assert (Esp ≡ Esp') by
+    (eapply indexDistinct; eauto; try congruence).
+  subst.
+  pose proof (getRecdPayloadSpecDeq TARGETPOS) as Hpp.
+  simpl in Hpp. apply Hpp in H0srrl.
+  apply DeqNotSend in H0srrl. apply H0srrl in Hsendrr0.
+  contradiction.
+
+Abort.
+
 (** change message semantics so that message receipt 
     is at a ball near ed + deliveryTime.
     make the balls size be a parameter *)
-Lemma MotorEvents :
+Lemma MotorEvents:
   let resp := PureSwProgram targetPos in
   ∀ n: nat, 
       n < 4

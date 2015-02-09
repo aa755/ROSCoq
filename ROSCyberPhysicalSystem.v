@@ -1090,6 +1090,34 @@ Proof.
   omega.
 Qed.
 
+Lemma orderRespectingDeliverySR:  ∀ evs1 evs2 evr1 evr2,
+      (eLoc evs1 = eLoc evs2)
+      → (eLoc evr1 = eLoc evr2)
+      → (eLoc evs1 ≠ eLoc evr1)
+      → causedBy eo evs1 evr1
+      → causedBy eo evs2 evr2
+      → eLocIndex evs1 < eLocIndex evs2
+      → eLocIndex evr1 < eLocIndex evr2.
+Proof.
+  intros.
+  pose proof (orderRespectingDelivery eo) as Hord.
+  rewrite <- Hord; eauto.
+Qed.
+
+Lemma orderRespectingDeliveryRS:  ∀ evs1 evs2 evr1 evr2,
+      (eLoc evs1 = eLoc evs2)
+      → (eLoc evr1 = eLoc evr2)
+      → (eLoc evs1 ≠ eLoc evr1)
+      → causedBy eo evs1 evr1
+      → causedBy eo evs2 evr2
+      → eLocIndex evr1 < eLocIndex evr2
+      → eLocIndex evs1 < eLocIndex evs2.
+Proof.
+  intros.
+  pose proof (orderRespectingDelivery eo) as Hord.
+  rewrite  Hord; eauto.
+Qed.
+
 End EOProps.  
 
 Lemma PureProcDeqSendOncePair : forall ns nd TI TO qt qac loc
