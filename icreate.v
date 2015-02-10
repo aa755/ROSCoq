@@ -928,7 +928,6 @@ Proof.
   simpl in Hc.
   unfold correctVelDuring in Hc.
   apply proj2 in Hc.
-  unfold changesTo in Hc.
 
 Ltac Replace T :=
 assert T as Heq by reflexivity; rewrite Heq; clear Heq.
@@ -936,10 +935,17 @@ assert T as Heq by reflexivity; rewrite Heq; clear Heq.
 Ltac ReplaceH T H :=
 assert T as Heq by reflexivity; rewrite Heq in H; clear Heq.
 
-  setoid_rewrite (initOmega icreate) in Hc.
   ReplaceH ((θ initialVel) ≡ 0)%Q Hc.
   rewrite omegaPrec0 in Hc.
 
+Hint Resolve derivRot  derivX derivY initPos initTheta initTransVel initOmega: ICR.
+Hint Resolve qtimePos : ROSCOQ.
+
+  apply changesToDeriv0 with (F:=(theta icreate)) (t:=(eTime evStartTurn)) in Hc;
+  eauto using derivRot, initOmega, qtimePos;
+  [|simpl; split; try lra; apply qtimePos].
+  rewrite initTheta in Hc.
+  
 Abort.
 
 Lemma Liveness :

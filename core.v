@@ -966,3 +966,95 @@ Definition changesTo (f : TContR)
           (qt <= t <= uptoTime -> AbsIR ({f} t [-] toValue) [<=] eps)))
   /\ (forall t : QTime, (atTime <= t <= qt)  
           -> (between ({f} t) ({f} atTime) toValue)))%Q.
+
+Require Export Coq.Unicode.Utf8.
+
+Instance TContR_proper (f : TContR) :
+  Proper ((fun (x y : QTime) => Qeq x y) ==> (@st_eq IR)) (fun (q : QTime) => {f} q).
+Proof.
+  intros ? ? Heq. apply  csf_fun_wd. unfold Basics.flip in Heq.
+  destruct x,y. simpl. simpl in Heq. apply inj_Q_wd. exact Heq.
+Qed.
+
+
+Hint Rewrite Max_id  Min_id cring_mult_zero_op : CoRN.
+
+Lemma TDerivativeEqQ :forall (F F' : TContR)
+   (ta tb : QTime) (Hab : ta <= tb) (c : ℝ),
+   isDerivativeOf F' F
+   -> (forall (t:QTime), ta <= t <= tb -> ({F'} t) [=] c)
+   -> ({F} tb[-] {F} ta)[=]c[*](tb-ta).
+Proof.
+  intros ? ? ? ? ? ? Hder Hub.
+  apply leEq_imp_eq;
+    [apply TDerivativeUBQ with (F':=F') | apply TDerivativeLBQ with (F':=F')]; 
+      auto; intros ? Hbw; rewrite (Hub _ Hbw); apply leEq_reflexive.
+Qed.
+
+Require Import Ring. 
+Require Import CoRN.tactics.CornTac.
+Require Import CoRN.algebra.CRing_as_Ring.
+
+Add Ring RisaRing: (CRing_Ring IR).
+
+Ltac IRRing :=
+  unfold cg_minus; ring; idtac "ring failed; try unfolding
+   definitions to make the ring structure visible, Also note
+    that ring does not look at Hypothesis".
+    
+Lemma TDerivativeEqQ0 :forall (F F' : TContR)
+   (ta tb : QTime) (Hab : ta <= tb),
+   isDerivativeOf F' F
+   -> (forall (t:QTime), ta <= t <= tb -> ({F'} t) [=] [0])
+   -> ({F} tb[=] {F} ta).
+Proof.
+  intros ? ?  ? ? ? Hder Hub.
+  eapply TDerivativeEqQ in Hub; eauto.
+  rewrite cring_mult_zero_op in Hub.
+  remember ({F} ta) as fta.
+  remember ({F} tb) as ftb.
+  assert (fta[=]fta [+] [0]) as H by ring.
+  rewrite H.
+  rewrite <- Hub. unfold cg_minus. IRRing.
+Qed.
+
+Ltac Dor H := destruct H as [H|H].
+
+Lemma changesToDeriv0 :  ∀ (F' F: TContR)
+  (atTime uptoTime : QTime)
+  (reactionTime : Q),
+  atTime <= uptoTime
+  → changesTo F' atTime uptoTime 0 reactionTime 0
+  → {F'} atTime = 0 
+  → isDerivativeOf F' F
+  → ∀ (t : QTime), atTime <= t <= uptoTime → {F} t [=] {F} atTime.
+Proof.
+  intros ? ? ? ? ? Hle Hc Hf0 Hd.
+  unfold changesTo in Hc.
+  destruct Hc as [qtrans  Hm]. repnd.
+  pose proof (Q_dec atTime uptoTime) as Htric.
+  intros ? Hbw.
+  destruct Htric as [Htric | Htric]; [| apply TContR_proper;auto; simpl; lra].
+  destruct Htric as [Htric | Htric] ;[|lra].
+  assert (proper (clcr (QT2Q atTime) (QT2Q uptoTime))) as pJ by UnfoldLRA.
+  unfold isDerivativeOf,isIDerivativeOf in Hd.
+  rewrite Hf0 in Hmrr.
+  unfold between in Hmrr. setoid_rewrite  Max_id  in Hmrr.
+  setoid_rewrite  Min_id  in Hmrr. repnd.
+  apply TDerivativeEqQ0 with (F':=F'); auto;[].
+  intros qt Htb. repnd.
+  pose proof (Qlt_le_dec qt qtrans) as Hdec.
+  Dor Hdec;[clear Hmrl | clear Hmrr].
+- apply Qlt_le_weak in Hdec.
+  specialize (Hmrr qt (conj Htbl Hdec)). unfold Q2R in Hmrr.
+  rewrite inj_Q_Zero in Hmrr. repnd. 
+  apply leEq_imp_eq; assumption.
+- assert (qt <= uptoTime) as Hup by lra.
+  specialize (Hmrl qt (conj Hdec Hup)).
+  apply AbsIR_imp_AbsSmall in Hmrl.
+  unfold AbsSmall in Hmrl.
+  unfold Q2R in Hmrl.
+  rewrite inj_Q_Zero, cg_zero_inv, cg_inv_zero in Hmrl. repnd.
+  apply leEq_imp_eq; assumption.
+Qed.
+
