@@ -1,3 +1,25 @@
+Definition sin1 (T:Type) :=
+  {x:T | forall  y:T, x=y }.
+
+Definition sin2 (T:Type) :=
+  {_:T | forall x y:T, x=y }.
+
+Lemma sin21 :
+forall T, sin2 T -> sin1 T.
+unfold sin2, sin1. intros T hs.
+destruct hs as [x hs].
+exists x.
+auto.
+Qed.
+
+Lemma sin12 :
+forall T, sin1 T -> sin2 T.
+unfold sin2, sin1. intros T hs.
+destruct hs as [x hs].
+exists x.
+congruence.
+Qed.
+
 Add LoadPath "../../../nuprl/coq".
 Require Export Coq.Program.Tactics.
 Require Export LibTactics.
