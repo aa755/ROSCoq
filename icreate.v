@@ -976,11 +976,16 @@ Proof.
   rewrite H1mrrl in Hc.
   simpl in Hc.
   unfold correctVelDuring in Hc.
+  rewrite (locEvtIndexRW evStartTurn) in Hc;[|tauto].
+  unfold getPayloadAndEv, getRecdPayload in Hc.
+
+  (** directly have some lemma about Hc
+
   apply proj2 in Hc.
   ReplaceH ((θ initialVel) ≡ 0)%Q Hc.
   rewrite omegaPrec0 in Hc.
   apply changesToDeriv0 with (F:=(theta icreate)) (t:=(eTime evStartTurn)) in Hc;
-  eauto using derivRot, initOmega, qtimePos;
+  eauto using derivRot, initOmega, qtimePos; *)
 
   
 Abort.
