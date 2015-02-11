@@ -926,12 +926,52 @@ Hint Resolve qtimePos : ROSCOQ.
 
 Instance Plus_instance_QTime : Plus QTime := Qtadd.
 
+Open Scope nat_scope.
+
+Lemma deqSingleMessage2 : forall evD,
+  isDeqEvt evD
+  -> (deqMesg evD ≡ Some (eMesg evD)).
+Proof.
+  intros ? Hd.
+  unfold isDeqEvt in Hd.
+  unfold deqMesg. destruct (eKind evD); try (inversion Hd; fail);[].
+  eexists; eauto.
+Defined.
+
+Lemma moveMapInsideSome : forall tp lm,
+  opBind (getPayload tp)  (Some lm)
+  ≡ (getPayloadR tp) (fst lm).
+Proof.
+  intros ?. destruct lm; reflexivity.
+Qed.
+
+Lemma MotorEvents2:
+  let resp := PureSwProgram targetPos in
+  ∀ n: nat, 
+      (n < 4)
+      → {ev : Event |  
+           (isRecvEvt ev)  ∧ eLoc ev ≡ MOVABLEBASE
+            ∧ eLocIndex ev ≡ n
+            ∧  getPayloadAndEv VELOCITY (Some ev)  
+                ≡ opBind (λ pl, Some (π₂ pl, ev))
+                       (nth_error resp n)
+            ∧ ball (timingAcc+maxVariation)
+                ( eTime (projT1 SwEvents0) + expectedDelay
+                     + minDelayForIndex
+                         (map (λ p, mkDelayedMesg (π₁ p) (π₂ p)) resp) 
+                         n 
+                     + procTime)%Q 
+                (QT2Q (eTime ev)) }.
+Admitted.
+
+Close Scope nat_scope.
+
 Lemma TurnCompleteTime :
   ∃ (t : QTime), 
       ((|({theta icreate} t) - CRasIR (θ (Cart2Polar targetPos))|) ≤ [0]).
 (** replace [0] by the appropriate value *)
 Proof.
-  pose proof (MotorEvents 1) as H1m.
+  pose proof (MotorEvents2 1) as H1m.
   DestImp H1m; [|omega].
   destruct H1m as [evStopTurn  H1m].
   unfold minDelayForIndex, roscore.delay, Basics.compose in H1m.
@@ -943,10 +983,11 @@ Proof.
   apply proj1 in Hc.
   (** lets go one by one starting from the first message *)
 
-  pose proof (MotorEvents 0) as H0m.
+  pose proof (MotorEvents2 0) as H0m.
   DestImp H0m; [|omega].
   destruct H0m as [evStartTurn  H0m].
   unfold minDelayForIndex, roscore.delay, Basics.compose in H0m.
+Local Opaque getPayloadAndEv.
   simpl in H0m.
   hide_hyp H0m.
   unfold corrSinceLastVel in Hc.
@@ -967,7 +1008,9 @@ Proof.
   [|simpl; split; try lra; apply qtimePos].
   rewrite initTheta in Hc.
   rename Hc into HThetaEv0.
-  (** Done!! Moving on to the next message *)
+  (** Done!! Moving on to the next message.
+    Wait. derive values for  Pos and tVel too.
+    Perhaps split this proof into 1 for each event*)
   
   show_hyp Hcb. rename Hcb into Hc.
   show_hyp H1m. repnd.
@@ -977,7 +1020,30 @@ Proof.
   simpl in Hc.
   unfold correctVelDuring in Hc.
   rewrite (locEvtIndexRW evStartTurn) in Hc;[|tauto].
+
+  rewrite H0mrrrl in Hc.
+  simpl map in Hc.
+  simpl hd in Hc. 
+  cbv iota in Hc.
+  cbv beta in Hc.
+  simpl rad in Hc.
+  simpl θ in Hc.
+  cbv iota in Hc.
+
+(*
   unfold getPayloadAndEv, getRecdPayload in Hc.
+  rewrite deqSingleMessage2 in Hc;[| assumption].
+
+  simpl in Hc. unfold getPayload in Hc.
+  inverts H0mrrrl as Hm0p.
+  Hint Unfold π₁ ProjectionFst_instance_prod : π₁.
+  autounfold with π₁ in Hm0p.
+  simpl in Hc. rewrite Hm0p in Hc.
+  unfold getPayloadR in Hc.
+
+
+
+   rewrite moveMapInsideFst in Hc .
 
   (** directly have some lemma about Hc
 
@@ -986,7 +1052,7 @@ Proof.
   rewrite omegaPrec0 in Hc.
   apply changesToDeriv0 with (F:=(theta icreate)) (t:=(eTime evStartTurn)) in Hc;
   eauto using derivRot, initOmega, qtimePos; *)
-
+*)
   
 Abort.
 

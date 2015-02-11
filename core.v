@@ -1020,34 +1020,43 @@ Qed.
 
 Ltac Dor H := destruct H as [H|H].
 
-Lemma changesToDeriv0 :  ∀ (F' F: TContR)
+(** often a better way to prove conjumction*)
+Lemma BetterConj : ∀ (A B : Prop),
+  A -> (A -> B) -> (A /\ B).
+tauto.
+Qed.
+
+
+Lemma changesToDeriv0Deriv :  ∀ (F': TContR)
   (atTime uptoTime : QTime)
   (reactionTime : Q),
   atTime <= uptoTime
   → changesTo F' atTime uptoTime 0 reactionTime 0
-  → {F'} atTime = 0 
-  → isDerivativeOf F' F
-  → ∀ (t : QTime), atTime <= t <= uptoTime → {F} t [=] {F} atTime.
+  → {F'} atTime [=] 0 
+  → ∀ (t : QTime), atTime <= t <= uptoTime 
+      → {F'} t [=] 0.
 Proof.
-  intros ? ? ? ? ? Hle Hc Hf0 Hd.
+  intros ? ? ? ? Hle Hc Hf0.
   unfold changesTo in Hc.
   destruct Hc as [qtrans  Hm]. repnd.
   pose proof (Q_dec atTime uptoTime) as Htric.
   intros ? Hbw.
-  destruct Htric as [Htric | Htric]; [| apply TContR_proper;auto; simpl; lra].
+  destruct Htric as [Htric | Htric];
+    [|rewrite <- Hf0;
+      apply TContR_proper;auto; simpl; lra; fail].
   destruct Htric as [Htric | Htric] ;[|lra].
   assert (proper (clcr (QT2Q atTime) (QT2Q uptoTime))) as pJ by UnfoldLRA.
-  unfold isDerivativeOf,isIDerivativeOf in Hd.
-  rewrite Hf0 in Hmrr.
-  unfold between in Hmrr. setoid_rewrite  Max_id  in Hmrr.
+  unfold between in Hmrr.
+  setoid_rewrite Hf0 in Hmrr.
+  setoid_rewrite  Max_id  in Hmrr.
   setoid_rewrite  Min_id  in Hmrr. repnd.
-  apply TDerivativeEqQ0 with (F':=F'); auto;[].
-  intros qt Htb. repnd.
+  rename t into qt.
   pose proof (Qlt_le_dec qt qtrans) as Hdec.
   Dor Hdec;[clear Hmrl | clear Hmrr].
 - apply Qlt_le_weak in Hdec.
-  specialize (Hmrr qt (conj Htbl Hdec)). unfold Q2R in Hmrr.
-  rewrite inj_Q_Zero in Hmrr. repnd. 
+  specialize (Hmrr qt (conj Hbwl Hdec)). unfold Q2R in Hmrr.
+  rewrite inj_Q_Zero in Hmrr. repnd.
+  unfold Q2R. rewrite inj_Q_Zero.
   apply leEq_imp_eq; assumption.
 - assert (qt <= uptoTime) as Hup by lra.
   specialize (Hmrl qt (conj Hdec Hup)).
@@ -1055,6 +1064,44 @@ Proof.
   unfold AbsSmall in Hmrl.
   unfold Q2R in Hmrl.
   rewrite inj_Q_Zero, cg_zero_inv, cg_inv_zero in Hmrl. repnd.
+  unfold Q2R. rewrite inj_Q_Zero.
   apply leEq_imp_eq; assumption.
 Qed.
+  
+Lemma changesToDeriv0Integ :  ∀ (F' F: TContR)
+  (atTime uptoTime : QTime)
+  (reactionTime : Q),
+  atTime <= uptoTime
+  → changesTo F' atTime uptoTime 0 reactionTime 0
+  → {F'} atTime [=] 0 
+  → isDerivativeOf F' F
+  → ∀ (t : QTime), atTime <= t <= uptoTime 
+      → {F} t [=] {F} atTime.
+Proof.
+  intros ? ? ? ? ? Hle Hc Hf0 Hd.
+  pose proof (Q_dec atTime uptoTime) as Htric.
+  intros ? Hbw.
+  destruct Htric as [Htric | Htric];
+    [|apply TContR_proper;auto; simpl; lra; fail].
+  destruct Htric as [Htric | Htric] ;[|lra]. 
+  apply TDerivativeEqQ0 with (F':=F');try tauto.
+  repnd. 
+  intros ? Hlt. simpl. remember ({F'} t0) as xx.
+  rewrite <- (inj_Q_Zero IR). subst xx.
+  eapply changesToDeriv0Deriv in Hc; eauto.
+  repnd. split; lra.
+Qed.
 
+Lemma changesToDeriv0Comb :  ∀ (F' F: TContR)
+  (atTime uptoTime : QTime)
+  (reactionTime : Q),
+  atTime <= uptoTime
+  → changesTo F' atTime uptoTime 0 reactionTime 0
+  → {F'} atTime [=] 0 
+  → isDerivativeOf F' F
+  → ∀ (t : QTime), atTime <= t <= uptoTime 
+      → ({F'} t [=] 0 ∧ {F} t [=] {F} atTime).
+Proof.
+  split;
+  eauto using changesToDeriv0Integ, changesToDeriv0Deriv.
+Qed.
