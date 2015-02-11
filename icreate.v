@@ -893,6 +893,15 @@ Ltac show_hyps :=
   repeat match goal with
     H: @ltac_something _ _ |- _ => show_hyp H end.
 
+Ltac Replace T :=
+assert T as Heq by reflexivity; rewrite Heq; clear Heq.
+
+Ltac ReplaceH T H :=
+assert T as Heq by reflexivity; rewrite Heq in H; clear Heq.
+
+Hint Resolve derivRot  derivX derivY initPos initTheta initTransVel initOmega: ICR.
+Hint Resolve qtimePos : ROSCOQ.
+
 Instance Plus_instance_QTime : Plus QTime := Qtadd.
 
 Lemma TurnCompleteTime :
@@ -905,7 +914,6 @@ Proof.
   destruct H1m as [evStopTurn  H1m].
   unfold minDelayForIndex, roscore.delay, Basics.compose in H1m.
   simpl in H1m. hide_hyp H1m.
-
   exists ((eTime evStopTurn)+reacTime).
   pose proof (corrNodes eo MOVABLEBASE) as Hc.
   simpl in Hc.
@@ -919,32 +927,39 @@ Proof.
   unfold minDelayForIndex, roscore.delay, Basics.compose in H0m.
   simpl in H0m.
   hide_hyp H0m.
-  specialize (Hc (eTime evStartTurn)).
   unfold corrSinceLastVel in Hc.
   unfold lastVelAndTime, lastPayloadAndTime, filterPayloadsUptoTime in Hc.
+  pose proof Hc as Hcb. hide_hyp Hcb. 
+  
+  specialize (Hc (eTime evStartTurn)).
   show_hyp H0m. repnd.
   rewrite numPrevEvtsEtime in Hc;[|assumption].
   rewrite H0mrrl in Hc.
   simpl in Hc.
   unfold correctVelDuring in Hc.
   apply proj2 in Hc.
-
-Ltac Replace T :=
-assert T as Heq by reflexivity; rewrite Heq; clear Heq.
-
-Ltac ReplaceH T H :=
-assert T as Heq by reflexivity; rewrite Heq in H; clear Heq.
-
   ReplaceH ((θ initialVel) ≡ 0)%Q Hc.
   rewrite omegaPrec0 in Hc.
-
-Hint Resolve derivRot  derivX derivY initPos initTheta initTransVel initOmega: ICR.
-Hint Resolve qtimePos : ROSCOQ.
-
   apply changesToDeriv0 with (F:=(theta icreate)) (t:=(eTime evStartTurn)) in Hc;
   eauto using derivRot, initOmega, qtimePos;
   [|simpl; split; try lra; apply qtimePos].
   rewrite initTheta in Hc.
+  rename Hc into HThetaEv0.
+  (** Done!! Moving on to the next message *)
+  
+  show_hyp Hcb. rename Hcb into Hc.
+  show_hyp H1m. repnd.
+  specialize (Hc (eTime evStopTurn)).
+  rewrite numPrevEvtsEtime in Hc; [|assumption].
+  rewrite H1mrrl in Hc.
+  simpl in Hc.
+  unfold correctVelDuring in Hc.
+  apply proj2 in Hc.
+  ReplaceH ((θ initialVel) ≡ 0)%Q Hc.
+  rewrite omegaPrec0 in Hc.
+  apply changesToDeriv0 with (F:=(theta icreate)) (t:=(eTime evStartTurn)) in Hc;
+  eauto using derivRot, initOmega, qtimePos;
+
   
 Abort.
 
