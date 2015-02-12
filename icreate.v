@@ -1008,19 +1008,15 @@ Defined.
 
 Close Scope nat_scope.
 
-Lemma OmegaThetaAtEV0 :
+(** Also, this is the way 0 is defined for CR *)
+
+Instance Zero_Instace_IR_better : Zero IR := inj_Q IR 0.
+
+Lemma correctVelTill0:
   let t0 : QTime := MotorEventsNthTime 0 (decAuto (0<4)%nat I) in
-  ∀ (t : QTime),  t ≤ t0
-      → ({omega icreate} t [=] 0%Q ∧ {theta icreate} t [=] {theta icreate} 0).
+    correctVelDuring initialVel (mkQTime 0 I) t0 icreate.
 Proof.
-  intros ? ? Hle. 
-  unfold le, Le_instance_QTime in Hle.
-  pose proof (qtimePos t) as Hq.
-  apply changesToDeriv0Comb with 
-    (uptoTime := t0)
-    (reactionTime:=reacTime); eauto with ICR; try (simpl;lra);
-    [|rewrite initOmega; reflexivity].
-  pose proof (corrNodes eo MOVABLEBASE) as Hc.
+  intros. pose proof (corrNodes eo MOVABLEBASE) as Hc.
   simpl in Hc.
   unfold DeviceSemantics, BaseMotors in Hc.
   apply proj1 in Hc.
@@ -1039,6 +1035,25 @@ Proof.
   repnd.
   rewrite numPrevEvtsEtime in Hc;[|assumption].
   rewrite H0mrrl in Hc.
+  simpl in Hc. auto.
+Qed.
+  
+Lemma OmegaThetaAtEV0 :
+  let t0 : QTime := MotorEventsNthTime 0 (decAuto (0<4)%nat I) in
+  ∀ (t : QTime),  t ≤ t0
+      → ({omega icreate} t = 0 ∧ {theta icreate} t = {theta icreate} 0).
+Proof.
+  intros ? ? Hle.
+  unfold zero, Zero_instance_IR, Zero_instance_Time.
+  unfold equiv, Zero_Instace_IR_better.
+  unfold le, Le_instance_QTime in Hle.
+  pose proof (qtimePos t) as Hq.
+  apply changesToDeriv0Comb with 
+    (uptoTime := t0)
+    (reactionTime:=reacTime); eauto with ICR; try (simpl;lra);
+    [|rewrite initOmega; reflexivity].
+    
+  pose proof correctVelTill0 as Hc.
   simpl in Hc.
   unfold correctVelDuring in Hc.
   apply proj2 in Hc.
@@ -1047,8 +1062,57 @@ Proof.
   exact Hc.
 Qed.
 
+Lemma TContRMult : ∀ (f g : TContR) t,
+  ({f [*] g} t) = {f} t [*] {g} t.
+Proof.
+  intros.
+  reflexivity.
+Qed.
+
+Hint Rewrite TContRMult : TContRIn.
   
-Close Scope nat_scope.
+Lemma IR_mult_zero_left : ∀ (x : IR), 0[*]x[=]0.
+  intros x.
+  unfold zero, Zero_Instace_IR_better.
+  rewrite inj_Q_Zero.
+  apply cring_mult_zero_op.
+Qed.
+
+  
+Lemma TransPosAtEV0 :
+  let t0 : QTime := MotorEventsNthTime 0 (decAuto (0<4)%nat I) in
+  ∀ (t : QTime),  t ≤ t0
+      → ({transVel icreate} t = 0 ∧ (posAtTime t) = (posAtTime 0)).
+Proof.
+  intros ? ? Hle.
+  unfold zero, Zero_instance_IR, Zero_instance_Time.
+  unfold equiv, Zero_Instace_IR_better, EquivCart.
+  unfold le, Le_instance_QTime in Hle.
+  pose proof (qtimePos t0) as Hq.
+  pose proof (λ ct eqq, changesToDeriv0Integ 
+                _ _ 0 t0 reacTime Hq ct eqq (derivX icreate)) as Hx.
+  rewrite TContRMult in Hx.
+  rewrite initTransVel in Hx.
+  simpl rad in Hx. rewrite IR_mult_zero_left in Hx.
+  pose proof correctVelTill0 as Hc.
+  simpl in Hc. fold t0 in Hc.
+  unfold correctVelDuring in Hc.
+  apply proj1 in Hc.
+  ReplaceH ((rad initialVel) ≡ 0)%Q Hc.
+  rewrite tVelPrec0 in Hc.
+  pose proof (qtimePos t) as Hqt.
+  pose proof (λ ww, changesToDeriv0Deriv _ _ _ _  ww Hc) as Hd0.
+  simpl QT2Q in Hd0.
+  rewrite initTransVel in Hd0.
+  specialize (Hd0 Hq).
+  DestImp Hd0;[|reflexivity].
+  
+
+
+Abort.
+
+
+  
 
 Lemma TurnCompleteTime :
   ∃ (t : QTime), 
