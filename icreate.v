@@ -945,10 +945,6 @@ Proof.
   intros ?. destruct lm; reflexivity.
 Qed.
 
-Definition MotorEventsNth (n:nat) (p :  n < 4) : Event.
-  apply MotorEvents in p.
-  exact (projT1 p).
-Defined.
 
 Hint Unfold π₁ ProjectionFst_instance_prod : π₁.
 
@@ -992,6 +988,11 @@ Proof.
   reflexivity.
 Qed.
 
+Definition MotorEventsNth (n:nat) (p :  n < 4) : Event.
+  apply MotorEvents2 in p.
+  exact (projT1 p).
+Defined.
+
 
 Definition MotorEventsNthTime (n:nat) (p :  n < 4) : QTime :=
   (eTime (MotorEventsNth n p)).
@@ -1023,14 +1024,13 @@ Proof.
   (** lets go one by one starting from the first message *)
 
   unfold MotorEventsNthTime, MotorEventsNth in t0.
-  destruct (MotorEvents 0 (decAuto (0<4)%nat I)) as [evStartTurn  H0m].
+  destruct (MotorEvents2 0 (decAuto (0<4)%nat I)) as [evStartTurn  H0m].
   simpl in t0.
   unfold minDelayForIndex, roscore.delay, Basics.compose in H0m.
   Local Opaque getPayloadAndEv.
   simpl in H0m.
   unfold corrSinceLastVel in Hc.
   unfold lastVelAndTime, lastPayloadAndTime, filterPayloadsUptoTime in Hc.
-  pose proof Hc as Hcb. hide_hyp Hcb. 
   specialize (Hc (eTime evStartTurn)).
   repnd.
   rewrite numPrevEvtsEtime in Hc;[|assumption].
@@ -1089,11 +1089,6 @@ Proof.
   unfold equiv, Zero_Instace_IR_better, EquivCart.
   unfold le, Le_instance_QTime in Hle.
   pose proof (qtimePos t0) as Hq.
-  pose proof (λ ct eqq, changesToDeriv0Integ 
-                _ _ 0 t0 reacTime Hq ct eqq (derivX icreate)) as Hx.
-  rewrite TContRMult in Hx.
-  rewrite initTransVel in Hx.
-  simpl rad in Hx. rewrite IR_mult_zero_left in Hx.
   pose proof correctVelTill0 as Hc.
   simpl in Hc. fold t0 in Hc.
   unfold correctVelDuring in Hc.
@@ -1132,7 +1127,97 @@ Local Transparent mkQTime.
 Qed.
 
 
+Lemma correctVel0to1:
+  let t0 : QTime := MotorEventsNthTime 0 (decAuto (0<4)%nat I) in
+  let t1 : QTime := MotorEventsNthTime 1 (decAuto (1<4)%nat I) in
+  let requestedVel : Polar2D Q :=
+    {|
+       rad := 0;
+       θ := QSign (approximate (polarTheta targetPos) anglePrec) 1
+            * rotspeed |} in
+  correctVelDuring requestedVel t0 t1 icreate.
+Proof.
+  intros. pose proof (corrNodes eo MOVABLEBASE) as Hc.
+  simpl in Hc.
+  unfold DeviceSemantics, BaseMotors in Hc.
+  apply proj1 in Hc.
+  (** lets go one by one starting from the first message *)
+
+  unfold MotorEventsNthTime, MotorEventsNth in t0, t1.
+  destruct (MotorEvents2 0 (decAuto (0<4)%nat I)) as [evStartTurn  H0m].
+  simpl in t0.
+  destruct (MotorEvents2 1 (decAuto (1<4)%nat I)) as [evStopTurn  H1m].
+  simpl in t1.
+  unfold minDelayForIndex, roscore.delay, Basics.compose in H1m.
+  Local Opaque getPayloadAndEv.
+  autounfold with π₁ in H1m.
+  simpl in H1m.
+  unfold corrSinceLastVel in Hc.
+  unfold lastVelAndTime, lastPayloadAndTime, filterPayloadsUptoTime in Hc.
+  specialize (Hc (eTime evStopTurn)). simpl in Hc.
+  repnd.
+  rewrite numPrevEvtsEtime in Hc;[|assumption].
+  rewrite H1mrrl in Hc.
+  simpl in Hc.
+  rewrite (locEvtIndexRW evStartTurn) in Hc;[|tauto].
+  rewrite H0mrrrl in Hc.
+  simpl in Hc.
+  auto.
+Qed.
   
+
+
+
+Lemma TransVelPosAtEV1 :
+  let t0 : QTime := MotorEventsNthTime 0 (decAuto (0<4)%nat I) in
+  let t1 : QTime := MotorEventsNthTime 1 (decAuto (1<4)%nat I) in
+  ∀ (t : QTime),  t0 ≤ t ≤ t1
+      → ({transVel icreate} t = 0 ∧ (posAtTime t) = (posAtTime 0)).
+Proof.
+  intros ? ? ? Hle.
+  unfold le, Le_instance_QTime in Hle.
+  pose proof correctVel0to1 as Hc.
+  simpl in Hc. fold t0 in Hc.
+  unfold correctVelDuring in Hc.
+  apply proj1 in Hc. simpl rad in Hc.
+  unfold zero, stdlib_rationals.Q_0 in Hc.
+  rewrite tVelPrec0 in Hc.
+  pose proof (qtimePos t) as Hqt.
+  pose proof (λ ww, changesToDeriv0Deriv _ _ _ _  ww Hc) as H1d.
+  fold t1 in H1d.
+  pose proof TransVelPosAtEV0 as H0d.
+  simpl in H0d. fold t0 in H0d.
+  specialize (H0d t0). unfold le, Le_instance_QTime in H0d.
+  repnd.
+  DestImp H0d; [|lra].
+  repnd. 
+  rewrite H0dl in H1d.
+  DestImp H1d;[|lra].
+  DestImp H1d;[|reflexivity].
+  split; [apply H1d; lra|].
+  rewrite <- H0dr.
+  unfold posAtTime, equiv, EquivCart.
+  simpl.
+  split.
+- apply TDerivativeEqQ0 with 
+    (F':=(transVel icreate[*]CFCos (theta icreate)));
+    eauto with ICR.
+  intros tq Hbw. simpl in Hbw.
+  rewrite TContRMult, H1d;
+    [| lra].
+  rewrite IR_mult_zero_left.
+  unfold zero, Zero_Instace_IR_better.
+  rewrite inj_Q_Zero. reflexivity.
+
+- apply TDerivativeEqQ0 with 
+    (F':=(transVel icreate[*]CFSine (theta icreate)));
+    eauto with ICR.
+  intros tq Hbw. simpl in Hbw.
+  rewrite TContRMult, H1d; [| lra].
+  rewrite IR_mult_zero_left.
+  unfold zero, Zero_Instace_IR_better.
+  rewrite inj_Q_Zero. reflexivity.
+Qed.
 
 Lemma TurnCompleteTime :
   ∃ (t : QTime), 

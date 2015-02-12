@@ -432,23 +432,6 @@ Qed.
 
 Hint Rewrite realCancel : CoRN.
 
-Lemma RemoveOrFalse : forall A , A \/ False <-> A.
-Proof.
-  tauto.
-Qed.
-
-
-Lemma length1In : forall {A} (l : list A) (a: A),
-  In a l 
-  -> List.length l = 1%nat
-  -> a::nil = l.
-Proof.
-  intros ? ? ? Hin Hlen.
-  destruct l; simpl in Hlen; inversion Hlen as [ Hll].
-  destruct l; inversion Hll.
-  simpl in Hin. rewrite  RemoveOrFalse in Hin.
-  subst. reflexivity.
-Qed.
 
 
 Ltac TrimAndRHS Hyp :=
@@ -458,14 +441,6 @@ destruct Hyp as [Hyp H99]; clear H99.
 Ltac TrimAndLHS Hyp :=
 let H99 := fresh "H99" in 
 destruct Hyp as [H99 Hyp]; clear H99.
-
-Ltac repnd :=
-  repeat match goal with
-           | [ H : _ /\ _ |- _ ] =>
-            let lname := fresh H "l" in 
-            let rname := fresh H "r" in 
-              destruct H as [lname rname]
-         end.
   
 Definition subset {A} (la lb : list A) : Prop :=
   forall a:A, In a la -> In a lb.
@@ -499,11 +474,6 @@ Ltac exrepd :=
                destruct H as [name Hname]
          end.
 
-Ltac dands :=
-  repeat match goal with
-           | [ |- _ /\ _ ] => split
-           | [ |- prod _ _ ] => split
-         end.
 
 Definition inBetween (l m r: Q) := l < m < r.
 

@@ -23,3 +23,8 @@ Proof. apply (rings.from_stdlib_ring_theory (CRing_Ring IR)). Qed.
 Instance Le_instance_IR : Le IR := (@cof_leEq IR).
 
 Instance Cast_instace_Q_IR : Cast Q IR := (inj_Q IR).
+
+(** Equiv itself does not give RST props of equality *)
+Instance Equivalence_instance_IR : @Equivalence IR equiv.
+  split; repeat (intros ?); simpl; repnd; info_auto with *.
+Defined.

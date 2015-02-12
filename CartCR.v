@@ -85,6 +85,24 @@ Instance castCart `{Cast A B} : Cast (Cart2D A) (Cart2D B) :=
 Instance EquivCart  `{Equiv A} : Equiv (Cart2D A) :=
 fun ca cb => (X ca = X cb /\ Y ca = Y cb).
 
+Require Export StdlibMisc.
+
+Instance Equivalence_instance_Cart2D2
+  `{r: Equiv A} 
+    `{Equivalence _ r} : @Equivalence (Cart2D A) equiv.
+  unfold EquivCart. split.
+  - intros x. destruct x. compute. split; auto with *.
+  - intros x y. destruct x,y. compute. intros Hd; destruct Hd;
+      split; auto with relations.
+
+  - intros x y z. destruct x,y,z. compute. intros H0 H1.
+    repnd.
+    split; eauto 10
+    with relations.
+    rewrite H0l. auto.
+    rewrite H0r. auto.
+Qed.
+
 Require Import Coq.QArith.Qfield.
 Require Import Coq.QArith.Qring.
 Require Import Psatz.

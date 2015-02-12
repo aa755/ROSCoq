@@ -141,6 +141,36 @@ Qed.
 
 Hint Rewrite nth_error_nil : Basics.
 
+Lemma RemoveOrFalse : forall A , A \/ False <-> A.
+Proof.
+  tauto.
+Qed.
+Ltac repnd :=
+  repeat match goal with
+           | [ H : _ /\ _ |- _ ] =>
+            let lname := fresh H "l" in 
+            let rname := fresh H "r" in 
+              destruct H as [lname rname]
+         end.
+Ltac dands :=
+  repeat match goal with
+           | [ |- _ /\ _ ] => split
+           | [ |- prod _ _ ] => split
+         end.
+
+
+Lemma length1In : forall {A} (l : list A) (a: A),
+  In a l 
+  -> List.length l = 1%nat
+  -> a::nil = l.
+Proof.
+  intros ? ? ? Hin Hlen.
+  destruct l; simpl in Hlen; inversion Hlen as [ Hll].
+  destruct l; inversion Hll.
+  simpl in Hin. rewrite  RemoveOrFalse in Hin.
+  subst. reflexivity.
+Qed.
+
 Require Import Omega.
 Theorem comp_ind_type :
   ∀ P: nat → Type,
