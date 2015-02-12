@@ -1079,7 +1079,7 @@ Lemma IR_mult_zero_left : ∀ (x : IR), 0[*]x[=]0.
 Qed.
 
   
-Lemma TransPosAtEV0 :
+Lemma TransVelPosAtEV0 :
   let t0 : QTime := MotorEventsNthTime 0 (decAuto (0<4)%nat I) in
   ∀ (t : QTime),  t ≤ t0
       → ({transVel icreate} t = 0 ∧ (posAtTime t) = (posAtTime 0)).
@@ -1106,10 +1106,30 @@ Proof.
   rewrite initTransVel in Hd0.
   specialize (Hd0 Hq).
   DestImp Hd0;[|reflexivity].
-  
+  split; [auto|].
+  unfold posAtTime.
+Local Opaque getF mkQTime.
+  simpl.
+  split.
+Local Transparent mkQTime.
+- apply TDerivativeEqQ0 with 
+    (F':=(transVel icreate[*]CFCos (theta icreate)));
+    eauto with ICR.
+  intros tq Hbw. simpl in Hbw.
+  rewrite TContRMult, Hd0; [| lra].
+  rewrite IR_mult_zero_left.
+  unfold zero, Zero_Instace_IR_better.
+  rewrite inj_Q_Zero. reflexivity.
 
-
-Abort.
+- apply TDerivativeEqQ0 with 
+    (F':=(transVel icreate[*]CFSine (theta icreate)));
+    eauto with ICR.
+  intros tq Hbw. simpl in Hbw.
+  rewrite TContRMult, Hd0; [| lra].
+  rewrite IR_mult_zero_left.
+  unfold zero, Zero_Instace_IR_better.
+  rewrite inj_Q_Zero. reflexivity.
+Qed.
 
 
   
