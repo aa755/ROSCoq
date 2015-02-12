@@ -945,6 +945,13 @@ Proof.
   intros ?. destruct lm; reflexivity.
 Qed.
 
+Definition MotorEventsNth (n:nat) (p :  n < 4) : Event.
+  apply MotorEvents in p.
+  exact (projT1 p).
+Defined.
+
+Hint Unfold π₁ ProjectionFst_instance_prod : π₁.
+
 Lemma MotorEvents2:
   let resp := PureSwProgram targetPos in
   ∀ n: nat, 
@@ -962,8 +969,85 @@ Lemma MotorEvents2:
                          n 
                      + procTime)%Q 
                 (QT2Q (eTime ev)) }.
-Admitted.
+Proof.
+  simpl. intros n Hp.
+  apply MotorEvents in Hp.
+  destruct Hp as [ev Hp].
+  exists ev.
+  repnd.
+  dands; auto;[].
+  revert Hprrrl Hpl.
+  clear.
+  intros Hc Hpl.
+  unfold getRecdPayload.
+  rewrite deqSingleMessage2;[| assumption].
+  rewrite <- nth_error_map in Hc.
+  simpl in Hc.
+  match goal with
+  [|- context[@nth_error ?T ?l ?n]] => destruct (@nth_error T l n); inverts Hc as Hc
+  end.
+  autounfold with π₁ in Hc.
+  rewrite moveMapInsideSome.
+  simpl. rewrite Hc.
+  reflexivity.
+Qed.
 
+
+Definition MotorEventsNthTime (n:nat) (p :  n < 4) : QTime :=
+  (eTime (MotorEventsNth n p)).
+
+(** only the fly proof construction for closed (transparently) 
+     decidable propositions.
+   For example, (decAuto (2<4) I) is a of type (2<4) *)
+
+Definition decAuto :  ∀ (P: Prop) `{Decision P},
+  (if decide P then True else False) -> P.
+  intros ? ? Hd.
+  destruct (decide P); tauto.
+Defined.
+
+Close Scope nat_scope.
+
+Lemma OmegaThetaAtEV0 :
+  let t0 : QTime := MotorEventsNthTime 0 (decAuto (0<4)%nat I) in
+  ∀ (t : QTime),  t ≤ t0
+      → ({omega icreate} t [=] 0%Q ∧ {theta icreate} t [=] {theta icreate} 0).
+Proof.
+  intros ? ? Hle. 
+  unfold le, Le_instance_QTime in Hle.
+  pose proof (qtimePos t) as Hq.
+  apply changesToDeriv0Comb with 
+    (uptoTime := t0)
+    (reactionTime:=reacTime); eauto with ICR; try (simpl;lra);
+    [|rewrite initOmega; reflexivity].
+  pose proof (corrNodes eo MOVABLEBASE) as Hc.
+  simpl in Hc.
+  unfold DeviceSemantics, BaseMotors in Hc.
+  apply proj1 in Hc.
+  (** lets go one by one starting from the first message *)
+
+  unfold MotorEventsNthTime, MotorEventsNth in t0.
+  destruct (MotorEvents 0 (decAuto (0<4)%nat I)) as [evStartTurn  H0m].
+  simpl in t0.
+  unfold minDelayForIndex, roscore.delay, Basics.compose in H0m.
+  Local Opaque getPayloadAndEv.
+  simpl in H0m.
+  unfold corrSinceLastVel in Hc.
+  unfold lastVelAndTime, lastPayloadAndTime, filterPayloadsUptoTime in Hc.
+  pose proof Hc as Hcb. hide_hyp Hcb. 
+  specialize (Hc (eTime evStartTurn)).
+  repnd.
+  rewrite numPrevEvtsEtime in Hc;[|assumption].
+  rewrite H0mrrl in Hc.
+  simpl in Hc.
+  unfold correctVelDuring in Hc.
+  apply proj2 in Hc.
+  ReplaceH ((θ initialVel) ≡ 0)%Q Hc.
+  rewrite omegaPrec0 in Hc.
+  exact Hc.
+Qed.
+
+  
 Close Scope nat_scope.
 
 Lemma TurnCompleteTime :
@@ -1003,6 +1087,7 @@ Local Opaque getPayloadAndEv.
   apply proj2 in Hc.
   ReplaceH ((θ initialVel) ≡ 0)%Q Hc.
   rewrite omegaPrec0 in Hc.
+  (*
   apply changesToDeriv0 with (F:=(theta icreate)) (t:=(eTime evStartTurn)) in Hc;
   eauto using derivRot, initOmega, qtimePos;
   [|simpl; split; try lra; apply qtimePos].
@@ -1029,6 +1114,7 @@ Local Opaque getPayloadAndEv.
   simpl rad in Hc.
   simpl θ in Hc.
   cbv iota in Hc.
+*)
 
 (*
   unfold getPayloadAndEv, getRecdPayload in Hc.
@@ -1036,7 +1122,6 @@ Local Opaque getPayloadAndEv.
 
   simpl in Hc. unfold getPayload in Hc.
   inverts H0mrrrl as Hm0p.
-  Hint Unfold π₁ ProjectionFst_instance_prod : π₁.
   autounfold with π₁ in Hm0p.
   simpl in Hc. rewrite Hm0p in Hc.
   unfold getPayloadR in Hc.
