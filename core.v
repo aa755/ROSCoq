@@ -1075,3 +1075,128 @@ Proof.
   split;
   eauto using changesToDeriv0Integ, changesToDeriv0Deriv.
 Qed.
+
+Lemma AbsMinusUB : ∀ (a t eps : IR),
+  AbsIR (t[-]a)[<=] eps
+  -> t [<=] a [+] eps.
+Proof.
+  intros ? ? ? Habs.
+  rewrite AbsIR_minus in Habs.
+  apply AbsIR_bnd. assumption.
+Qed.
+
+Lemma AbsMinusLB : ∀ (a t eps : IR),
+  AbsIR (t[-]a)[<=] eps
+  -> a [-] eps [<=] t.
+Proof.
+  intros ? ? ? Habs.
+  apply AbsIR_bnd in Habs.
+  apply shift_minus_leEq.
+  assumption.
+Qed.
+
+Lemma eqImpliesLeEq : ∀ a b : IR,
+  a [=] b -> a [<=] b.
+Proof.
+  intros ? ? H. rewrite H.
+  apply leEq_reflexive.
+Qed.
+
+
+Lemma TDerivativeAbsQ :forall (F F' : TContR)
+   (ta tb : QTime) (Hab : ta <= tb) (c eps: ℝ),
+   isDerivativeOf F' F
+   -> (forall (t:QTime), ta <= t <= tb -> AbsIR ({F'} t [-] c) [<=] eps)
+   -> AbsIR({F} tb[-] {F} ta [-] c[*](tb-ta)) [<=] eps [*] (tb - ta).
+Proof.
+  intros ? ? ? ? ? ? ? Hder Habs.
+  pose proof (λ t p, (AbsMinusUB _ _ _ (Habs t p))) as Hub.
+  pose proof (λ t p, (AbsMinusLB _ _ _ (Habs t p))) as Hlb.
+  clear Habs.
+  apply AbsSmall_imp_AbsIR.
+  unfold AbsSmall.
+  apply TDerivativeUBQ with (F:=F) in Hub; auto.
+  apply TDerivativeLBQ with (F:=F) in Hlb; auto.
+  clear Hder.
+  split;[clear Hub | clear Hlb].
+- apply shift_leEq_minus'.
+  eapply leEq_transitive;[| apply Hlb].
+  apply eqImpliesLeEq.
+  unfold Q2R.
+  remember (inj_Q IR (tb - ta)) as ba.
+  IRRing.
+- apply shift_minus_leEq.
+  eapply leEq_transitive;[apply Hub|].
+  apply eqImpliesLeEq.
+  unfold Q2R.
+  remember (inj_Q IR (tb - ta)) as ba.
+  IRRing.
+Qed.
+
+Lemma  triangleMiddle : 
+∀ y x z: ℝ, 
+  AbsIR (x[-]z)[<=]AbsIR (x [-] y)
+                  [+]AbsIR (y [-] z).
+  intros.
+  assert (x[-]z [=] (x [-] y) [+](y [-] z)) as Hm
+    by IRRing.
+  rewrite Hm.
+  apply triangle_IR.
+Qed.
+
+
+Lemma betweenRAbs : ∀ (b a c : IR),
+  between b a c
+  -> AbsIR (b[-]c) [<=] AbsIR (a[-]c).
+Proof.
+  intros ? ? ? Hb.
+  unfold between in Hb.
+  rewrite (Abs_Max).
+  rewrite (Abs_Max).
+  repnd.
+  apply minus_resp_leEq_both.
+- apply Max_leEq; eauto 2 with CoRN.
+- apply leEq_Min; eauto 2 with CoRN.
+Qed.
+
+(** Exact same proof as above *)  
+Lemma betweenLAbs : ∀ (b a c : IR),
+  between b a c
+  -> AbsIR (b[-]a) [<=] AbsIR (a[-]c).
+Proof.
+  intros ? ? ? Hb.
+  unfold between in Hb.
+  rewrite (Abs_Max).
+  rewrite (Abs_Max).
+  repnd.
+  apply minus_resp_leEq_both.
+- apply Max_leEq; eauto 2 with CoRN.
+- apply leEq_Min; eauto 2 with CoRN.
+Qed.
+
+
+Lemma changesToDerivInteg :  ∀ (F' F: TContR)
+  (atTime uptoTime reacTime : QTime) (oldVal newVal : IR)
+  ( eps : Q),
+  atTime + reacTime < uptoTime
+  → changesTo F' atTime uptoTime newVal reacTime eps
+  → {F'} atTime [=] oldVal 
+  → isDerivativeOf F' F
+  → exists qtrans : QTime,  atTime <= qtrans <= atTime + reacTime
+        ∧   True   .
+Proof.
+  intros ? ? ? ? ? ? ? ? Hr Hc Hf0 Hd.
+  pose proof (Q_dec atTime uptoTime) as Htric.
+  pose proof (qtimePos reacTime).
+  destruct Htric as [Htric | Htric];[|lra].
+  destruct Htric as [Htric | Htric] ;[|lra].
+  unfold changesTo in Hc.
+  destruct Hc as [qtrans  Hm]. repnd.
+  pose proof (λ t p, (betweenRAbs _ _ _ (Hmrr t p)))
+     as Hub. clear Hmrr.
+  remember (AbsIR ({F'} atTime[-]newVal)) as
+    eps1.
+  apply TDerivativeAbsQ with (F:=F) in Hub; auto;[].
+  apply TDerivativeAbsQ with (F:=F) in Hmrl; auto.
+Abort.
+

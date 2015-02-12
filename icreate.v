@@ -1219,6 +1219,30 @@ Proof.
   rewrite inj_Q_Zero. reflexivity.
 Qed.
 
+Definition optimalTurnAngle : IR :=
+  CRasIR (θ (Cart2Polar targetPos)).
+
+Definition turnAcc : IR.
+Admitted.
+
+Lemma OmegaThetaPosAtEV1 :
+  let t0 : QTime := MotorEventsNthTime 0 (decAuto (0<4)%nat I) in
+  let t1 : QTime := MotorEventsNthTime 1 (decAuto (1<4)%nat I) in
+     |{theta icreate} t1 - optimalTurnAngle| ≤ turnAcc.
+Proof.
+  intros ? ?.
+  pose proof correctVel0to1 as Hc.
+  simpl in Hc. fold t0 in Hc.
+  unfold correctVelDuring in Hc.
+  apply proj2 in Hc. simpl θ in Hc.
+  fold t1 in Hc.
+  match type of Hc with
+  context[omegaPrec ?om]
+    => remember (omegaPrec om) as opr
+  end.
+Abort.
+  
+
 Lemma TurnCompleteTime :
   ∃ (t : QTime), 
       ((|({theta icreate} t) - CRasIR (θ (Cart2Polar targetPos))|) ≤ [0]).
