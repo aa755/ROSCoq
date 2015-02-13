@@ -1340,6 +1340,21 @@ Proof.
   ring.
 Qed.
 
+Lemma QmultOverQminusR : ∀ a b c : Q,
+  ((a - b) * c == a * c - b * c)%Q.
+Proof.
+  intros ? ? ?.
+  ring.
+Qed.
+
+
+Lemma foldQminus : ∀ a b : Q,
+  (a + - b == (a - b) )%Q.
+Proof.
+  intros ? ?. reflexivity.
+Qed.
+
+
 Lemma OmegaThetaPosAtEV1 :
   let t0 : QTime := MotorEventsNthTime 0 (decAuto (0<4)%nat I) in
   let t1 : QTime := MotorEventsNthTime 1 (decAuto (1<4)%nat I) in
@@ -1352,7 +1367,7 @@ Proof.
   apply proj2 in Hc. simpl θ in Hc.
   fold t1 in Hc.
   match type of Hc with
-  context[changesTo _ _ _ ?nv _ (QT2Q ?om)]
+  context[changesTo _ _ _ (Q2R ?nv) _ (QT2Q ?om)]
     => remember om as opr;
        remember nv as newVal
   end.
@@ -1371,9 +1386,10 @@ Proof.
   rewrite cg_inv_zero in Hc.
   rewrite IR_inv_Qzero in Hc.
   pose proof HeqnewVal as Habs.
+  apply (f_equal Q2R) in Habs.
   apply (f_equal AbsIR) in Habs.
   unfold Q2R in Habs.
-  apply seq_refl in Habs.
+  apply seq_refl in Habs. symmetry in Habs.
   rewrite AbsIR_Qabs in Habs.
   unfold mult, stdlib_rationals.Q_mult in Habs.
   rewrite Qabs.Qabs_Qmult in Habs.
@@ -1384,9 +1400,32 @@ Proof.
   clear H99.
   InjQRingSimplify.
   intros Habs.
-  rewrite Habs in Hc. rewrite QabsQpos in Hc.
-Abort.
+  rewrite <- Habs in Hc. rewrite QabsQpos in Hc.
+  pose proof MotorEv01Gap as Hg.
+  simpl in Hg.
+  fold t0 t1 in Hg.
+  apply Qmult_le_compat_r with (z:= Qabs.Qabs newVal) in Hg.
+  rewrite <- Qabs.Qabs_Qmult in Hg. idtac.
+  revert Hg.
+  unfoldMC.
+  intros Hg.
+  rewrite foldQminus in Hg.
+  rewrite  QmultOverQminusR in Hg.
+  rewrite foldQminus in Hg.
+  rewrite  HeqnewVal  in Hg at 2.
   
+Lemma QAbsMultSign: forall a b : Q,
+  ((Qabs.Qabs a) * / b * ((QSign a 1) * b) == a)%Q.
+Admitted.
+  unfold CanonicalNotations.norm, NormSpace_instance_Q in Hg.
+  revert Hg.
+  unfoldMC.
+  intros Hg.
+  rewrite QAbsMultSign in Hg.
+  rewrite AbsIR_Qabs in Habs.
+
+Abort.
+ 
 
 
 Lemma Liveness :
