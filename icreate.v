@@ -1225,6 +1225,62 @@ Definition optimalTurnAngle : IR :=
 Definition turnAcc : IR.
 Admitted.
 
+Lemma QTimeLeRefl : ∀ {t : QTime},
+  t ≤ t.
+intros.
+unfold le, Le_instance_QTime; lra.
+Qed.
+
+Lemma IR_inv_Qzero:
+    ∀ (x : IR), x[-]0[=]x.
+Proof.
+  intros.
+  unfold zero, Zero_Instace_IR_better.
+  rewrite inj_Q_Zero.
+  apply  cg_inv_zero.
+Qed.
+
+Lemma QAbsQSign : 
+  ∀ a c, |QSign a c| = |c|.
+Proof.
+  intros.
+  unfold QSign, CanonicalNotations.norm,
+  NormSpace_instance_Q.
+  destruct (decide (a < 0)) as [Hd | Hd]; auto.
+  apply Qabs.Qabs_opp.
+Qed.
+
+  
+
+Instance Proper_Qeq_Inj_Q :
+  Proper (Qeq ==> @st_eq IR) (inj_Q IR).
+Proof.
+  intros a b Hab.
+  apply inj_Q_wd.
+  auto.
+Qed.
+
+Ltac InjQRingSimplify :=
+  unfold Q2R, Z2R; autorewrite with QSimpl;
+let H99 := fresh "HSimplInjQ" in
+let H98 := fresh "HSimplInjQ" in
+match goal with
+[|- context [inj_Q _ ?q]] => pose proof (Qeq_refl q) as H99;
+                            ring_simplify in H99;
+                            match type of H99 with
+                            | (?qn == _)%Q => 
+                             assert (q == qn)%Q as H98 by ring;
+                             rewrite H98; clear H99; clear H98
+                            end
+end.
+
+Lemma QabsQpos : ∀ (qp: Qpos),
+   ((Qabs.Qabs qp) == qp)%Q.
+  intros.
+  destruct qp; simpl.
+  rewrite Qabs.Qabs_pos; lra.
+Qed.
+
 Lemma OmegaThetaPosAtEV1 :
   let t0 : QTime := MotorEventsNthTime 0 (decAuto (0<4)%nat I) in
   let t1 : QTime := MotorEventsNthTime 1 (decAuto (1<4)%nat I) in
@@ -1237,102 +1293,42 @@ Proof.
   apply proj2 in Hc. simpl θ in Hc.
   fold t1 in Hc.
   match type of Hc with
-  context[omegaPrec ?om]
-    => remember (omegaPrec om) as opr
+  context[changesTo _ _ _ ?nv _ (QT2Q ?om)]
+    => remember om as opr;
+       remember nv as newVal
   end.
+  assert ((t0 + reacTime < t1)%Q) 
+    as Hassumption by admit.
+  pose proof (qtimePos reacTime) as H99.
+  pose proof (OmegaThetaAtEV0 t0 QTimeLeRefl) as Ht0.
+  repnd.
+  apply changesToDerivInteg2
+    with (F:=(theta icreate)) (oldVal:=0) in Hc;
+    eauto with ICR.
+  rewrite initTheta in Ht0r.
+  rewrite Ht0r in Hc.
+  rewrite Ht0l in Hc.
+  rewrite  (AbsIR_minus 0)  in Hc .
+  rewrite cg_inv_zero in Hc.
+  rewrite IR_inv_Qzero in Hc.
+  pose proof HeqnewVal as Habs.
+  apply (f_equal AbsIR) in Habs.
+  unfold Q2R in Habs.
+  apply seq_refl in Habs.
+  rewrite AbsIR_Qabs in Habs.
+  unfold mult, stdlib_rationals.Q_mult in Habs.
+  rewrite Qabs.Qabs_Qmult in Habs.
+  rewrite QAbsQSign in Habs.
+  unfold CanonicalNotations.norm, NormSpace_instance_Q in Habs.
+  simpl Qabs.Qabs  in Habs.
+  revert Habs.
+  clear H99.
+  InjQRingSimplify.
+  intros Habs.
+  rewrite Habs in Hc. rewrite QabsQpos in Hc.
 Abort.
   
 
-Lemma TurnCompleteTime :
-  ∃ (t : QTime), 
-      ((|({theta icreate} t) - CRasIR (θ (Cart2Polar targetPos))|) ≤ [0]).
-(** replace [0] by the appropriate value *)
-Proof.
-  pose proof (MotorEvents2 1) as H1m.
-  DestImp H1m; [|omega].
-  destruct H1m as [evStopTurn  H1m].
-  unfold minDelayForIndex, roscore.delay, Basics.compose in H1m.
-  simpl in H1m. hide_hyp H1m.
-  exists ((eTime evStopTurn)+reacTime).
-  pose proof (corrNodes eo MOVABLEBASE) as Hc.
-  simpl in Hc.
-  unfold DeviceSemantics, BaseMotors in Hc.
-  apply proj1 in Hc.
-  (** lets go one by one starting from the first message *)
-
-  pose proof (MotorEvents2 0) as H0m.
-  DestImp H0m; [|omega].
-  destruct H0m as [evStartTurn  H0m].
-  unfold minDelayForIndex, roscore.delay, Basics.compose in H0m.
-Local Opaque getPayloadAndEv.
-  simpl in H0m.
-  hide_hyp H0m.
-  unfold corrSinceLastVel in Hc.
-  unfold lastVelAndTime, lastPayloadAndTime, filterPayloadsUptoTime in Hc.
-  pose proof Hc as Hcb. hide_hyp Hcb. 
-  
-  specialize (Hc (eTime evStartTurn)).
-  show_hyp H0m. repnd.
-  rewrite numPrevEvtsEtime in Hc;[|assumption].
-  rewrite H0mrrl in Hc.
-  simpl in Hc.
-  unfold correctVelDuring in Hc.
-  apply proj2 in Hc.
-  ReplaceH ((θ initialVel) ≡ 0)%Q Hc.
-  rewrite omegaPrec0 in Hc.
-  (*
-  apply changesToDeriv0 with (F:=(theta icreate)) (t:=(eTime evStartTurn)) in Hc;
-  eauto using derivRot, initOmega, qtimePos;
-  [|simpl; split; try lra; apply qtimePos].
-  rewrite initTheta in Hc.
-  rename Hc into HThetaEv0.
-  (** Done!! Moving on to the next message.
-    Wait. derive values for  Pos and tVel too.
-    Perhaps split this proof into 1 for each event*)
-  
-  show_hyp Hcb. rename Hcb into Hc.
-  show_hyp H1m. repnd.
-  specialize (Hc (eTime evStopTurn)).
-  rewrite numPrevEvtsEtime in Hc; [|assumption].
-  rewrite H1mrrl in Hc.
-  simpl in Hc.
-  unfold correctVelDuring in Hc.
-  rewrite (locEvtIndexRW evStartTurn) in Hc;[|tauto].
-
-  rewrite H0mrrrl in Hc.
-  simpl map in Hc.
-  simpl hd in Hc. 
-  cbv iota in Hc.
-  cbv beta in Hc.
-  simpl rad in Hc.
-  simpl θ in Hc.
-  cbv iota in Hc.
-*)
-
-(*
-  unfold getPayloadAndEv, getRecdPayload in Hc.
-  rewrite deqSingleMessage2 in Hc;[| assumption].
-
-  simpl in Hc. unfold getPayload in Hc.
-  inverts H0mrrrl as Hm0p.
-  autounfold with π₁ in Hm0p.
-  simpl in Hc. rewrite Hm0p in Hc.
-  unfold getPayloadR in Hc.
-
-
-
-   rewrite moveMapInsideFst in Hc .
-
-  (** directly have some lemma about Hc
-
-  apply proj2 in Hc.
-  ReplaceH ((θ initialVel) ≡ 0)%Q Hc.
-  rewrite omegaPrec0 in Hc.
-  apply changesToDeriv0 with (F:=(theta icreate)) (t:=(eTime evStartTurn)) in Hc;
-  eauto using derivRot, initOmega, qtimePos; *)
-*)
-  
-Abort.
 
 Lemma Liveness :
   ∃ (ts : QTime), ∀ (t : QTime), 
