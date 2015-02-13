@@ -257,16 +257,16 @@ Definition SwProcess
   mkPureProcess (delayedLift2Mesg (PureSwProgram)).
 
 Variable procTime : QTime.
-Variable timingAcc : Qpos.
+Variable sendTimeAcc : Qpos.
 Require Import CoRN.model.metric2.Qmetric.
 
 Definition qtball : Q → Q → Prop :=
-  (ball timingAcc).
+  (ball sendTimeAcc).
 
 Notation "a ≊t b" := (qtball  a b) (at level 100).
 
 Definition ControllerNode : RosSwNode :=
-  Build_RosSwNode (SwProcess) (procTime, timingAcc).
+  Build_RosSwNode (SwProcess) (procTime, sendTimeAcc).
 
 
 (** The software could reply back to the the external agent saying "done".
@@ -304,14 +304,14 @@ match rl with
 | EXTERNALCMD  => externalCmdSemantics
 end.
 
-Variable expectedDelay : Qpos.
-Variable maxVariation : Qpos.
+Variable expectedDelivDelay : Qpos.
+Variable delivDelayVar : Qpos.
 
 Instance rllllfjkfhsdakfsdakh : @RosLocType iCreate Topic Event  RosLoc _.
   apply Build_RosLocType.
   - exact locNode.
   - exact locTopics.
-  - exact (λ _ _ t , ball maxVariation t (QposAsQ expectedDelay)).
+  - exact (λ _ _ t , ball delivDelayVar t (QposAsQ expectedDelivDelay)).
 Defined.
 
 Variable acceptableDist : Q.
@@ -571,7 +571,7 @@ Lemma SwEventsSn :
             ∧ Some (eMesg ev) 
                ≡ nth_error
                     (map (λ p, mkDelayedMesg (π₁ p) (π₂ p)) resp) n
-            ∧ ball timingAcc
+            ∧ ball sendTimeAcc
                 (eTime (projT1 SwEvents0)
                      + minDelayForIndex
                          (map (λ p, mkDelayedMesg (π₁ p) (π₂ p)) resp) 
@@ -825,8 +825,8 @@ Lemma MotorEvents:
             ∧ Some (π₁ (eMesg ev))
                ≡ nth_error
                     (map (λ p, existT topicType VELOCITY (π₂ p)) resp) n
-            ∧ ball (timingAcc+maxVariation)
-                ( eTime (projT1 SwEvents0) + expectedDelay
+            ∧ ball (sendTimeAcc+delivDelayVar)
+                ( eTime (projT1 SwEvents0) + expectedDelivDelay
                      + minDelayForIndex
                          (map (λ p, mkDelayedMesg (π₁ p) (π₂ p)) resp) 
                          n 
@@ -873,9 +873,9 @@ Proof.
   apply Q.Qabs_diff_Qle in H1q.
   apply Q.Qabs_diff_Qle in H2q.
   apply Q.Qabs_diff_Qle.
-  destruct timingAcc as [tAcc ?].
-  destruct expectedDelay  as [expD ?].
-  destruct maxVariation   as [maxVar ?].
+  destruct sendTimeAcc as [tAcc ?].
+  destruct expectedDelivDelay  as [expD ?].
+  destruct delivDelayVar   as [maxVar ?].
   simpl.
   simpl in H2q, H1q.
   split; lra.
@@ -958,8 +958,8 @@ Lemma MotorEvents2:
             ∧  getPayloadAndEv VELOCITY (Some ev)  
                 ≡ opBind (λ pl, Some (π₂ pl, ev))
                        (nth_error resp n)
-            ∧ ball (timingAcc+maxVariation)
-                ( eTime (projT1 SwEvents0) + expectedDelay
+            ∧ ball (sendTimeAcc+delivDelayVar)
+                ( eTime (projT1 SwEvents0) + expectedDelivDelay
                      + minDelayForIndex
                          (map (λ p, mkDelayedMesg (π₁ p) (π₂ p)) resp) 
                          n 
@@ -1295,7 +1295,7 @@ Lemma MotorEv01Gap :
   let tgap :Q := ((|approximate (polarTheta targetPos) anglePrec|)
                 * (Qinv rotspeed)) in
    |QT2Q t1 - QT2Q t0 -  tgap| 
-  ≤ 2 * (timingAcc + maxVariation)%Q.
+  ≤ 2 * (sendTimeAcc + delivDelayVar)%Q.
 Proof.
   intros ? ? ?.
   unfold MotorEventsNthTime, MotorEventsNth in t0, t1.
