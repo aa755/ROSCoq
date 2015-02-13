@@ -1182,21 +1182,72 @@ Lemma changesToDerivInteg :  ∀ (F' F: TContR)
   → changesTo F' atTime uptoTime newVal reacTime eps
   → {F'} atTime [=] oldVal 
   → isDerivativeOf F' F
-  → exists qtrans : QTime,  atTime <= qtrans <= atTime + reacTime
-        ∧   True   .
+  → let eps1 := (AbsIR ({F'} atTime[-]newVal)) in
+    exists qtrans : QTime,  atTime <= qtrans <= atTime + reacTime
+      ∧  AbsIR({F} uptoTime[-]{F} atTime[-]newVal[*](uptoTime - atTime))
+          [<=] eps1[*](qtrans - atTime) [+] eps[*](uptoTime - qtrans).
 Proof.
-  intros ? ? ? ? ? ? ? ? Hr Hc Hf0 Hd.
+  intros ? ? ? ? ? ? ? ? Hr Hc Hf0 Hd eps1.
   pose proof (Q_dec atTime uptoTime) as Htric.
   pose proof (qtimePos reacTime).
   destruct Htric as [Htric | Htric];[|lra].
   destruct Htric as [Htric | Htric] ;[|lra].
   unfold changesTo in Hc.
-  destruct Hc as [qtrans  Hm]. repnd.
+  destruct Hc as [qtrans  Hm].
+  exists qtrans.
+  split;[tauto|]. repnd.
   pose proof (λ t p, (betweenRAbs _ _ _ (Hmrr t p)))
-     as Hub. clear Hmrr.
-  remember (AbsIR ({F'} atTime[-]newVal)) as
-    eps1.
-  apply TDerivativeAbsQ with (F:=F) in Hub; auto;[].
-  apply TDerivativeAbsQ with (F:=F) in Hmrl; auto.
-Abort.
+     as Hqt. clear Hmrr.
+  fold eps1 in Hqt.
+  apply TDerivativeAbsQ with (F:=F) in Hqt;[|auto|auto].
+  apply TDerivativeAbsQ with (F:=F) in Hmrl;[|lra|auto].
+  pose proof (plus_resp_leEq_both _ _ _ _ _ Hqt Hmrl) as Hp.
+  eapply leEq_transitive in Hp;[| apply triangle_IR].
+  unfold Q2R.
+  rewrite inj_Q_mult.
+  eapply leEq_transitive;[| apply Hp].
+  apply eqImpliesLeEq.
+  apply AbsIR_wd.
+  unfold Q2R.
+  rewrite inj_Q_minus.
+  rewrite inj_Q_minus.
+  rewrite inj_Q_minus.
+  IRRing.
+Qed.
 
+Hint Resolve  AbsIR_nonneg : CoRN.
+
+Hint Resolve qtimePos : ROSCOQ.
+ 
+(** we didn't have a direct handle on [qtrans]
+    This spec is more extensional *)
+Lemma changesToDerivInteg2 :  ∀ (F' F: TContR)
+  (atTime uptoTime reacTime : QTime) (oldVal newVal : IR)
+  ( eps : QTime),
+  atTime + reacTime < uptoTime
+  → changesTo F' atTime uptoTime newVal reacTime eps
+  → {F'} atTime [=] oldVal 
+  → isDerivativeOf F' F
+  → let eps1 := (AbsIR ({F'} atTime[-]newVal)) in
+     AbsIR({F} uptoTime[-]{F} atTime[-]newVal[*](uptoTime - atTime))
+          [<=] eps1[*](QT2R reacTime) [+]  eps*(uptoTime - atTime).
+Proof.
+  intros ? ? ? ? ? ? ? ? Hr Hc Hf0 Hd eps1.
+  eapply changesToDerivInteg in Hc; eauto.
+  destruct Hc as [qtrans Hc].
+  repnd.
+  eapply leEq_transitive;[apply Hcr|].
+  fold (eps1).
+  apply plus_resp_leEq_both.
+- unfold Q2R.
+  destruct reacTime.
+  simpl QT2R.
+  simpl in Hclr, Hr.
+  apply mult_resp_leEq_lft;
+    [apply inj_Q_leEq; simpl; lra|].
+  subst eps1. apply AbsIR_nonneg.
+- unfold Q2R.
+  apply inj_Q_leEq. simpl.
+  apply Q.Qmult_le_compat_l;[lra|].
+  apply qtimePos.
+Qed.
