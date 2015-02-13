@@ -823,7 +823,7 @@ Local  Notation π₁ := fst.
 Local  Notation π₂ := snd.
 
 Definition minDelayForIndex (lm : list Message) (index : nat) : Q :=
-  let delays := map (delay ∘ (π₂)) (firstn index lm) in
+  let delays := map (delay ∘ (π₂)) (firstn (S index) lm) in
   fold_right Qplus 0 delays.
 
 Definition procOutMsgs

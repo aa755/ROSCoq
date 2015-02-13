@@ -1281,6 +1281,65 @@ Lemma QabsQpos : ∀ (qp: Qpos),
   rewrite Qabs.Qabs_pos; lra.
 Qed.
 
+Lemma QeqQle : ∀ x y,
+  Qeq x y -> Qle x y.
+Proof.
+  intros ? ?  Hq.
+  rewrite Hq.
+  reflexivity.
+Qed.
+
+Lemma MotorEv01Gap :
+  let t0 : QTime := MotorEventsNthTime 0 (decAuto (0<4)%nat I) in
+  let t1 : QTime := MotorEventsNthTime 1 (decAuto (1<4)%nat I) in
+  let tgap :Q := ((|approximate (polarTheta targetPos) anglePrec|)
+                * (Qinv rotspeed)) in
+   |QT2Q t1 - QT2Q t0 -  tgap| 
+  ≤ 2 * (timingAcc + maxVariation)%Q.
+Proof.
+  intros ? ? ?.
+  unfold MotorEventsNthTime, MotorEventsNth in t0, t1.
+  destruct (MotorEvents2 0 (decAuto (0<4)%nat I)) as [evStartTurn  H0m].
+  simpl in t0.
+  destruct (MotorEvents2 1 (decAuto (1<4)%nat I)) as [evStopTurn  H1m].
+  simpl in t1.
+  repeat (apply proj2 in H1m).
+  repeat (apply proj2 in H0m).
+  autounfold with π₁ in H0m, H1m.
+  unfold minDelayForIndex, roscore.delay, Basics.compose in H0m, H1m.
+  simpl in H1m, H0m.
+  unfold zero, stdlib_rationals.Q_0 in H1m, H0m.
+  ring_simplify in H1m.
+  ring_simplify in H0m.
+  unfold cast, nonneg_semiring_elements.NonNeg_inject in tgap.
+  unfold dec_recip, stdlib_rationals.Q_recip in H1m.
+  idtac. unfold CanonicalNotations.norm in tgap.
+  unfold CanonicalNotations.norm in H1m.
+  fold tgap in H1m.
+  remember tgap as tdiff.
+  subst tgap.
+  apply Qball_opp in H0m.
+  pose proof (Qball_plus H0m H1m) as Hs.
+  clear H0m H1m.
+  ring_simplify in Hs.
+  apply Qball_Qabs in Hs.
+  rewrite Qabs.Qabs_Qminus in Hs.
+  unfoldMC.
+  match goal with
+  [H: (_ <= ?r)%Q |- (_ <= ?rr)%Q] => 
+    assert (r == rr)%Q as Hrw by (simpl; ring)
+   end.
+  rewrite Hrw in Hs.
+  eapply Qle_trans; [| apply Hs].
+  apply QeqQle.
+  unfold CanonicalNotations.norm, NormSpace_instance_Q.
+  apply Qabs.Qabs_wd.
+  fold t0. 
+  fold t1. 
+  simpl.
+  ring.
+Qed.
+
 Lemma OmegaThetaPosAtEV1 :
   let t0 : QTime := MotorEventsNthTime 0 (decAuto (0<4)%nat I) in
   let t1 : QTime := MotorEventsNthTime 1 (decAuto (1<4)%nat I) in
