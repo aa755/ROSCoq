@@ -1533,7 +1533,7 @@ Proof.
   rewrite Qmult_comm in Hc.
   apply AbsIR_imp_AbsSmall in Hg.
   apply AbsIR_imp_AbsSmall in Hc.
-  pose proof (AbsSmall_plus _ _ _ _ _ Hg Hc) as Hadd.
+  pose proof (AbsSmall_plus _ _ _ _ _ Hc Hg) as Hadd.
   unfold Q2R in Hadd. ring_simplify in Hadd.
   unfold cg_minus in Hadd. ring_simplify in Hadd.
   clear dependent newVal.
@@ -1543,21 +1543,21 @@ Proof.
   Local Opaque inj_Q.
   autorewrite with QSimpl in Hadd. simpl in Hadd.
   match type of Hadd with 
-  AbsSmall (inj_Q _ (?r + _)%Q) _ => assert (r == rotspeed * (2 * (sendTimeAcc + delivDelayVar) + reacTime))%Q
+  AbsSmall (inj_Q _ ?r%Q) _ => assert (r == rotspeed * (2 * (sendTimeAcc + delivDelayVar) + reacTime) + opr * (t1 - t0))%Q
                                     as Heqq by (unfoldMC ;ring); rewrite Heqq in Hadd; clear Heqq
   end.
-  rewrite inj_Q_inv in Hadd.
-  rewrite cag_commutes_unfolded, <- cg_minus_unfolded in Hadd.
   pose proof (approximateAbsSmallIR (polarTheta targetPos) anglePrec) as Hball.
-  pose proof (AbsSmall_plus _ _ _ _ _ Hball Hadd) as Haddd.
+  apply AbsSmall_minus in Hball.
+  pose proof (AbsSmall_plus _ _ _ _ _  Hadd Hball) as Haddd.
   clear Hball Hadd. rename Haddd into Hadd.
   fold (optimalTurnAngle) in Hadd.
   unfold Q2R, cg_minus in Hadd.
-  match type of Hadd with 
-  AbsSmall ?l _ => remember l
-  end.
-
+  ring_simplify in Hadd.
 Abort.
+
+(* apply AbsSmall_imp_AbsIR in Hadd.
+  apply 
+  MotorEv01Gap *)
  
 
 
