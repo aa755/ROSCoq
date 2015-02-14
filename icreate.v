@@ -1220,7 +1220,7 @@ Proof.
 Qed.
 
 Definition optimalTurnAngle : IR :=
-  CRasIR (θ (Cart2Polar targetPos)).
+  CRasIR (polarTheta targetPos).
 
 Definition turnAcc : IR.
 Admitted.
@@ -1427,6 +1427,65 @@ Qed.
   Hint Rewrite  inj_Q_plus : InjQDown.
   Hint Rewrite  inj_Q_minus : InjQDown.
   Hint Rewrite  inj_Q_inv : InjQDown.
+  Hint Rewrite  inj_Q_mult : InjQDown.
+  Hint Rewrite <-  inj_Q_mult : QSimpl.
+
+(* MOVE *)
+Lemma CR_AbsSmall_as_IR: 
+    ∀ x y : CR, AbsSmall x y ↔ AbsSmall (CRasIR x) (CRasIR y).
+Proof.
+  intros.
+  pose proof (IR_AbsSmall_as_CR (CRasIR x) (CRasIR y)) as H.
+  rewrite CRasIRasCR_id in H.
+  rewrite CRasIRasCR_id in H.
+  tauto.
+Qed.
+
+Lemma CR_minus_asIR: ∀ x y : CR, CRasIR (x - y) [=] CRasIR x[-]CRasIR y.
+Proof.
+  intros.
+  unfold cg_minus. simpl.
+  rewrite  CR_plus_asIR, CRasIR_inv.
+  reflexivity.
+Qed.
+
+Lemma CR_minus_asIR2: ∀ x y : CR, CRasIR (x [-] y) [=] CRasIR x[-]CRasIR y.
+Proof.
+  intros. apply CR_minus_asIR.
+Qed.
+
+Instance Proper_CRasIR : Proper (@st_eq CR ==> @st_eq IR) CRasIR.
+Proof.
+  exact CRasIR_wd.
+Qed.
+
+Lemma approximateAbsSmallIR: ∀ (r:CR) (eps : Qpos),
+    AbsSmall eps (CRasIR r [-] (approximate r eps)).
+  intros ? ?.
+  pose proof (ball_approx_r r eps ) as Hball.
+  apply CRAbsSmall_ball in Hball.
+  fold (inject_Q_CR) in Hball.
+  apply CR_AbsSmall_as_IR in Hball.
+  rewrite CR_minus_asIR2 in Hball.
+  rewrite <- IR_inj_Q_as_CR in Hball.
+  rewrite <- IR_inj_Q_as_CR in Hball.
+  rewrite IRasCRasIR_id in Hball.
+  rewrite IRasCRasIR_id in Hball.
+  exact Hball.
+Qed.
+
+Lemma AbsIR_plus : ∀  (e1 e2 x1 x2 : IR),
+  AbsIR x1 [<=]  e1
+  → AbsIR x2 [<=]  e2 
+  → AbsIR (x1[+]x2) [<=] (e1[+]e2).
+Proof.
+  intros ? ? ? ? H1 H2.
+  apply AbsSmall_imp_AbsIR.
+  apply AbsSmall_plus;
+  apply AbsIR_imp_AbsSmall; assumption.
+Qed.
+
+
 
 Lemma OmegaThetaPosAtEV1 :
   let t0 : QTime := MotorEventsNthTime 0 (decAuto (0<4)%nat I) in
@@ -1478,6 +1537,26 @@ Proof.
   unfold Q2R in Hadd. ring_simplify in Hadd.
   unfold cg_minus in Hadd. ring_simplify in Hadd.
   clear dependent newVal.
+  revert Hadd.
+  unfoldMC. intro Hadd. unfold QT2R in Hadd.
+  unfold Q2R in Hadd.
+  Local Opaque inj_Q.
+  autorewrite with QSimpl in Hadd. simpl in Hadd.
+  match type of Hadd with 
+  AbsSmall (inj_Q _ (?r + _)%Q) _ => assert (r == rotspeed * (2 * (sendTimeAcc + delivDelayVar) + reacTime))%Q
+                                    as Heqq by (unfoldMC ;ring); rewrite Heqq in Hadd; clear Heqq
+  end.
+  rewrite inj_Q_inv in Hadd.
+  rewrite cag_commutes_unfolded, <- cg_minus_unfolded in Hadd.
+  pose proof (approximateAbsSmallIR (polarTheta targetPos) anglePrec) as Hball.
+  pose proof (AbsSmall_plus _ _ _ _ _ Hball Hadd) as Haddd.
+  clear Hball Hadd. rename Haddd into Hadd.
+  fold (optimalTurnAngle) in Hadd.
+  unfold Q2R, cg_minus in Hadd.
+  match type of Hadd with 
+  AbsSmall ?l _ => remember l
+  end.
+
 Abort.
  
 

@@ -98,8 +98,7 @@ Definition QT2T (q: QTime) : Time.
 Defined.
 
 Definition QT2R (q: QTime) : ℝ.
-  destruct q.
-  exact (x).
+  exact (Q2R (QT2Q q)).
 Defined.
 
 Coercion N2T : nat >-> st_car.
