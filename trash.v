@@ -589,3 +589,33 @@ Lemma fastFwd {A} (f : Time -> A)
   unfold iprop in realVPos1.
   eauto with *.
 Defined.
+
+
+Lemma TimeDiffOprBnd : ∀ (opr : QTime),
+  let t0 : QTime := MotorEventsNthTime 0 (decAuto (0<4)%nat I) in
+  let t1 : QTime := MotorEventsNthTime 1 (decAuto (1<4)%nat I) in
+ (Qabs.Qabs
+        (opr * (t1 - t0) -
+         opr *
+         (Qabs.Qabs (approximate (polarTheta targetPos) anglePrec) *
+          / rotspeed)) <= opr * ((1 + 1) * (sendTimeAcc + delivDelayVar)))%Q.
+Proof.
+  intros ? ? ?. pose proof MotorEv01Gap as Hg.
+  simpl in Hg.
+  fold t0 t1 in Hg.
+  apply Q.Qmult_le_compat_l with (z:= Qabs.Qabs opr) in Hg;
+      [|apply Qabs.Qabs_nonneg].
+  rewrite <- Qabs.Qabs_Qmult in Hg. idtac.
+  revert Hg.
+  unfoldMC.
+  intros Hg.
+  rewrite foldQminus in Hg.
+  rewrite  QmultOverQminusL in Hg.
+  rewrite foldQminus in Hg.
+  unfold CanonicalNotations.norm, NormSpace_instance_Q in Hg.
+  revert Hg.
+  unfoldMC.
+  intros Hg. 
+  rewrite QabsTime in Hg.
+  trivial.
+Qed.
