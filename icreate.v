@@ -1486,11 +1486,59 @@ Proof.
 Qed.
 
 
+Lemma QmultOverQminusL : ∀ a b c : Q,
+  (c * (a - b) == c * a - c * b)%Q.
+Proof.
+  intros ? ? ?.
+  ring.
+Qed.
+
+Lemma QabsTime : ∀ (qp: QTime),
+   ((Qabs.Qabs qp) == qp)%Q.
+  intros.
+  destruct qp; simpl.
+  apply QTimeD in y.
+  rewrite Qabs.Qabs_pos; lra.
+Qed.
+
+Lemma TimeDiffOprBnd : ∀ (opr : QTime),
+  let t0 : QTime := MotorEventsNthTime 0 (decAuto (0<4)%nat I) in
+  let t1 : QTime := MotorEventsNthTime 1 (decAuto (1<4)%nat I) in
+ (Qabs.Qabs
+        (opr * (t1 - t0) -
+         opr *
+         (Qabs.Qabs (approximate (polarTheta targetPos) anglePrec) *
+          / rotspeed)) <= opr * ((1 + 1) * (sendTimeAcc + delivDelayVar)))%Q.
+Proof.
+  intros ? ? ?. pose proof MotorEv01Gap as Hg.
+  simpl in Hg.
+  fold t0 t1 in Hg.
+  apply Q.Qmult_le_compat_l with (z:= Qabs.Qabs opr) in Hg;
+      [|apply Qabs.Qabs_nonneg].
+  rewrite <- Qabs.Qabs_Qmult in Hg. idtac.
+  revert Hg.
+  unfoldMC.
+  intros Hg.
+  rewrite foldQminus in Hg.
+  rewrite  QmultOverQminusL in Hg.
+  rewrite foldQminus in Hg.
+  unfold CanonicalNotations.norm, NormSpace_instance_Q in Hg.
+  revert Hg.
+  unfoldMC.
+  intros Hg. 
+  rewrite QabsTime in Hg.
+  trivial.
+Qed.
+
 
 Lemma OmegaThetaPosAtEV1 :
   let t0 : QTime := MotorEventsNthTime 0 (decAuto (0<4)%nat I) in
   let t1 : QTime := MotorEventsNthTime 1 (decAuto (1<4)%nat I) in
-     |{theta icreate} t1 - optimalTurnAngle| ≤ turnAcc.
+  let newVal :=  QSign (approximate (polarTheta targetPos) anglePrec) 1 *
+                  rotspeed in
+     |{theta icreate} t1 - optimalTurnAngle| ≤ 
+          Q2R (rotspeed * (2 * (sendTimeAcc + delivDelayVar) + reacTime) +
+             (omegaPrec newVal) * (t1 - t0) + anglePrec)%Q.
 Proof.
   intros ? ?.
   pose proof correctVel0to1 as Hc.
@@ -1536,7 +1584,7 @@ Proof.
   pose proof (AbsSmall_plus _ _ _ _ _ Hc Hg) as Hadd.
   unfold Q2R in Hadd. ring_simplify in Hadd.
   unfold cg_minus in Hadd. ring_simplify in Hadd.
-  clear dependent newVal.
+  clear Hg Hc.
   revert Hadd.
   unfoldMC. intro Hadd. unfold QT2R in Hadd.
   unfold Q2R in Hadd.
@@ -1552,12 +1600,15 @@ Proof.
   clear Hball Hadd. rename Haddd into Hadd.
   fold (optimalTurnAngle) in Hadd.
   unfold Q2R, cg_minus in Hadd.
-  ring_simplify in Hadd.
-Abort.
+  ring_simplify in Hadd. 
+  rewrite <- inj_Q_plus in Hadd.
+  subst opr.
+  unfold Le_instance_IR.
+  simpl in Hadd.
+  apply AbsSmall_imp_AbsIR in Hadd.
+  exact Hadd.
+Qed.
 
-(* apply AbsSmall_imp_AbsIR in Hadd.
-  apply 
-  MotorEv01Gap *)
  
 
 
