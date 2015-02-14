@@ -1538,7 +1538,7 @@ Lemma OmegaThetaPosAtEV1 :
                   rotspeed in
      |{theta icreate} t1 - optimalTurnAngle| ≤ 
           Q2R (rotspeed * (2 * (sendTimeAcc + delivDelayVar) + reacTime) +
-             (omegaPrec newVal) * (t1 - t0) + anglePrec)%Q.
+               anglePrec + (omegaPrec newVal) * (t1 - t0))%Q.
 Proof.
   intros ? ?.
   pose proof correctVel0to1 as Hc.
@@ -1606,11 +1606,86 @@ Proof.
   unfold Le_instance_IR.
   simpl in Hadd.
   apply AbsSmall_imp_AbsIR in Hadd.
-  exact Hadd.
+  eapply leEq_transitive;[apply Hadd|].
+  apply eqImpliesLeEq.
+  apply inj_Q_wd.
+  simpl. unfoldMC. ring.
 Qed.
 
- 
+Require Export Coq.QArith.Qabs.
 
+Lemma QMinusShiftRLe:
+  ∀ a b c,
+  ((a - b) <= c
+  -> a <= c +b)%Q.
+Proof.
+  intros.
+  lra.
+Qed.
+
+Lemma OmegaThetaPosAtEV1_2 :
+  let t0 : QTime := MotorEventsNthTime 0 (decAuto (0<4)%nat I) in
+  let t1 : QTime := MotorEventsNthTime 1 (decAuto (1<4)%nat I) in
+  let newVal :=  QSign (approximate (polarTheta targetPos) anglePrec) 1 *
+                  rotspeed in
+  let timeDiffErr := ((2 * (sendTimeAcc + delivDelayVar)) +
+      ((|approximate (polarTheta targetPos) anglePrec |) * / rotspeed))%Q
+                  in
+     |{theta icreate} t1 - optimalTurnAngle| ≤ 
+          Q2R (rotspeed * (2 * (sendTimeAcc + delivDelayVar) + reacTime) +
+               anglePrec + (omegaPrec newVal) * timeDiffErr)%Q.
+Proof.
+  intros. pose proof OmegaThetaPosAtEV1 as Hom.
+  Local Opaque Qabs.Qabs Q2R.
+  simpl in Hom.
+  fold t0 t1 in Hom.
+  eapply leEq_transitive;[apply Hom|].
+  apply inj_Q_leEq.
+  apply Q.Qplus_le_r.
+  apply Q.Qmult_le_compat_l;[| apply qtimePos].
+  pose proof MotorEv01Gap as Hp.
+  simpl in Hp.
+  fold t0 t1 in Hp.
+  apply Q.Qabs_Qle in Hp.
+  apply proj2 in Hp.
+  apply QMinusShiftRLe in Hp.
+  auto.
+Qed.
+
+(** rearrange the above to show relation to rotspeed 
+    first line of errors is proportional to rotspeed
+    second is independent,
+    third is inversly proportional.
+ *)
+
+Lemma OmegaThetaPosAtEV1_3 :
+  let t0 : QTime := MotorEventsNthTime 0 (decAuto (0<4)%nat I) in
+  let t1 : QTime := MotorEventsNthTime 1 (decAuto (1<4)%nat I) in
+  let newVal :Q :=  QSign (approximate (polarTheta targetPos) anglePrec) 1 *
+                  rotspeed in
+  let omPrec : QTime :=  (omegaPrec newVal) in 
+  let qthetaAbs : Q := (|approximate (polarTheta targetPos) anglePrec |) in
+ |{theta icreate} t1 - optimalTurnAngle| ≤ 
+    Q2R(rotspeed * (2 * (sendTimeAcc + delivDelayVar) + reacTime) 
+        + anglePrec + omPrec * (2 * (sendTimeAcc + delivDelayVar))
+        + omPrec * qthetaAbs * / rotspeed 
+        ).
+Proof.
+  simpl.
+  pose proof OmegaThetaPosAtEV1_2 as Hev.
+  simpl in Hev.
+  eapply leEq_transitive;[apply Hev|].
+  apply inj_Q_leEq.
+  apply QeqQle.
+  unfoldMC.
+  field.
+  destruct rotspeed.
+  simpl.
+  lra.
+Qed.
+
+
+   
 
 Lemma Liveness :
   ∃ (ts : QTime), ∀ (t : QTime), 
