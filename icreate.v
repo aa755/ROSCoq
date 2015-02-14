@@ -1665,19 +1665,20 @@ Lemma OmegaThetaPosAtEV1_3 :
                   rotspeed in
   let omPrec : QTime :=  (omegaPrec newVal) in 
   let qthetaAbs : Q := (|approximate (polarTheta targetPos) anglePrec |) in
+  let E2EDelVar : Q := 2 * (sendTimeAcc + delivDelayVar) in
  |{theta icreate} t1 - optimalTurnAngle| ≤ 
-    Q2R(rotspeed * (2 * (sendTimeAcc + delivDelayVar) + reacTime) 
-        + anglePrec + omPrec * (2 * (sendTimeAcc + delivDelayVar))
-        + omPrec * qthetaAbs * / rotspeed 
-        ).
+    Q2R(rotspeed * (E2EDelVar + reacTime) 
+        + anglePrec + omPrec * E2EDelVar
+        + omPrec * qthetaAbs * / rotspeed ).
 Proof.
   simpl.
   pose proof OmegaThetaPosAtEV1_2 as Hev.
   simpl in Hev.
   eapply leEq_transitive;[apply Hev|].
   apply inj_Q_leEq.
-  apply QeqQle.
-  unfoldMC.
+  apply QeqQle. destruct sendTimeAcc, delivDelayVar.
+  simpl.
+  unfoldMC. simpl. 
   field.
   destruct rotspeed.
   simpl.
