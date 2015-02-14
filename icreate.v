@@ -1499,6 +1499,21 @@ Lemma QabsTime : ∀ (qp: QTime),
   rewrite Qabs.Qabs_pos; lra.
 Qed.
 
+(** This could be made an assumption of the motor spec.
+  One will have to prove this and only then
+  they can assume correct behaviour of motor.
+    In this case, it should be provable becuase
+  the external thing sends only 1 event.
+
+  Lateron, we can assume that the external thing
+  has to wait until they receive an acknowledgement
+ *)
+Lemma MotorEventsNthTimeReac:
+  ∀ (n1 n2 : nat) p1 p2,
+  (n1 < n2)%nat
+   -> MotorEventsNthTime n1 p1 + reacTime
+      < MotorEventsNthTime n2 p2.
+Admitted.
 
 
 Lemma ThetaAtEV1 :
@@ -1519,7 +1534,7 @@ Proof.
     => remember om as opr
   end.
   assert ((t0 + reacTime < t1)%Q) 
-    as Hassumption by admit.
+    as Hassumption by (apply MotorEventsNthTimeReac; omega).
   pose proof (qtimePos reacTime) as H99.
   pose proof (OmegaThetaAtEV0 t0 QTimeLeRefl) as Ht0.
   repnd.
@@ -1592,7 +1607,6 @@ Proof.
 Qed.
 
 Lemma ThetaAtEV1_2 :
-  let t0 : QTime := MotorEventsNthTime 0 (decAuto (0<4)%nat I) in
   let t1 : QTime := MotorEventsNthTime 1 (decAuto (1<4)%nat I) in
   let timeDiffErr := ((2 * (sendTimeAcc + delivDelayVar)) +
       ((|approximate (polarTheta targetPos) anglePrec |) * / rotspeed))%Q
@@ -1604,14 +1618,12 @@ Proof.
   intros. pose proof ThetaAtEV1 as Hom.
   Local Opaque Qabs.Qabs Q2R.
   simpl in Hom.
-  fold t0 t1 in Hom.
   eapply leEq_transitive;[apply Hom|].
   apply inj_Q_leEq.
   apply Q.Qplus_le_r.
   apply Q.Qmult_le_compat_l;[| apply qtimePos].
   pose proof MotorEv01Gap as Hp.
   simpl in Hp.
-  fold t0 t1 in Hp.
   apply Q.Qabs_Qle in Hp.
   apply proj2 in Hp.
   apply QMinusShiftRLe in Hp.
@@ -1632,8 +1644,7 @@ Definition E2EDelVar : Q :=
     third is inversly proportional.
  *)
 
-Lemma OmegaThetaPosAtEV1_3 :
-  let t0 : QTime := MotorEventsNthTime 0 (decAuto (0<4)%nat I) in
+Lemma ThetaAtEV1_3 :
   let t1 : QTime := MotorEventsNthTime 1 (decAuto (1<4)%nat I) in
   let omPrec : QTime :=  (omegaPrec newVal) in 
  |{theta icreate} t1 - optimalTurnAngle| ≤ 
@@ -1657,8 +1668,144 @@ Proof.
   lra.
 Qed.
 
+Lemma correctVel1to2:
+  let t1 : QTime := MotorEventsNthTime 1 (decAuto (1<4)%nat I) in
+  let t2 : QTime := MotorEventsNthTime 2 (decAuto (2<4)%nat I) in
+  let requestedVel : Polar2D Q := {|rad := 0;θ := 0|} in
+  correctVelDuring requestedVel t1 t2 icreate.
+Proof.
+  intros. pose proof (corrNodes eo MOVABLEBASE) as Hc.
+  simpl in Hc.
+  unfold DeviceSemantics, BaseMotors in Hc.
+  apply proj1 in Hc.
+  (** lets go one by one starting from the first message *)
 
-   
+  unfold MotorEventsNthTime, MotorEventsNth in t1, t2.
+  destruct (MotorEvents2 1 (decAuto (1<4)%nat I)) as [evStartTurn  H0m].
+  simpl in t1.
+  destruct (MotorEvents2 2 (decAuto (2<4)%nat I)) as [evStopTurn  H1m].
+  simpl in t2.
+  unfold minDelayForIndex, roscore.delay, Basics.compose in H1m.
+  Local Opaque getPayloadAndEv.
+  autounfold with π₁ in H1m.
+  simpl in H1m.
+  unfold corrSinceLastVel in Hc.
+  unfold lastVelAndTime, lastPayloadAndTime, filterPayloadsUptoTime in Hc.
+  specialize (Hc (eTime evStopTurn)). simpl in Hc.
+  repnd.
+  rewrite numPrevEvtsEtime in Hc;[|assumption].
+  rewrite H1mrrl in Hc.
+  simpl in Hc.
+  rewrite (locEvtIndexRW evStartTurn) in Hc;[|tauto].
+  rewrite H0mrrrl in Hc.
+  simpl in Hc.
+  auto.
+Qed.
+
+
+Lemma MotorEventsNthTimeInc:
+  ∀ (n1 n2 : nat) p1 p2,
+  (n1 < n2)%nat
+   -> MotorEventsNthTime n1 p1 
+      ≤ MotorEventsNthTime n2 p2.
+Proof.
+  unfold MotorEventsNthTime, MotorEventsNth.
+  intros.
+  destruct (MotorEvents2 n1 p1) as [ev1  H1e].
+  destruct (MotorEvents2 n2 p2)  as [ev2  H2e].
+  simpl. repnd.
+  apply Qlt_le_weak.
+  apply timeIndexConsistent.
+  congruence.
+Qed.
+
+
+Lemma TransVelPosAtEV2 :
+  let t1 : QTime := MotorEventsNthTime 1 (decAuto (1<4)%nat I) in
+  let t2 : QTime := MotorEventsNthTime 2 (decAuto (2<4)%nat I) in
+  ∀ (t : QTime),  t1 ≤ t ≤ t2
+      → ({transVel icreate} t = 0 ∧ (posAtTime t) = (posAtTime 0)).
+Proof.
+  intros ? ? ? Hle.
+  unfold le, Le_instance_QTime in Hle.
+  pose proof correctVel1to2 as Hc.
+  simpl in Hc. fold t1 t2 in Hc.
+  unfold correctVelDuring in Hc.
+  apply proj1 in Hc. simpl rad in Hc.
+  unfold zero, stdlib_rationals.Q_0 in Hc.
+  rewrite tVelPrec0 in Hc.
+  pose proof (qtimePos t) as Hqt.
+  pose proof (λ ww, changesToDeriv0Deriv _ _ _ _  ww Hc) as H1d.
+  fold t1 in H1d.
+  pose proof TransVelPosAtEV1 as H0d.
+  simpl in H0d. fold t1 in H0d.
+  specialize (H0d t1). unfold le, Le_instance_QTime in H0d.
+  repnd.
+  DestImp H0d; 
+    [| split;[apply MotorEventsNthTimeInc; omega| lra]].
+  repnd. 
+  rewrite H0dl in H1d.
+  DestImp H1d;[|lra].
+  DestImp H1d;[|reflexivity].
+  split; [apply H1d; lra|].
+  rewrite <- H0dr.
+  unfold posAtTime, equiv, EquivCart.
+  simpl.
+  split.
+- apply TDerivativeEqQ0 with 
+    (F':=(transVel icreate[*]CFCos (theta icreate)));
+    eauto with ICR.
+  intros tq Hbw. simpl in Hbw.
+  rewrite TContRMult, H1d;
+    [| lra].
+  rewrite IR_mult_zero_left.
+  unfold zero, Zero_Instace_IR_better.
+  rewrite inj_Q_Zero. reflexivity.
+
+- apply TDerivativeEqQ0 with 
+    (F':=(transVel icreate[*]CFSine (theta icreate)));
+    eauto with ICR.
+  intros tq Hbw. simpl in Hbw.
+  rewrite TContRMult, H1d; [| lra].
+  rewrite IR_mult_zero_left.
+  unfold zero, Zero_Instace_IR_better.
+  rewrite inj_Q_Zero. reflexivity.
+Qed.
+ 
+Lemma ThetaAtEV2 :
+  let t2 : QTime := MotorEventsNthTime 2 (decAuto (2<4)%nat I) in
+  let omPrec : QTime :=  (omegaPrec newVal) in 
+ |{theta icreate} t2 - optimalTurnAngle| ≤ 
+    Q2R(rotspeed * (E2EDelVar + 2 * reacTime) 
+        + anglePrec + omPrec * E2EDelVar
+        + omPrec * qthetaAbs * / rotspeed ).
+Proof.
+  intros ? ?.
+  pose proof correctVel1to2 as Hc.
+  simpl in Hc. fold t2 in Hc.
+  unfold correctVelDuring in Hc.
+  apply proj2 in Hc. simpl θ in Hc.
+  fold t2 in Hc. unfold zero, stdlib_rationals.Q_0 in Hc.
+  rewrite omegaPrec0 in Hc.
+  remember (MotorEventsNthTime 1 (decAuto (1<4)%nat I)) as t1.
+  assert (t1 + reacTime < t2)%Q 
+    as Hassumption 
+    by (subst t1; apply MotorEventsNthTimeReac; omega).
+  pose proof (qtimePos reacTime) as H99.
+  pose proof (ThetaAtEV1_3) as Ht0. simpl in Ht0.
+  simpl in Ht0. rewrite <- Heqt1 in Ht0.
+  apply changesToDerivInteg2
+    with (F:=(theta icreate)) (oldVal:={omega icreate} t1) in Hc;
+    eauto with ICR;[| reflexivity].
+    Local Transparent Q2R.
+  rewrite IR_inv_Qzero in Hc.
+  rewrite Qmult_0_l in Hc. unfold Q2R in Hc.
+  rewrite inj_Q_Zero in Hc. unfold cg_minus in Hc.
+  ring_simplify in Hc.
+  rewrite cring_mult_zero_op in Hc.
+  setoid_rewrite  cg_inv_zero in Hc.
+Abort.
+
 
 Lemma Liveness :
   ∃ (ts : QTime), ∀ (t : QTime), 
@@ -1668,10 +1815,10 @@ Abort.
 
 (** It would be quite complicated to maintain bounds on position when both
     [omega] and [speed] are nonzero. derivative on [X position] depends on
-    all of [speed] and [theta] and [omega] *)
+    all of [speed] and [theta] and [omega] 
 
 Require Export CoRN.ftc.IntegrationRules.
-
+*)
 (*
 Lemma TBarrowPos : forall rob (a b : Time),
        CIntegral a b ((transVel rob) [*] CFCos (theta rob)) 
