@@ -1354,6 +1354,79 @@ Proof.
   intros ? ?. reflexivity.
 Qed.
 
+Lemma  QabsNewOmega : 
+      (Qabs.Qabs
+          (QSign (approximate (polarTheta targetPos) anglePrec) 1 * rotspeed)%mc ==
+        rotspeed)%Q.
+Proof.
+  unfold mult, stdlib_rationals.Q_mult.
+  rewrite Qabs.Qabs_Qmult.
+  rewrite QAbsQSign.
+  unfold CanonicalNotations.norm, NormSpace_instance_Q.
+  simpl Qabs.Qabs.
+  ring_simplify.
+  rewrite QabsQpos.
+  reflexivity.
+Qed.
+
+Lemma  AbsIRNewOmega : 
+      AbsIR
+          (QSign (approximate (polarTheta targetPos) anglePrec) 1 * rotspeed)%mc [=]
+        rotspeed.
+Proof.
+  rewrite AbsIR_Qabs, QabsNewOmega.
+  reflexivity.
+Qed.
+
+Lemma QAbsMultSign: forall (a : Q) (b : Qpos),
+  ((Qabs.Qabs a) * / b * ((QSign a 1) * b) == a)%Q.
+Proof.
+  intros ? ?.
+  unfold QSign. destruct b as [b bp].
+  simpl.
+  destruct (decide (a < 0)) as [Hd | Hd]; revert Hd; unfoldMC; intro Hd.
+- ring_simplify. rewrite Qabs.Qabs_neg;[|lra]. field. lra.
+- ring_simplify. rewrite Qabs.Qabs_pos;[|lra]. field. lra.
+Qed.
+  
+Lemma MotorEv01Gap2 :
+  let t0 : QTime := MotorEventsNthTime 0 (decAuto (0<4)%nat I) in
+  let t1 : QTime := MotorEventsNthTime 1 (decAuto (1<4)%nat I) in
+  let newVal := QSign (approximate (polarTheta targetPos) anglePrec) 1
+            * rotspeed in
+    (Qabs.Qabs
+        ((t1 - t0) * newVal -
+         approximate (polarTheta targetPos) anglePrec) <=
+      (2) * (sendTimeAcc + delivDelayVar) * rotspeed)%Q.
+
+  intros ? ? ?.
+  pose proof MotorEv01Gap as Hg.
+  simpl in Hg.
+  fold t0 t1 in Hg.
+  apply Qmult_le_compat_r with (z:= Qabs.Qabs newVal) in Hg;
+      [|apply Qabs.Qabs_nonneg].
+  rewrite <- Qabs.Qabs_Qmult in Hg. idtac.
+  revert Hg.
+  unfoldMC.
+  intros Hg.
+  rewrite foldQminus in Hg.
+  rewrite  QmultOverQminusR in Hg.
+  rewrite foldQminus in Hg.
+  subst newVal.
+  unfold CanonicalNotations.norm, NormSpace_instance_Q in Hg.
+  revert Hg.
+  unfoldMC.
+  intros Hg.
+  rewrite QAbsMultSign in Hg.
+  rewrite QabsNewOmega in Hg.
+  exact Hg.
+Qed.
+
+  Hint Rewrite  inj_Q_One : InjQDown.
+  Hint Rewrite  inj_Q_inv : InjQDown.
+  Hint Rewrite  inj_Q_plus : InjQDown.
+  Hint Rewrite  inj_Q_minus : InjQDown.
+  Hint Rewrite  inj_Q_inv : InjQDown.
 
 Lemma OmegaThetaPosAtEV1 :
   let t0 : QTime := MotorEventsNthTime 0 (decAuto (0<4)%nat I) in
@@ -1379,51 +1452,32 @@ Proof.
   apply changesToDerivInteg2
     with (F:=(theta icreate)) (oldVal:=0) in Hc;
     eauto with ICR.
+  clear H99.
   rewrite initTheta in Ht0r.
   rewrite Ht0r in Hc.
   rewrite Ht0l in Hc.
   rewrite  (AbsIR_minus 0)  in Hc .
   rewrite cg_inv_zero in Hc.
   rewrite IR_inv_Qzero in Hc.
-  pose proof HeqnewVal as Habs.
-  apply (f_equal Q2R) in Habs.
-  apply (f_equal AbsIR) in Habs.
-  unfold Q2R in Habs.
-  apply seq_refl in Habs. symmetry in Habs.
-  rewrite AbsIR_Qabs in Habs.
-  unfold mult, stdlib_rationals.Q_mult in Habs.
-  rewrite Qabs.Qabs_Qmult in Habs.
-  rewrite QAbsQSign in Habs.
-  unfold CanonicalNotations.norm, NormSpace_instance_Q in Habs.
-  simpl Qabs.Qabs  in Habs.
-  revert Habs.
-  clear H99.
-  InjQRingSimplify.
-  intros Habs.
-  rewrite <- Habs in Hc. rewrite QabsQpos in Hc.
-  pose proof MotorEv01Gap as Hg.
+  rewrite HeqnewVal  in Hc at 2. rewrite AbsIRNewOmega in Hc.
+  pose proof MotorEv01Gap2 as Hg.
+  rewrite <- HeqnewVal in Hg.
+  Local Opaque Qabs.Qabs.
   simpl in Hg.
   fold t0 t1 in Hg.
-  apply Qmult_le_compat_r with (z:= Qabs.Qabs newVal) in Hg.
-  rewrite <- Qabs.Qabs_Qmult in Hg. idtac.
-  revert Hg.
-  unfoldMC.
-  intros Hg.
-  rewrite foldQminus in Hg.
-  rewrite  QmultOverQminusR in Hg.
-  rewrite foldQminus in Hg.
-  rewrite  HeqnewVal  in Hg at 2.
-  
-Lemma QAbsMultSign: forall a b : Q,
-  ((Qabs.Qabs a) * / b * ((QSign a 1) * b) == a)%Q.
-Admitted.
-  unfold CanonicalNotations.norm, NormSpace_instance_Q in Hg.
-  revert Hg.
-  unfoldMC.
-  intros Hg.
-  rewrite QAbsMultSign in Hg.
-  rewrite AbsIR_Qabs in Habs.
-
+  apply (inj_Q_leEq IR) in Hg.
+  rewrite <- AbsIR_Qabs in Hg.
+  rewrite inj_Q_minus in Hg.
+  rewrite <- inj_Q_mult in Hc.
+  Local Opaque Qmult AbsIR.
+  simpl in Hc.
+  rewrite Qmult_comm in Hc.
+  apply AbsIR_imp_AbsSmall in Hg.
+  apply AbsIR_imp_AbsSmall in Hc.
+  pose proof (AbsSmall_plus _ _ _ _ _ Hg Hc) as Hadd.
+  unfold Q2R in Hadd. ring_simplify in Hadd.
+  unfold cg_minus in Hadd. ring_simplify in Hadd.
+  clear dependent newVal.
 Abort.
  
 
