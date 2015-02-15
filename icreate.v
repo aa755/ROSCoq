@@ -1771,13 +1771,82 @@ Proof.
   unfold zero, Zero_Instace_IR_better.
   rewrite inj_Q_Zero. reflexivity.
 Qed.
- 
+
+Lemma MotorEventsNthTimeReacLe:
+  ∀ (n1 n2 : nat) p1 p2,
+  (n1 < n2)%nat
+   -> (MotorEventsNthTime n1 p1 + reacTime
+      <= MotorEventsNthTime n2 p2)%Q.
+Proof.
+  intros. apply Qlt_le_weak.
+  apply MotorEventsNthTimeReac.
+  assumption.
+Qed.
+Local Transparent Q2R.
+
+Lemma ThetaAtEv1 : let t1 := MotorEventsNthTime 1 (decAuto (1 < 4)%nat I) in
+    AbsSmall (Q2R (rotspeed + omegaPrec newVal)) ({omega icreate} t1).
+Proof.
+  intro. pose proof correctVel0to1 as H0c.
+  simpl in H0c.
+  apply proj2 in H0c.
+  destruct H0c as [qtrans H0c].
+  simpl in H0c.
+  pose proof (proj2 (proj1 H0c)) as Ht.
+  apply proj2 in H0c.
+  apply proj1 in H0c.
+  fold t1 in H0c.
+  specialize (H0c t1).
+  DestImp H0c;
+  [|  split;[| reflexivity];
+      eapply Qle_trans;[apply Ht|];
+      subst t1; apply MotorEventsNthTimeReacLe; omega].
+  pose proof (AbsIRNewOmega) as Habs.
+  apply eq_imp_leEq in Habs.
+  pose proof (AbsIR_plus _ _ _ _ Habs H0c) as Hadd.
+  unfold cg_minus in Hadd.
+  apply AbsIR_imp_AbsSmall in Hadd.
+  ring_simplify in Hadd.
+  fold (newVal) in Hadd.
+  unfold Q2R in Hadd.
+  autorewrite with QSimpl in Hadd.
+  exact Hadd.
+Qed.
+
+Local Opaque Q2R.
+
+Lemma mult_resp_AbsSmallR:  ∀ (x y e : IR),
+  [0][<=]y 
+  → AbsSmall e x 
+  → AbsSmall (e[*]y) (x[*]y).
+Proof.
+  intros ? ? ? Hle Hs.
+  rewrite mult_commutes.
+  setoid_rewrite mult_commutes at 2.
+  apply mult_resp_AbsSmall;
+  assumption.
+Qed.
+  
+Lemma  qtimePosIR : ∀ y,  [0][<=]QT2R y.
+  intros. rewrite <- inj_Q_Zero.
+  apply inj_Q_leEq.
+  apply qtimePos.
+Qed.
+
+Lemma mult_resp_AbsSmallRQt:  ∀ (x e : IR) (y : QTime),
+ AbsSmall e x 
+  → AbsSmall (e[*] QT2R y) (x[*] QT2R y).
+Proof.
+  intros ? ? ? Hle. apply mult_resp_AbsSmallR; trivial;[].
+  apply qtimePosIR.
+Qed.
+
 Lemma ThetaAtEV2 :
   let t2 : QTime := MotorEventsNthTime 2 (decAuto (2<4)%nat I) in
   let omPrec : QTime :=  (omegaPrec newVal) in 
  |{theta icreate} t2 - optimalTurnAngle| ≤ 
     Q2R(rotspeed * (E2EDelVar + 2 * reacTime) 
-        + anglePrec + omPrec * E2EDelVar
+        + anglePrec + omPrec * (E2EDelVar + reacTime)
         + omPrec * qthetaAbs * / rotspeed ).
 Proof.
   intros ? ?.
@@ -1797,14 +1866,44 @@ Proof.
   apply changesToDerivInteg2
     with (F:=(theta icreate)) (oldVal:={omega icreate} t1) in Hc;
     eauto with ICR;[| reflexivity].
-    Local Transparent Q2R.
   rewrite IR_inv_Qzero in Hc.
-  rewrite Qmult_0_l in Hc. unfold Q2R in Hc.
+  rewrite Qmult_0_l in Hc. 
+  Local Transparent Q2R.
+  unfold Q2R in Hc.
   rewrite inj_Q_Zero in Hc. unfold cg_minus in Hc.
   ring_simplify in Hc.
   rewrite cring_mult_zero_op in Hc.
   setoid_rewrite  cg_inv_zero in Hc.
-Abort.
+  pose proof (ThetaAtEv1) as Hth.
+  cbv zeta in Hth. rewrite <- Heqt1 in Hth.
+  apply mult_resp_AbsSmallRQt with (y:= reacTime) in Hth.
+  apply AbsSmall_imp_AbsIR in Hth.
+  rewrite AbsIR_mult_pos in Hth;[|apply qtimePosIR; fail].
+  eapply leEq_transitive in Hth;[|apply Hc].
+  clear Hc. unfold QT2R in Hth.
+  autorewrite with QSimpl in Hth.
+  pose proof (AbsIR_plus _ _ _ _ Hth Ht0) as Hadd.
+  clear Hth Ht0.
+  apply AbsIR_imp_AbsSmall in Hadd.
+  revert Hadd. unfoldMC. 
+
+Hint Unfold Le_instance_IR  Plus_instance_IR Negate_instance_IR : IRMC.
+  autounfold with IRMC.
+  intro Hadd.
+  ring_simplify in Hadd.
+  autorewrite with QSimpl in Hadd.
+  apply AbsSmall_imp_AbsIR in Hadd.
+  eapply leEq_transitive;[apply Hadd|].
+  apply inj_Q_leEq.
+  apply QeqQle. destruct sendTimeAcc, delivDelayVar.
+  simpl.
+  simpl. simpl. idtac. fold (omPrec).
+  field.
+  destruct rotspeed.
+  simpl.
+  lra.
+Qed.
+  
 
 
 Lemma Liveness :
