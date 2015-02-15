@@ -435,7 +435,88 @@ Proof.
   eapply Derivative_wdl; eauto.
 Qed.
 
+Lemma toPartMultIContR : forall (F G : IContR),
+  Feq itvl ((toPart F) {*} (toPart G))
+           (toPart (F [*] G)).
+Proof.
+  intros ? ?. destruct F, G.
+  simpl. apply toPartMult.
+Qed.
 
+Lemma toPartPlusIContR : forall (F G : IContR),
+  Feq itvl ((toPart F) {+} (toPart G))
+           (toPart (F [+] G)).
+Proof.
+  intros ? ?. destruct F, G.
+  simpl. apply toPartSum.
+Qed.
+
+Lemma TContRDerivativeMult:
+  ∀ (F F' G G' : IContR),
+  isIDerivativeOf F' F
+  → isIDerivativeOf G' G 
+  → isIDerivativeOf  (F [*] G' [+] F' [*] G) (F [*] G).
+Proof.
+  intros  ? ? ? ?  H1d H2d.
+  unfold isIDerivativeOf.
+  eapply Derivative_wdl;[
+    apply toPartMultIContR|].
+  eapply Derivative_wdr;[
+    apply toPartPlusIContR|].
+  eapply Derivative_wdr;
+    [apply Feq_plus; apply toPartMultIContR|].
+  apply Derivative_mult; assumption.
+Qed.
+
+Lemma TContRDerivativePlus:
+  ∀ (F F' G G' : IContR),
+  isIDerivativeOf F' F
+  → isIDerivativeOf G' G 
+  → isIDerivativeOf  (F' [+] G') (F [+] G).
+Proof.
+  intros  ? ? ? ?  H1d H2d.
+  unfold isIDerivativeOf.
+  eapply Derivative_wdl;[
+    apply toPartPlusIContR|].
+  eapply Derivative_wdr;[
+    apply toPartPlusIContR|].
+  apply Derivative_plus; assumption.
+Qed.
+
+Local Notation "2" := ([1] [+] [1]).
+Require Import Ring. 
+Require Import CoRN.tactics.CornTac.
+Require Import CoRN.algebra.CRing_as_Ring.
+
+Add Ring IRisaRing: (CRing_Ring IContR).
+
+Lemma DerivativeSqr:
+  ∀ (F F' : IContR),
+  isIDerivativeOf F' F
+  → isIDerivativeOf  (2 [*] F [*] F') (F [*] F).
+Proof.
+  intros ? ? Hd.
+  assert ( F [*] F' [+] F' [*] F [=] 2 [*] F [*] F') as Heq by ring.
+  eapply isIDerivativeOfWdl in Heq; eauto.
+  apply TContRDerivativeMult;
+  assumption.
+Qed.
+
+(*
+Lemma DerivativeNorm:
+  ∀ (X X' Y Y' : IContR),
+  isIDerivativeOf X' X
+  → isIDerivativeOf Y' Y
+  → isIDerivativeOf  (2 [*] (X [*] X' [+] Y [*] Y')) 
+                      (F [*] F).
+Proof.
+  intros ? ? Hd.
+  assert ( F [*] F' [+] F' [*] F [=] 2 [*] F [*] F') as Heq by ring.
+  eapply isIDerivativeOfWdl in Heq; eauto.
+  apply TContRDerivativeMult;
+  assumption.
+Qed.
+*)
 Lemma TContRExt : forall (f : IContR) a b,
   a [=] b -> {f} a [=] {f} b.
 Proof.
@@ -491,8 +572,6 @@ Qed.
 Require Import Ring. 
 Require Import CoRN.tactics.CornTac.
 Require Import CoRN.algebra.CRing_as_Ring.
-
-Add Ring IRisaRing: (CRing_Ring IContR).
 
 
 

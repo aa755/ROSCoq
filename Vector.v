@@ -62,3 +62,81 @@ Definition dotProduct {n:nat} {T : CRing} (vl vr : Vector n T) : T :=
   (fun vr => [0]) 
   (fun  b _ rec tl vr =>  
               (tl [*]snd vr) [+] rec (fst vr)) n vl vr.
+
+Require Export CanonicalNotations.
+Require Import Coq.Unicode.Utf8.
+Require Export MathClasses.interfaces.canonical_names.
+Require Export MathClasses.interfaces.abstract_algebra.
+
+Instance castCart `{Cast A B} : Cast (Cart2D A) (Cart2D B) :=
+  fun c => {|X := cast A B (X c) ;  Y := cast A B (Y c) |}.
+
+Instance EquivCart  `{Equiv A} : Equiv (Cart2D A) :=
+fun ca cb => (X ca = X cb /\ Y ca = Y cb).
+
+Require Export StdlibMisc.
+
+Instance Equivalence_instance_Cart2D2
+  `{r: Equiv A} 
+    `{Equivalence _ r} : @Equivalence (Cart2D A) equiv.
+  unfold EquivCart. split.
+  - intros x. destruct x. compute. split; auto with *.
+  - intros x y. destruct x,y. compute. intros Hd; destruct Hd;
+      split; auto with relations.
+
+  - intros x y z. destruct x,y,z. compute. intros H0 H1.
+    repnd.
+    split; eauto 10
+    with relations.
+    rewrite H0l. auto.
+    rewrite H0r. auto.
+Qed.
+ 
+
+Open Scope mc_scope.
+
+Instance NormSpace_instance_Cart2D 
+  (A B : Type) `{SqrtFun A B} 
+  `{Plus A} `{Mult A} : NormSpace (Cart2D A) B :=
+ λ (cart : Cart2D A), 
+    (√((X cart) * (X cart) +  (Y cart) * (Y cart))).
+
+Definition normSqr
+  {A : Type}
+  `{Plus A} `{Mult A} (cart : Cart2D A) : A  :=
+    (((X cart) * (X cart) +  (Y cart) * (Y cart))).
+
+Instance Zero_instance_Cart2D `{Zero A} : Zero (Cart2D A)
+    := (({|X:=0 ; Y:=0|}))%mc.
+Instance One_instance_Cart2D `{One A} : One (Cart2D A)
+    := (({|X:=1 ; Y:=1|}))%mc.
+Instance Plus_instance_Cart2D `{Plus A} : Plus (Cart2D A)
+    := (λ a b, ({|X:= X a + X b ; Y:= Y a + Y b|}))%mc.
+Instance Mutt_instance_Cart2D `{Mult A} : Mult (Cart2D A)
+    := (λ a b, ({|X:= X a * X b ; Y:= Y a * Y b|}))%mc.
+Instance Negate_instance_Cart2D `{Negate A} : Negate (Cart2D A)
+    := (λ a, ({|X:= -(X a) ; Y:= -(Y a)|}))%mc.
+
+Section Cart2DRing.
+
+Require Export MathClasses.theory.rings.
+Context `{Ring A}.
+
+
+Add Ring  stdlib_ring_theoryldsjfsd : (rings.stdlib_ring_theory A).
+
+Instance Ring_instance_Cart2D : Ring (Cart2D A).
+  repeat(split);
+  (repeat match goal with
+  | [ H: Cart2D A |- _ ] => destruct H
+  | [ H: equiv _ _ |- _ ] => unfold equiv, EquivCart in H; simpl in H; destruct H
+  end);
+  simpl; subst; eauto 2 with *; try ring; try( apply sg_op_proper; auto).
+Qed.
+
+Definition shiftOrigin (newOr pt : Cart2D A) :  Cart2D A :=
+ pt - newOr.
+
+End Cart2DRing.
+
+

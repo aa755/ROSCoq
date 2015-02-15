@@ -45,28 +45,12 @@ Record iCreate : Type := {
 (** CatchFileBetweenTagsEndCreate *)
 
 
-Lemma Derivative_mult:
-  ∀ (F F' G G' : TContR),
-  isDerivativeOf F' F
-  → isDerivativeOf G' F 
-  → isDerivativeOf  (F * G' + F' * G) (F * G).
-Admitted.
-
+(*
 Add Ring  stdlib_ring_theoryldsjfsd : (rings.stdlib_ring_theory TContR).
+*)
 
   Hint Unfold mult plus one zero Mult_instance_TContR Plus_instance_TContR One_instance_TContR
     Zero_instance_TContR : TContRMC.
-Lemma Derivative_sqr:
-  ∀ (F F' : TContR),
-  isDerivativeOf F' F
-  → isDerivativeOf  (2 * F * F') (F * F).
-Proof.
-  intros ? ? Hd.
-  assert ( F * F' + F' * F = 2 * F * F') as Heq by ring.
-  eapply isIDerivativeOfWdl in Heq; eauto.
-  apply Derivative_mult;
-  assumption.
-Qed.
 
 (** we need to define the derivative of this function directly *)
 Definition posNormSqr (icr : iCreate) : TContR := 
