@@ -22,6 +22,15 @@ Instance : Ring IR.
 Proof. apply (rings.from_stdlib_ring_theory (CRing_Ring IR)). Qed.
 Instance Le_instance_IR : Le IR := (@cof_leEq IR).
 
+Instance Zero_instance_TContR : Zero TContR := [0]. 
+Instance One_instance_TContR : One TContR := [1]. 
+Instance Plus_instance_TContR : Plus TContR := csg_op .
+Instance Mult_instance_TContR : Mult TContR := cr_mult.
+Instance Negate_instance_TContR : Negate TContR := cg_inv.
+Instance : Ring TContR.
+Proof. apply (rings.from_stdlib_ring_theory (CRing_Ring TContR)). Qed.
+
+
 Instance Cast_instace_Q_IR : Cast Q IR := (inj_Q IR).
 
 (** Equiv itself does not give RST props of equality *)

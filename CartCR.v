@@ -34,6 +34,11 @@ Instance NormSpace_instance_Cart2D
  λ (cart : Cart2D A), 
     (√((X cart) * (X cart) +  (Y cart) * (Y cart))).
 
+Definition normSqr
+  {A : Type}
+  `{Plus A} `{Mult A} (cart : Cart2D A) : A  :=
+    (((X cart) * (X cart) +  (Y cart) * (Y cart))).
+
 
 Definition Cart2Polar (cart :Cart2D Q) : Polar2D CR :=
   {|rad := ( |cart| )  
@@ -185,16 +190,21 @@ Qed.
 Require Import IRMisc.RPointWiseRing.
 
 
-Instance Zero_instance_Cart2D `{Zero A} : Zero (Cart2D A):= (({|X:=0 ; Y:=0|}))%mc.
-Instance One_instance_Cart2D `{One A} : One (Cart2D A):= (({|X:=1 ; Y:=1|}))%mc.
-Instance Plus_instance_Cart2D `{Plus A} : Plus (Cart2D A):= (λ a b, ({|X:= X a + X b ; Y:= Y a + Y b|}))%mc.
-Instance Mutt_instance_Cart2D `{Mult A} : Mult (Cart2D A):= (λ a b, ({|X:= X a * X b ; Y:= Y a * Y b|}))%mc.
-Instance Negate_instance_Cart2D `{Negate A} : Negate (Cart2D A):= (λ a, ({|X:= -(X a) ; Y:= -(Y a)|}))%mc.
+Instance Zero_instance_Cart2D `{Zero A} : Zero (Cart2D A)
+    := (({|X:=0 ; Y:=0|}))%mc.
+Instance One_instance_Cart2D `{One A} : One (Cart2D A)
+    := (({|X:=1 ; Y:=1|}))%mc.
+Instance Plus_instance_Cart2D `{Plus A} : Plus (Cart2D A)
+    := (λ a b, ({|X:= X a + X b ; Y:= Y a + Y b|}))%mc.
+Instance Mutt_instance_Cart2D `{Mult A} : Mult (Cart2D A)
+    := (λ a b, ({|X:= X a * X b ; Y:= Y a * Y b|}))%mc.
+Instance Negate_instance_Cart2D `{Negate A} : Negate (Cart2D A)
+    := (λ a, ({|X:= -(X a) ; Y:= -(Y a)|}))%mc.
 
 Section Cart2DRing.
 
 Context `{Ring A}.
-  
+
 
 Add Ring  stdlib_ring_theoryldsjfsd : (rings.stdlib_ring_theory A).
 
@@ -206,4 +216,9 @@ Instance Ring_instance_Cart2D : Ring (Cart2D A).
   end);
   simpl; subst; eauto 2 with *; try ring; try( apply sg_op_proper; auto).
 Qed.
+
+Definition shiftOrigin (newOr pt : Cart2D A) :  Cart2D A :=
+ pt - newOr.
+
+
 End Cart2DRing.

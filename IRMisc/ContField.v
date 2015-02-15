@@ -403,6 +403,39 @@ Qed.
 Definition isIDerivativeOf (F' F : IContR) : CProp :=
   Derivative _ pItvl (toPart F) (toPart F').
 
+Lemma IContR_st_eq_Feq : forall (f g : IContR),
+  f [=] g
+  -> Feq itvl (toPart f) (toPart g).
+Proof.
+  intros ? ? Heq.
+  destruct f, g.
+  simpl. apply st_eq_Feq.
+  assumption.
+Qed.
+
+Lemma isIDerivativeOfWdl : ∀ (F1' F2' F : IContR),
+  F1' [=] F2'
+  -> isIDerivativeOf F1' F
+  -> isIDerivativeOf F2' F.
+Proof.
+  unfold isIDerivativeOf.
+  intros  ? ? ? Heq Hd.
+  apply IContR_st_eq_Feq in Heq.
+  eapply Derivative_wdr; eauto.
+Qed.
+
+Lemma isIDerivativeOfWdr : ∀ (F1 F2 F' : IContR),
+  F1 [=] F2
+  -> isIDerivativeOf F' F1
+  -> isIDerivativeOf F' F2.
+Proof.
+  unfold isIDerivativeOf.
+  intros  ? ? ? Heq Hd.
+  apply IContR_st_eq_Feq in Heq.
+  eapply Derivative_wdl; eauto.
+Qed.
+
+
 Lemma TContRExt : forall (f : IContR) a b,
   a [=] b -> {f} a [=] {f} b.
 Proof.

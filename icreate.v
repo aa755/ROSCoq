@@ -1,25 +1,3 @@
-Definition sin1 (T:Type) :=
-  {x:T | forall  y:T, x=y }.
-
-Definition sin2 (T:Type) :=
-  {_:T | forall x y:T, x=y }.
-
-Lemma sin21 :
-forall T, sin2 T -> sin1 T.
-unfold sin2, sin1. intros T hs.
-destruct hs as [x hs].
-exists x.
-auto.
-Qed.
-
-Lemma sin12 :
-forall T, sin1 T -> sin2 T.
-unfold sin2, sin1. intros T hs.
-destruct hs as [x hs].
-exists x.
-congruence.
-Qed.
-
 Add LoadPath "../../../nuprl/coq".
 Require Export Coq.Program.Tactics.
 Require Export LibTactics.
@@ -66,6 +44,33 @@ Record iCreate : Type := {
 
 (** CatchFileBetweenTagsEndCreate *)
 
+
+Lemma Derivative_mult:
+  ∀ (F F' G G' : TContR),
+  isDerivativeOf F' F
+  → isDerivativeOf G' F 
+  → isDerivativeOf  (F * G' + F' * G) (F * G).
+Admitted.
+
+Add Ring  stdlib_ring_theoryldsjfsd : (rings.stdlib_ring_theory TContR).
+
+  Hint Unfold mult plus one zero Mult_instance_TContR Plus_instance_TContR One_instance_TContR
+    Zero_instance_TContR : TContRMC.
+Lemma Derivative_sqr:
+  ∀ (F F' : TContR),
+  isDerivativeOf F' F
+  → isDerivativeOf  (2 * F * F') (F * F).
+Proof.
+  intros ? ? Hd.
+  assert ( F * F' + F' * F = 2 * F * F') as Heq by ring.
+  eapply isIDerivativeOfWdl in Heq; eauto.
+  apply Derivative_mult;
+  assumption.
+Qed.
+
+(** we need to define the derivative of this function directly *)
+Definition posNormSqr (icr : iCreate) : TContR := 
+  normSqr (position icr).
 
 Definition unitVec (theta : TContR)  : Cart2D TContR :=
   {|X:= CFCos theta; Y:=CFSine theta|}.
@@ -1943,7 +1948,6 @@ Local Transparent Q2R. unfold Q2R in H0c.
   apply leEq_imp_eq;[exact H0c|].
   apply AbsIR_nonneg.
 Qed.
-
 
 Lemma Liveness :
   ∃ (ts : QTime), ∀ (t : QTime), 
