@@ -493,30 +493,28 @@ Add Ring IRisaRing: (CRing_Ring IContR).
 Lemma DerivativeSqr:
   ∀ (F F' : IContR),
   isIDerivativeOf F' F
-  → isIDerivativeOf  (2 [*] F [*] F') (F [*] F).
+  → isIDerivativeOf  (2 [*] (F [*] F')) (F [*] F).
 Proof.
   intros ? ? Hd.
-  assert ( F [*] F' [+] F' [*] F [=] 2 [*] F [*] F') as Heq by ring.
+  assert ( F [*] F' [+] F' [*] F [=] 2 [*] (F [*] F')) as Heq by ring.
   eapply isIDerivativeOfWdl in Heq; eauto.
   apply TContRDerivativeMult;
   assumption.
 Qed.
 
-(*
-Lemma DerivativeNorm:
+Lemma DerivativeNormSqr:
   ∀ (X X' Y Y' : IContR),
   isIDerivativeOf X' X
   → isIDerivativeOf Y' Y
   → isIDerivativeOf  (2 [*] (X [*] X' [+] Y [*] Y')) 
-                      (F [*] F).
+                      (X [*] X [+] Y [*] Y).
 Proof.
-  intros ? ? Hd.
-  assert ( F [*] F' [+] F' [*] F [=] 2 [*] F [*] F') as Heq by ring.
-  eapply isIDerivativeOfWdl in Heq; eauto.
-  apply TContRDerivativeMult;
-  assumption.
+  intros ? ? ? ? H1d H2d.
+  eapply isIDerivativeOfWdl;
+    [symmetry; apply ring_dist_unfolded|].
+  apply TContRDerivativePlus; apply DerivativeSqr; assumption.
 Qed.
-*)
+
 Lemma TContRExt : forall (f : IContR) a b,
   a [=] b -> {f} a [=] {f} b.
 Proof.

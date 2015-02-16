@@ -52,9 +52,16 @@ Add Ring  stdlib_ring_theoryldsjfsd : (rings.stdlib_ring_theory TContR).
   Hint Unfold mult plus one zero Mult_instance_TContR Plus_instance_TContR One_instance_TContR
     Zero_instance_TContR : TContRMC.
 
+
 (** we need to define the derivative of this function directly *)
 Definition posNormSqr (icr : iCreate) : TContR := 
   normSqr (position icr).
+(*
+Lemma DerivativePosNormSqr: (icr : iCreate) :
+ isIDerivativeOf  (2 [*] (X [*] X' [+] Y [*] Y')) 
+                      normSqr .
+Abort.
+*)
 
 Definition unitVec (theta : TContR)  : Cart2D TContR :=
   {|X:= CFCos theta; Y:=CFSine theta|}.
@@ -1932,6 +1939,147 @@ Local Transparent Q2R. unfold Q2R in H0c.
   apply leEq_imp_eq;[exact H0c|].
   apply AbsIR_nonneg.
 Qed.
+
+
+Lemma correctVel2to3:
+  let t1 : QTime := MotorEventsNthTime 2 (decAuto (2<4)%nat I) in
+  let t2 : QTime := MotorEventsNthTime 3 (decAuto (3<4)%nat I) in
+  let requestedVel : Polar2D Q := {|rad:= QposAsQ speed ; θ := 0 |} in
+  correctVelDuring requestedVel t1 t2 icreate.
+Proof.
+  intros. pose proof (corrNodes eo MOVABLEBASE) as Hc.
+  simpl in Hc.
+  unfold DeviceSemantics, BaseMotors in Hc.
+  apply proj1 in Hc.
+  (** lets go one by one starting from the first message *)
+
+  unfold MotorEventsNthTime, MotorEventsNth in t1, t2.
+  destruct (MotorEvents2 2 (decAuto (2<4)%nat I)) as [evStartTurn  H0m].
+  simpl in t1.
+  destruct (MotorEvents2 3 (decAuto (3<4)%nat I)) as [evStopTurn  H1m].
+  simpl in t2.
+  unfold minDelayForIndex, roscore.delay, Basics.compose in H1m.
+  Local Opaque getPayloadAndEv.
+  autounfold with π₁ in H1m.
+  simpl in H1m.
+  unfold corrSinceLastVel in Hc.
+  unfold lastVelAndTime, lastPayloadAndTime, filterPayloadsUptoTime in Hc.
+  specialize (Hc (eTime evStopTurn)). simpl in Hc.
+  repnd.
+  rewrite numPrevEvtsEtime in Hc;[|assumption].
+  rewrite H1mrrl in Hc.
+  simpl in Hc.
+  rewrite (locEvtIndexRW evStartTurn) in Hc;[|tauto].
+  rewrite H0mrrrl in Hc.
+  simpl in Hc.
+  auto.
+Qed.
+
+
+Lemma OmegaThetaEv2To3 :
+  let t0 : QTime := MotorEventsNthTime 3 (decAuto (3<4)%nat I) in
+  let t2 : QTime := MotorEventsNthTime 2 (decAuto (2<4)%nat I) in
+  ∀ (t : QTime),  t2 ≤ t ≤ t0
+      → ({omega icreate} t = 0 ∧ {theta icreate} t = {theta icreate} t2).
+Proof.
+  intros ? ? ? Hle.
+  unfold zero, Zero_instance_IR, Zero_instance_Time.
+  unfold equiv, Zero_Instace_IR_better.
+  unfold le, Le_instance_QTime in Hle.
+  pose proof (qtimePos t) as Hq.
+  apply changesToDeriv0Comb with 
+    (uptoTime := t0)
+    (reactionTime:=reacTime); eauto using derivRot
+      ; try (simpl;lra);
+      [|exact OmegaAtEv2].
+  pose proof correctVel2to3 as Hc.
+  simpl in Hc.
+  unfold correctVelDuring in Hc.
+  apply proj2 in Hc.
+  fold t2 t0 in Hc.
+  simpl θ in Hc.
+  unfold zero, stdlib_rationals.Q_0 in Hc.
+  rewrite omegaPrec0 in Hc.
+  exact Hc.
+Qed.
+
+
+Lemma TransVelPosAtEV3 :
+  let t0 : QTime := MotorEventsNthTime 2 (decAuto (2<4)%nat I) in
+  let t1 : QTime := MotorEventsNthTime 3 (decAuto (3<4)%nat I) in
+  ∀ (t : QTime),  t0 ≤ t ≤ t1
+      → t1 ≤ t ≤ t0.
+Proof.
+  intros ? ? ? Hle.
+  unfold le, Le_instance_QTime in Hle.
+  pose proof correctVel2to3 as Hc.
+  simpl in Hc. fold t0 t1 in Hc.
+  unfold correctVelDuring in Hc.
+  apply proj1 in Hc. simpl rad in Hc.
+  match type of Hc with
+  context[changesTo _ _ _ (Q2R ?nv) _ (QT2Q ?om)]
+    => remember om as opr
+  end.
+  assert ((t0 + reacTime < t1)%Q) 
+    as Hassumption by (apply MotorEventsNthTimeReac; omega).
+  pose proof (qtimePos reacTime) as H99.
+  pose proof (OmegaThetaAtEV0 t0 QTimeLeRefl) as Ht0.
+  repnd.
+  apply changesToDerivInteg2
+    with (F:=(theta icreate)) (oldVal:=0) in Hc;
+    eauto with ICR.
+  clear H99.
+  rewrite initTheta in Ht0r.
+  rewrite Ht0r in Hc.
+  rewrite Ht0l in Hc.
+  rewrite  (AbsIR_minus 0)  in Hc .
+  rewrite cg_inv_zero in Hc.
+  rewrite IR_inv_Qzero in Hc.
+  rewrite AbsIRNewOmega in Hc.
+  pose proof MotorEv01Gap2 as Hg.
+  Local Opaque Qabs.Qabs.
+  simpl in Hg.
+  fold t0 t1 in Hg.
+  apply (inj_Q_leEq IR) in Hg.
+  rewrite <- AbsIR_Qabs in Hg.
+  rewrite inj_Q_minus in Hg.
+  rewrite <- inj_Q_mult in Hc.
+  Local Opaque Qmult AbsIR.
+  simpl in Hc.
+  rewrite Qmult_comm in Hc.
+  apply AbsIR_imp_AbsSmall in Hg.
+  apply AbsIR_imp_AbsSmall in Hc.
+  pose proof (AbsSmall_plus _ _ _ _ _ Hc Hg) as Hadd.
+  fold (newVal) in Hadd.
+
+  unfold Q2R in Hadd. ring_simplify in Hadd.
+  unfold cg_minus in Hadd. ring_simplify in Hadd.
+  clear Hg Hc.
+  revert Hadd.
+  unfoldMC. intro Hadd. unfold QT2R in Hadd.
+  unfold Q2R in Hadd.
+  Local Opaque inj_Q.
+  autorewrite with QSimpl in Hadd. simpl in Hadd.
+  match type of Hadd with 
+  AbsSmall (inj_Q _ ?r%Q) _ => assert (r == rotspeed * (2 * (sendTimeAcc + delivDelayVar) + reacTime) + opr * (t1 - t0))%Q
+                                    as Heqq by (unfoldMC ;ring); rewrite Heqq in Hadd; clear Heqq
+  end.
+  pose proof (approximateAbsSmallIR (polarTheta targetPos) anglePrec) as Hball.
+  apply AbsSmall_minus in Hball.
+  pose proof (AbsSmall_plus _ _ _ _ _  Hadd Hball) as Haddd.
+  clear Hball Hadd. rename Haddd into Hadd.
+  fold (optimalTurnAngle) in Hadd.
+  unfold Q2R, cg_minus in Hadd.
+  ring_simplify in Hadd. 
+  rewrite <- inj_Q_plus in Hadd.
+  subst opr.
+  unfold Le_instance_IR.
+  simpl in Hadd.
+  apply AbsSmall_imp_AbsIR in Hadd.
+  eapply leEq_transitive;[apply Hadd|].
+  apply eqImpliesLeEq.
+  apply inj_Q_wd.
+  simpl. unfoldMC. ring.
 
 Lemma Liveness :
   ∃ (ts : QTime), ∀ (t : QTime), 
