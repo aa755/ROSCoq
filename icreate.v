@@ -1975,18 +1975,24 @@ Proof.
   auto.
 Qed.
 
+Definition θ2 := 
+let t2 : QTime := MotorEventsNthTime 2 (decAuto (2<4)%nat I) in
+  {theta icreate} t2.
+
 
 Lemma OmegaThetaEv2To3 :
   let t0 : QTime := MotorEventsNthTime 3 (decAuto (3<4)%nat I) in
   let t2 : QTime := MotorEventsNthTime 2 (decAuto (2<4)%nat I) in
   ∀ (t : QTime),  t2 ≤ t ≤ t0
-      → ({omega icreate} t = 0 ∧ {theta icreate} t = {theta icreate} t2).
+      → ({omega icreate} t = 0 ∧ {theta icreate} t = θ2).
 Proof.
   intros ? ? ? Hle.
   unfold zero, Zero_instance_IR, Zero_instance_Time.
   unfold equiv, Zero_Instace_IR_better.
   unfold le, Le_instance_QTime in Hle.
   pose proof (qtimePos t) as Hq.
+  unfold θ2.
+  fold t2.
   apply changesToDeriv0Comb with 
     (uptoTime := t0)
     (reactionTime:=reacTime); eauto using derivRot
@@ -2003,6 +2009,81 @@ Proof.
   exact Hc.
 Qed.
 
+Lemma MotorEventsNthTimeIncIR:
+  ∀ (n1 n2 : nat) p1 p2,
+  (n1 < n2)%nat
+   -> QT2T (MotorEventsNthTime n1 p1) 
+      [<=] QT2T (MotorEventsNthTime n2 p2).
+Proof.
+  intros.
+  rewrite <- QT2T_Q2R.
+  rewrite <- QT2T_Q2R.
+  apply inj_Q_leEq.
+  apply MotorEventsNthTimeInc.
+  assumption.
+Qed.
+
+Definition TIntgBnds : Type := IntgBnds (closel [0]).
+
+Definition Ev2To3Interval : TIntgBnds.
+  exists (QT2T (MotorEventsNthTime 2 (decAuto (2<4)%nat I)), 
+            QT2T (MotorEventsNthTime 3 (decAuto (3<4)%nat I))).
+  simpl.
+  apply MotorEventsNthTimeIncIR.
+  omega.
+Defined.
+
+Definition distTraveled : IR := Cintegral Ev2To3Interval (transVel icreate).
+
+  
+Local Transparent getF.
+Local Opaque Sine.
+
+
+Lemma ThetaConstFunSin :  IContREqInIntvl 
+                          Ev2To3Interval
+                            ((transVel icreate)[*]CFSine (theta icreate))
+                            ((transVel icreate)[*]CFSine (ContConstFun _ _ θ2)).
+Proof.
+  intros t Hb.
+  rewrite TContRMult, TContRMult, CFSineAp, CFSineAp.
+  apply mult_wdr.
+  apply pfwdef.
+  simpl. eapply TContRR2QCompactIntEq2; eauto.
+  apply OmegaThetaEv2To3.
+  unfold inBounds, Ev2To3Interval in Hb.
+  simpl in Hb.   rewrite <- QT2T_Q2R, <- QT2T_Q2R in Hb.
+  assumption.
+Qed.
+
+Lemma ThetaConstFunCos :  IContREqInIntvl 
+                          Ev2To3Interval
+                            ((transVel icreate)[*]CFCos (theta icreate))
+                            ((transVel icreate)[*]CFCos (ContConstFun _ _ θ2)).
+Proof.
+  intros t Hb.
+  rewrite TContRMult, TContRMult, CFCosAp, CFCosAp.
+  apply mult_wdr.
+  apply pfwdef.
+  simpl. eapply TContRR2QCompactIntEq2; eauto.
+  apply OmegaThetaEv2To3.
+  unfold inBounds, Ev2To3Interval in Hb.
+  simpl in Hb.   rewrite <- QT2T_Q2R, <- QT2T_Q2R in Hb.
+  assumption.
+Qed.
+
+Lemma TransVelPosAtEV3 :
+  let t3 : QTime := MotorEventsNthTime 3 (decAuto (3<4)%nat I) in
+  {X icreate} t3 = distTraveled [*] (Cos θ2).
+Proof.
+  pose proof (TBarrowEta (derivX icreate) Ev2To3Interval) as Hint.
+  pose proof ThetaConstFunCos as Heq.
+  apply Cintegral_wd2 in Heq.
+  rewrite Heq in Hint.
+  simpl scs_elem in Hint.
+  unfold fst, snd in Hint.
+  clear Heq.
+Abort.
 
 Lemma TransVelPosAtEV3 :
   let t0 : QTime := MotorEventsNthTime 2 (decAuto (2<4)%nat I) in
@@ -2028,6 +2109,8 @@ Proof.
     with (F:=(theta icreate)) (oldVal:=0) in Hc;
     eauto with ICR.
   clear H99.
+Abort.
+(*
   rewrite initTheta in Ht0r.
   rewrite Ht0r in Hc.
   rewrite Ht0l in Hc.
@@ -2079,6 +2162,7 @@ Proof.
   apply eqImpliesLeEq.
   apply inj_Q_wd.
   simpl. unfoldMC. ring.
+*)
 
 Lemma Liveness :
   ∃ (ts : QTime), ∀ (t : QTime), 

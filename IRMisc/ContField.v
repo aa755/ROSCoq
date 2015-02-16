@@ -286,6 +286,15 @@ Defined.
 Definition getF  (f : IContR) : RI_R :=
   (scs_elem _ _ f).
 
+Definition ContConstFun (v : IR) : IContR.
+  eexists.
+  eapply Continuous_wd;
+    [apply (toPartConst v)|].
+  apply Continuous_const; trivial.
+Defined.
+
+  
+
 
 Notation "{ f }" := (getF f).
 
@@ -318,6 +327,30 @@ Definition CFCos (theta : IContR) : IContR.
   apply toFromPartId.
 Defined.
 
+Local Opaque Sine.
+
+Lemma CFSineAp : ∀ (F : IContR) t,
+  {CFSine F} t [=] Sin ({F} t).
+Proof.
+  intros. unfold CFSine. destruct t, F. 
+  rewrite  extToPart2. simpl.
+  apply pfwdef.
+  apply FS_as_CSetoid_proper; try reflexivity.
+  simpl. reflexivity.
+Qed.
+  
+Local Opaque Cosine.
+
+
+Lemma CFCosAp : ∀ (F : IContR) t,
+  {CFCos F} t [=] Cos ({F} t).
+Proof.
+  intros. unfold CFCos. destruct t, F. 
+  rewrite  extToPart2. simpl.
+  apply pfwdef.
+  apply FS_as_CSetoid_proper; try reflexivity.
+  simpl. reflexivity.
+Qed.
 
 Require Import CoRNMisc.
 
@@ -398,6 +431,31 @@ Proof.
                                  end
   end.
   simpl in Hst. apply Hst. destruct f, g. trivial.
+Qed.
+
+Definition inBounds (ib : IntgBnds) (x : IR) : Prop :=
+  ((fst (scs_elem _ _ ib)) [<=] x ∧ x  [<=] (snd (scs_elem _ _ ib))).
+
+Definition IContREqInIntvl (ib : IntgBnds) (f g : IContR) :=
+(∀ x : RInIntvl, inBounds ib x -> {f} x [=] {g} x).
+
+Instance Cintegral_wd2 (ib : IntgBnds) : 
+    Proper 
+      ((IContREqInIntvl ib) ==> (@st_eq IR)) 
+      (Cintegral ib).
+Proof.
+  intros f g Hfg.
+  unfold Cintegral.
+  apply integral_wd.
+  split;[unfold toPart; simpl; apply intvlIncludedCompact|].
+  split;[unfold toPart; simpl; apply intvlIncludedCompact|].
+  intros x Hc Hx Hx'.
+  unfold compact in Hc. rewrite <- extToPart2, <- extToPart2.
+  destruct Hc.
+  erewrite csf_fun_wd;
+    [ apply Hfg;
+      split; auto |].
+  simpl. reflexivity.
 Qed.
 
 Definition isIDerivativeOf (F' F : IContR) : CProp :=
@@ -547,6 +605,17 @@ Proof.
   rewrite <- Hb. 
   rewrite Integral_integral.
   reflexivity.
+Qed.
+
+(** This is slightly stronger than [Barrow2]
+    because it uses [cof_less] instead of [cof_leEq] *)
+Lemma TBarrowEta : forall (F F': IContR)
+         (der : isIDerivativeOf F' F) (ib: IntgBnds),
+       Cintegral ib F' [=] {F} (snd (scs_elem _ _ ib)) [-] {F} (fst (scs_elem _ _ ib)).
+Proof.
+  intros ? ? ? ?.
+  destruct ib.
+  simpl. apply TBarrow; assumption.
 Qed.
 
 Lemma includeMinMaxIntvl : 

@@ -1250,3 +1250,27 @@ Proof.
   apply Q.Qmult_le_compat_l;[lra|].
   apply qtimePos.
 Qed.
+
+Lemma TContRR2QCompactIntEq:
+  ∀ (tf : TContR) (ta tb : QTime) (c : ℝ),
+  (∀ t : QTime, ta <= t ∧ t <= tb → {tf} t[=]c)
+  → ∀ t : Time, (clcr (QT2R ta) (QT2R tb)) t → {tf} t[=]c.
+Proof.
+  intros ? ? ? ? Hq ? ?.
+  apply leEq_imp_eq.
+- eapply TContRR2QCompactIntUB; eauto. intros. rewrite Hq; auto.
+    apply leEq_reflexive.
+- eapply TContRR2QCompactIntLB; eauto. intros. rewrite Hq; auto.
+    apply leEq_reflexive.
+Qed.
+
+
+Lemma TContRR2QCompactIntEq2:
+  ∀ (tf : TContR) (ta tb : QTime) (c : ℝ),
+  (∀ t : QTime, ta <= t ∧ t <= tb → {tf} t[=]c)
+  → ∀ t : Time, ((QT2R ta) [<=] t /\ t [<=] (QT2R tb)) → {tf} t[=]c.
+Proof.
+  intros. eapply TContRR2QCompactIntEq; eauto.
+  repnd.
+  simpl. split; auto.
+Qed.
