@@ -2023,8 +2023,7 @@ Proof.
   assert ((t0 + reacTime < t1)%Q) 
     as Hassumption by (apply MotorEventsNthTimeReac; omega).
   pose proof (qtimePos reacTime) as H99.
-  pose proof (OmegaThetaAtEV0 t0 QTimeLeRefl) as Ht0.
-  repnd.
+  (** multiply by the constant cos theta in Hc *)
   apply changesToDerivInteg2
     with (F:=(theta icreate)) (oldVal:=0) in Hc;
     eauto with ICR.
