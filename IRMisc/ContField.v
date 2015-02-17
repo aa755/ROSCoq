@@ -640,6 +640,24 @@ Require Import Ring.
 Require Import CoRN.tactics.CornTac.
 Require Import CoRN.algebra.CRing_as_Ring.
 
+Lemma CIntegral_scale : ∀ (ib: IntgBnds) c (F : IContR),
+   Cintegral ib (ContConstFun c [*] F) 
+    [=] c [*] (Cintegral ib F).
+Proof.
+  unfold Cintegral.
+  erewrite <- integral_plus; eauto.
+  apply integral_wd.
+  apply Feq_symmetric.
+  eapply included_Feq;[|apply toPartSum]; eauto.
+  simpl. apply intvlIncluded.
+  Grab Existential Variables.
+  eapply Continuous_I_wd.
+  eapply included_Feq.
+  Focus 2. apply Feq_symmetric. apply toPartSum; fail.
+           simpl. apply intvlIncluded; fail.
+  eapply included_imp_Continuous. apply (scs_prf _ _ (F [+]G)).
+  simpl. apply intvlIncluded.
+Qed.
 
 
 Section CIntegralArith.

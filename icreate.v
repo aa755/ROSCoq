@@ -2036,18 +2036,17 @@ Defined.
 Definition distTraveled : IR := Cintegral Ev2To3Interval (transVel icreate).
 
   
-Local Transparent getF.
-Local Opaque Sine.
 
 
 Lemma ThetaConstFunSin :  IContREqInIntvl 
                           Ev2To3Interval
                             ((transVel icreate)[*]CFSine (theta icreate))
-                            ((transVel icreate)[*]CFSine (ContConstFun _ _ θ2)).
+                            ((ContConstFun _ _ (Sin θ2)) [*] (transVel icreate)).
 Proof.
   intros t Hb.
-  rewrite TContRMult, TContRMult, CFSineAp, CFSineAp.
-  apply mult_wdr.
+  rewrite TContRMult, TContRMult, CFSineAp.
+  rewrite mult_commutes.
+  apply mult_wdl.
   apply pfwdef.
   simpl. eapply TContRR2QCompactIntEq2; eauto.
   apply OmegaThetaEv2To3.
@@ -2059,11 +2058,12 @@ Qed.
 Lemma ThetaConstFunCos :  IContREqInIntvl 
                           Ev2To3Interval
                             ((transVel icreate)[*]CFCos (theta icreate))
-                            ((transVel icreate)[*]CFCos (ContConstFun _ _ θ2)).
+                            ((ContConstFun _ _ (Cos θ2)) [*] (transVel icreate)).
 Proof.
   intros t Hb.
-  rewrite TContRMult, TContRMult, CFCosAp, CFCosAp.
-  apply mult_wdr.
+  rewrite TContRMult, TContRMult, CFCosAp.
+  rewrite mult_commutes.
+  apply mult_wdl.
   apply pfwdef.
   simpl. eapply TContRR2QCompactIntEq2; eauto.
   apply OmegaThetaEv2To3.
