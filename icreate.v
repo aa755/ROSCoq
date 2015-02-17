@@ -2072,19 +2072,29 @@ Proof.
   assumption.
 Qed.
 
-Lemma TransVelPosAtEV3 :
+Lemma PosPosAtEV3 :
   let t3 : QTime := MotorEventsNthTime 3 (decAuto (3<4)%nat I) in
-  {X icreate} t3 = distTraveled [*] (Cos θ2).
+  posAtTime t3 = {|X := distTraveled * (Cos θ2);
+                            Y := distTraveled * (Sin θ2) |}.
 Proof.
-  pose proof (TBarrowEta (derivX icreate) Ev2To3Interval) as Hint.
+  pose proof (TBarrowEta (derivX icreate) Ev2To3Interval) as HX.
   pose proof ThetaConstFunCos as Heq.
   apply Cintegral_wd2 in Heq.
-  rewrite Heq in Hint.
-  simpl scs_elem in Hint.
-  unfold fst, snd in Hint.
+  rewrite Heq in HX.
+  simpl scs_elem in HX.
+  unfold fst, snd in HX.
   clear Heq.
-  rewrite CIntegral_scale in Hint.
-  fold distTraveled in Hint.
+  rewrite CIntegral_scale in HX.
+  fold distTraveled in HX.
+  pose proof (TBarrowEta (derivY icreate) Ev2To3Interval) as HY.
+  pose proof ThetaConstFunSin as Heq.
+  apply Cintegral_wd2 in Heq.
+  rewrite Heq in HY.
+  simpl scs_elem in HY.
+  unfold fst, snd in HY.
+  clear Heq.
+  rewrite CIntegral_scale in HY.
+  fold distTraveled in HY.
   pose proof (TransVelPosAtEV2 
       (MotorEventsNthTime 2 (decAuto (2 < 4)%nat I))) as H2.
   unfold le, Le_instance_QTime in H2.
@@ -2093,16 +2103,25 @@ Proof.
   repnd.
   unfold posAtTime in H2r.
   unfold equiv, EquivCart in H2r.
-  simpl in H2r. apply proj1 in H2r.
-  rewrite H2r in Hint. clear H2r.
+  simpl in H2r. repnd.
+  rewrite H2rl in HX.
+  rewrite H2rr in HY. 
+  clear H2rr H2rl.
   destruct (initPos icreate) as [Hx Hy].
-  setoid_rewrite Hx in Hint.
+  setoid_rewrite Hx in HX.
+  setoid_rewrite Hy in HY.
   clear Hx Hy.
   intros ?.
-  fold t3 in Hint. unfold zero, Zero_instance_IR in Hint.
-  unfold cg_minus in Hint. ring_simplify in Hint.
-  rewrite <- Hint.
-  unfoldMC. ring.
+  fold t3 in HX, HY.
+  unfold zero, Zero_instance_IR, cg_minus in HX, HY.
+  ring_simplify in HX.
+  ring_simplify in HY.
+  unfold posAtTime, equiv, EquivCart.
+Local Opaque Sin Cos.
+  simpl.
+  rewrite <- HX, <- HY.
+  unfoldMC. unfold Mult_instance_IR.
+  split; ring.
 Qed.
 
 Lemma TransVelPosAtEV3 :
