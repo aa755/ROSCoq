@@ -125,7 +125,7 @@ Context `{Ring A}.
 
 Add Ring  stdlib_ring_theoryldsjfsd : (rings.stdlib_ring_theory A).
 
-Instance Ring_instance_Cart2D : Ring (Cart2D A).
+Global Instance Ring_instance_Cart2D : Ring (Cart2D A).
   repeat(split);
   (repeat match goal with
   | [ H: Cart2D A |- _ ] => destruct H
@@ -136,6 +136,38 @@ Qed.
 
 Definition shiftOrigin (newOr pt : Cart2D A) :  Cart2D A :=
  pt - newOr.
+
+Definition distSqr (a b : Cart2D A) : A :=
+  normSqr (a - b ).
+
+Global Instance Proper_Cart2DX :
+     Proper  (equiv ==> equiv) (@X A).
+  intros a b Heq.
+  unfold equiv, EquivCart in Heq.
+  repnd. assumption.
+Defined.
+
+Global Instance Proper_Cart2DY :
+     Proper  (equiv ==> equiv) (@Y A).
+  intros a b Heq.
+  unfold equiv, EquivCart in Heq.
+  repnd. assumption.
+Qed.
+
+Global Instance Proper_normSqr :
+     Proper  (equiv ==> equiv) (@normSqr A _ _).
+  intros a b Heq.
+  unfold normSqr. rewrite Heq.
+  reflexivity.
+Qed.
+
+Global Instance Proper_distSqr :
+     Proper  (equiv ==> equiv ==> equiv) (@distSqr ).
+  intros a b Heql c d  Heqr.
+  unfold distSqr. 
+  idtac. rewrite Heql, Heqr.
+  reflexivity.
+Qed.
 
 End Cart2DRing.
 

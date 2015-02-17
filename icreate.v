@@ -2124,6 +2124,92 @@ Local Opaque Sin Cos.
   split; ring.
 Qed.
 
+Hint Unfold Le_instance_IR  Plus_instance_IR Negate_instance_IR 
+    Mult_instance_IR: IRMC.
+
+Local Instance Cart_CR_IR : Cast CR IR := CRasIR.
+
+Lemma normSqrQ : ∀ (q : Cart2D Q),
+  (' (X q))[^]2 [+] (' (Y q))[^]2
+  [=] ('(|q|))[^]2.
+Proof. 
+  intros q.
+  unfold CanonicalNotations.norm, NormSpace_instance_Cart2D.
+  unfold cast, Cart_CR_IR, Cast_instace_Q_IR.
+  unfold sqrtFun, rational_sqrt_SqrtFun_instance.
+  rewrite rational_sqrt_correct.
+  rewrite IRasCRasIR_id.
+  rewrite sqrt_sqr. rewrite <- inj_Q_power, <- inj_Q_power.
+  rewrite <- inj_Q_plus.
+  apply inj_Q_wd.
+  simpl. unfoldMC. reflexivity.
+Grab Existential Variables.
+  rewrite <- inj_Q_Zero.
+  apply inj_Q_leEq.
+  unfoldMC. pose proof (cc_abs_aid _ (X q) (Y q)) as HH.
+  simpl in HH.
+  simpl. lra.
+Qed.
+
+
+
+(*
+Lemma ABCSqrRW : ∀ d X Y: IR, 
+d[^]2 [+] X[^]2 [+] Y[^]2 =
+(d [-] NRootIR.sqrt (X[^]2 [+] Y[^]2) _ )[^]2
+  [+] 2[*] NRootIR.sqrt (X[^]2 [+] Y[^]2) _.
+*)
+  
+Lemma squareMinusIR2:
+  ∀  (x y : IR), (x[-]y)[^]2 [+]Two[*]x[*]y [=]x[^]2[+]y[^]2.
+Proof.
+  intros. rewrite square_minus. rewrite <- one_plus_one.
+  unfold cg_minus. ring.
+Qed.
+
+Local Opaque nexp_op.  
+Lemma XDistEV3 :
+  let t3 : QTime := MotorEventsNthTime 3 (decAuto (3<4)%nat I) in
+  (distSqr (posAtTime t3) targetPosR) = (distTraveled - '(|targetPos |))[^]2 + 0.
+Proof.
+  simpl. rewrite PosPosAtEV3.
+  unfold targetPosR, cast, castCart.
+  unfold distSqr. 
+  unfold canonical_names.negate, Negate_instance_Cart2D
+      ,plus, Plus_instance_Cart2D.
+  simpl. unfold normSqr.
+  simpl.
+  unfoldMC. fold zero. autounfold with IRMC.
+  remember (' X targetPos) as Xt.
+  remember (' Y targetPos) as Yt.
+  remember (Cos θ2) as ct.
+  remember (Sin θ2) as st.
+  remember distTraveled as dt.
+
+  match goal with
+  [ |- ( ?x [=] _) ] => assert (x 
+      [=] (dt[*]dt)[*](ct[*]ct [+] st[*]st)
+          [+] (Xt[*]Xt [+] Yt[*]Yt)
+          [-] ([1] [+] [1]) [*]dt[*](Xt[*]ct [+] Yt[*]st)) as Heq
+  end.
+  unfold cg_minus. ring.
+  rewrite Heq.
+  subst ct st.
+  fold 2 in Heq.
+  repeat (rewrite <- nexp_two).
+  rewrite FFT.
+  rewrite mult_one.
+  rewrite HeqXt at 1.
+  rewrite HeqYt at 1.
+  rewrite normSqrQ.
+  rewrite <- squareMinusIR2.
+  fold (normSqr targetPosR).
+  unfold cg_minus. rewrite <- plus_assoc_unfolded.
+  apply plus_resp_eq.
+  rewrite one_plus_one.
+  
+Abort.
+ (*
 Lemma TransVelPosAtEV3 :
   let t0 : QTime := MotorEventsNthTime 2 (decAuto (2<4)%nat I) in
   let t1 : QTime := MotorEventsNthTime 3 (decAuto (3<4)%nat I) in
@@ -2149,7 +2235,6 @@ Proof.
     eauto with ICR.
   clear H99.
 Abort.
-(*
   rewrite initTheta in Ht0r.
   rewrite Ht0r in Hc.
   rewrite Ht0l in Hc.
