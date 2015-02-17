@@ -2083,7 +2083,27 @@ Proof.
   simpl scs_elem in Hint.
   unfold fst, snd in Hint.
   clear Heq.
-Abort.
+  rewrite CIntegral_scale in Hint.
+  fold distTraveled in Hint.
+  pose proof (TransVelPosAtEV2 
+      (MotorEventsNthTime 2 (decAuto (2 < 4)%nat I))) as H2.
+  unfold le, Le_instance_QTime in H2.
+  DestImp H2;
+    [|split; [apply MotorEventsNthTimeInc; omega| lra]].
+  repnd.
+  unfold posAtTime in H2r.
+  unfold equiv, EquivCart in H2r.
+  simpl in H2r. apply proj1 in H2r.
+  rewrite H2r in Hint. clear H2r.
+  destruct (initPos icreate) as [Hx Hy].
+  setoid_rewrite Hx in Hint.
+  clear Hx Hy.
+  intros ?.
+  fold t3 in Hint. unfold zero, Zero_instance_IR in Hint.
+  unfold cg_minus in Hint. ring_simplify in Hint.
+  rewrite <- Hint.
+  unfoldMC. ring.
+Qed.
 
 Lemma TransVelPosAtEV3 :
   let t0 : QTime := MotorEventsNthTime 2 (decAuto (2<4)%nat I) in

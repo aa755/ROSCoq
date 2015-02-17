@@ -644,18 +644,28 @@ Lemma CIntegral_scale : ∀ (ib: IntgBnds) c (F : IContR),
    Cintegral ib (ContConstFun c [*] F) 
     [=] c [*] (Cintegral ib F).
 Proof.
+  intros.
   unfold Cintegral.
-  erewrite <- integral_plus; eauto.
+  rewrite <- integral_comm_scal.
   apply integral_wd.
   apply Feq_symmetric.
-  eapply included_Feq;[|apply toPartSum]; eauto.
+  eapply included_Feq.
+  Focus 2. unfold Fscalmult.
+  eapply Feq_transitive.
+  Focus 2. apply toPartMult; fail.
+  apply Feq_mult;
+    [apply toPartConst |apply IContR_st_eq_Feq; reflexivity]; fail.
   simpl. apply intvlIncluded.
   Grab Existential Variables.
   eapply Continuous_I_wd.
   eapply included_Feq.
-  Focus 2. apply Feq_symmetric. apply toPartSum; fail.
-           simpl. apply intvlIncluded; fail.
-  eapply included_imp_Continuous. apply (scs_prf _ _ (F [+]G)).
+  Focus 2. apply Feq_symmetric. 
+  eapply Feq_transitive.
+  Focus 2. apply toPartMult; fail.
+  apply Feq_mult;
+    [apply toPartConst |apply IContR_st_eq_Feq; reflexivity]; fail.
+  simpl. apply intvlIncluded; fail.
+  eapply included_imp_Continuous. apply (scs_prf _ _ (((ContConstFun  c)[*]F))).
   simpl. apply intvlIncluded.
 Qed.
 
