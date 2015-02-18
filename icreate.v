@@ -2023,7 +2023,6 @@ Proof.
   assumption.
 Qed.
 
-Definition TIntgBnds : Type := IntgBnds (closel [0]).
 
 Definition Ev2To3Interval : TIntgBnds.
   exists (QT2T (MotorEventsNthTime 2 (decAuto (2<4)%nat I)), 
@@ -2276,8 +2275,7 @@ Proof.
   subst tp. unfold cast.
   ring.
 Qed.
-
- (*
+(*
 Lemma TransVelPosAtEV3 :
   let t0 : QTime := MotorEventsNthTime 2 (decAuto (2<4)%nat I) in
   let t1 : QTime := MotorEventsNthTime 3 (decAuto (3<4)%nat I) in

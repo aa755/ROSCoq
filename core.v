@@ -1250,6 +1250,25 @@ Proof.
   apply Q.Qmult_le_compat_l;[lra|].
   apply qtimePos.
 Qed.
+Definition TIntgBnds : Type := IntgBnds (closel [0]).
+
+Definition ChangesToIntBnd {atTime uptoTime reacTime : QTime}
+  (p: atTime + reacTime < uptoTime) : TIntgBnds.
+Admitted.
+
+
+Lemma changesToIntegral :  ∀ (F': TContR)
+  (atTime uptoTime reacTime : QTime) (oldVal newVal : IR)
+  ( eps : QTime)
+  (p : atTime + reacTime < uptoTime),
+  changesTo F' atTime uptoTime newVal reacTime eps
+  → {F'} atTime [=] oldVal 
+  → let eps1 := (AbsIR ({F'} atTime[-]newVal)) in
+     AbsIR((Cintegral (ChangesToIntBnd p) F') [-]newVal[*](uptoTime - atTime))
+          [<=] eps1[*](QT2R reacTime) [+]  eps*(uptoTime - atTime).
+Proof.
+Admitted.
+
 
 Lemma TContRR2QCompactIntEq:
   ∀ (tf : TContR) (ta tb : QTime) (c : ℝ),
