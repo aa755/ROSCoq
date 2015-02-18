@@ -2206,10 +2206,12 @@ Proof.
 Qed.
 
 Local Opaque nexp_op.  
+Require Import  MathClasses.interfaces.additional_operations.
+
 Lemma XDistEV3 :
   let t3 : QTime := MotorEventsNthTime 3 (decAuto (3<4)%nat I) in
   (distSqr (posAtTime t3) targetPosR) = 
-      (distTraveled - ('|targetPos |))[^]2 
+      (distTraveled - ('|targetPos |)) ^ 2 
       + 2 * distTraveled *('|targetPos |) * (1 - Cos (optimalTurnAngle - θ2)).
 Proof.
   simpl. rewrite PosPosAtEV3.
@@ -2244,6 +2246,10 @@ Proof.
   rewrite <- squareMinusIR2.
   fold (normSqr targetPosR).
   unfold cg_minus. rewrite <- plus_assoc_unfolded.
+  unfold nat_pow.nat_pow_peano, peano_naturals.nat_1. 
+  unfold pow.
+  unfoldMC. unfold One_instance_IR. rewrite mult_one.
+  rewrite <- nexp_two.
   apply plus_resp_eq.
   rewrite one_plus_one.
   pose proof (CartToPolarToXIR targetPos) as Ht.
@@ -2266,7 +2272,6 @@ Proof.
   unfoldMC. unfold cg_minus. ring.
   rewrite Heq. rewrite <- Cos_minus.
   unfold One_instance_IR.
-  rewrite one_plus_one.
   unfold cg_minus. 
   subst tp. unfold cast.
   ring.
