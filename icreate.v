@@ -2151,8 +2151,34 @@ Grab Existential Variables.
   simpl. lra.
 Qed.
 
-
-
+Lemma CartToPolarToXIR : ∀ (q : Cart2D Q),
+  let θq : IR := '(polarTheta q) in 
+  ' q  = {| X := ('|q|) * Cos θq ; Y := ('|q|) * Sin θq |}.
+Proof.
+  intros ?.
+  simpl.
+  pose proof (Cart2Polar2CartID q) as Hid.
+  unfold cast, castCart, Cast_instace_Q_IR, Cart_CR_IR.
+  unfold cast, castCart, Cast_instace_Q_IR in Hid.
+  unfold Polar2Cart, Cart2Polar in Hid.
+  simpl in Hid.
+  unfold equiv, EquivCart in Hid.
+  unfold equiv, EquivCart.
+  simpl in Hid. simpl.
+  unfold cast.
+  repnd.
+  apply CRasIR_wd in Hidr.
+  apply CRasIR_wd in Hidl.
+  rewrite CR_mult_asIR in Hidl, Hidr.
+  rewrite sin_correct_CR in Hidr.
+  rewrite cos_correct_CR in Hidl.
+  rewrite <- Hidl, <- Hidr.
+  rewrite <- IR_inj_Q_as_CR, <- IR_inj_Q_as_CR.
+  rewrite IRasCRasIR_id, IRasCRasIR_id.
+  split; reflexivity.
+Qed.
+  
+  
 (*
 Lemma ABCSqrRW : ∀ d X Y: IR, 
 d[^]2 [+] X[^]2 [+] Y[^]2 =
@@ -2167,10 +2193,24 @@ Proof.
   unfold cg_minus. ring.
 Qed.
 
+
+Lemma Cos_minus: ∀ x y : ℝ, Cos (x[-]y)[=]Cos x[*]Cos y[+]Sin x[*]Sin y.
+Proof.
+  intros.
+  unfold cg_minus.
+  rewrite Cos_plus.
+  unfold cg_minus.
+  rewrite Sin_inv.
+  rewrite Cos_inv.
+  ring.
+Qed.
+
 Local Opaque nexp_op.  
 Lemma XDistEV3 :
   let t3 : QTime := MotorEventsNthTime 3 (decAuto (3<4)%nat I) in
-  (distSqr (posAtTime t3) targetPosR) = (distTraveled - '(|targetPos |))[^]2 + 0.
+  (distSqr (posAtTime t3) targetPosR) = 
+      (distTraveled - ('|targetPos |))[^]2 
+      + 2 * distTraveled *('|targetPos |) * (1 - Cos (optimalTurnAngle - θ2)).
 Proof.
   simpl. rewrite PosPosAtEV3.
   unfold targetPosR, cast, castCart.
@@ -2193,9 +2233,8 @@ Proof.
           [-] ([1] [+] [1]) [*]dt[*](Xt[*]ct [+] Yt[*]st)) as Heq
   end.
   unfold cg_minus. ring.
-  rewrite Heq.
+  rewrite Heq. clear Heq.
   subst ct st.
-  fold 2 in Heq.
   repeat (rewrite <- nexp_two).
   rewrite FFT.
   rewrite mult_one.
@@ -2207,8 +2246,32 @@ Proof.
   unfold cg_minus. rewrite <- plus_assoc_unfolded.
   apply plus_resp_eq.
   rewrite one_plus_one.
-  
-Abort.
+  pose proof (CartToPolarToXIR targetPos) as Ht.
+  simpl in Ht.
+  unfold castCart in Ht.
+  unfold equiv, EquivCart in Ht.
+  simpl in Ht.
+  repnd.
+  rewrite <- HeqXt in Htl.
+  rewrite <- HeqYt in Htr.
+  rewrite Htr, Htl.
+  Replace (' polarTheta targetPos [=] optimalTurnAngle).
+  unfoldMC. unfold Mult_instance_IR.
+  remember (' (|targetPos |)) as tp.
+
+  match goal with
+  [ |- ( ?x [=] _) ] => assert (x 
+      [=] Two[*]dt[*] tp [*] ([1] [-] (Cos optimalTurnAngle[*]Cos θ2[+] Sin optimalTurnAngle[*]Sin θ2))) as Heq
+  end.
+  unfoldMC. unfold cg_minus. ring.
+  rewrite Heq. rewrite <- Cos_minus.
+  unfold One_instance_IR.
+  rewrite one_plus_one.
+  unfold cg_minus. 
+  subst tp. unfold cast.
+  ring.
+Qed.
+
  (*
 Lemma TransVelPosAtEV3 :
   let t0 : QTime := MotorEventsNthTime 2 (decAuto (2<4)%nat I) in
