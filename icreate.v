@@ -3,6 +3,9 @@ Require Export Coq.Program.Tactics.
 Require Export LibTactics.
 (** printing × $\times$ #×# *)
 (** printing :> $:$ #:># *)
+(** printing ≡ $\equiv$ #≡# *)
+(** printing [*] $*$ #*# *)
+(** printing ∧ $\wedge$ #∧# *)
 
 Require Export ROSCyberPhysicalSystem.
 Require Export Vector.
