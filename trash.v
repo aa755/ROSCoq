@@ -619,3 +619,15 @@ Proof.
   rewrite QabsTime in Hg.
   trivial.
 Qed.
+
+(*
+Definition UIP_refl := ∀ (U:Type) (x:U) (p:x = x), p = eq_refl.
+Definition VoidNat_Ext := ∀ (f g : void -> nat), f = g.
+
+Lemma UIP_implies_not_void_ext :
+  UIP_refl -> VoidNat_Ext -> False.
+Proof.
+  intros Huip Hvn.
+  specialize (Hvn (λ x, 0) (λ x, 1)).
+  specialize (Huip _ _ Hvn).
+*)
