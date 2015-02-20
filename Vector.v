@@ -36,6 +36,9 @@ Defined.
 Record Cart2D (T : Type) : Type := mkCart2D {X : T; Y: T}.
 Record Polar2D (T : Type) : Type := mkPolar2D {rad : T; θ : T}.
 
+(** l:Line2D , represents the line (X (π₁ l))x + (Y (π₁ l))x + π₂ l 
+Definition Line2D (T : Type) : Type := (Cart2D T) × T. *)
+
 Definition fromVec2D {T:Type}  (v2: Cart2D T) : Vector 2 T := (tt, X v2, Y v2).
 
 Definition toVec2D {T:Type}  (v2: Vector 2 T) : Cart2D T  
@@ -135,7 +138,17 @@ Global Instance Ring_instance_Cart2D : Ring (Cart2D A).
 Qed.
 
 Definition shiftOrigin (newOr pt : Cart2D A) :  Cart2D A :=
- pt - newOr.
+  pt - newOr.
+
+Definition distanceFromLine
+  (newOr : Cart2D A) (p : newOr ≠ 0) : Cart2D A.
+Abort.
+
+(** shift orign to newOr and rotate the axis so that the X axis points
+    away from the old origin *)
+Definition shiftRotateOrigin 
+  (newOr : Cart2D A) (p : newOr ≠ 0) : Cart2D A.
+Abort.
 
 Definition distSqr (a b : Cart2D A) : A :=
   normSqr (a - b ).
