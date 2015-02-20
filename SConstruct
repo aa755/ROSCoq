@@ -32,12 +32,14 @@ env['COQFLAGS'] = Rs
 
 for node in vs: env.Coq(node, COQCMD=coqcmd)
 
-#mc_vs, mc_vos, mc_globs = env.SConscript(dirs='math-classes/src')
 
 os.system('coqdep ' + ' '.join(map(str, vs)) + ' ' + includes + ' ' + Rs + ' > deps')
 ParseDepends('deps')
 
+mc_vs, mc_vos, mc_globs = env.SConscript(dirs='../../../ssrcorn/math-classes/src')
+#corn_vs, corn_vos, corn_globs = env.SConscript(dirs='../../../ssrcorn')
+
 #open('coqidescript', 'w').write('#!/bin/sh\ncoqide ' + Rs + ' $@ \n')
 #os.chmod('coqidescript', 0755)
 
-env.CoqDoc(env.Dir('coqdoc'), vs, COQDOCFLAGS='-utf8 --toc -g --no-lib-name --coqlib http://coq.inria.fr/library')
+env.CoqDoc(env.Dir('coqdoc'), vs+mc_vs, COQDOCFLAGS='-utf8 --toc -g --no-lib-name --coqlib http://coq.inria.fr/library')
