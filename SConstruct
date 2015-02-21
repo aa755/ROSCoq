@@ -40,4 +40,4 @@ ParseDepends('deps')
 #open('coqidescript', 'w').write('#!/bin/sh\ncoqide ' + Rs + ' $@ \n')
 #os.chmod('coqidescript', 0755)
 
-env.CoqDoc(env.Dir('coqdoc'), vs, COQDOCFLAGS='-utf8 --toc -g --no-lib-name --coqlib http://coq.inria.fr/library')
+env.CoqDoc(env.Dir('coqdoc'), vs, COQDOCFLAGS='-utf8 --toc --latex -g --no-lib-name --coqlib http://coq.inria.fr/library')

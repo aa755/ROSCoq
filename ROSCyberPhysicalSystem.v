@@ -34,30 +34,30 @@ Context  `{rtopic : RosTopicType RosTopic}.
     representing all events in the system *)
 Close Scope Q_scope.
 
-Class EventType (T: Type) 
+Class EventType (Event: Type) 
       (Loc : Type) 
       (** minimum time diff between events *)
     	(minGap : Q) 
-      {tdeq: DecEq T}  := {
-  eLoc : T ->  Loc;
-  eMesg : T -> Message;
-  eKind : T -> EventKind;
+      {tdeq: DecEq Event}  := {
+  eLoc : Event ->  Loc;
+  eMesg : Event -> Message;
+  eKind : Event -> EventKind;
   
 
-  eTime : T -> QTime;
-  timeDistinct : forall (a b : T), 
+  eTime : Event -> QTime;
+  timeDistinct : forall (a b : Event), 
     eTime a = eTime b
     -> a = b;
-  eLocIndex : T -> nat;
-  indexDistinct : forall (a b : T), 
+  eLocIndex : Event -> nat;
+  indexDistinct : forall (a b : Event), 
     eLoc a = eLoc b
     -> eLocIndex a = eLocIndex b
     -> a = b;
-  timeIndexConsistent : forall (a b : T),
+  timeIndexConsistent : forall (a b : Event),
     eLocIndex a < eLocIndex b
     <-> (eTime a < eTime b)%Q;
 
-  localEvts : Loc -> (nat -> option T);
+  localEvts : Loc -> (nat -> option Event);
 
   locEvtIndex : forall (l: Loc) n t,
     ((eLoc t) = l /\ (eLocIndex t) = n)
@@ -66,13 +66,13 @@ Class EventType (T: Type)
   localIndexDense : ∀ (l: Loc) n t (m : nat),
     ((eLoc t) = l /\ (eLocIndex t) = n)
     -> m <n 
-    -> {tm : T | ((eLoc tm) = l /\ (eLocIndex tm) = m)};
+    -> {tm : Event | ((eLoc tm) = l /\ (eLocIndex tm) = m)};
 
     (** At any time, we can partition local events
       into a finite set of events happening before
       and ones happening after *)
 
-  eventSpacing :  forall (e1 e2 : T),
+  eventSpacing :  forall (e1 e2 : Event),
     (eTime e1 >  minGap)%Q
     /\ (eLoc e1 = eLoc e2 
         -> minGap <= (Qabs ((eTime e1) - (eTime e2))))%Q;
