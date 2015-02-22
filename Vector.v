@@ -140,15 +140,7 @@ Qed.
 Definition shiftOrigin (newOr pt : Cart2D A) :  Cart2D A :=
   pt - newOr.
 
-Definition distanceFromLine
-  (newOr : Cart2D A) (p : newOr ≠ 0) : Cart2D A.
-Abort.
 
-(** shift orign to newOr and rotate the axis so that the X axis points
-    away from the old origin *)
-Definition shiftRotateOrigin 
-  (newOr : Cart2D A) (p : newOr ≠ 0) : Cart2D A.
-Abort.
 
 Definition distSqr (a b : Cart2D A) : A :=
   normSqr (a - b ).
