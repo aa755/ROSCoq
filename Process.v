@@ -2,12 +2,13 @@ Set Implicit Arguments.
 
 
 CoInductive Process (In Out : Type) :=
-buildP : (In -> ((Process In Out)* Out))
-          -> Process In Out.
+buildP (f : (In -> ((Process In Out) * Out))).
+
+Require Import Coq.Unicode.Utf8.
 
 CoFixpoint mkPureProcess {In Out} 
  (f : In -> Out) : Process In Out :=
-buildP (fun inp => (mkPureProcess f, f inp)).
+buildP (λ inp, (mkPureProcess f, f inp)).
 
 (** cofix works
 Definition SPP1 := mkPureProcess (fun n:nat => 1).
