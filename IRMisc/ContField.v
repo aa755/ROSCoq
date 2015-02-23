@@ -526,6 +526,52 @@ Proof.
   apply Derivative_mult; assumption.
 Qed.
 
+Lemma TContRDerivativeConst:
+  ∀ (c : IR),
+    isIDerivativeOf  [0] (ContConstFun c).
+Proof.
+  intros.
+  unfold isIDerivativeOf.
+  eapply Derivative_wdl;[
+    apply toPartConst|].
+  eapply Derivative_wdr;[
+    apply toPartConst|].
+  apply Derivative_const.
+Qed.
+
+Require Import Ring. 
+Require Import CoRN.tactics.CornTac.
+Require Import CoRN.algebra.CRing_as_Ring.
+
+Add Ring IRisaRing: (CRing_Ring IContR).
+
+Lemma TContRDerivativeMultConstR:
+  ∀ (F F' : IContR) (c : IR),
+  isIDerivativeOf F' F
+  → isIDerivativeOf  (F' [*] ContConstFun c) (F [*] ContConstFun c).
+Proof.
+  intros  ? ? ?  H1d.
+  eapply isIDerivativeOfWdl;[
+    |apply TContRDerivativeMult]; eauto;
+    [| apply TContRDerivativeConst].
+  ring.
+Qed.
+
+Lemma TContRDerivativeMultConstL:
+  ∀ (F F' : IContR) (c : IR),
+  isIDerivativeOf F' F
+  → isIDerivativeOf  (ContConstFun c [*] F') (ContConstFun c [*] F).
+Proof.
+  intros  ? ? ?  H1d.
+  eapply isIDerivativeOfWdl;
+  [| eapply isIDerivativeOfWdr];
+  [| | apply TContRDerivativeMultConstR]; eauto.
+  instantiate (1:=c).
+  ring.
+  ring.
+Qed.
+
+
 Lemma TContRDerivativePlus:
   ∀ (F F' G G' : IContR),
   isIDerivativeOf F' F
@@ -541,12 +587,39 @@ Proof.
   apply Derivative_plus; assumption.
 Qed.
 
-Local Notation "2" := ([1] [+] [1]).
-Require Import Ring. 
-Require Import CoRN.tactics.CornTac.
-Require Import CoRN.algebra.CRing_as_Ring.
+Lemma FConstOppIn : ∀ (c : IR),
+  [--](ContConstFun c) [=] (ContConstFun ([--]c)).
+Proof.
+  intros c.
+  simpl.
+  intros x.
+  simpl.
+  reflexivity.
+Qed.
 
-Add Ring IRisaRing: (CRing_Ring IContR).
+Lemma TContRInvAsMult : ∀ (F: IContR),
+   (ContConstFun ([--] [1]) [*] F)[=] [--] F.
+Proof.
+  intros F. rewrite <- FConstOppIn.
+  symmetry.
+  rewrite <- mult_minus1.
+  reflexivity.
+Qed.
+
+Lemma TContRDerivativeOpp:
+  ∀ (F F' : IContR),
+  isIDerivativeOf F' F
+  → isIDerivativeOf  ([--] F') ([--] F).
+Proof.
+  intros  ? ? H1d.
+  eapply isIDerivativeOfWdl;
+  [apply TContRInvAsMult| eapply isIDerivativeOfWdr];
+  [apply TContRInvAsMult| ].
+  apply TContRDerivativeMultConstL.
+  assumption.
+Qed.
+
+Local Notation "2" := ([1] [+] [1]).
 
 Lemma DerivativeSqr:
   ∀ (F F' : IContR),
