@@ -71,7 +71,7 @@ Definition rotateOriginTowards
   (pt : Cart2D IR) : Cart2D IR :=
   let normInv := normIRInv XTowards nz in 
 {|X:= ((X pt)*(X XTowards) + (Y pt)*(Y XTowards)) * (normInv);
-  Y:= ((X pt)*(Y XTowards) - (Y pt)*(X XTowards)) * (normInv) |}.
+  Y:= ((Y pt)*(X XTowards) - (X pt)*(Y XTowards)) * (normInv) |}.
 
 Require Import Ring. 
 Require Import CoRN.tactics.CornTac.
@@ -136,7 +136,7 @@ Definition rotateOriginTowardsF
   let Xf := ConstTContR (normInv * X XTowards) in 
   let Yf := ConstTContR (normInv * Y XTowards) in 
 {|X:= (Xf * X pt + Yf * Y pt);
-  Y:= (Yf * X pt - Xf * Y pt)|}.
+  Y:= (Xf * Y pt - Yf * X pt)|}.
 
 Lemma DerivativerotateOriginTowards :
   ∀ (XTowards : Cart2D IR)
@@ -149,7 +149,7 @@ Lemma DerivativerotateOriginTowards :
   isDerivativeOf Dx (X pt)
   → isDerivativeOf Dy (Y pt)
   → (isDerivativeOf (Xf*Dx + Yf*Dy) (X ptR)
-      × isDerivativeOf (Yf*Dx - Xf*Dy) (Y ptR)).
+      × isDerivativeOf (Xf*Dy - Yf*Dx) (Y ptR)).
 Proof.
   intros ? ? ? ? ?.
   simpl. intros H1d H2d.
@@ -266,7 +266,7 @@ Lemma DerivativerotateOriginTowards2 :
   isDerivativeOf (V * (CFCos θ)) (X pt)
   → isDerivativeOf (V * (CFSine θ)) (Y pt)
   → (isDerivativeOf (V * (CFCos (θ - θt))) (X ptR)
-      × isDerivativeOf (V * (CFSine (θt - θ))) (Y ptR)).
+      × isDerivativeOf (V * (CFSine (θ - θt))) (Y ptR)).
 Proof.
   intros ? ? ? ? ?.
   simpl. intros H1d H2d.
