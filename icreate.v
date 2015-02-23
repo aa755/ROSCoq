@@ -34,8 +34,8 @@ Record iCreate : Type := {
 
   (** derivatives *)
   derivRot : isDerivativeOf omega theta;
-  derivX : isDerivativeOf (transVel [*] (CFCos theta)) (X position);
-  derivY : isDerivativeOf (transVel [*] (CFSine theta)) (Y position);
+  derivX : isDerivativeOf (transVel * (CFCos theta)) (X position);
+  derivY : isDerivativeOf (transVel * (CFSine theta)) (Y position);
 
   (** Initial (at time:=0) Conditions *)  
 
@@ -315,6 +315,15 @@ Defined.
 Variable acceptableDist : Q.
 Variable icreate : iCreate.
 Variable eo : (@PossibleEventOrder _  icreate minGap _ _ _ _ _ _ _ _ _).
+
+
+Lemma derivXNoMC : ∀ icr, isDerivativeOf (transVel icr[*] (CFCos (theta icr))) (X (position icr)).
+  exact derivX.
+Qed.
+
+Lemma derivYNoMC : ∀ icr, isDerivativeOf (transVel icr[*] (CFSine (theta icr))) (Y (position icr)).
+  exact derivY.
+Qed.
 
 Definition posAtTime (t: Time) : Cart2D IR :=
   {| X:= {X (position icreate)} t ; Y := {Y (position icreate)} t |}.
@@ -919,7 +928,8 @@ assert T as Heq by reflexivity; rewrite Heq; clear Heq.
 Ltac ReplaceH T H :=
 assert T as Heq by reflexivity; rewrite Heq in H; clear Heq.
 
-Hint Resolve derivRot  derivX derivY initPos initTheta initTransVel initOmega: ICR.
+Hint Resolve derivRot  derivX derivY initPos initTheta initTransVel initOmega
+    derivXNoMC derivYNoMC : ICR.
 Hint Resolve qtimePos : ROSCOQ.
 
 
