@@ -146,3 +146,34 @@ Proof.
     apply TContRDerivativeMultConstL; assumption.
 Qed.
 
+Lemma CartToPolarToXIR : ∀ (XTowards : Cart2D Q)
+    (nz : 0 [<] normIR ('XTowards)),
+  let normInv :=  (normIRInv ('XTowards) nz) in 
+  let Xf :IR := (normInv * '(X XTowards)) in 
+  let Yf :IR := (normInv * ' (Y XTowards)) in 
+  let θq : IR := '(polarTheta XTowards) in 
+  {|X:= Xf ; Y:=Yf|}  
+    = {| X := Cos θq ; Y := Sin θq |}.
+Proof.
+  intros q.
+  simpl.
+  pose proof (Cart2Polar2CartID q) as Hid.
+  unfold cast, castCart, Cast_instace_Q_IR, Cart_CR_IR.
+  unfold cast, castCart, Cast_instace_Q_IR in Hid.
+  unfold Polar2Cart, Cart2Polar in Hid.
+  simpl in Hid.
+  unfold equiv, EquivCart in Hid.
+  unfold equiv, EquivCart.
+  simpl in Hid. simpl.
+  unfold cast.
+  repnd.
+  apply CRasIR_wd in Hidr.
+  apply CRasIR_wd in Hidl.
+  rewrite CR_mult_asIR in Hidl, Hidr.
+  rewrite sin_correct_CR in Hidr.
+  rewrite cos_correct_CR in Hidl.
+  rewrite <- Hidl, <- Hidr.
+  rewrite <- IR_inj_Q_as_CR, <- IR_inj_Q_as_CR.
+  rewrite IRasCRasIR_id, IRasCRasIR_id.
+  split; reflexivity.
+Qed.

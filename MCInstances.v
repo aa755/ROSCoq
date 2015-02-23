@@ -5,6 +5,7 @@ Instance Zero_instance_QTime : Zero QTime := (mkQTime 0 I).
 Instance Zero_instance_Time : Zero Time := (QT2T (mkQTime 0 I)).
 Instance Lt_instance_QTime : Lt QTime := Qlt.
 Instance Le_instance_QTime : Le QTime := Qle.
+Instance Plus_instance_QTime : Plus QTime := Qtadd.
 
 Instance SqrtFun_instancee_IR : SqrtFun IR IR.
 intros r. apply (sqrt (AbsIR r)). apply AbsIR_nonneg.
@@ -33,7 +34,26 @@ Proof. apply (rings.from_stdlib_ring_theory (CRing_Ring TContR)). Qed.
 
 Instance Cast_instace_Q_IR : Cast Q IR := (inj_Q IR).
 
+
 (** Equiv itself does not give RST props of equality *)
 Instance Equivalence_instance_IR : @Equivalence IR equiv.
   split; repeat (intros ?); simpl; repnd; info_auto with *.
 Defined.
+
+Instance Proper_Qeq_Inj_Q :
+  Proper (Qeq ==> @st_eq IR) (inj_Q IR).
+Proof.
+  intros a b Hab.
+  apply inj_Q_wd.
+  auto.
+Qed.
+
+Instance NormSpace_instance_Q : NormSpace Q Q := Qabs.Qabs.
+
+Require Export CoRN.reals.fast.CRIR.
+Instance Cart_CR_IR : Cast CR IR := CRasIR.
+
+Instance Proper_CRasIR : Proper (@st_eq CR ==> @st_eq IR) CRasIR.
+Proof.
+  exact CRasIR_wd.
+Qed.

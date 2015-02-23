@@ -80,7 +80,6 @@ Definition unitVec (theta : TContR)  : Cart2D TContR :=
 Section RobotProgam.
 Variables   rotspeed speed anglePrec distPrec delay : Qpos.
 
-Instance NormSpace_instance_Q : NormSpace Q Q := Qabs.Qabs.
 
 Definition robotPureProgam 
       (target : Cart2D Q) : list (Q × Polar2D Q):=
@@ -923,7 +922,6 @@ assert T as Heq by reflexivity; rewrite Heq in H; clear Heq.
 Hint Resolve derivRot  derivX derivY initPos initTheta initTransVel initOmega: ICR.
 Hint Resolve qtimePos : ROSCOQ.
 
-Instance Plus_instance_QTime : Plus QTime := Qtadd.
 
 Open Scope nat_scope.
 
@@ -1249,13 +1247,6 @@ Qed.
 
   
 
-Instance Proper_Qeq_Inj_Q :
-  Proper (Qeq ==> @st_eq IR) (inj_Q IR).
-Proof.
-  intros a b Hab.
-  apply inj_Q_wd.
-  auto.
-Qed.
 
 Ltac InjQRingSimplify :=
   unfold Q2R, Z2R; autorewrite with QSimpl;
@@ -1451,10 +1442,6 @@ Proof.
   intros. apply CR_minus_asIR.
 Qed.
 
-Instance Proper_CRasIR : Proper (@st_eq CR ==> @st_eq IR) CRasIR.
-Proof.
-  exact CRasIR_wd.
-Qed.
 
 Lemma approximateAbsSmallIR: ∀ (r:CR) (eps : Qpos),
     AbsSmall eps (CRasIR r [-] (approximate r eps)).
@@ -2129,7 +2116,6 @@ Qed.
 Hint Unfold Le_instance_IR  Plus_instance_IR Negate_instance_IR 
     Mult_instance_IR: IRMC.
 
-Local Instance Cart_CR_IR : Cast CR IR := CRasIR.
 
 Lemma normSqrQ : ∀ (q : Cart2D Q),
   (' (X q))[^]2 [+] (' (Y q))[^]2
