@@ -36,6 +36,13 @@ Lemma normIRInvSpec : ∀ (pt : Cart2D IR)  (nz : 0 [<] normIR pt),
   reflexivity.
 Qed.
 
+Lemma normIRInvSpecInvLeft : ∀ (pt : Cart2D IR)  (nz : 0 [<] normIR pt), 
+    (normIRInv pt nz) * (normIR pt) = 1.
+  
+  intros. rewrite mult_comm.
+  apply normIRInvSpec.
+Qed.
+
 Lemma MultIRSqrMix: 
 ∀ a b : IR, 
  (a * a * b * b = (a * b) * (a * b)).
@@ -146,16 +153,12 @@ Proof.
     apply TContRDerivativeMultConstL; assumption.
 Qed.
 
-Lemma CartToPolarToXIR : ∀ (XTowards : Cart2D Q)
-    (nz : 0 [<] normIR ('XTowards)),
-  let normInv :=  (normIRInv ('XTowards) nz) in 
-  let Xf :IR := (normInv * '(X XTowards)) in 
-  let Yf :IR := (normInv * ' (Y XTowards)) in 
-  let θq : IR := '(polarTheta XTowards) in 
-  {|X:= Xf ; Y:=Yf|}  
-    = {| X := Cos θq ; Y := Sin θq |}.
+Local Opaque Sin Cos.
+Lemma CartToPolarToXIR : ∀ (q : Cart2D Q),
+  let θq : IR := '(polarTheta q) in 
+  ' q  = {| X := ('|q|) * Cos θq ; Y := ('|q|) * Sin θq |}.
 Proof.
-  intros q.
+  intros ?.
   simpl.
   pose proof (Cart2Polar2CartID q) as Hid.
   unfold cast, castCart, Cast_instace_Q_IR, Cart_CR_IR.
@@ -177,3 +180,97 @@ Proof.
   rewrite IRasCRasIR_id, IRasCRasIR_id.
   split; reflexivity.
 Qed.
+
+
+Lemma QNormSqrIR : ∀ (q : Cart2D Q),
+  normIR ('q) = '|q|.
+Proof.
+  intros.
+  unfold norm, NormSpace_instance_Cart2D, sqrtFun,
+    rational_sqrt_SqrtFun_instance.
+  rewrite rational_sqrt_correct.
+  unfold cast.
+  rewrite IRasCRasIR_id.
+  apply sqrt_wd.
+  unfold castCart, normSqr.
+Local Opaque inj_Q.
+  simpl.
+  unfoldMC.
+  unfold Mult_instance_IR,Mult_instance_IR.
+  autorewrite with InjQDown.
+  reflexivity.
+Grab Existential Variables.
+  pose proof (cc_abs_aid _ (X q) (Y q)) as HH.
+  simpl in HH.
+  rewrite <- inj_Q_Zero.
+  apply inj_Q_leEq.
+  unfoldMC.
+  simpl. simpl in HH.
+Require Import Psatz.
+  lra.
+Qed.
+
+
+Lemma RingLeftMult : ∀ `{Ring R} (c a b : R),
+  a = b
+  -> c * a = c * b.
+Proof.
+  intros ? ? ? ? ? ? ? ? ? ? ? H.
+  rewrite H.
+  reflexivity.
+Qed.
+
+Lemma CartToPolarToXIR2 : ∀ (XTowards : Cart2D Q)
+    (nz : 0 [<] normIR ('XTowards)),
+  let normInv :=  (normIRInv ('XTowards) nz) in 
+  let Xf :IR := (normInv * '(X XTowards)) in 
+  let Yf :IR := (normInv * ' (Y XTowards)) in 
+  let θq : IR := '(polarTheta XTowards) in 
+  {|X:= Xf ; Y:=Yf|}  
+    = {| X := Cos θq ; Y := Sin θq |}.
+Proof.
+  intros q ?.
+  simpl.
+  pose proof (CartToPolarToXIR q) as Hid.
+  unfold equiv, EquivCart. simpl.
+  unfold equiv, EquivCart in Hid.
+  simpl in Hid.
+  rewrite <- QNormSqrIR in Hid.
+  repnd.
+  apply (RingLeftMult (normIRInv (' q) nz)) in Hidr.
+  apply (RingLeftMult (normIRInv (' q) nz)) in Hidl.
+  rewrite sr_mult_associative in Hidr.
+  rewrite sr_mult_associative in Hidl.
+  rewrite normIRInvSpecInvLeft in Hidl.
+  rewrite normIRInvSpecInvLeft in Hidr.
+  rewrite mult_1_l in Hidl.
+  rewrite mult_1_l in Hidr.
+  rewrite <- Hidl, <- Hidr.
+  split; reflexivity.
+Qed.
+
+
+Lemma DerivativerotateOriginTowards2 :
+  ∀ (XTowards : Cart2D Q)
+  (nz : 0 [<] normIR (' XTowards))
+  (pt : Cart2D TContR) (V θ : TContR),
+  let θt : TContR := ConstTContR ('(polarTheta XTowards)) in 
+  let ptR := rotateOriginTowardsF (' XTowards) nz pt in 
+  isDerivativeOf (V * (CFCos θ)) (X pt)
+  → isDerivativeOf (V * (CFSine θ)) (Y pt)
+  → (isDerivativeOf (V * (CFCos (θ - θt))) (X ptR)
+      × isDerivativeOf (V * (CFSine (θ - θt))) (Y ptR)).
+Proof.
+  intros ? ? ? ? ?.
+  simpl. intros H1d H2d.
+  pose proof (DerivativerotateOriginTowards _ nz pt _ _ H1d H2d) as Hd.
+  pose proof (CartToPolarToXIR2 _ nz) as Hn.
+  simpl in Hn.
+  unfold equiv, EquivCart in Hn.
+  simpl in Hn.
+  repnd. destruct Hd as [Hdl Hdr].
+  eapply isIDerivativeOfWdl in Hdr.
+  Focus 2. 
+  (* rewrite Hnl. *)
+
+Abort.

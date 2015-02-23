@@ -152,3 +152,18 @@ Lemma SinOfArcTan2 : forall r,
 Proof.
   intros. apply SinOfArcTan.
 Qed.
+
+Require Import Ring. 
+Require Import CoRN.algebra.CRing_as_Ring.
+
+Add Ring RisaRing: (CRing_Ring IR).
+Lemma Cos_minus: ∀ x y : IR, Cos (x[-]y)[=]Cos x[*]Cos y[+]Sin x[*]Sin y.
+Proof.
+  intros.
+  unfold cg_minus.
+  rewrite Cos_plus.
+  unfold cg_minus.
+  rewrite Sin_inv.
+  rewrite Cos_inv.
+  ring.
+Qed.

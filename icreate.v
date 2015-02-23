@@ -7,8 +7,8 @@ Require Export LibTactics.
 (** printing [*] $*$ #*# *)
 (** printing ∧ $\wedge$ #∧# *)
 
-Require Export ROSCyberPhysicalSystem.
 Require Export Vector.
+Require Export ROSCyberPhysicalSystem.
 
 Definition isVecDerivativeOf 
     {n : nat} (f f' : Vector n TContR) : Type.
@@ -20,7 +20,7 @@ Definition isVecDerivativeOf
 Defined.
 Require Import MathClasses.interfaces.canonical_names.
 Require Import MCInstances.
-Require Export CartCR.
+Require Import CartCR.
 
 Definition initialVel : (Polar2D Q) := {|rad:=0; θ:=0|}.
 
@@ -1410,37 +1410,6 @@ Lemma MotorEv01Gap2 :
   exact Hg.
 Qed.
 
-  Hint Rewrite  inj_Q_One : InjQDown.
-  Hint Rewrite  inj_Q_inv : InjQDown.
-  Hint Rewrite  inj_Q_plus : InjQDown.
-  Hint Rewrite  inj_Q_minus : InjQDown.
-  Hint Rewrite  inj_Q_inv : InjQDown.
-  Hint Rewrite  inj_Q_mult : InjQDown.
-  Hint Rewrite <-  inj_Q_mult : QSimpl.
-
-(* MOVE *)
-Lemma CR_AbsSmall_as_IR: 
-    ∀ x y : CR, AbsSmall x y ↔ AbsSmall (CRasIR x) (CRasIR y).
-Proof.
-  intros.
-  pose proof (IR_AbsSmall_as_CR (CRasIR x) (CRasIR y)) as H.
-  rewrite CRasIRasCR_id in H.
-  rewrite CRasIRasCR_id in H.
-  tauto.
-Qed.
-
-Lemma CR_minus_asIR: ∀ x y : CR, CRasIR (x - y) [=] CRasIR x[-]CRasIR y.
-Proof.
-  intros.
-  unfold cg_minus. simpl.
-  rewrite  CR_plus_asIR, CRasIR_inv.
-  reflexivity.
-Qed.
-
-Lemma CR_minus_asIR2: ∀ x y : CR, CRasIR (x [-] y) [=] CRasIR x[-]CRasIR y.
-Proof.
-  intros. apply CR_minus_asIR.
-Qed.
 
 
 Lemma approximateAbsSmallIR: ∀ (r:CR) (eps : Qpos),
@@ -1458,32 +1427,6 @@ Lemma approximateAbsSmallIR: ∀ (r:CR) (eps : Qpos),
   exact Hball.
 Qed.
 
-Lemma AbsIR_plus : ∀  (e1 e2 x1 x2 : IR),
-  AbsIR x1 [<=]  e1
-  → AbsIR x2 [<=]  e2 
-  → AbsIR (x1[+]x2) [<=] (e1[+]e2).
-Proof.
-  intros ? ? ? ? H1 H2.
-  apply AbsSmall_imp_AbsIR.
-  apply AbsSmall_plus;
-  apply AbsIR_imp_AbsSmall; assumption.
-Qed.
-
-
-Lemma QmultOverQminusL : ∀ a b c : Q,
-  (c * (a - b) == c * a - c * b)%Q.
-Proof.
-  intros ? ? ?.
-  ring.
-Qed.
-
-Lemma QabsTime : ∀ (qp: QTime),
-   ((Qabs.Qabs qp) == qp)%Q.
-  intros.
-  destruct qp; simpl.
-  apply QTimeD in y.
-  rewrite Qabs.Qabs_pos; lra.
-Qed.
 
 (** This could be made an assumption of the motor spec.
   One will have to prove this and only then
@@ -2139,32 +2082,6 @@ Grab Existential Variables.
   simpl. lra.
 Qed.
 
-Lemma CartToPolarToXIR : ∀ (q : Cart2D Q),
-  let θq : IR := '(polarTheta q) in 
-  ' q  = {| X := ('|q|) * Cos θq ; Y := ('|q|) * Sin θq |}.
-Proof.
-  intros ?.
-  simpl.
-  pose proof (Cart2Polar2CartID q) as Hid.
-  unfold cast, castCart, Cast_instace_Q_IR, Cart_CR_IR.
-  unfold cast, castCart, Cast_instace_Q_IR in Hid.
-  unfold Polar2Cart, Cart2Polar in Hid.
-  simpl in Hid.
-  unfold equiv, EquivCart in Hid.
-  unfold equiv, EquivCart.
-  simpl in Hid. simpl.
-  unfold cast.
-  repnd.
-  apply CRasIR_wd in Hidr.
-  apply CRasIR_wd in Hidl.
-  rewrite CR_mult_asIR in Hidl, Hidr.
-  rewrite sin_correct_CR in Hidr.
-  rewrite cos_correct_CR in Hidl.
-  rewrite <- Hidl, <- Hidr.
-  rewrite <- IR_inj_Q_as_CR, <- IR_inj_Q_as_CR.
-  rewrite IRasCRasIR_id, IRasCRasIR_id.
-  split; reflexivity.
-Qed.
   
   
 (*
@@ -2174,24 +2091,6 @@ d[^]2 [+] X[^]2 [+] Y[^]2 =
   [+] 2[*] NRootIR.sqrt (X[^]2 [+] Y[^]2) _.
 *)
   
-Lemma squareMinusIR2:
-  ∀  (x y : IR), (x[-]y)[^]2 [+]Two[*]x[*]y [=]x[^]2[+]y[^]2.
-Proof.
-  intros. rewrite square_minus. rewrite <- one_plus_one.
-  unfold cg_minus. ring.
-Qed.
-
-
-Lemma Cos_minus: ∀ x y : ℝ, Cos (x[-]y)[=]Cos x[*]Cos y[+]Sin x[*]Sin y.
-Proof.
-  intros.
-  unfold cg_minus.
-  rewrite Cos_plus.
-  unfold cg_minus.
-  rewrite Sin_inv.
-  rewrite Cos_inv.
-  ring.
-Qed.
 
 Local Opaque nexp_op.  
 Require Import  MathClasses.interfaces.additional_operations.
@@ -2240,6 +2139,8 @@ Proof.
   rewrite <- nexp_two.
   apply plus_resp_eq.
   rewrite one_plus_one.
+
+Require Export CartIR.
   pose proof (CartToPolarToXIR targetPos) as Ht.
   simpl in Ht.
   unfold castCart in Ht.

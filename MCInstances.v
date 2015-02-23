@@ -37,7 +37,7 @@ Instance Cast_instace_Q_IR : Cast Q IR := (inj_Q IR).
 
 (** Equiv itself does not give RST props of equality *)
 Instance Equivalence_instance_IR : @Equivalence IR equiv.
-  split; repeat (intros ?); simpl; repnd; info_auto with *.
+  split; repeat (intros ?); simpl; repnd; auto with *.
 Defined.
 
 Instance Proper_Qeq_Inj_Q :

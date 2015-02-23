@@ -1416,6 +1416,30 @@ Proof.
   trivial.
 Qed.
 
+
+Lemma CR_AbsSmall_as_IR: 
+    ∀ x y : CR, AbsSmall x y ↔ AbsSmall (CRasIR x) (CRasIR y).
+Proof.
+  intros.
+  pose proof (IR_AbsSmall_as_CR (CRasIR x) (CRasIR y)) as H.
+  rewrite CRasIRasCR_id in H.
+  rewrite CRasIRasCR_id in H.
+  tauto.
+Qed.
+
+Lemma CR_minus_asIR: ∀ x y : CR, CRasIR (x - y) [=] CRasIR x[-]CRasIR y.
+Proof.
+  intros.
+  unfold cg_minus. simpl.
+  rewrite  CR_plus_asIR, CRasIR_inv.
+  reflexivity.
+Qed.
+
+Lemma CR_minus_asIR2: ∀ x y : CR, CRasIR (x [-] y) [=] CRasIR x[-]CRasIR y.
+Proof.
+  intros. apply CR_minus_asIR.
+Qed.
+
 (*
 Notation "¼" := (QposMake xH (xO (xO xH))).
 Notation  "2" := (QposMake (xO xH) xH).

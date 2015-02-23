@@ -1293,3 +1293,48 @@ Proof.
   repnd.
   simpl. split; auto.
 Qed.
+
+
+  Hint Rewrite  inj_Q_One : InjQDown.
+  Hint Rewrite  inj_Q_inv : InjQDown.
+  Hint Rewrite  inj_Q_plus : InjQDown.
+  Hint Rewrite  inj_Q_minus : InjQDown.
+  Hint Rewrite  inj_Q_inv : InjQDown.
+  Hint Rewrite  inj_Q_mult : InjQDown.
+  Hint Rewrite <-  inj_Q_mult : QSimpl.
+
+
+Lemma AbsIR_plus : ∀  (e1 e2 x1 x2 : IR),
+  AbsIR x1 [<=]  e1
+  → AbsIR x2 [<=]  e2 
+  → AbsIR (x1[+]x2) [<=] (e1[+]e2).
+Proof.
+  intros ? ? ? ? H1 H2.
+  apply AbsSmall_imp_AbsIR.
+  apply AbsSmall_plus;
+  apply AbsIR_imp_AbsSmall; assumption.
+Qed.
+
+
+Lemma QmultOverQminusL : ∀ a b c : Q,
+  (c * (a - b) == c * a - c * b)%Q.
+Proof.
+  intros ? ? ?.
+  ring.
+Qed.
+
+Lemma QabsTime : ∀ (qp: QTime),
+   ((Qabs.Qabs qp) == qp)%Q.
+  intros.
+  destruct qp; simpl.
+  apply QTimeD in y.
+  rewrite Qabs.Qabs_pos; lra.
+Qed.
+
+Lemma squareMinusIR2:
+  ∀  (x y : IR), (x[-]y)[^]2 [+]Two[*]x[*]y [=]x[^]2[+]y[^]2.
+Proof.
+  intros. rewrite square_minus. rewrite <- one_plus_one.
+  unfold cg_minus. ring.
+Qed.
+
