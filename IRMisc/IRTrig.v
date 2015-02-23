@@ -167,3 +167,14 @@ Proof.
   rewrite Cos_inv.
   ring.
 Qed.
+
+Lemma Sine_minus: ∀ x y : IR, Sin (x[-]y)[=]Sin x[*]Cos y[-]Cos x[*]Sin y.
+Proof.
+  intros.
+  unfold cg_minus.
+  rewrite Sin_plus.
+  unfold cg_minus.
+  rewrite Sin_inv.
+  rewrite Cos_inv.
+  ring.
+Qed.

@@ -121,6 +121,13 @@ Qed.
 Definition ConstTContR (c : IR) : TContR :=
   (ContConstFun _ _ c).
 
+Instance Proper_instance_ConstTContR :
+  Proper (@st_eq IR  ==> @st_eq TContR) ConstTContR.
+Proof.
+  intros ? ? Heq ?.
+  simpl. assumption.
+Qed.
+
 Definition rotateOriginTowardsF
   (XTowards : Cart2D IR)
   (nz : 0 [<] normIR XTowards)
@@ -259,18 +266,61 @@ Lemma DerivativerotateOriginTowards2 :
   isDerivativeOf (V * (CFCos θ)) (X pt)
   → isDerivativeOf (V * (CFSine θ)) (Y pt)
   → (isDerivativeOf (V * (CFCos (θ - θt))) (X ptR)
-      × isDerivativeOf (V * (CFSine (θ - θt))) (Y ptR)).
+      × isDerivativeOf (V * (CFSine (θt - θ))) (Y ptR)).
 Proof.
   intros ? ? ? ? ?.
   simpl. intros H1d H2d.
   pose proof (DerivativerotateOriginTowards _ nz pt _ _ H1d H2d) as Hd.
+  clear H1d H2d.
   pose proof (CartToPolarToXIR2 _ nz) as Hn.
   simpl in Hn.
   unfold equiv, EquivCart in Hn.
   simpl in Hn.
   repnd. destruct Hd as [Hdl Hdr].
-  eapply isIDerivativeOfWdl in Hdr.
-  Focus 2. 
-  (* rewrite Hnl. *)
+  eapply isIDerivativeOfWdl in Hdr;
+  [| rewrite Hnl; rewrite Hnr;reflexivity].
+  eapply isIDerivativeOfWdl in Hdl;
+  [| rewrite Hnl; rewrite Hnr;reflexivity].
+  unfold rotateOriginTowardsF in Hdl, Hdr.
+  simpl in Hdl, Hdr.
+  unfold isDerivativeOf. unfoldMC.
+  unfold Mult_instance_TContR, Plus_instance_TContR, Negate_instance_TContR,
+    Negate_instance_TContR,Negate_instance_TContR, Mult_instance_IR.
+  split.
+- eapply isIDerivativeOfWdl;[| apply Hdl]. 
+  pose proof  CFCos_minus as Hc.
+  unfold cg_minus in Hc.
+  rewrite Hc.
 
-Abort.
+Local Opaque Sine Cos Cosine.
+Lemma CFCosConst : ∀ (θ : IR),
+   CFCos (ConstTContR θ) = ConstTContR (Cos θ).
+Proof.
+  intros. apply ExtEqIContR. intros.
+  simpl. apply pfwdef. reflexivity.
+Qed.
+Lemma CFCosSine : ∀ (θ : IR),
+   CFSine (ConstTContR θ) = ConstTContR (Sin θ).
+Proof.
+  intros. apply ExtEqIContR. intros.
+  simpl. apply pfwdef. reflexivity.
+Qed.
+  rewrite CFCosConst, CFCosSine.
+  unfoldMC. unfold Plus_instance_TContR, Mult_instance_TContR.
+Add Ring TContRisaRing: (CRing_Ring TContR).
+  unfold cast. 
+  fold TContR.
+  ring.
+
+- clear Hdl. eapply isIDerivativeOfWdl;[| apply Hdr].
+  pose proof  CFSine_minus as Hc.
+  unfold cg_minus in Hc.
+  rewrite Hc. clear Hc.
+  rewrite CFCosConst, CFCosSine.
+  unfoldMC. unfold Plus_instance_TContR, Mult_instance_TContR, 
+    Negate_instance_TContR.
+  unfold cast. 
+  fold TContR.
+  ring.
+Qed.
+

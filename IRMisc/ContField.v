@@ -352,7 +352,110 @@ Proof.
   simpl. reflexivity.
 Qed.
 
+Lemma IContRPlusAp : ∀ (F G: IContR) t,
+  {F [+] G} t [=] {F} t [+] {G} t.
+Proof.
+  intros. simpl.
+  reflexivity.
+Qed.
+
+Lemma IContRMinusAp : ∀ (F G: IContR) t,
+  {F [-] G} t [=] {F} t [-] {G} t.
+Proof.
+  intros. simpl.
+  reflexivity.
+Qed.
+
+
+Lemma IContRMultAp : ∀ (F G: IContR) t,
+  {F [*] G} t [=] {F} t [*] {G} t.
+Proof.
+  intros. simpl.
+  reflexivity.
+Qed.
+
+Hint Rewrite CFCosAp CFSineAp IContRPlusAp IContRMultAp IContRMinusAp : IContRApDown.
+
 Require Import CoRNMisc.
+
+
+Lemma toPartMultIContR : forall (F G : IContR),
+  Feq itvl ((toPart F) {*} (toPart G))
+           (toPart (F [*] G)).
+Proof.
+  intros ? ?. destruct F, G.
+  simpl. apply toPartMult.
+Qed.
+
+Lemma toPartPlusIContR : forall (F G : IContR),
+  Feq itvl ((toPart F) {+} (toPart G))
+           (toPart (F [+] G)).
+Proof.
+  intros ? ?. destruct F, G.
+  simpl. apply toPartSum.
+Qed.
+
+Lemma FConstOppIn : ∀ (c : IR),
+  [--](ContConstFun c) [=] (ContConstFun ([--]c)).
+Proof.
+  intros c.
+  simpl.
+  intros x.
+  simpl.
+  reflexivity.
+Qed.
+
+Lemma TContRInvAsMult : ∀ (F: IContR),
+   (ContConstFun ([--] [1]) [*] F)[=] [--] F.
+Proof.
+  intros F. rewrite <- FConstOppIn.
+  symmetry.
+  rewrite <- mult_minus1.
+  reflexivity.
+Qed.
+
+Lemma CosineCos : ∀ θ p, Cosine θ p [=] Cos θ.
+Proof.
+  intros. unfold Cos. simpl. apply pfwdef. reflexivity.
+Qed.
+
+Lemma SineSin : ∀ θ p, Sine θ p [=] Sin θ.
+Proof.
+  intros. unfold Sin. simpl. apply pfwdef. reflexivity.
+Qed.
+
+Local Opaque Sin Cos.
+Require Import IRMisc.IRTrig.
+
+Lemma ExtEqIContR : ∀ (F G : IContR),
+  (∀ a, {F} a [=] {G} a) -> F [=] G.
+Proof.
+  intros ? ?. destruct F, G.
+  simpl.
+  intros Heq.
+  exact Heq.
+Qed.
+
+Lemma CFCos_minus: ∀ x y : IContR, CFCos (x[-]y)
+    [=]CFCos x[*]CFCos y[+]CFSine x[*]CFSine y.
+Proof.
+  intros ? ?.
+  apply ExtEqIContR.
+  intros a.
+  autorewrite with IContRApDown.
+  apply Cos_minus.
+Qed.
+
+Lemma CFSine_minus: ∀ x y : IContR, CFSine (x[-]y)
+    [=]CFSine x[*]CFCos y[-]CFCos x[*]CFSine y.
+Proof.
+  intros ? ?.
+  apply ExtEqIContR.
+  intros a.
+  autorewrite with IContRApDown.
+  apply Sine_minus.
+Qed.
+
 
 Hint Resolve (scs_prf IR (itvl)) : CoRN.
 
@@ -493,21 +596,6 @@ Proof.
   eapply Derivative_wdl; eauto.
 Qed.
 
-Lemma toPartMultIContR : forall (F G : IContR),
-  Feq itvl ((toPart F) {*} (toPart G))
-           (toPart (F [*] G)).
-Proof.
-  intros ? ?. destruct F, G.
-  simpl. apply toPartMult.
-Qed.
-
-Lemma toPartPlusIContR : forall (F G : IContR),
-  Feq itvl ((toPart F) {+} (toPart G))
-           (toPart (F [+] G)).
-Proof.
-  intros ? ?. destruct F, G.
-  simpl. apply toPartSum.
-Qed.
 
 Lemma TContRDerivativeMult:
   ∀ (F F' G G' : IContR),
@@ -587,24 +675,6 @@ Proof.
   apply Derivative_plus; assumption.
 Qed.
 
-Lemma FConstOppIn : ∀ (c : IR),
-  [--](ContConstFun c) [=] (ContConstFun ([--]c)).
-Proof.
-  intros c.
-  simpl.
-  intros x.
-  simpl.
-  reflexivity.
-Qed.
-
-Lemma TContRInvAsMult : ∀ (F: IContR),
-   (ContConstFun ([--] [1]) [*] F)[=] [--] F.
-Proof.
-  intros F. rewrite <- FConstOppIn.
-  symmetry.
-  rewrite <- mult_minus1.
-  reflexivity.
-Qed.
 
 Lemma TContRDerivativeOpp:
   ∀ (F F' : IContR),
