@@ -456,6 +456,19 @@ Proof.
   apply Sine_minus.
 Qed.
 
+Lemma CFCosConst : ∀ (θ : IR),
+   CFCos (ContConstFun θ) [=] ContConstFun (Cos θ).
+Proof.
+  intros. apply ExtEqIContR. intros.
+  simpl. apply pfwdef. reflexivity.
+Qed.
+Lemma CFCosSine : ∀ (θ : IR),
+   CFSine (ContConstFun θ) [=] ContConstFun (Sin θ).
+Proof.
+  intros. apply ExtEqIContR. intros.
+  simpl. apply pfwdef. reflexivity.
+Qed.
+
 
 Hint Resolve (scs_prf IR (itvl)) : CoRN.
 

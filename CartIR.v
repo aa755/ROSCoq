@@ -118,8 +118,8 @@ Proof.
   ring.
 Qed.
 
-Definition ConstTContR (c : IR) : TContR :=
-  (ContConstFun _ _ c).
+Definition ConstTContR :=
+  (ContConstFun (closel [0]) I).
 
 Instance Proper_instance_ConstTContR :
   Proper (@st_eq IR  ==> @st_eq TContR) ConstTContR.
@@ -257,6 +257,8 @@ Proof.
 Qed.
 
 
+Add Ring TContRisaRing: (CRing_Ring TContR).
+
 Lemma DerivativerotateOriginTowards2 :
   ∀ (XTowards : Cart2D Q)
   (nz : 0 [<] normIR (' XTowards))
@@ -293,21 +295,9 @@ Proof.
   rewrite Hc.
 
 Local Opaque Sine Cos Cosine.
-Lemma CFCosConst : ∀ (θ : IR),
-   CFCos (ConstTContR θ) = ConstTContR (Cos θ).
-Proof.
-  intros. apply ExtEqIContR. intros.
-  simpl. apply pfwdef. reflexivity.
-Qed.
-Lemma CFCosSine : ∀ (θ : IR),
-   CFSine (ConstTContR θ) = ConstTContR (Sin θ).
-Proof.
-  intros. apply ExtEqIContR. intros.
-  simpl. apply pfwdef. reflexivity.
-Qed.
   rewrite CFCosConst, CFCosSine.
+  fold ConstTContR.
   unfoldMC. unfold Plus_instance_TContR, Mult_instance_TContR.
-Add Ring TContRisaRing: (CRing_Ring TContR).
   unfold cast. 
   fold TContR.
   ring.
@@ -317,10 +307,10 @@ Add Ring TContRisaRing: (CRing_Ring TContR).
   unfold cg_minus in Hc.
   rewrite Hc. clear Hc.
   rewrite CFCosConst, CFCosSine.
+  fold ConstTContR.
   unfoldMC. unfold Plus_instance_TContR, Mult_instance_TContR, 
     Negate_instance_TContR.
   unfold cast. 
   fold TContR.
   ring.
 Qed.
-
