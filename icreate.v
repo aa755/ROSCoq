@@ -1461,7 +1461,9 @@ Proof.
   Local Opaque inj_Q.
   autorewrite with QSimpl in Hadd. simpl in Hadd.
   match type of Hadd with 
-  AbsSmall (inj_Q _ ?r%Q) _ => assert (r == rotspeed * (2 * (sendTimeAcc + delivDelayVar) + reacTime) + opr * (t1 - t0))%Q
+  AbsSmall (inj_Q _ ?r%Q) _ 
+    => assert (r == rotspeed * (2 * (sendTimeAcc + delivDelayVar) + reacTime) 
+            + opr * (t1 - t0) + reacTime * (2%positive * opr) )%Q
                                     as Heqq by (unfoldMC ;ring); rewrite Heqq in Hadd; clear Heqq
   end.
   pose proof (approximateAbsSmallIR (polarTheta targetPos) anglePrec) as Hball.
