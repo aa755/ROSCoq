@@ -1688,32 +1688,6 @@ Abort.
 
 Local Opaque Q2R.
 
-Lemma mult_resp_AbsSmallR:  ∀ (x y e : IR),
-  [0][<=]y 
-  → AbsSmall e x 
-  → AbsSmall (e[*]y) (x[*]y).
-Proof.
-  intros ? ? ? Hle Hs.
-  rewrite mult_commutes.
-  setoid_rewrite mult_commutes at 2.
-  apply mult_resp_AbsSmall;
-  assumption.
-Qed.
-  
-Lemma  qtimePosIR : ∀ y,  [0][<=]QT2R y.
-  intros. rewrite <- inj_Q_Zero.
-  apply inj_Q_leEq.
-  apply qtimePos.
-Qed.
-
-Lemma mult_resp_AbsSmallRQt:  ∀ (x e : IR) (y : QTime),
- AbsSmall e x 
-  → AbsSmall (e[*] QT2R y) (x[*] QT2R y).
-Proof.
-  intros ? ? ? Hle. apply mult_resp_AbsSmallR; trivial;[].
-  apply qtimePosIR.
-Qed.
-
 Lemma ThetaAtEV2 :
   let t2 : QTime := MotorEventsNthTime 2 (decAuto (2<4)%nat I) in
   let omPrec : QTime :=  (motorTurnOmegaPrec newVal) in 

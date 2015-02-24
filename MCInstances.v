@@ -40,13 +40,6 @@ Instance Equivalence_instance_IR : @Equivalence IR equiv.
   split; repeat (intros ?); simpl; repnd; auto with *.
 Defined.
 
-Instance Proper_Qeq_Inj_Q :
-  Proper (Qeq ==> @st_eq IR) (inj_Q IR).
-Proof.
-  intros a b Hab.
-  apply inj_Q_wd.
-  auto.
-Qed.
 
 Instance NormSpace_instance_Q : NormSpace Q Q := Qabs.Qabs.
 

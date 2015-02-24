@@ -922,8 +922,8 @@ Defined.
 Ltac DestImp H :=
  lapply H;[clear H; intro H|].
 
-Definition between (b a c : IR) 
-  := ((Min a c [<=] b) /\ (b [<=] Max a c)) .
+Definition between (b a c eps : IR) 
+  := ((Min a (c [-] eps)  [<=] b) /\ (b [<=] Max a (c [+] eps))) .
 
 Definition changesTo (f : TContR)
   (atTime uptoTime : QTime)
@@ -934,7 +934,10 @@ Definition changesTo (f : TContR)
   /\ ((forall t : QTime, 
           (qt <= t <= uptoTime -> AbsIR ({f} t [-] toValue) [<=] eps)))
   /\ (forall t : QTime, (atTime <= t <= qt)  
-          -> (between ({f} t) ({f} atTime) toValue)))%Q.
+          -> (between ({f} t) ({f} atTime) toValue eps)))%Q.
+(** using [eps] here with [between] is great. it means
+  that receiving a request to set velocity to the
+  current value is a no-op *)
 
 Require Export Coq.Unicode.Utf8.
 
@@ -995,6 +998,20 @@ Lemma BetterConj : ∀ (A B : Prop),
 tauto.
 Qed.
 
+Lemma minusQ2R0:  ∀ x:IR, x[-]0 [=] x.
+Proof.
+  intros.
+  unfold Q2R.
+  rewrite  inj_Q_Zero, cg_inv_zero.
+  reflexivity.
+Qed.
+
+Lemma plusQ2R0:  ∀ x:IR, x[+]0 [=] x.
+Proof.
+  intros.
+  unfold Q2R.
+  rewrite  inj_Q_Zero. ring.
+Qed.
 
 Lemma changesToDeriv0Deriv :  ∀ (F': TContR)
   (atTime uptoTime : QTime)
@@ -1017,6 +1034,8 @@ Proof.
   assert (proper (clcr (QT2Q atTime) (QT2Q uptoTime))) as pJ by UnfoldLRA.
   unfold between in Hmrr.
   setoid_rewrite Hf0 in Hmrr.
+  setoid_rewrite minusQ2R0 in Hmrr.
+  setoid_rewrite plusQ2R0 in Hmrr.
   setoid_rewrite  Max_id  in Hmrr.
   setoid_rewrite  Min_id  in Hmrr. repnd.
   rename t into qt.
@@ -1144,39 +1163,147 @@ Lemma  triangleMiddle :
 Qed.
 
 
-Lemma betweenRAbs : ∀ (b a c : IR),
-  between b a c
-  -> AbsIR (b[-]c) [<=] AbsIR (a[-]c).
+Lemma addNNegLeEq : ∀ ( a eps : IR),
+  [0] [<=] eps 
+  -> a [<=] a [+] eps.
 Proof.
-  intros ? ? ? Hb.
+  intros ? ? Hle.
+  assert (a[+][0][<=]a[+]eps) as H.
+  apply plus_resp_leEq_both; eauto 2 with CoRN.
+  ring_simplify in H.
+  assumption.
+Qed.
+
+Lemma MinusNNegLeEq : ∀ ( a eps : IR),
+  [0] [<=] eps 
+  -> a [-] eps [<=] a.
+Proof.
+  intros ? ? Hle.
+  assert (a [-] eps[<=]a[-][0]) as H.
+  apply minus_resp_leEq_both; eauto 2 with CoRN.
+  unfold cg_minus in H. ring_simplify in H.
+  assumption.
+Qed.
+
+Hint Resolve addNNegLeEq MinusNNegLeEq Min_leEq_rht: CoRN.
+
+Instance Proper_Qeq_Inj_Q :
+  Proper (Qeq ==> @st_eq IR) (inj_Q IR).
+Proof.
+  intros a b Hab.
+  apply inj_Q_wd.
+  auto.
+Qed.
+
+Lemma TwoOnePlusOne : 2 [=] [1][+][1].
+Proof.
+  assert (2==1+1) as H by reflexivity.
+  rewrite H. unfold Q2R. autorewrite with QSimpl.
+  reflexivity.
+Qed.
+
+Lemma Min_plus : forall (a b c : IR),
+Min (a[+]c) (b[+]c) [=] Min a b [+] c.
+Proof.
+ intros.
+ apply equiv_imp_eq_min; intros.
+   apply shift_leEq_plus.
+   apply leEq_Min; apply shift_minus_leEq; auto.
+  apply leEq_transitive with (Min a b [+]c); auto.
+  apply plus_resp_leEq.
+  apply Min_leEq_lft.
+ apply leEq_transitive with (Min a b [+]c); auto.
+ apply plus_resp_leEq.
+ apply Min_leEq_rht.
+Qed.
+
+Lemma betweenRAbs : ∀ (b a c eps : IR),
+  [0] [<=] eps 
+  -> between b a c eps
+  -> AbsIR (b[-]c) [<=] (AbsIR (a[-]c)) [+]2[*]eps.
+Proof.
+  intros ? ? ? ? Hle Hb.
   unfold between in Hb.
   rewrite (Abs_Max).
   rewrite (Abs_Max).
-  repnd.
+  repnd. rewrite TwoOnePlusOne.
+  assert ((Max a c)[-](Min a c) [+] ([1][+][1])[*]eps [=]((Max a c)[+]eps)[-]((Min a c)[-] eps)) as Heq
+    by (unfold cg_minus;ring).
+  rewrite Heq. clear Heq.
   apply minus_resp_leEq_both.
-- apply Max_leEq; eauto 2 with CoRN.
-- apply leEq_Min; eauto 2 with CoRN.
+- rewrite <- max_plus. apply Max_leEq;
+  [| eauto 3 with CoRN; fail].
+  eapply leEq_transitive;[apply Hbr|].
+  apply Max_leEq;eauto 3 with CoRN.
+- unfold cg_minus. rewrite <- Min_plus. 
+  fold (a [-] eps).
+  fold (c [-] eps).
+  apply leEq_Min;
+  [| eauto 3 with CoRN; fail].
+  eapply leEq_transitive;[|apply Hbl].
+  apply leEq_Min;eauto 3 with CoRN.
 Qed.
 
 (** Exact same proof as above *)  
-Lemma betweenLAbs : ∀ (b a c : IR),
-  between b a c
-  -> AbsIR (b[-]a) [<=] AbsIR (a[-]c).
+Lemma betweenLAbs : ∀ (b a c eps: IR),
+  [0] [<=] eps 
+  -> between b a c eps
+  -> AbsIR (b[-]a) [<=] AbsIR (a[-]c) [+]2[*]eps.
 Proof.
-  intros ? ? ? Hb.
+  intros ? ? ? ? Hle Hb.
   unfold between in Hb.
   rewrite (Abs_Max).
   rewrite (Abs_Max).
-  repnd.
+  repnd. rewrite TwoOnePlusOne.
+  assert ((Max a c)[-](Min a c) [+] ([1][+][1])[*]eps [=]((Max a c)[+]eps)[-]((Min a c)[-] eps)) as Heq
+    by (unfold cg_minus;ring).
+  rewrite Heq. clear Heq.
   apply minus_resp_leEq_both.
-- apply Max_leEq; eauto 2 with CoRN.
-- apply leEq_Min; eauto 2 with CoRN.
+- rewrite <- max_plus. apply Max_leEq;
+  [| eauto 3 with CoRN; fail].
+  eapply leEq_transitive;[apply Hbr|].
+  apply Max_leEq;eauto 3 with CoRN.
+- unfold cg_minus. rewrite <- Min_plus. 
+  fold (a [-] eps).
+  fold (c [-] eps).
+  apply leEq_Min;
+  [| eauto 3 with CoRN; fail].
+  eapply leEq_transitive;[|apply Hbl].
+  apply leEq_Min;eauto 3 with CoRN.
 Qed.
 
+Local Opaque Q2R.
+
+Lemma mult_resp_AbsSmallR:  ∀ (x y e : IR),
+  [0][<=]y 
+  → AbsSmall e x 
+  → AbsSmall (e[*]y) (x[*]y).
+Proof.
+  intros ? ? ? Hle Hs.
+  rewrite mult_commutes.
+  setoid_rewrite mult_commutes at 2.
+  apply mult_resp_AbsSmall;
+  assumption.
+Qed.
+  
+Lemma  qtimePosIR : ∀ y,  [0][<=]QT2R y.
+  intros. rewrite <- inj_Q_Zero.
+  apply inj_Q_leEq.
+  apply qtimePos.
+Qed.
+
+Lemma mult_resp_AbsSmallRQt:  ∀ (x e : IR) (y : QTime),
+ AbsSmall e x 
+  → AbsSmall (e[*] QT2R y) (x[*] QT2R y).
+Proof.
+  intros ? ? ? Hle. apply mult_resp_AbsSmallR; trivial;[].
+  apply qtimePosIR.
+Qed.
+  Hint Rewrite <-  inj_Q_mult : QSimpl.
 
 Lemma changesToDerivInteg :  ∀ (F' F: TContR)
   (atTime uptoTime reacTime : QTime) (oldVal newVal : IR)
-  ( eps : Q),
+  ( eps : QTime),
   atTime + reacTime < uptoTime
   → changesTo F' atTime uptoTime newVal reacTime eps
   → {F'} atTime [=] oldVal 
@@ -1184,7 +1311,7 @@ Lemma changesToDerivInteg :  ∀ (F' F: TContR)
   → let eps1 := (AbsIR ({F'} atTime[-]newVal)) in
     exists qtrans : QTime,  atTime <= qtrans <= atTime + reacTime
       ∧  AbsIR({F} uptoTime[-]{F} atTime[-]newVal[*](uptoTime - atTime))
-          [<=] eps1[*](qtrans - atTime) [+] eps[*](uptoTime - qtrans).
+          [<=] (eps1[+]2[*]QT2R eps)[*](qtrans - atTime) [+] (QT2Q eps)[*](uptoTime - qtrans).
 Proof.
   intros ? ? ? ? ? ? ? ? Hr Hc Hf0 Hd eps1.
   pose proof (Q_dec atTime uptoTime) as Htric.
@@ -1195,13 +1322,14 @@ Proof.
   destruct Hc as [qtrans  Hm].
   exists qtrans.
   split;[tauto|]. repnd.
-  pose proof (λ t p, (betweenRAbs _ _ _ (Hmrr t p)))
+  pose proof (λ t p, (betweenRAbs _ _ _ _ (qtimePosIR eps) (Hmrr t p)))
      as Hqt. clear Hmrr.
   fold eps1 in Hqt.
   apply TDerivativeAbsQ with (F:=F) in Hqt;[|auto|auto].
   apply TDerivativeAbsQ with (F:=F) in Hmrl;[|lra|auto].
   pose proof (plus_resp_leEq_both _ _ _ _ _ Hqt Hmrl) as Hp.
   eapply leEq_transitive in Hp;[| apply triangle_IR].
+Local Transparent Q2R.
   unfold Q2R.
   rewrite inj_Q_mult.
   eapply leEq_transitive;[| apply Hp].
@@ -1229,7 +1357,7 @@ Lemma changesToDerivInteg2 :  ∀ (F' F: TContR)
   → isDerivativeOf F' F
   → let eps1 := (AbsIR ({F'} atTime[-]newVal)) in
      AbsIR({F} uptoTime[-]{F} atTime[-]newVal[*](uptoTime - atTime))
-          [<=] eps1[*](QT2R reacTime) [+]  eps*(uptoTime - atTime).
+          [<=] (eps1[+]2*eps)[*](QT2R reacTime) [+]  eps*(uptoTime - atTime).
 Proof.
   intros ? ? ? ? ? ? ? ? Hr Hc Hf0 Hd eps1.
   eapply changesToDerivInteg in Hc; eauto.
@@ -1242,9 +1370,13 @@ Proof.
   destruct reacTime.
   simpl QT2R.
   simpl in Hclr, Hr.
+  rewrite inj_Q_mult.
   apply mult_resp_leEq_lft;
     [apply inj_Q_leEq; simpl; lra|].
-  subst eps1. apply AbsIR_nonneg.
+  pose proof (qtimePos eps).
+  subst eps1. autorewrite with QSimpl. apply plus_resp_nonneg;
+    [apply AbsIR_nonneg| rewrite <- inj_Q_Zero; apply inj_Q_leEq; simpl;
+      unfold inject_Z; lra ].
 - unfold Q2R.
   apply inj_Q_leEq. simpl.
   apply Q.Qmult_le_compat_l;[lra|].
@@ -1267,7 +1399,7 @@ Lemma changesToIntegral :  ∀ (F': TContR)
      AbsIR((Cintegral (ChangesToIntBnd p) F') [-]newVal[*](uptoTime - atTime))
           [<=] eps1[*](QT2R reacTime) [+]  eps*(uptoTime - atTime).
 Proof.
-Admitted.
+Abort.
 
 
 Lemma TContRR2QCompactIntEq:
@@ -1301,7 +1433,6 @@ Qed.
   Hint Rewrite  inj_Q_minus : InjQDown.
   Hint Rewrite  inj_Q_inv : InjQDown.
   Hint Rewrite  inj_Q_mult : InjQDown.
-  Hint Rewrite <-  inj_Q_mult : QSimpl.
 
 
 Lemma AbsIR_plus : ∀  (e1 e2 x1 x2 : IR),
