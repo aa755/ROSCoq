@@ -1777,6 +1777,7 @@ Local Transparent Q2R. unfold Q2R in H0c.
   apply AbsIR_nonneg.
 Qed.
 
+Hint Resolve OmegaAtEv2 MotorEventsNthTimeInc: ICR.
 
 Lemma correctVel2to3:
   let t1 : QTime := MotorEventsNthTime 2 (decAuto (2<4)%nat I) in
@@ -1816,34 +1817,71 @@ Definition θ2 :=
 let t2 : QTime := MotorEventsNthTime 2 (decAuto (2<4)%nat I) in
   {theta icreate} t2.
 
+Definition rotErrTrans
+:= (θ (motorPrec {| rad := QposAsQ speed; θ := 0 |})).
+
+Lemma minusQ2R0:  ∀ x:IR, x[-]0%Q [=] x.
+Proof.
+  intros.
+  unfold Q2R.
+  rewrite  inj_Q_Zero, cg_inv_zero.
+  reflexivity.
+Qed.
+
+Lemma plusQ2R0:  ∀ x:IR, x[+]0%Q [=] x.
+Proof.
+  intros.
+  unfold Q2R.
+  rewrite  inj_Q_Zero. ring.
+Qed.
+
+Lemma multQ2R0R:  ∀ x:IR, x[*]0%Q [=] 0%Q.
+Proof.
+  intros.
+  unfold Q2R.
+  rewrite  inj_Q_Zero. ring.
+Qed.
+
+Lemma multQ2R0L:  ∀ x:IR, (Q2R 0)[*]x [=] 0%Q.
+Proof.
+  intros.
+  unfold Q2R.
+  rewrite  inj_Q_Zero. ring.
+Qed.
+
+Hint Rewrite minusQ2R0 plusQ2R0 multQ2R0R multQ2R0L : CoRN.
 
 Lemma OmegaThetaEv2To3 :
   let t0 : QTime := MotorEventsNthTime 3 (decAuto (3<4)%nat I) in
   let t2 : QTime := MotorEventsNthTime 2 (decAuto (2<4)%nat I) in
   ∀ (t : QTime),  t2 ≤ t ≤ t0
-      → ({omega icreate} t = 0 ∧ {theta icreate} t = θ2).
+      → AbsIR ({theta icreate} t[-]θ2)[<=]inj_Q ℝ (rotErrTrans * (t0 - t2))%Q.
 Proof.
   intros ? ? ? Hle.
-  unfold zero, Zero_instance_IR, Zero_instance_Time.
-  unfold equiv, Zero_Instace_IR_better.
-  unfold le, Le_instance_QTime in Hle.
   pose proof (qtimePos t) as Hq.
-  unfold θ2.
   fold t2.
-  apply changesToDeriv0Comb with 
-    (uptoTime := t0)
-    (reactionTime:=reacTime); eauto using derivRot
-      ; try (simpl;lra);
-      [|exact OmegaAtEv2].
   pose proof correctVel2to3 as Hc.
   simpl in Hc.
   unfold correctVelDuring in Hc.
   apply proj2 in Hc.
   fold t2 t0 in Hc.
+  fold rotErrTrans in Hc.
   simpl θ in Hc.
   unfold zero, stdlib_rationals.Q_0 in Hc.
-(** Not true anymore *)
-Abort.
+  eapply changesToDerivSameEpsIntegWeaken in Hc; 
+    eauto using
+    derivRot;
+   [|apply MotorEventsNthTimeInc; omega|apply OmegaAtEv2].
+  unfold Q2R in Hc. 
+  autorewrite with CoRN in Hc.
+  unfold t2 in Hc.
+  fold (θ2) in Hc.
+  fold t2 in Hc.
+  unfold QT2R in Hc.
+  autorewrite with QSimpl in Hc.
+  simpl in Hc.
+  assumption.
+Qed.
 
 Lemma MotorEventsNthTimeIncIR:
   ∀ (n1 n2 : nat) p1 p2,

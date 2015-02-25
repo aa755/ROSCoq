@@ -1153,6 +1153,11 @@ Qed.
   Hint Rewrite  inj_Q_inv : InjQDown.
   Hint Rewrite  inj_Q_mult : InjQDown.
 
+Lemma Qminus0 : ∀ x : Q, x - x == 0.
+Proof. intros. ring.
+Qed.
+
+Hint Rewrite Qminus0 : CoRN.
 Lemma changesToDerivSameEpsInteg :  ∀ (F' F: TContR)
   (atTime uptoTime : QTime) (val : IR)
   (reactionTime : Q)  (eps : QTime),
@@ -1161,25 +1166,63 @@ Lemma changesToDerivSameEpsInteg :  ∀ (F' F: TContR)
   → {F'} atTime [=] val 
   → isDerivativeOf F' F
   → ∀ (t : QTime), atTime <= t <= uptoTime 
-      → AbsIR({F} uptoTime[-] {F} atTime [-] val[*](uptoTime-atTime))
-         [<=] (QT2R eps) [*] (uptoTime - atTime).
+      → AbsIR({F} t[-] {F} atTime [-] val[*](t-atTime))
+         [<=] (QT2R eps) [*] (t - atTime).
 Proof.
   intros ? ? ? ? ? ? ?   Hle Hc Hf0 Hd.
   pose proof (Q_dec atTime uptoTime) as Htric.
   intros ? Hbw. repnd.
   destruct Htric as [Htric | Htric].
-    Focus 2.  rewrite Htric.
-    apply TContR_proper with (f:=F) in Htric.
-    rewrite Htric.
-    unfold Q2R.
-    autorewrite with InjQDown. 
-    autorewrite with CoRN.
-    eauto 2 with CoRN.
+    Focus 2.  
+      assert (t==atTime) as Heq by lra.
+      rewrite Heq.
+      apply TContR_proper with (f:=F) in Heq.
+      rewrite Heq.
+      autorewrite with CoRN.
+      unfold Q2R. rewrite inj_Q_Zero.
+      autorewrite with CoRN. eauto 1 with CoRN; fail.
 
   destruct Htric as [Htric | Htric] ;[|lra]. 
   apply TDerivativeAbsQ with (F':=F');try tauto.
-  eapply changesToDerivSameDeriv; eauto.
+  intros tl Hb.
+  eapply changesToDerivSameDeriv in Hc; eauto.
+  repnd. lra.
 Qed.
+
+Lemma changesToDerivSameEpsIntegWeaken :  ∀ (F' F: TContR)
+  (atTime uptoTime : QTime) (val : IR)
+  (reactionTime : Q)  (eps : QTime),
+  atTime <= uptoTime
+  → changesTo F' atTime uptoTime val reactionTime eps
+  → {F'} atTime [=] val 
+  → isDerivativeOf F' F
+  → ∀ (t : QTime), atTime <= t <= uptoTime 
+      → AbsIR({F} t[-] {F} atTime [-] val[*](t-atTime))
+         [<=] (QT2R eps) [*] (uptoTime  - atTime).
+Proof.
+  intros ? ? ? ? ? ? ?   Hle Hc Hf0 Hd t Hb.
+  eapply changesToDerivSameEpsInteg in Hc; eauto.
+  eapply leEq_transitive;[apply Hc|].
+  apply mult_resp_leEq_lft;[|eauto 2 with ROSCOQ; fail].
+  repnd. apply inj_Q_leEq. simpl.
+  lra.
+Qed.
+
+Lemma changesToDerivSameEpsIntegEnd :  ∀ (F' F: TContR)
+  (atTime uptoTime : QTime) (val : IR)
+  (reactionTime : Q)  (eps : QTime),
+  atTime <= uptoTime
+  → changesTo F' atTime uptoTime val reactionTime eps
+  → {F'} atTime [=] val 
+  → isDerivativeOf F' F
+  →  AbsIR({F} uptoTime[-] {F} atTime [-] val[*](uptoTime-atTime))
+         [<=] (QT2R eps) [*] (uptoTime - atTime).
+Proof.
+  intros ? ? ? ? ? ? ?   Hle Hc Hf0 Hd.
+  eapply changesToDerivSameEpsInteg; eauto.
+  repnd. lra.
+Qed.
+
 
 Lemma  triangleMiddle : 
 ∀ y x z: ℝ, 
@@ -1263,7 +1306,7 @@ Proof.
       apply addNNegLeEq.
       apply AbsIR_nonneg.
 Qed.
-(** Exact same proof as above *)  
+
 Lemma betweenLAbs : ∀ (b a c eps : IR),
   [0] [<=] eps 
   -> between b a c eps
