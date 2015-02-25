@@ -1069,89 +1069,6 @@ Proof.
   rewrite  inj_Q_Zero. ring.
 Qed.
 
-Lemma changesToDeriv0Deriv :  ∀ (F': TContR)
-  (atTime uptoTime : QTime)
-  (reactionTime : Q),
-  atTime <= uptoTime
-  → changesTo F' atTime uptoTime 0 reactionTime 0
-  → {F'} atTime [=] 0 
-  → ∀ (t : QTime), atTime <= t <= uptoTime 
-      → {F'} t [=] 0.
-Proof.
-  intros ? ? ? ? Hle Hc Hf0.
-  unfold changesTo in Hc.
-  destruct Hc as [qtrans  Hm]. repnd.
-  pose proof (Q_dec atTime uptoTime) as Htric.
-  intros ? Hbw.
-  destruct Htric as [Htric | Htric];
-    [|rewrite <- Hf0;
-      apply TContR_proper;auto; simpl; lra; fail].
-  destruct Htric as [Htric | Htric] ;[|lra].
-  assert (proper (clcr (QT2Q atTime) (QT2Q uptoTime))) as pJ by UnfoldLRA.
-  unfold between in Hmrr.
-  setoid_rewrite Hf0 in Hmrr.
-  setoid_rewrite minusQ2R0 in Hmrr.
-  setoid_rewrite plusQ2R0 in Hmrr.
-  setoid_rewrite  Max_id  in Hmrr.
-  setoid_rewrite  Min_id  in Hmrr. repnd.
-  rename t into qt.
-  pose proof (Qlt_le_dec qt qtrans) as Hdec.
-  Dor Hdec;[clear Hmrl | clear Hmrr].
-- apply Qlt_le_weak in Hdec.
-  specialize (Hmrr qt (conj Hbwl Hdec)). unfold Q2R in Hmrr.
-  rewrite inj_Q_Zero in Hmrr. repnd.
-  unfold Q2R. rewrite inj_Q_Zero.
-  apply leEq_imp_eq; assumption.
-- assert (qt <= uptoTime) as Hup by lra.
-  specialize (Hmrl qt (conj Hdec Hup)).
-  apply AbsIR_imp_AbsSmall in Hmrl.
-  unfold AbsSmall in Hmrl.
-  unfold Q2R in Hmrl.
-  rewrite inj_Q_Zero, cg_zero_inv, cg_inv_zero in Hmrl. repnd.
-  unfold Q2R. rewrite inj_Q_Zero.
-  apply leEq_imp_eq; assumption.
-Qed.
-
-(** This is derivable from a more general
-    amore useful lemma [changesToDerivInteg2] below*)
-Lemma changesToDeriv0Integ :  ∀ (F' F: TContR)
-  (atTime uptoTime : QTime)
-  (reactionTime : Q),
-  atTime <= uptoTime
-  → changesTo F' atTime uptoTime 0 reactionTime 0
-  → {F'} atTime [=] 0 
-  → isDerivativeOf F' F
-  → ∀ (t : QTime), atTime <= t <= uptoTime 
-      → {F} t [=] {F} atTime.
-Proof.
-  intros ? ? ? ? ? Hle Hc Hf0 Hd.
-  pose proof (Q_dec atTime uptoTime) as Htric.
-  intros ? Hbw.
-  destruct Htric as [Htric | Htric];
-    [|apply TContR_proper;auto; simpl; lra; fail].
-  destruct Htric as [Htric | Htric] ;[|lra]. 
-  apply TDerivativeEqQ0 with (F':=F');try tauto.
-  repnd. 
-  intros ? Hlt. simpl. remember ({F'} t0) as xx.
-  rewrite <- (inj_Q_Zero IR). subst xx.
-  eapply changesToDeriv0Deriv in Hc; eauto.
-  repnd. split; lra.
-Qed.
-
-Lemma changesToDeriv0Comb :  ∀ (F' F: TContR)
-  (atTime uptoTime : QTime)
-  (reactionTime : Q),
-  atTime <= uptoTime
-  → changesTo F' atTime uptoTime 0 reactionTime 0
-  → {F'} atTime [=] 0 
-  → isDerivativeOf F' F
-  → ∀ (t : QTime), atTime <= t <= uptoTime 
-      → ({F'} t [=] 0 ∧ {F} t [=] {F} atTime).
-Proof.
-  split;
-  eauto using changesToDeriv0Integ, changesToDeriv0Deriv.
-Qed.
-
 Lemma AbsMinusUB : ∀ (a t eps : IR),
   AbsIR (t[-]a)[<=] eps
   -> t [<=] a [+] eps.
@@ -1177,49 +1094,6 @@ Proof.
   intros ? ? H. rewrite H.
   apply leEq_reflexive.
 Qed.
-
-
-Lemma TDerivativeAbsQ :forall (F F' : TContR)
-   (ta tb : QTime) (Hab : ta <= tb) (c eps: ℝ),
-   isDerivativeOf F' F
-   -> (forall (t:QTime), ta <= t <= tb -> AbsIR ({F'} t [-] c) [<=] eps)
-   -> AbsIR({F} tb[-] {F} ta [-] c[*](tb-ta)) [<=] eps [*] (tb - ta).
-Proof.
-  intros ? ? ? ? ? ? ? Hder Habs.
-  pose proof (λ t p, (AbsMinusUB _ _ _ (Habs t p))) as Hub.
-  pose proof (λ t p, (AbsMinusLB _ _ _ (Habs t p))) as Hlb.
-  clear Habs.
-  apply AbsSmall_imp_AbsIR.
-  unfold AbsSmall.
-  apply TDerivativeUBQ with (F:=F) in Hub; auto.
-  apply TDerivativeLBQ with (F:=F) in Hlb; auto.
-  clear Hder.
-  split;[clear Hub | clear Hlb].
-- apply shift_leEq_minus'.
-  eapply leEq_transitive;[| apply Hlb].
-  apply eqImpliesLeEq.
-  unfold Q2R.
-  remember (inj_Q IR (tb - ta)) as ba.
-  IRRing.
-- apply shift_minus_leEq.
-  eapply leEq_transitive;[apply Hub|].
-  apply eqImpliesLeEq.
-  unfold Q2R.
-  remember (inj_Q IR (tb - ta)) as ba.
-  IRRing.
-Qed.
-
-Lemma  triangleMiddle : 
-∀ y x z: ℝ, 
-  AbsIR (x[-]z)[<=]AbsIR (x [-] y)
-                  [+]AbsIR (y [-] z).
-  intros.
-  assert (x[-]z [=] (x [-] y) [+](y [-] z)) as Hm
-    by IRRing.
-  rewrite Hm.
-  apply triangle_IR.
-Qed.
-
 
 Lemma addNNegLeEq : ∀ ( a eps : IR),
   [0] [<=] eps 
@@ -1252,6 +1126,220 @@ Proof.
   apply inj_Q_wd.
   auto.
 Qed.
+  
+Lemma  qtimePosIR : ∀ y,  [0][<=]QT2R y.
+  intros. rewrite <- inj_Q_Zero.
+  apply inj_Q_leEq.
+  apply qtimePos.
+Qed.
+
+Lemma Q2R0IsR0 : Q2R 0 [=] [0].
+  unfold Q2R.
+  apply inj_Q_Zero.
+Qed.
+
+Lemma AbsIRLe0 : ∀ x,
+  AbsIR x [<=] [0]
+  -> x [=] [0].
+Proof.
+  intros ? Hc. apply AbsIR_imp_AbsSmall in Hc.
+  unfold AbsSmall in Hc. repnd.
+  rewrite cg_zero_inv in Hcl.
+  apply leEq_imp_eq; assumption.
+Qed.
+
+Hint Resolve qtimePosIR : ROSCOQ.
+Hint Rewrite cg_minus_correct AbsIRz_isz cring_mult_zero : CoRN.
+
+Lemma changesToDerivSameDeriv :  ∀ (F': TContR)
+  (atTime uptoTime : QTime) (val : IR) (eps : QTime)
+  (reactionTime : Q),
+  atTime <= uptoTime
+  → changesTo F' atTime uptoTime val reactionTime eps
+  → {F'} atTime [=] val
+  → ∀ (t : QTime), atTime <= t <= uptoTime 
+      → AbsIR({F'} t [-] val) [<=] QT2Q eps.
+Proof.
+  intros ? ? ? ? ? ? Hle Hc Hf0.
+  unfold changesTo in Hc.
+  destruct Hc as [qtrans  Hm]. repnd.
+  pose proof (Q_dec atTime uptoTime) as Htric.
+  intros ? Hbw. repnd.
+  destruct Htric as [Htric | Htric].
+  Focus 2.
+    assert (t==atTime) as Heq by lra.
+    apply TContR_proper with (f:=F') in Heq.
+    rewrite Heq, Hf0.
+    rewrite cg_minus_correct, AbsIRz_isz.
+    fold (QT2R eps).
+    eauto with ROSCOQ; fail.
+
+  destruct Htric as [Htric | Htric] ;[|lra].
+  assert (proper (clcr (QT2Q atTime) (QT2Q uptoTime))) as pJ by UnfoldLRA.
+  unfold between in Hmrr.
+  setoid_rewrite Hf0 in Hmrr.
+  setoid_rewrite Min_comm in Hmrr.
+  pose proof (leEq_imp_Min_is_lft (val[-]QT2R eps) val) as Hm.
+  DestImp Hm;[|eauto 3 with CoRN ROSCOQ; fail].
+  setoid_rewrite Hm in Hmrr. clear Hm.
+  pose proof (leEq_imp_Max_is_rht val (val[+]QT2R eps)) as Hm.
+  DestImp Hm;[|eauto 3 with CoRN ROSCOQ; fail].
+  setoid_rewrite Hm in Hmrr.
+  unfold QT2R in Hmrr.
+  rename t into qt.
+  pose proof (Qlt_le_dec qt qtrans) as Hdec.
+  Dor Hdec;[clear Hmrl | clear Hmrr].
+- apply Qlt_le_weak in Hdec.
+  specialize (Hmrr qt (conj Hbwl Hdec)). repnd.
+  apply AbsSmall_imp_AbsIR.
+  unfold AbsSmall. repnd.
+  split; [apply shift_leEq_minus| apply shift_minus_leEq];
+    eapply leEq_transitive; eauto;
+    apply eqImpliesLeEq; unfold cg_minus; ring.
+- assert (qt <= uptoTime) as Hup by lra.
+  specialize (Hmrl qt (conj Hdec Hup)).
+  assumption.
+Qed.
+
+
+Lemma changesToDeriv0Deriv :  ∀ (F': TContR)
+  (atTime uptoTime : QTime)
+  (reactionTime : Q),
+  atTime <= uptoTime
+  → changesTo F' atTime uptoTime 0 reactionTime 0
+  → {F'} atTime [=] 0 
+  → ∀ (t : QTime), atTime <= t <= uptoTime 
+      → {F'} t [=] 0.
+Proof.
+  intros ? ? ? ? Hle Hc Hf0 ? Hb.
+  assert (0= QT2Q (mkQTime 0 I)) as Heq by reflexivity.
+  rewrite Heq in Hc.
+  eapply changesToDerivSameDeriv in Hc; eauto.
+  Local Opaque Q2R AbsIR.
+  simpl in Hc.
+  setoid_rewrite minusQ2R0 in Hc.
+  rewrite Q2R0IsR0 in Hc.
+  rewrite Q2R0IsR0.
+  apply AbsIRLe0; assumption.
+Qed.
+
+Lemma changesToDeriv0Integ :  ∀ (F' F: TContR)
+  (atTime uptoTime : QTime)
+  (reactionTime : Q),
+  atTime <= uptoTime
+  → changesTo F' atTime uptoTime 0 reactionTime 0
+  → {F'} atTime [=] 0 
+  → isDerivativeOf F' F
+  → ∀ (t : QTime), atTime <= t <= uptoTime 
+      → {F} t [=] {F} atTime.
+Proof.
+  intros ? ? ? ? ? Hle Hc Hf0 Hd.
+  pose proof (Q_dec atTime uptoTime) as Htric.
+  intros ? Hbw.
+  destruct Htric as [Htric | Htric];
+    [|apply TContR_proper;auto; simpl; lra; fail].
+  destruct Htric as [Htric | Htric] ;[|lra]. 
+  apply TDerivativeEqQ0 with (F':=F');try tauto.
+  repnd. 
+  intros ? Hlt. simpl. remember ({F'} t0) as xx.
+  rewrite <- (inj_Q_Zero IR). subst xx.
+  eapply changesToDeriv0Deriv in Hc; eauto.
+  repnd. split; lra.
+Qed.
+
+
+Lemma changesToDeriv0Comb :  ∀ (F' F: TContR)
+  (atTime uptoTime : QTime)
+  (reactionTime : Q),
+  atTime <= uptoTime
+  → changesTo F' atTime uptoTime 0 reactionTime 0
+  → {F'} atTime [=] 0 
+  → isDerivativeOf F' F
+  → ∀ (t : QTime), atTime <= t <= uptoTime 
+      → ({F'} t [=] 0 ∧ {F} t [=] {F} atTime).
+Proof.
+  split;
+  eauto using changesToDeriv0Integ, changesToDeriv0Deriv.
+Qed.
+
+
+Local Transparent Q2R.
+Lemma TDerivativeAbsQ :forall (F F' : TContR)
+   (ta tb : QTime) (Hab : ta <= tb) (c eps: ℝ),
+   isDerivativeOf F' F
+   -> (forall (t:QTime), ta <= t <= tb -> AbsIR ({F'} t [-] c) [<=] eps)
+   -> AbsIR({F} tb[-] {F} ta [-] c[*](tb-ta)) [<=] eps [*] (tb - ta).
+Proof.
+  intros ? ? ? ? ? ? ? Hder Habs.
+  pose proof (λ t p, (AbsMinusUB _ _ _ (Habs t p))) as Hub.
+  pose proof (λ t p, (AbsMinusLB _ _ _ (Habs t p))) as Hlb.
+  clear Habs.
+  apply AbsSmall_imp_AbsIR.
+  unfold AbsSmall.
+  apply TDerivativeUBQ with (F:=F) in Hub; auto.
+  apply TDerivativeLBQ with (F:=F) in Hlb; auto.
+  clear Hder.
+  split;[clear Hub | clear Hlb].
+- apply shift_leEq_minus'.
+  eapply leEq_transitive;[| apply Hlb].
+  apply eqImpliesLeEq.
+  unfold Q2R.
+  remember (inj_Q IR (tb - ta)) as ba.
+  IRRing.
+- apply shift_minus_leEq.
+  eapply leEq_transitive;[apply Hub|].
+  apply eqImpliesLeEq.
+  unfold Q2R.
+  remember (inj_Q IR (tb - ta)) as ba.
+  IRRing.
+Qed.
+
+  Hint Rewrite  inj_Q_One : InjQDown.
+  Hint Rewrite  inj_Q_inv : InjQDown.
+  Hint Rewrite  inj_Q_plus : InjQDown.
+  Hint Rewrite  inj_Q_minus : InjQDown.
+  Hint Rewrite  inj_Q_inv : InjQDown.
+  Hint Rewrite  inj_Q_mult : InjQDown.
+
+Lemma changesToDerivSameEpsInteg :  ∀ (F' F: TContR)
+  (atTime uptoTime : QTime) (val : IR)
+  (reactionTime : Q)  (eps : QTime),
+  atTime <= uptoTime
+  → changesTo F' atTime uptoTime val reactionTime eps
+  → {F'} atTime [=] val 
+  → isDerivativeOf F' F
+  → ∀ (t : QTime), atTime <= t <= uptoTime 
+      → AbsIR({F} uptoTime[-] {F} atTime [-] val[*](uptoTime-atTime))
+         [<=] (QT2R eps) [*] (uptoTime - atTime).
+Proof.
+  intros ? ? ? ? ? ? ?   Hle Hc Hf0 Hd.
+  pose proof (Q_dec atTime uptoTime) as Htric.
+  intros ? Hbw. repnd.
+  destruct Htric as [Htric | Htric].
+    Focus 2.  rewrite Htric.
+    apply TContR_proper with (f:=F) in Htric.
+    rewrite Htric.
+    unfold Q2R.
+    autorewrite with InjQDown. 
+    autorewrite with CoRN.
+    eauto 2 with CoRN.
+
+  destruct Htric as [Htric | Htric] ;[|lra]. 
+  apply TDerivativeAbsQ with (F':=F');try tauto.
+  eapply changesToDerivSameDeriv; eauto.
+Qed.
+
+Lemma  triangleMiddle : 
+∀ y x z: ℝ, 
+  AbsIR (x[-]z)[<=]AbsIR (x [-] y)
+                  [+]AbsIR (y [-] z).
+  intros.
+  assert (x[-]z [=] (x [-] y) [+](y [-] z)) as Hm
+    by IRRing.
+  rewrite Hm.
+  apply triangle_IR.
+Qed.
+
 
 Lemma TwoOnePlusOne : 2 [=] [1][+][1].
 Proof.
@@ -1387,12 +1475,7 @@ Proof.
   apply mult_resp_AbsSmall;
   assumption.
 Qed.
-  
-Lemma  qtimePosIR : ∀ y,  [0][<=]QT2R y.
-  intros. rewrite <- inj_Q_Zero.
-  apply inj_Q_leEq.
-  apply qtimePos.
-Qed.
+
 
 Lemma mult_resp_AbsSmallRQt:  ∀ (x e : IR) (y : QTime),
  AbsSmall e x 
@@ -1488,24 +1571,21 @@ Proof.
   apply Q.Qmult_le_compat_l;[lra|].
   apply qtimePos.
 Qed.
+
+(*
+Lemma changesToDeriv0EpsInteg :  ∀ (F' F: TContR)
+  (atTime uptoTime reacTime : QTime)
+  ( eps : QTime),
+  atTime + reacTime < uptoTime
+  → changesTo F' atTime uptoTime newVal reacTime eps
+  → {F'} atTime [=] oldVal 
+  → isDerivativeOf F' F
+  → let eps1 := (AbsIR ({F'} atTime[-]newVal)) in
+     AbsIR({F} uptoTime[-]{F} atTime[-]newVal[*](uptoTime - atTime))
+          [<=] (eps1)[*](QT2R reacTime) [+]  eps*(uptoTime - atTime).
+*)
 Definition TIntgBnds : Type := IntgBnds (closel [0]).
 
-Definition ChangesToIntBnd {atTime uptoTime reacTime : QTime}
-  (p: atTime + reacTime < uptoTime) : TIntgBnds.
-Admitted.
-
-
-Lemma changesToIntegral :  ∀ (F': TContR)
-  (atTime uptoTime reacTime : QTime) (oldVal newVal : IR)
-  ( eps : QTime)
-  (p : atTime + reacTime < uptoTime),
-  changesTo F' atTime uptoTime newVal reacTime eps
-  → {F'} atTime [=] oldVal 
-  → let eps1 := (AbsIR ({F'} atTime[-]newVal)) in
-     AbsIR((Cintegral (ChangesToIntBnd p) F') [-]newVal[*](uptoTime - atTime))
-          [<=] eps1[*](QT2R reacTime) [+]  eps*(uptoTime - atTime).
-Proof.
-Abort.
 
 
 Lemma TContRR2QCompactIntEq:
@@ -1533,12 +1613,6 @@ Proof.
 Qed.
 
 
-  Hint Rewrite  inj_Q_One : InjQDown.
-  Hint Rewrite  inj_Q_inv : InjQDown.
-  Hint Rewrite  inj_Q_plus : InjQDown.
-  Hint Rewrite  inj_Q_minus : InjQDown.
-  Hint Rewrite  inj_Q_inv : InjQDown.
-  Hint Rewrite  inj_Q_mult : InjQDown.
 
 
 Lemma AbsIR_plus : ∀  (e1 e2 x1 x2 : IR),
@@ -1575,3 +1649,23 @@ Proof.
   unfold cg_minus. ring.
 Qed.
 
+(*
+
+Definition ChangesToIntBnd {atTime uptoTime reacTime : QTime}
+  (p: atTime + reacTime < uptoTime) : TIntgBnds.
+Admitted.
+
+
+Lemma changesToIntegral :  ∀ (F': TContR)
+  (atTime uptoTime reacTime : QTime) (oldVal newVal : IR)
+  ( eps : QTime)
+  (p : atTime + reacTime < uptoTime),
+  changesTo F' atTime uptoTime newVal reacTime eps
+  → {F'} atTime [=] oldVal 
+  → let eps1 := (AbsIR ({F'} atTime[-]newVal)) in
+     AbsIR((Cintegral (ChangesToIntBnd p) F') [-]newVal[*](uptoTime - atTime))
+          [<=] eps1[*](QT2R reacTime) [+]  eps*(uptoTime - atTime).
+Proof.
+Abort.
+
+*)
