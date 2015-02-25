@@ -186,3 +186,13 @@ Proof.
  apply H; apply X.
 Qed.
 
+
+Lemma BetterConj : ∀ (A B : Prop),
+  A -> (A -> B) -> (A /\ B).
+tauto.
+Qed.
+
+Ltac Dor H := destruct H as [H|H].
+
+Ltac provefalse :=
+  assert False ;[| contradiction].

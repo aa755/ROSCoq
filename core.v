@@ -830,39 +830,6 @@ Definition mkQTimeLt  (t : Q) (tl: Time) (p: tl [<] t) : QTime.
   eauto using timeNonNegUnfolded, leEq_less_trans, less_leEq.
 Defined.
 
-Lemma minusSwapLe : forall (x y z : IR),
-  x [-] y [<=] z -> x [-] z [<=] y.
-Proof.
-  intros  ? ? ? Hncl.
-  apply shift_leEq_plus in Hncl.
-  rewrite cag_commutes in Hncl.
-  apply shift_minus_leEq in Hncl.
-  trivial.
-Qed.
-
-Lemma seq_refl: forall x y : IR, x = y -> x[=] y.
-  intros ? ? Heq.
-  rewrite Heq.
-  apply eq_reflexive.
-Qed.
-
-
-
-Lemma pfstrlt:  forall (p : PartFunct IR) (x y : IR) 
-      (Hx : Dom p x)
-      (Hy : Dom p y), 
-        p x Hx[<]p y Hy 
-        -> x[<=]y
-        -> x[<]y.
-Proof.
-  intros ? ? ? ? ? Hpp Hle.
-  apply less_imp_ap in Hpp.
-  apply pfstrx in Hpp.
-  apply ap_imp_less in Hpp.
-  apply leEq_def in Hle. unfold Not in Hle.
-  destruct Hpp; tauto.
-Qed.
-
 Lemma TContRlt:  forall (p : TContR) x y,
         {p} x [<]{p} y 
         -> x[<=]y
@@ -873,20 +840,6 @@ Proof.
   apply pfstrlt in Hpp; auto.
 Qed.
 
-Lemma pfstrgt:  forall (p : PartFunct IR) (x y : IR) 
-      (Hx : Dom p x)
-      (Hy : Dom p y), 
-        p x Hx[<]p y Hy 
-        -> y[<=]x
-       -> y[<]x.
-Proof.
-  intros ? ? ? ? ? Hpp Hle.
-  apply less_imp_ap in Hpp.
-  apply pfstrx in Hpp.
-  apply ap_imp_less in Hpp.
-  apply leEq_def in Hle. unfold Not in Hle.
-  destruct Hpp; tauto.
-Qed.
 
 Lemma TContRgt:  forall (p : TContR) x y,
         {p} x [<]{p} y 
@@ -898,14 +851,7 @@ Proof.
   apply pfstrgt in Hpp; auto.
 Qed.
 
-Ltac provefalse :=
-  assert False ;[| contradiction].
 
-Lemma minusInvQ : forall a b:Q, [--](a[-]b)[=](b[-]a).
-Proof.
-  intros. unfold cg_minus.
-  simpl. ring.
-Qed.
 
 
  Definition Qtadd (t tl : QTime) : QTime.
@@ -1046,110 +992,16 @@ Proof.
   rewrite <- Hub. unfold cg_minus. IRRing.
 Qed.
 
-Ltac Dor H := destruct H as [H|H].
 
 (** often a better way to prove conjumction*)
-Lemma BetterConj : ∀ (A B : Prop),
-  A -> (A -> B) -> (A /\ B).
-tauto.
-Qed.
 
-Lemma minusQ2R0:  ∀ x:IR, x[-]0 [=] x.
-Proof.
-  intros.
-  unfold Q2R.
-  rewrite  inj_Q_Zero, cg_inv_zero.
-  reflexivity.
-Qed.
 
-Lemma plusQ2R0:  ∀ x:IR, x[+]0 [=] x.
-Proof.
-  intros.
-  unfold Q2R.
-  rewrite  inj_Q_Zero. ring.
-Qed.
-
-Lemma AbsMinusUB : ∀ (a t eps : IR),
-  AbsIR (t[-]a)[<=] eps
-  -> t [<=] a [+] eps.
-Proof.
-  intros ? ? ? Habs.
-  rewrite AbsIR_minus in Habs.
-  apply AbsIR_bnd. assumption.
-Qed.
-
-Lemma AbsMinusLB : ∀ (a t eps : IR),
-  AbsIR (t[-]a)[<=] eps
-  -> a [-] eps [<=] t.
-Proof.
-  intros ? ? ? Habs.
-  apply AbsIR_bnd in Habs.
-  apply shift_minus_leEq.
-  assumption.
-Qed.
-
-Lemma eqImpliesLeEq : ∀ a b : IR,
-  a [=] b -> a [<=] b.
-Proof.
-  intros ? ? H. rewrite H.
-  apply leEq_reflexive.
-Qed.
-
-Lemma addNNegLeEq : ∀ ( a eps : IR),
-  [0] [<=] eps 
-  -> a [<=] a [+] eps.
-Proof.
-  intros ? ? Hle.
-  assert (a[+][0][<=]a[+]eps) as H.
-  apply plus_resp_leEq_both; eauto 2 with CoRN.
-  ring_simplify in H.
-  assumption.
-Qed.
-
-Lemma MinusNNegLeEq : ∀ ( a eps : IR),
-  [0] [<=] eps 
-  -> a [-] eps [<=] a.
-Proof.
-  intros ? ? Hle.
-  assert (a [-] eps[<=]a[-][0]) as H.
-  apply minus_resp_leEq_both; eauto 2 with CoRN.
-  unfold cg_minus in H. ring_simplify in H.
-  assumption.
-Qed.
-
-Hint Resolve addNNegLeEq MinusNNegLeEq Min_leEq_rht: CoRN.
-
-Instance Proper_Qeq_Inj_Q :
-  Proper (Qeq ==> @st_eq IR) (inj_Q IR).
-Proof.
-  intros a b Hab.
-  apply inj_Q_wd.
-  auto.
-Qed.
-  
 Lemma  qtimePosIR : ∀ y,  [0][<=]QT2R y.
   intros. rewrite <- inj_Q_Zero.
   apply inj_Q_leEq.
   apply qtimePos.
 Qed.
-
-Lemma Q2R0IsR0 : Q2R 0 [=] [0].
-  unfold Q2R.
-  apply inj_Q_Zero.
-Qed.
-
-Lemma AbsIRLe0 : ∀ x,
-  AbsIR x [<=] [0]
-  -> x [=] [0].
-Proof.
-  intros ? Hc. apply AbsIR_imp_AbsSmall in Hc.
-  unfold AbsSmall in Hc. repnd.
-  rewrite cg_zero_inv in Hcl.
-  apply leEq_imp_eq; assumption.
-Qed.
-
 Hint Resolve qtimePosIR : ROSCOQ.
-Hint Rewrite cg_minus_correct AbsIRz_isz cring_mult_zero : CoRN.
 
 Lemma changesToDerivSameDeriv :  ∀ (F': TContR)
   (atTime uptoTime : QTime) (val : IR) (eps : QTime)
