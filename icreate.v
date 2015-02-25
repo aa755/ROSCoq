@@ -1395,8 +1395,7 @@ Lemma ThetaAtEV1 :
   let t1 : QTime := MotorEventsNthTime 1 (decAuto (1<4)%nat I) in
      |{theta icreate} t1 - optimalTurnAngle| ≤ 
           Q2R (rotspeed * (2 * (sendTimeAcc + delivDelayVar) + reacTime) +
-               anglePrec + (motorTurnOmegaPrec newVal) 
-                * (2*reacTime + t1 - t0))%Q.
+               anglePrec + (motorTurnOmegaPrec newVal) * (t1 - t0))%Q.
 Proof.
   intros ? ?.
   pose proof correctVel0to1 as Hc.
@@ -1449,9 +1448,7 @@ Proof.
   Local Opaque inj_Q.
   autorewrite with QSimpl in Hadd. simpl in Hadd.
   match type of Hadd with 
-  AbsSmall (inj_Q _ ?r%Q) _ 
-    => assert (r == rotspeed * (2 * (sendTimeAcc + delivDelayVar) + reacTime) 
-            + opr * (t1 - t0) + reacTime * (2%positive * opr) )%Q
+  AbsSmall (inj_Q _ ?r%Q) _ => assert (r == rotspeed * (2 * (sendTimeAcc + delivDelayVar) + reacTime) + opr * (t1 - t0))%Q
                                     as Heqq by (unfoldMC ;ring); rewrite Heqq in Hadd; clear Heqq
   end.
   pose proof (approximateAbsSmallIR (polarTheta targetPos) anglePrec) as Hball.
@@ -1483,7 +1480,6 @@ Proof.
   intros.
   lra.
 Qed.
-
 Lemma ThetaAtEV1_2 :
   let t1 : QTime := MotorEventsNthTime 1 (decAuto (1<4)%nat I) in
   let timeDiffErr := ((2 * (sendTimeAcc + delivDelayVar)) +
@@ -1491,8 +1487,7 @@ Lemma ThetaAtEV1_2 :
                   in
      |{theta icreate} t1 - optimalTurnAngle| ≤ 
           Q2R (rotspeed * (2 * (sendTimeAcc + delivDelayVar) + reacTime) +
-               anglePrec + (motorTurnOmegaPrec newVal) 
-            * (2*reacTime + timeDiffErr))%Q.
+               anglePrec + (motorTurnOmegaPrec newVal) * timeDiffErr)%Q.
 Proof.
   intros. pose proof ThetaAtEV1 as Hom.
   Local Opaque Qabs.Qabs Q2R.
@@ -1506,10 +1501,7 @@ Proof.
   apply Q.Qabs_Qle in Hp.
   apply proj2 in Hp.
   apply QMinusShiftRLe in Hp.
-  auto. subst timeDiffErr.
-  revert Hp.
-  unfoldMC. intro Hp. simpl Qplus.
-  lra.
+  auto.
 Qed.
 
 
@@ -1531,7 +1523,7 @@ Lemma ThetaAtEV1_3 :
   let omPrec : QTime :=  (motorTurnOmegaPrec newVal) in 
  |{theta icreate} t1 - optimalTurnAngle| ≤ 
     Q2R(rotspeed * (E2EDelVar + reacTime) 
-        + anglePrec + omPrec * (E2EDelVar + 2*reacTime)
+        + anglePrec + omPrec * E2EDelVar
         + omPrec * qthetaAbs * / rotspeed ).
 Proof.
   simpl.
@@ -1687,7 +1679,7 @@ Lemma ThetaAtEV2 :
   let omPrec : QTime :=  (motorTurnOmegaPrec newVal) in 
  |{theta icreate} t2 - optimalTurnAngle| ≤ 
     Q2R(rotspeed * (E2EDelVar + 2 * reacTime) 
-        + anglePrec + omPrec * (E2EDelVar + 3*reacTime)
+        + anglePrec + omPrec * (E2EDelVar + reacTime)
         + omPrec * qthetaAbs * / rotspeed ).
 Proof.
   intros ? ?.
@@ -1716,7 +1708,6 @@ Proof.
   rewrite cring_mult_zero_op in Hc.
   setoid_rewrite  cg_inv_zero in Hc.
   rewrite inj_Q_Zero in Hc.
-  rewrite inj_Q_Zero in Hc.
   ring_simplify in Hc.
   pose proof (OmegaAtEv1) as Hth.
   cbv zeta in Hth. rewrite <- Heqt1 in Hth.
@@ -1742,12 +1733,13 @@ Hint Unfold Le_instance_IR  Plus_instance_IR Negate_instance_IR : IRMC.
   apply QeqQle. destruct sendTimeAcc, delivDelayVar.
   simpl.
   simpl. simpl. idtac. fold (omPrec).
-  simpl Qplus. 
   field.
   destruct rotspeed.
   simpl.
   lra.
 Qed.
+
+
 
 Local Opaque Q2R.
   
