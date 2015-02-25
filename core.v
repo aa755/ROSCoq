@@ -925,6 +925,63 @@ Ltac DestImp H :=
 Definition between (b a c eps : IR) 
   := ((Min a (c [-] eps)  [<=] b) /\ (b [<=] Max a (c [+] eps))) .
 
+Require Import Coq.QArith.Qminmax.
+Ltac InjQRingSimplify :=
+  unfold Q2R, Z2R; autorewrite with QSimpl;
+let H99 := fresh "HSimplInjQ" in
+let H98 := fresh "HSimplInjQ" in
+match goal with
+[|- context [inj_Q _ ?q]] => pose proof (Qeq_refl q) as H99;
+                            ring_simplify in H99;
+                            match type of H99 with
+                            | (?qn == _)%Q => 
+                             assert (q == qn)%Q as H98 by ring;
+                             rewrite H98; clear H99; clear H98
+                            end
+end.
+
+
+(** Qbetween does not work. [a] needs to be an [IR] 
+    even when changesTo is used for [motorSpec].
+    With a little more effort, similar lemmas were proven for
+    between. So [qbetween] should not be needed at all
+ *)
+Definition qbetween (b : IR) (a c  : Q) (eps: QTime) 
+  := ((Q2R(Qmin a (c - eps))  [<=] b) /\ (b [<=] Qmax a (c + QT2Q eps))) .
+
+Require Export Coq.Unicode.Utf8.
+Lemma qbetweenRAbs : ∀ (b : ℝ) (a c : Q) (eps : QTime),
+  qbetween b a c eps
+  -> AbsIR (b[-]c) [<=] ((Qabs (a-c)) +eps)%Q.
+Proof.
+  intros ? ? ? ? Hb.
+  unfold qbetween in Hb.
+  repnd.
+  apply AbsSmall_imp_AbsIR.
+  unfold AbsSmall.
+    Local Opaque Qabs.
+  split.
+  - ring_simplify.
+    apply shift_leEq_minus'.
+    eapply leEq_transitive;[|apply Hbl].
+    clear Hbl Hbr.
+    unfold Q2R. autorewrite with QSimpl.
+    apply inj_Q_leEq.
+    destruct eps as [eps epsp]. simpl.
+    apply QTimeD in epsp.
+    apply Q.min_glb;
+    apply Qabs_case; intros;  lra.
+  - apply shift_minus_leEq.
+    eapply leEq_transitive;[apply Hbr|].
+    clear Hbl Hbr.
+    unfold Q2R. autorewrite with QSimpl.
+    apply inj_Q_leEq.
+    destruct eps as [eps epsp]. simpl.
+    apply QTimeD in epsp.
+    apply Q.max_lub;
+    apply Qabs_case; intros;  lra.
+Qed.
+
 Definition changesTo (f : TContR)
   (atTime uptoTime : QTime)
   (toValue : ℝ)
@@ -939,7 +996,6 @@ Definition changesTo (f : TContR)
   that receiving a request to set velocity to the
   current value is a no-op *)
 
-Require Export Coq.Unicode.Utf8.
 
 Instance TContR_proper (f : TContR) :
   Proper ((fun (x y : QTime) => Qeq x y) ==> (@st_eq IR)) (fun (q : QTime) => {f} q).
@@ -1217,60 +1273,104 @@ Proof.
  apply Min_leEq_rht.
 Qed.
 
+
+
 Lemma betweenRAbs : ∀ (b a c eps : IR),
   [0] [<=] eps 
   -> between b a c eps
-  -> AbsIR (b[-]c) [<=] (AbsIR (a[-]c)) [+]2[*]eps.
+  -> AbsIR (b[-]c) [<=] (AbsIR (a[-]c)) [+]eps.
 Proof.
   intros ? ? ? ? Hle Hb.
   unfold between in Hb.
-  rewrite (Abs_Max).
-  rewrite (Abs_Max).
-  repnd. rewrite TwoOnePlusOne.
-  assert ((Max a c)[-](Min a c) [+] ([1][+][1])[*]eps [=]((Max a c)[+]eps)[-]((Min a c)[-] eps)) as Heq
-    by (unfold cg_minus;ring).
-  rewrite Heq. clear Heq.
-  apply minus_resp_leEq_both.
-- rewrite <- max_plus. apply Max_leEq;
-  [| eauto 3 with CoRN; fail].
-  eapply leEq_transitive;[apply Hbr|].
-  apply Max_leEq;eauto 3 with CoRN.
-- unfold cg_minus. rewrite <- Min_plus. 
-  fold (a [-] eps).
-  fold (c [-] eps).
-  apply leEq_Min;
-  [| eauto 3 with CoRN; fail].
-  eapply leEq_transitive;[|apply Hbl].
-  apply leEq_Min;eauto 3 with CoRN.
+  repnd.
+  apply AbsSmall_imp_AbsIR.
+  unfold AbsSmall.
+  split;[clear Hbr| clear Hbl].
+  - ring_simplify.
+    apply shift_leEq_minus'.
+    eapply leEq_transitive;[|apply Hbl].
+    clear Hbl.
+    assert (c[+]([--](AbsIR (a[-]c))[-]eps)
+            [=] (c[-]AbsIR (a[-]c))[-]eps) as Heq by
+            (unfold cg_minus; ring).
+    rewrite Heq. clear Heq. apply leEq_Min.
+    + apply minusSwapLe. eapply leEq_transitive;[| apply Hle].
+      assert (c[-]AbsIR (a[-]c)[-]a [=] (c[-]a[-]AbsIR (a[-]c)))
+        as Heq by (unfold cg_minus; ring).
+      rewrite Heq.
+      apply shift_minus_leEq. ring_simplify.
+      rewrite AbsIR_minus.
+      apply leEq_AbsIR.
+    + apply minus_resp_leEq.
+      apply shift_minus_leEq.
+      apply addNNegLeEq.
+      apply AbsIR_nonneg.
+  - apply shift_minus_leEq.
+    eapply leEq_transitive;[apply Hbr|].
+    clear Hbr.
+    assert (AbsIR (a[-]c)[+]eps[+]c
+            [=] (c[+]AbsIR (a[-]c))[+]eps) as Heq by
+            (unfold cg_minus; ring).
+    rewrite Heq. clear Heq. apply Max_leEq.
+    + assert (a[+][0][<=]c[+]AbsIR (a[-]c)[+]eps) as Hx;
+        [| ring_simplify in Hx; assumption].
+      apply plus_resp_leEq_both; [|assumption].
+      apply shift_leEq_plus'.
+      apply leEq_AbsIR.
+    + apply plus_resp_leEq.
+      apply addNNegLeEq.
+      apply AbsIR_nonneg.
 Qed.
-
 (** Exact same proof as above *)  
-Lemma betweenLAbs : ∀ (b a c eps: IR),
+Lemma betweenLAbs : ∀ (b a c eps : IR),
   [0] [<=] eps 
   -> between b a c eps
-  -> AbsIR (b[-]a) [<=] AbsIR (a[-]c) [+]2[*]eps.
+  -> AbsIR (b[-]a) [<=] AbsIR (a[-]c) [+]eps.
 Proof.
   intros ? ? ? ? Hle Hb.
   unfold between in Hb.
-  rewrite (Abs_Max).
-  rewrite (Abs_Max).
-  repnd. rewrite TwoOnePlusOne.
-  assert ((Max a c)[-](Min a c) [+] ([1][+][1])[*]eps [=]((Max a c)[+]eps)[-]((Min a c)[-] eps)) as Heq
-    by (unfold cg_minus;ring).
-  rewrite Heq. clear Heq.
-  apply minus_resp_leEq_both.
-- rewrite <- max_plus. apply Max_leEq;
-  [| eauto 3 with CoRN; fail].
-  eapply leEq_transitive;[apply Hbr|].
-  apply Max_leEq;eauto 3 with CoRN.
-- unfold cg_minus. rewrite <- Min_plus. 
-  fold (a [-] eps).
-  fold (c [-] eps).
-  apply leEq_Min;
-  [| eauto 3 with CoRN; fail].
-  eapply leEq_transitive;[|apply Hbl].
-  apply leEq_Min;eauto 3 with CoRN.
+  repnd.
+  apply AbsSmall_imp_AbsIR.
+  unfold AbsSmall.
+  split;[clear Hbr| clear Hbl].
+  - ring_simplify.
+    apply shift_leEq_minus'.
+    eapply leEq_transitive;[|apply Hbl].
+    clear Hbl.
+    assert (a[+]([--](AbsIR (a[-]c))[-]eps)
+            [=] (a[-]AbsIR (a[-]c))[-]eps) as Heq by
+            (unfold cg_minus; ring).
+    rewrite Heq. clear Heq. apply leEq_Min.
+    + apply minusSwapLe. eapply leEq_transitive;[| apply Hle].
+      assert (a[-]AbsIR (a[-]c)[-]a [=] (a[-]a[-]AbsIR (a[-]c)))
+        as Heq by (unfold cg_minus; ring).
+      rewrite Heq.
+      apply shift_minus_leEq. ring_simplify.
+      rewrite cg_minus_correct.
+      apply AbsIR_nonneg.
+    + apply minus_resp_leEq.
+      apply shift_minus_leEq.
+      apply shift_leEq_plus'.
+      apply leEq_AbsIR.
+  - apply shift_minus_leEq.
+    eapply leEq_transitive;[apply Hbr|].
+    clear Hbr.
+    assert (AbsIR (a[-]c)[+]eps[+]a
+            [=] (a[+]AbsIR (a[-]c))[+]eps) as Heq by
+            (unfold cg_minus; ring).
+    rewrite Heq. clear Heq. apply Max_leEq.
+    + assert (a[+][0][<=]a[+]AbsIR (a[-]c)[+]eps) as Hx;
+        [| ring_simplify in Hx; assumption].
+      apply plus_resp_leEq_both; [|assumption].
+      apply shift_leEq_plus'.
+      rewrite cg_minus_correct.
+      apply AbsIR_nonneg.
+    + apply plus_resp_leEq.
+      apply shift_leEq_plus'.
+      rewrite AbsIR_minus.
+      apply leEq_AbsIR.
 Qed.
+
 
 Local Opaque Q2R.
 
@@ -1301,6 +1401,8 @@ Proof.
 Qed.
   Hint Rewrite <-  inj_Q_mult : QSimpl.
 
+
+
 Lemma changesToDerivInteg :  ∀ (F' F: TContR)
   (atTime uptoTime reacTime : QTime) (oldVal newVal : IR)
   ( eps : QTime),
@@ -1311,7 +1413,7 @@ Lemma changesToDerivInteg :  ∀ (F' F: TContR)
   → let eps1 := (AbsIR ({F'} atTime[-]newVal)) in
     exists qtrans : QTime,  atTime <= qtrans <= atTime + reacTime
       ∧  AbsIR({F} uptoTime[-]{F} atTime[-]newVal[*](uptoTime - atTime))
-          [<=] (eps1[+]2[*]QT2R eps)[*](qtrans - atTime) [+] (QT2Q eps)[*](uptoTime - qtrans).
+          [<=] eps1[*](qtrans - atTime) [+] (QT2Q eps)[*](uptoTime - atTime).
 Proof.
   intros ? ? ? ? ? ? ? ? Hr Hc Hf0 Hd eps1.
   pose proof (Q_dec atTime uptoTime) as Htric.
@@ -1330,8 +1432,20 @@ Proof.
   pose proof (plus_resp_leEq_both _ _ _ _ _ Hqt Hmrl) as Hp.
   eapply leEq_transitive in Hp;[| apply triangle_IR].
 Local Transparent Q2R.
-  unfold Q2R.
-  rewrite inj_Q_mult.
+  unfold Q2R. ring_simplify in Hp.
+  rewrite <- plus_assoc in Hp.
+  unfold QT2R in Hp. autorewrite with QSimpl in Hp.
+  match type of Hp with
+  _ [<=] (_ [+] (inj_Q IR ?q)) => idtac q
+  end.
+
+  Local Transparent Q2R.
+  InjQRingSimplify.
+\
+  ring_simplify in Hp.
+
+  rewrite inj_Q_mult. 
+   ring_simplify in Hp.
   eapply leEq_transitive;[| apply Hp].
   apply eqImpliesLeEq.
   apply AbsIR_wd.

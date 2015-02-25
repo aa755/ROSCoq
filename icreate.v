@@ -1205,19 +1205,6 @@ Qed.
   
 Local Transparent Q2R.
 
-Ltac InjQRingSimplify :=
-  unfold Q2R, Z2R; autorewrite with QSimpl;
-let H99 := fresh "HSimplInjQ" in
-let H98 := fresh "HSimplInjQ" in
-match goal with
-[|- context [inj_Q _ ?q]] => pose proof (Qeq_refl q) as H99;
-                            ring_simplify in H99;
-                            match type of H99 with
-                            | (?qn == _)%Q => 
-                             assert (q == qn)%Q as H98 by ring;
-                             rewrite H98; clear H99; clear H98
-                            end
-end.
 
 Lemma QabsQpos : ∀ (qp: Qpos),
    ((Qabs.Qabs qp) == qp)%Q.
@@ -1891,6 +1878,22 @@ Defined.
 
 Definition distTraveled : IR := Cintegral Ev2To3Interval (transVel icreate).
 
+Require Export CartIR.
+
+Variable nztp : ([0] [<] normIR (' targetPos)).
+
+Lemma DerivRotOriginTowardsTargetPos : 
+  let optimalTurnAngleF := ConstTContR optimalTurnAngle in
+  let ptR := rotateOriginTowardsF (' targetPos) nztp (position icreate) in 
+  (isDerivativeOf ((transVel icreate) 
+                      * (CFCos (theta icreate - optimalTurnAngleF))) (X ptR)
+ × isDerivativeOf ((transVel icreate) 
+                      * (CFSine (theta icreate - optimalTurnAngleF))) (Y ptR)).
+Proof.
+  simpl.
+  apply DerivativerotateOriginTowards2; eauto with ICR.
+Qed.
+
   
 
 (*
@@ -2064,7 +2067,6 @@ Proof.
   apply plus_resp_eq.
   rewrite one_plus_one.
 
-Require Export CartIR.
   pose proof (CartToPolarToXIR targetPos) as Ht.
   simpl in Ht.
   unfold castCart in Ht.
@@ -2189,20 +2191,11 @@ Lemma TBarrowPos : forall rob (a b : Time),
   apply derivX.
 Qed.
 *)
-(** The integral is too complicated for the general case. Handle the
-    case we want in the application. Given a rough estimate of current
-    position (received by Vicon )and an idea about the goal, what
-    message should we send to iCreate? what can we prove
-    about how the robot will react to that message? *)
 
 
 (** for rotation, it is easy. for the change of position, we can bound
     Cos and Sin by 1 and hence the maximal change in X/Y coordinate per second
       is [tVelPrec] *)
-
-(** For translation. things are complicated. Ideally, done in the frame from
-    robot's position which is still not well known, such that the Y axis is
-    in the direction of the target. *)
 
 (** It seems that [CoRN.ftc.IntegrationRules.IntegrationBySubstition] would be
     useful. however, the head of the integral is a multiplication and only then
