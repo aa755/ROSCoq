@@ -1111,7 +1111,9 @@ Proof.
   unfold Q2R. rewrite inj_Q_Zero.
   apply leEq_imp_eq; assumption.
 Qed.
-  
+
+(** This is derivable from a more general
+    amore useful lemma [changesToDerivInteg2] below*)
 Lemma changesToDeriv0Integ :  ∀ (F' F: TContR)
   (atTime uptoTime : QTime)
   (reactionTime : Q),
@@ -1435,17 +1437,10 @@ Local Transparent Q2R.
   unfold Q2R. ring_simplify in Hp.
   rewrite <- plus_assoc in Hp.
   unfold QT2R in Hp. autorewrite with QSimpl in Hp.
-  match type of Hp with
-  _ [<=] (_ [+] (inj_Q IR ?q)) => idtac q
-  end.
-
-  Local Transparent Q2R.
-  InjQRingSimplify.
-\
-  ring_simplify in Hp.
-
-  rewrite inj_Q_mult. 
-   ring_simplify in Hp.
+  assert ((QT2Q eps)[*](qtrans - atTime)[+](QT2Q eps)[*](uptoTime - qtrans)
+        == (QT2Q eps)[*](uptoTime - atTime))%Q as Heq by (simpl; ring).
+  rewrite Heq in Hp.
+  clear Heq.
   eapply leEq_transitive;[| apply Hp].
   apply eqImpliesLeEq.
   apply AbsIR_wd.
@@ -1471,7 +1466,7 @@ Lemma changesToDerivInteg2 :  ∀ (F' F: TContR)
   → isDerivativeOf F' F
   → let eps1 := (AbsIR ({F'} atTime[-]newVal)) in
      AbsIR({F} uptoTime[-]{F} atTime[-]newVal[*](uptoTime - atTime))
-          [<=] (eps1[+]2*eps)[*](QT2R reacTime) [+]  eps*(uptoTime - atTime).
+          [<=] (eps1)[*](QT2R reacTime) [+]  eps*(uptoTime - atTime).
 Proof.
   intros ? ? ? ? ? ? ? ? Hr Hc Hf0 Hd eps1.
   eapply changesToDerivInteg in Hc; eauto.
@@ -1484,13 +1479,10 @@ Proof.
   destruct reacTime.
   simpl QT2R.
   simpl in Hclr, Hr.
-  rewrite inj_Q_mult.
   apply mult_resp_leEq_lft;
     [apply inj_Q_leEq; simpl; lra|].
   pose proof (qtimePos eps).
-  subst eps1. autorewrite with QSimpl. apply plus_resp_nonneg;
-    [apply AbsIR_nonneg| rewrite <- inj_Q_Zero; apply inj_Q_leEq; simpl;
-      unfold inject_Z; lra ].
+  subst eps1. autorewrite with QSimpl. apply  AbsIR_nonneg.
 - unfold Q2R.
   apply inj_Q_leEq. simpl.
   apply Q.Qmult_le_compat_l;[lra|].
