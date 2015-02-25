@@ -288,6 +288,18 @@ Proof.
   intros ? ?. reflexivity.
 Qed.
 
+
+Lemma crmult_Qmult : forall (a b : Q),
+  (a*b)%Q = a[*]b.
+  reflexivity.
+Qed.
+
+Lemma IRDistMinus : ∀ (a b c : IR),
+  (a [-] b)[*] c [=] a[*] c [-] b[*] c.
+Proof.
+  intros. unfold cg_minus. ring.
+Qed.
+
 Lemma pfstrlt:  forall (p : PartFunct IR) (x y : IR) 
       (Hx : Dom p x)
       (Hy : Dom p y), 

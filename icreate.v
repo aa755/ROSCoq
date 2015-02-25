@@ -1884,16 +1884,20 @@ Lemma cgminus_Qminus : forall (a b : Q),
   reflexivity.
 Qed.
 
-Lemma crmult_Qmult : forall (a b : Q),
-  (a*b) ≡ a[*]b.
-  reflexivity.
-Qed.
+Definition Ev23TimeGapUB : IR :=
+  ((CRasIR ((|targetPos|)) + distPrec) * (Qinv speed))
+  + E2EDelVar.
 
-Lemma IRDistMinus : ∀ (a b c : IR),
-  (a [-] b)[*] c [=] a[*] c [-] b[*] c.
-Proof.
-  intros. unfold cg_minus. ring.
-Qed.
+Definition θErrTrnsl : IR :=
+(QT2R rotErrTrans) * Ev23TimeGapUB.
+
+
+Definition θErrTurn : Q :=
+  let omPrec : QTime :=  (motorTurnOmegaPrec newVal) in 
+(rotspeed * (E2EDelVar + 2 * reacTime) 
+        + anglePrec + omPrec * (E2EDelVar + reacTime)
+        + omPrec * qthetaAbs * / rotspeed )%Q.
+
 
 
 Lemma MotorEv23Gap2_2 :
