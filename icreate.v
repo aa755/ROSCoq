@@ -1221,6 +1221,84 @@ Proof.
   reflexivity.
 Qed.
 
+Lemma TwoForRing : (2 # 1 = 1+1)%Q.
+  reflexivity.
+Qed.
+
+Open Scope nat_scope.
+
+Lemma minDelayForIndexConseq : ∀ {tp : Topic}
+   (n:nat) (resp : list (Q ** topicType VELOCITY)),
+    S n < length resp
+    -> 
+    let msgs := (map (λ p0 : Q ** topicType VELOCITY, mkDelayedMesg (fst p0) (π₂ p0))
+       resp) in
+      nth (S n) (map fst resp) 0
+      = (minDelayForIndex msgs (S n) - minDelayForIndex msgs n)%Q.
+Proof.
+  unfold minDelayForIndex, roscore.delay, Basics.compose.
+  induction n; simpl; intros ? H1l.
+- destruct resp as [|r1 resp]; simpl in H1l; try omega.
+  simpl.
+  destruct resp as [|r2 resp]; simpl in H1l; try omega.
+  simpl. unfold inject_Z. ring_simplify. reflexivity.
+- destruct resp as [|r1 resp]; simpl in H1l; try omega.
+  simpl. rewrite IHn;[| simpl; omega].
+  destruct resp as [|r2 resp]; simpl in H1l; try omega.
+  simpl. unfold equiv, stdlib_rationals.Q_eq.
+  unfoldMC. lra.
+Qed.
+
+Lemma MotorEvGap : ∀ (n:nat) (p : n < 4) (ps : S n < 4),
+  let t0 : QTime := MotorEventsNthTime n p in
+  let t1 : QTime := MotorEventsNthTime (S n) ps in
+  let resp := PureSwProgram targetPos in
+  let tgap :Q := nth (S n) (map fst resp) 0 in 
+   |(QT2Q t1 - QT2Q t0 -  tgap)%Q| 
+  ≤ (2 * (sendTimeAcc + delivDelayVar))%Q.
+Proof.
+  intros ? ? ? ? ? ? ?.
+  unfold MotorEventsNthTime, MotorEventsNth in t0, t1.
+  destruct (MotorEvents2 n p) as [evStartTurn  H0m].
+  simpl in t0.
+  destruct (MotorEvents2 (S n) ps) as [evStopTurn  H1m].
+  simpl in t1.
+  repeat (apply proj2 in H1m).
+  repeat (apply proj2 in H0m).
+  autounfold with π₁ in H0m, H1m.
+  remember (map (λ p : Q ** topicType VELOCITY, mkDelayedMesg (fst p) (π₂ p))
+              (PureSwProgram targetPos)) as ddd.
+  unfold cast, nonneg_semiring_elements.NonNeg_inject in tgap.
+  remember tgap as tdiff.
+  subst tgap.
+  apply Qball_opp in H0m.
+  pose proof (Qball_plus H0m H1m) as Hs.
+  clear H0m H1m.
+  ring_simplify in Hs.
+  apply Qball_Qabs in Hs.
+  rewrite Qabs.Qabs_Qminus in Hs.
+  fold t0 in Hs.
+  fold t1 in Hs.
+  ring_simplify in Hs.
+  unfoldMC.
+  match goal with
+  [H: (_ <= ?r)%Q |- (_ <= ?rr)%Q] => 
+    assert (r == rr)%Q as Hrw by (simpl; ring)
+   end.
+  rewrite Hrw in Hs. clear Hrw.
+  eapply Qle_trans; [| apply Hs].
+  apply QeqQle.
+  unfold CanonicalNotations.norm, NormSpace_instance_Q.
+  apply Qabs.Qabs_wd.
+  subst ddd tdiff.
+  rewrite  (@minDelayForIndexConseq VELOCITY) ; auto.
+  simpl.
+  ring.
+Qed.
+
+
+Close Scope nat_scope.
+
 Lemma MotorEv01Gap :
   let t0 : QTime := MotorEventsNthTime 0 (decAuto (0<4)%nat I) in
   let t1 : QTime := MotorEventsNthTime 1 (decAuto (1<4)%nat I) in
@@ -1230,46 +1308,7 @@ Lemma MotorEv01Gap :
   ≤ 2 * (sendTimeAcc + delivDelayVar)%Q.
 Proof.
   intros ? ? ?.
-  unfold MotorEventsNthTime, MotorEventsNth in t0, t1.
-  destruct (MotorEvents2 0 (decAuto (0<4)%nat I)) as [evStartTurn  H0m].
-  simpl in t0.
-  destruct (MotorEvents2 1 (decAuto (1<4)%nat I)) as [evStopTurn  H1m].
-  simpl in t1.
-  repeat (apply proj2 in H1m).
-  repeat (apply proj2 in H0m).
-  autounfold with π₁ in H0m, H1m.
-  unfold minDelayForIndex, roscore.delay, Basics.compose in H0m, H1m.
-  simpl in H1m, H0m.
-  unfold zero, stdlib_rationals.Q_0 in H1m, H0m.
-  ring_simplify in H1m.
-  ring_simplify in H0m.
-  unfold cast, nonneg_semiring_elements.NonNeg_inject in tgap.
-  unfold dec_recip, stdlib_rationals.Q_recip in H1m.
-  idtac. unfold CanonicalNotations.norm in tgap.
-  unfold CanonicalNotations.norm in H1m.
-  fold tgap in H1m.
-  remember tgap as tdiff.
-  subst tgap.
-  apply Qball_opp in H0m.
-  pose proof (Qball_plus H0m H1m) as Hs.
-  clear H0m H1m.
-  ring_simplify in Hs.
-  apply Qball_Qabs in Hs.
-  rewrite Qabs.Qabs_Qminus in Hs.
-  unfoldMC.
-  match goal with
-  [H: (_ <= ?r)%Q |- (_ <= ?rr)%Q] => 
-    assert (r == rr)%Q as Hrw by (simpl; ring)
-   end.
-  rewrite Hrw in Hs.
-  eapply Qle_trans; [| apply Hs].
-  apply QeqQle.
-  unfold CanonicalNotations.norm, NormSpace_instance_Q.
-  apply Qabs.Qabs_wd.
-  fold t0. 
-  fold t1. 
-  simpl.
-  ring.
+  apply MotorEvGap.
 Qed.
 
 Lemma QmultOverQminusR : ∀ a b c : Q,
@@ -1822,10 +1861,10 @@ Definition rotErrTrans
 
 
 Lemma OmegaThetaEv2To3 :
-  let t0 : QTime := MotorEventsNthTime 3 (decAuto (3<4)%nat I) in
+  let t3 : QTime := MotorEventsNthTime 3 (decAuto (3<4)%nat I) in
   let t2 : QTime := MotorEventsNthTime 2 (decAuto (2<4)%nat I) in
-  ∀ (t : QTime),  t2 ≤ t ≤ t0
-      → AbsIR ({theta icreate} t[-]θ2)[<=]inj_Q ℝ (rotErrTrans * (t0 - t2))%Q.
+  ∀ (t : QTime),  t2 ≤ t ≤ t3
+      → AbsIR ({theta icreate} t[-]θ2)[<=]inj_Q ℝ (rotErrTrans * (t3 - t2))%Q.
 Proof.
   intros ? ? ? Hle.
   pose proof (qtimePos t) as Hq.
@@ -1834,7 +1873,7 @@ Proof.
   simpl in Hc.
   unfold correctVelDuring in Hc.
   apply proj2 in Hc.
-  fold t2 t0 in Hc.
+  fold t2 t3 in Hc.
   fold rotErrTrans in Hc.
   simpl θ in Hc.
   unfold zero, stdlib_rationals.Q_0 in Hc.
@@ -1853,6 +1892,18 @@ Proof.
   assumption.
 Qed.
 
+Lemma MotorEv23Gap :
+  let t0 : QTime := MotorEventsNthTime 2 (decAuto (2<4)%nat I) in
+  let t1 : QTime := MotorEventsNthTime 3 (decAuto (3<4)%nat I) in
+  let tgap :Q := (approximate (|targetPos|) distPrec * (Qinv speed)) in
+   |QT2Q t1 - QT2Q t0 -  tgap| 
+  ≤ 2 * (sendTimeAcc + delivDelayVar)%Q.
+Proof.
+  intros ? ? ?.
+  apply MotorEvGap.
+Qed.
+
+(*TrigMon.Sin_resp_less*)
 Lemma MotorEventsNthTimeIncIR:
   ∀ (n1 n2 : nat) p1 p2,
   (n1 < n2)%nat
