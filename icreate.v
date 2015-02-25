@@ -1879,6 +1879,62 @@ Proof.
   apply MotorEvGap.
 Qed.
 
+Lemma cgminus_Qminus : forall (a b : Q),
+  (a-b) ≡ a[-]b.
+  reflexivity.
+Qed.
+
+Lemma crmult_Qmult : forall (a b : Q),
+  (a*b) ≡ a[*]b.
+  reflexivity.
+Qed.
+
+Lemma IRDistMinus : ∀ (a b c : IR),
+  (a [-] b)[*] c [=] a[*] c [-] b[*] c.
+Proof.
+  intros. unfold cg_minus. ring.
+Qed.
+
+
+Lemma MotorEv23Gap2_2 :
+  let t0 : QTime := MotorEventsNthTime 2 (decAuto (2<4)%nat I) in
+  let t1 : QTime := MotorEventsNthTime 3 (decAuto (3<4)%nat I) in
+  let tgap :Q := (approximate (|targetPos|) distPrec * (Qinv speed)) in
+   AbsIR ((Q2R (QT2Q t1 - QT2Q t0)) 
+      - ((CRasIR (|targetPos|)) * (Qinv speed)))
+  [<=] Q2R ((distPrec* (Qinv speed)) + 2 * (sendTimeAcc + delivDelayVar)).
+Proof.
+  intros ? ? ?.
+  pose proof  MotorEv23Gap  as Hg.
+  simpl in Hg.
+  fold t0 t1 in Hg.
+  apply (inj_Q_leEq IR) in Hg.
+  rewrite <- AbsIR_Qabs in Hg.
+  rewrite cgminus_Qminus, inj_Q_minus in Hg.
+  pose proof (approximateAbsSmallIR (|targetPos |) distPrec) as Hball.
+  apply AbsSmall_minus in Hball.
+  apply mult_resp_AbsSmallR with (y:= Q2R (Qinv speed)) in Hball;
+    [| admit (*easy*)].
+  rewrite  IRDistMinus in Hball.
+  autorewrite with QSimpl in Hball.
+  simpl in Hball.
+  apply AbsIR_imp_AbsSmall in Hg.
+  pose proof (AbsSmall_plus _ _ _ _ _  Hg Hball) as Hadd.
+  clear Hball Hg.
+  unfold Q2R, cg_minus in Hadd.
+  simpl in Hadd. revert Hadd.
+  unfoldMC. intro Hadd.
+  ring_simplify in Hadd.
+  autounfold with IRMC.
+  apply AbsSmall_imp_AbsIR.
+  autorewrite with QSimpl in Hadd.
+  unfold Mult_instance_IR.
+  eapply AbsSmall_morph_wd;
+    [| | apply Hadd].
+- apply inj_Q_wd. simpl. ring.
+- unfold Q2R, Qminus, cg_minus. reflexivity.
+Qed.
+
 (*TrigMon.Sin_resp_less*)
 Lemma MotorEventsNthTimeIncIR:
   ∀ (n1 n2 : nat) p1 p2,
