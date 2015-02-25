@@ -259,7 +259,34 @@ Lemma seq_refl: forall x y : IR, x = y -> x[=] y.
   apply eq_reflexive.
 Qed.
 
+Require Import Coq.Unicode.Utf8.
 
+
+Lemma QeqQle : ∀ x y,
+  Qeq x y -> Qle x y.
+Proof.
+  intros ? ?  Hq.
+  rewrite Hq.
+  apply Qle_refl.
+Qed.
+
+Lemma TwoForRing : (2 # 1 = 1+1)%Q.
+  reflexivity.
+Qed.
+
+Lemma QmultOverQminusR : ∀ a b c : Q,
+  ((a - b) * c == a * c - b * c)%Q.
+Proof.
+  intros ? ? ?.
+  ring.
+Qed.
+
+
+Lemma foldQminus : ∀ a b : Q,
+  (a + - b == (a - b) )%Q.
+Proof.
+  intros ? ?. reflexivity.
+Qed.
 
 Lemma pfstrlt:  forall (p : PartFunct IR) (x y : IR) 
       (Hx : Dom p x)
@@ -298,7 +325,6 @@ Proof.
   simpl. ring.
 Qed.
 
-Require Import Coq.Unicode.Utf8.
 
 Lemma minusQ2R0:  ∀ x:IR, x[-]0%Q [=] x.
 Proof.

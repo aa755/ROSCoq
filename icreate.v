@@ -1206,24 +1206,6 @@ Qed.
 Local Transparent Q2R.
 
 
-Lemma QabsQpos : ∀ (qp: Qpos),
-   ((Qabs.Qabs qp) == qp)%Q.
-  intros.
-  destruct qp; simpl.
-  rewrite Qabs.Qabs_pos; lra.
-Qed.
-
-Lemma QeqQle : ∀ x y,
-  Qeq x y -> Qle x y.
-Proof.
-  intros ? ?  Hq.
-  rewrite Hq.
-  reflexivity.
-Qed.
-
-Lemma TwoForRing : (2 # 1 = 1+1)%Q.
-  reflexivity.
-Qed.
 
 Open Scope nat_scope.
 
@@ -1310,20 +1292,14 @@ Proof.
   intros ? ? ?.
   apply MotorEvGap.
 Qed.
-
-Lemma QmultOverQminusR : ∀ a b c : Q,
-  ((a - b) * c == a * c - b * c)%Q.
-Proof.
-  intros ? ? ?.
-  ring.
+Lemma QabsQpos : ∀ (qp: Qpos),
+   ((Qabs.Qabs qp) == qp)%Q.
+  intros.
+  destruct qp; simpl.
+  rewrite Qabs.Qabs_pos; lra.
 Qed.
 
-
-Lemma foldQminus : ∀ a b : Q,
-  (a + - b == (a - b) )%Q.
-Proof.
-  intros ? ?. reflexivity.
-Qed.
+Hint Rewrite QabsQpos : CoRN.
 
 Lemma  QabsNewOmega : 
       (Qabs.Qabs
