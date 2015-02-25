@@ -1820,36 +1820,6 @@ let t2 : QTime := MotorEventsNthTime 2 (decAuto (2<4)%nat I) in
 Definition rotErrTrans
 := (θ (motorPrec {| rad := QposAsQ speed; θ := 0 |})).
 
-Lemma minusQ2R0:  ∀ x:IR, x[-]0%Q [=] x.
-Proof.
-  intros.
-  unfold Q2R.
-  rewrite  inj_Q_Zero, cg_inv_zero.
-  reflexivity.
-Qed.
-
-Lemma plusQ2R0:  ∀ x:IR, x[+]0%Q [=] x.
-Proof.
-  intros.
-  unfold Q2R.
-  rewrite  inj_Q_Zero. ring.
-Qed.
-
-Lemma multQ2R0R:  ∀ x:IR, x[*]0%Q [=] 0%Q.
-Proof.
-  intros.
-  unfold Q2R.
-  rewrite  inj_Q_Zero. ring.
-Qed.
-
-Lemma multQ2R0L:  ∀ x:IR, (Q2R 0)[*]x [=] 0%Q.
-Proof.
-  intros.
-  unfold Q2R.
-  rewrite  inj_Q_Zero. ring.
-Qed.
-
-Hint Rewrite minusQ2R0 plusQ2R0 multQ2R0R multQ2R0L : CoRN.
 
 Lemma OmegaThetaEv2To3 :
   let t0 : QTime := MotorEventsNthTime 3 (decAuto (3<4)%nat I) in
