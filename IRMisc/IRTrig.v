@@ -178,3 +178,17 @@ Proof.
   rewrite Cos_inv.
   ring.
 Qed.
+Hint Resolve pos_Pi : CoRN.
+Lemma PiBy2Ge0 : [0][<=]Pi [/]TwoNZ.
+Proof.
+  apply nonneg_div_two.
+  eauto using less_leEq, pos_Pi.
+Qed.
+  
+Lemma MinusPiBy2Le0 : [--](Pi [/]TwoNZ)[<=] [0].
+Proof.
+  apply inv_cancel_leEq.
+  rewrite cg_zero_inv, cg_inv_inv.
+  apply PiBy2Ge0.
+Qed.
+Hint Resolve PiBy2Ge0 MinusPiBy2Le0 AbsIR_nonneg: CoRN.

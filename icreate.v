@@ -52,8 +52,6 @@ Record iCreate : Type := {
 Add Ring  stdlib_ring_theoryldsjfsd : (rings.stdlib_ring_theory TContR).
 *)
 
-  Hint Unfold mult plus one zero Mult_instance_TContR Plus_instance_TContR One_instance_TContR
-    Zero_instance_TContR : TContRMC.
 
 
 (** we need to define the derivative of this function directly *)
@@ -951,7 +949,6 @@ Proof.
 Qed.
 
 
-Hint Unfold π₁ ProjectionFst_instance_prod : π₁.
 
 Lemma MotorEvents2:
   let resp := PureSwProgram targetPos in
@@ -1017,6 +1014,7 @@ Close Scope nat_scope.
 (** Also, this is the way 0 is defined for CR *)
 
 Instance Zero_Instace_IR_better : Zero IR := inj_Q IR 0.
+Hint Unfold Zero_Instace_IR_better : IRMC.
 
 Lemma correctVelTill0:
   let t0 : QTime := MotorEventsNthTime 0 (decAuto (0<4)%nat I) in
@@ -1740,7 +1738,6 @@ Proof.
   apply AbsIR_imp_AbsSmall in Hadd.
   revert Hadd. unfoldMC. 
 
-Hint Unfold Le_instance_IR  Plus_instance_IR Negate_instance_IR : IRMC.
   autounfold with IRMC.
   intro Hadd.
   ring_simplify in Hadd.
@@ -2020,19 +2017,6 @@ Proof.
   apply MotorEv23Gap2_3.
 Qed.
 
-Hint Unfold canonical_names.negate
-  canonical_names.negate
-  plus
-  one zero
-  equiv  mult
-  dec_recip
-  zero
-  le
-  lt
-  canonical_names.negate
-  Negate_instance_IR : 
- IRMC.
-
 Lemma ThetaEv2To3_3 :
   let t3 : QTime := MotorEventsNthTime 3 (decAuto (3<4)%nat I) in
   let t2 : QTime := MotorEventsNthTime 2 (decAuto (2<4)%nat I) in
@@ -2055,7 +2039,6 @@ Proof.
   assumption.
 Qed.
 
-(*TrigMon.Sin_resp_less*)
 Lemma MotorEventsNthTimeIncIR:
   ∀ (n1 n2 : nat) p1 p2,
   (n1 < n2)%nat
@@ -2103,98 +2086,13 @@ Proof.
   apply DerivativerotateOriginTowards2; eauto with ICR.
 Qed.
 
-Hint Rewrite CFCosAp CFSineAp IContRPlusAp IContRMultAp IContRMinusAp : IContRApDown.
-Hint Unfold Negate_instance_TContR : TContRMC.
 
-
-(* remove *)
-Lemma IContRInvAp : ∀ (F: TContR) t,
-  {[--] F} t [=] [--] ({F} t).
-Proof.
-  intros. simpl.
-  reflexivity.
-Qed.
-Lemma IContRConstAp : ∀ (c: IR) t,
-  {ConstTContR c} t [=] c.
-Proof.
-  intros. simpl.
-  reflexivity.
-Qed.
-
-Hint Rewrite IContRInvAp IContRConstAp : IContRApDown.
-Hint Unfold Mult_instance_IR Zero_Instace_IR_better : IRMC.
-
-Instance Pi_Instance_IR: RealNumberPi ℝ :=
- Pi.
-
-Hint Rewrite cg_zero_inv cg_inv_inv : CoRN.
-
-Lemma Sin_nonpos
-     : ∀ θ : ℝ, -π ≤ θ ≤ 0 -> Sin θ ≤ 0.
-Proof.
-  intros ? Hd.
-  apply inv_cancel_leEq.
-  autounfold with IRMC.
-  rewrite inj_Q_Zero.
-  autorewrite with CoRN.
-  rewrite <- Sin_inv.
-  repnd.
-  apply inv_resp_leEq in Hdr.
-  apply inv_resp_leEq in Hdl.
-  autounfold with IRMC in Hdl, Hdr.
-  rewrite inj_Q_Zero in Hdr.
-  autorewrite with CoRN in Hdr, Hdl.
-  apply Sin_nonneg; assumption.
-Qed.
-
-
-  
-
-Lemma AbsIRSine : ∀ θ, 
-  -π ≤ θ ≤ π
-  -> AbsIR (Sin θ) = Sin (AbsIR θ).
-Proof.
-  intros ? Hb.
-  pose proof (leEq_or_leEq _ θ [0]) as Hd.
-  apply not_ap_imp_eq.
-  intro Hc.
-  apply Hd.
-  clear Hd. intro Hd.
-  apply ap_tight in Hc;[contradiction|].
-  repnd.
-  destruct Hd as [c|].
-- unfold CanonicalNotations.norm, NormSpace_instance_IR. 
-  symmetry. rewrite AbsIR_eq_inv_x; [|assumption].
-  rewrite Sin_inv.
-  rewrite AbsIR_eq_inv_x; [reflexivity|].
-  rewrite <- inj_Q_Zero.
-  rewrite <- inj_Q_Zero in c.
-  apply Sin_nonpos; split; try assumption.
-- unfold CanonicalNotations.norm, NormSpace_instance_IR. 
-  symmetry. rewrite AbsIR_eq_x; [|assumption].
-  rewrite AbsIR_eq_x; [reflexivity|].
-  apply Sin_nonneg; assumption.
-Qed.
 
 (* consider changing types of [θErrTrnsl]
     and [θErrTurn] to [Qpos]*)
 Variable ThetaErrLe90 :
    θErrTrnsl + θErrTurn ≤  ('½) * π.
 
-Lemma PiBy2NoMC :
-   ('½) * π = Pi [/]TwoNZ.
-Proof.
-  apply (injective IRasCR).
-  rewrite <- CRPiBy2Correct.
-  unfold mult, Mult_instance_IR.
-  autorewrite with IRtoCR.
-  unfold cast, Cart_CR_IR.
-  rewrite CRasIRasCR_id.
-  pose proof (@rings.mult_comm CR _ _ _ _ _ _ ) as Hc.
-  unfold Commutative in Hc.
-  unfold mult in Hc.
-  rewrite Hc. reflexivity.
-Qed.
 
 Lemma ThetaErrLe90IR :
    θErrTrnsl + θErrTurn ≤ Pi [/]TwoNZ.
@@ -2203,7 +2101,6 @@ Proof.
   assumption.
 Qed.
 
-Hint Resolve pos_Pi : CoRN.
 Lemma ThetaErrLe1180 : 
   θErrTrnsl + θErrTurn ≤  π.
 Proof.
@@ -2213,32 +2110,10 @@ Proof.
   eauto using less_leEq, pos_Pi.
 Qed.
 
-Lemma PiBy2Ge0 : [0][<=]Pi [/]TwoNZ.
-Proof.
-  apply nonneg_div_two.
-  eauto using less_leEq, pos_Pi.
-Qed.
-  
-Lemma MinusPiBy2Le0 : [--](Pi [/]TwoNZ)[<=] [0].
-Proof.
-  apply inv_cancel_leEq.
-  autorewrite with CoRN.
-  apply PiBy2Ge0.
-Qed.
 
 Definition transErrTrans
 := (rad (motorPrec {| rad := QposAsQ speed; θ := 0 |})).
 
-Lemma AbsIRQpos : ∀ (qp : Qpos),
-  AbsIR speed [=] speed.
-Proof.
-  intros. 
-  rewrite AbsIR_eq_x;[reflexivity|].
-  rewrite <- inj_Q_Zero.
-  apply inj_Q_leEq.
-  simpl.
-  destruct speed. simpl. lra.
-Qed.
 
 Lemma SpeedUbEv2To3 : ∀ (t:QTime), 
   let t3 : QTime := MotorEventsNthTime 3 (decAuto (3<4)%nat I) in
@@ -2288,7 +2163,6 @@ Proof.
 Qed.
   
 
-Hint Resolve PiBy2Ge0 MinusPiBy2Le0 AbsIR_nonneg: CoRN.
 (** prepping for [TDerivativeAbsQ] *)
 Lemma YDerivEv2To3 : ∀ (t:QTime), 
   let t3 : QTime := MotorEventsNthTime 3 (decAuto (3<4)%nat I) in
@@ -2317,9 +2191,15 @@ Proof.
 - apply SpeedUbEv2To3; assumption.
 Qed.
 
+(*
+Lemma YChangeEv2To3 : ∀ (t:QTime), 
+  let t3 : QTime := MotorEventsNthTime 3 (decAuto (3<4)%nat I) in
+  let t2 : QTime := MotorEventsNthTime 2 (decAuto (2<4)%nat I) in
+  t2 ≤ t ≤ t3 
+  → AbsIR (({YDerivRot} t) AbsIR ({YDerivRot} t))
+      ≤   (Sin (θErrTrnsl + θErrTurn)) * (speed + transErrTrans)%Q.
 
-
-  
+ *) 
 
 (*
 Lemma ThetaConstFunSin :  IContREqInIntvl 
@@ -2408,8 +2288,6 @@ Local Opaque Sin Cos.
   split; ring.
 Qed.
 
-Hint Unfold Le_instance_IR  Plus_instance_IR Negate_instance_IR 
-    Mult_instance_IR: IRMC.
 
 
 Lemma normSqrQ : ∀ (q : Cart2D Q),

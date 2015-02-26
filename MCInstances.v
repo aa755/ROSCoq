@@ -50,3 +50,24 @@ Instance Proper_CRasIR : Proper (@st_eq CR ==> @st_eq IR) CRasIR.
 Proof.
   exact CRasIR_wd.
 Qed.
+Hint Unfold Le_instance_IR  Plus_instance_IR Negate_instance_IR 
+    Mult_instance_IR: IRMC.
+Hint Unfold π₁ ProjectionFst_instance_prod : π₁.
+
+Hint Unfold Le_instance_IR  Plus_instance_IR Negate_instance_IR : IRMC.
+Hint Unfold canonical_names.negate
+  canonical_names.negate
+  plus
+  one zero
+  equiv  mult
+  dec_recip
+  zero
+  le
+  lt
+  canonical_names.negate
+  Negate_instance_IR : 
+ IRMC.
+Hint Unfold Mult_instance_IR  : IRMC.
+Hint Unfold mult plus one zero Mult_instance_TContR Plus_instance_TContR One_instance_TContR
+    Zero_instance_TContR : TContRMC.
+Hint Unfold Negate_instance_TContR : TContRMC.

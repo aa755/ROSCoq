@@ -2,6 +2,81 @@ Require Export CartCR.
 Require Export MCInstances.
 
 Open Scope mc_scope.
+Instance Pi_Instance_IR: RealNumberPi ℝ :=
+ Pi.
+
+Lemma PiBy2NoMC :
+   ('½) * π = Pi [/]TwoNZ.
+Proof.
+  apply (injective IRasCR).
+  rewrite <- CRPiBy2Correct.
+  unfold mult, Mult_instance_IR.
+  autorewrite with IRtoCR.
+  unfold cast, Cart_CR_IR.
+  rewrite CRasIRasCR_id.
+  pose proof (@rings.mult_comm CR _ _ _ _ _ _ ) as Hc.
+  unfold Commutative in Hc.
+  unfold mult in Hc.
+  rewrite Hc. reflexivity.
+Qed.
+
+Require Import Psatz.
+
+Lemma AbsIRQpos : ∀ (qp : Qpos),
+  AbsIR qp [=] qp.
+Proof.
+  intros. 
+  rewrite AbsIR_eq_x;[reflexivity|].
+  rewrite <- inj_Q_Zero.
+  apply inj_Q_leEq.
+  simpl.
+  destruct qp. simpl.
+  lra.
+Qed.
+
+Hint Unfold Zero_instance_IR : IRMC.
+Lemma Sin_nonpos
+     : ∀ θ : ℝ, -π ≤ θ ≤ 0 -> Sin θ ≤ 0.
+Proof.
+  intros ? Hd.
+  apply inv_cancel_leEq.
+  autounfold with IRMC.
+  autorewrite with CoRN.
+  rewrite <- Sin_inv.
+  repnd.
+  apply inv_resp_leEq in Hdr.
+  apply inv_resp_leEq in Hdl.
+  autounfold with IRMC in Hdl, Hdr.
+  autorewrite with CoRN in Hdr, Hdl.
+  apply Sin_nonneg; assumption.
+Qed.
+
+
+  
+
+Lemma AbsIRSine : ∀ θ, 
+  -π ≤ θ ≤ π
+  -> AbsIR (Sin θ) = Sin (AbsIR θ).
+Proof.
+  intros ? Hb.
+  pose proof (leEq_or_leEq _ θ [0]) as Hd.
+  apply not_ap_imp_eq.
+  intro Hc.
+  apply Hd.
+  clear Hd. intro Hd.
+  apply ap_tight in Hc;[contradiction|].
+  repnd.
+  destruct Hd as [c|].
+- unfold CanonicalNotations.norm, NormSpace_instance_IR. 
+  symmetry. rewrite AbsIR_eq_inv_x; [|assumption].
+  rewrite Sin_inv.
+  rewrite AbsIR_eq_inv_x; [reflexivity|].
+  apply Sin_nonpos; split; try assumption.
+- unfold CanonicalNotations.norm, NormSpace_instance_IR. 
+  symmetry. rewrite AbsIR_eq_x; [|assumption].
+  rewrite AbsIR_eq_x; [reflexivity|].
+  apply Sin_nonneg; assumption.
+Qed.
 
 Definition normIR (pt : Cart2D IR) : IR.
   apply sqrt with (x:=normSqr pt).
@@ -193,7 +268,7 @@ Lemma QNormSqrIR : ∀ (q : Cart2D Q),
   normIR ('q) = '|q|.
 Proof.
   intros.
-  unfold norm, NormSpace_instance_Cart2D, sqrtFun,
+  unfold CanonicalNotations.norm, NormSpace_instance_Cart2D, sqrtFun,
     rational_sqrt_SqrtFun_instance.
   rewrite rational_sqrt_correct.
   unfold cast.
@@ -213,7 +288,6 @@ Grab Existential Variables.
   apply inj_Q_leEq.
   unfoldMC.
   simpl. simpl in HH.
-Require Import Psatz.
   lra.
 Qed.
 

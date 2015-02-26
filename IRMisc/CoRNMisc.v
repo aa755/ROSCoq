@@ -300,6 +300,9 @@ Proof.
   intros. unfold cg_minus. ring.
 Qed.
 
+Hint Rewrite cg_zero_inv cg_inv_inv : CoRN.
+Hint Resolve AbsIR_nonneg: CoRN.
+
 Lemma pfstrlt:  forall (p : PartFunct IR) (x y : IR) 
       (Hx : Dom p x)
       (Hy : Dom p y), 
