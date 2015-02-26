@@ -366,6 +366,21 @@ Proof.
   reflexivity.
 Qed.
 
+Lemma IContRInvAp : ∀ (F: IContR) t,
+  {[--] F} t [=] [--] ({F} t).
+Proof.
+  intros. simpl.
+  reflexivity.
+Qed.
+
+
+Lemma IContRConstAp : ∀ (c: IR) t,
+  {ContConstFun c} t [=] c.
+Proof.
+  intros. simpl.
+  reflexivity.
+Qed.
+
 
 Lemma IContRMultAp : ∀ (F G: IContR) t,
   {F [*] G} t [=] {F} t [*] {G} t.
@@ -374,7 +389,7 @@ Proof.
   reflexivity.
 Qed.
 
-Hint Rewrite CFCosAp CFSineAp IContRPlusAp IContRMultAp IContRMinusAp : IContRApDown.
+Hint Rewrite IContRInvAp IContRConstAp CFCosAp CFSineAp IContRPlusAp IContRMultAp IContRMinusAp : IContRApDown.
 
 Require Import CoRNMisc.
 
@@ -913,3 +928,4 @@ Definition ContFRing : CRing.
 Definition ContField : CField.
 *)
 
+Hint Rewrite CFCosAp IContRConstAp IContRInvAp CFSineAp IContRPlusAp IContRMultAp IContRMinusAp : IContRApDown.
