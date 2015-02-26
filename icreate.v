@@ -2068,6 +2068,9 @@ Require Export CartIR.
 
 Variable nztp : ([0] [<] normIR (' targetPos)).
 
+Definition rotOrigininPos : Cart2D TContR:=
+  rotateOriginTowardsF (' targetPos) nztp (position icreate).
+
 Definition YDerivRot : TContR :=
   let optimalTurnAngleF := ConstTContR optimalTurnAngle in
 ((transVel icreate) 
@@ -2078,9 +2081,8 @@ Definition XDerivRot : TContR :=
  ((transVel icreate) 
                       * (CFCos (theta icreate - optimalTurnAngleF))).
 Lemma DerivRotOriginTowardsTargetPos : 
-  let ptR := rotateOriginTowardsF (' targetPos) nztp (position icreate) in 
-  (isDerivativeOf XDerivRot (X ptR)
- × isDerivativeOf YDerivRot (Y ptR)).
+  (isDerivativeOf XDerivRot (X rotOrigininPos)
+   × isDerivativeOf YDerivRot (Y rotOrigininPos)).
 Proof.
   unfold YDerivRot, XDerivRot.
   apply DerivativerotateOriginTowards2; eauto with ICR.
@@ -2191,15 +2193,46 @@ Proof.
 - apply SpeedUbEv2To3; assumption.
 Qed.
 
-(*
-Lemma YChangeEv2To3 : ∀ (t:QTime), 
+Hint Resolve (fst DerivRotOriginTowardsTargetPos) 
+             (snd DerivRotOriginTowardsTargetPos) : ICR.
+
+(** trivial simplification *)
+Lemma YDerivEv2To3_1 : ∀ (t:QTime), 
   let t3 : QTime := MotorEventsNthTime 3 (decAuto (3<4)%nat I) in
   let t2 : QTime := MotorEventsNthTime 2 (decAuto (2<4)%nat I) in
   t2 ≤ t ≤ t3 
-  → AbsIR (({YDerivRot} t) AbsIR ({YDerivRot} t))
+  → AbsIR ({YDerivRot} t [-] [0]) 
       ≤   (Sin (θErrTrnsl + θErrTurn)) * (speed + transErrTrans)%Q.
+Proof.
+  intros.
+  rewrite cg_inv_zero.
+  eapply YDerivEv2To3; eauto.
+Qed.
 
- *) 
+
+Hint Rewrite cg_inv_zero : CoRN.
+
+Lemma YChangeEv2To3 :
+  let t3 : QTime := MotorEventsNthTime 3 (decAuto (3<4)%nat I) in
+  let t2 : QTime := MotorEventsNthTime 2 (decAuto (2<4)%nat I) in
+  AbsIR ({Y rotOrigininPos} t3 [-] {Y rotOrigininPos} t2) 
+      ≤   Q2R (t3 - t2)%Q * ((Sin (θErrTrnsl + θErrTurn))
+                       * (speed + transErrTrans)%Q).
+Proof.
+  intros ? ?.
+  pose proof (YDerivEv2To3_1) as Hyd.
+  fold t2 t3 in Hyd.
+  apply (TDerivativeAbsQ (Y rotOrigininPos)) in Hyd;
+    eauto 2 with ICR;
+    [|apply MotorEventsNthTimeInc; omega].
+  autorewrite with CoRN in Hyd.
+  eapply leEq_transitive;[apply Hyd|].
+  apply eqImpliesLeEq.
+  autounfold with IRMC.
+  ring.
+Qed.
+  
+
 
 (*
 Lemma ThetaConstFunSin :  IContREqInIntvl 
