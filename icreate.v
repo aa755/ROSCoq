@@ -2103,6 +2103,29 @@ Proof.
   assumption.
 Qed.
 
+Hint Resolve ThetaErrLe90IR : ICR.
+
+Lemma ThetaErrGe0:
+   [0] [<=] θErrTrnsl + θErrTurn.
+Proof.
+  pose proof (ThetaEv2To3_3 
+      (MotorEventsNthTime 2 (decAuto (2 < 4)%nat I))) as H.
+  unfold le, Le_instance_QTime in H.
+  DestImp H;[| split;[reflexivity| apply MotorEventsNthTimeInc; omega]].
+  eapply leEq_transitive;[| apply H].
+  apply AbsIR_nonneg.
+Qed.
+
+Lemma CosThetaErrGe0:
+   [0] [<=] Cos (θErrTrnsl + θErrTurn).
+Proof.
+  apply Cos_nonneg.
+  - eauto using leEq_transitive, MinusPiBy2Le0, ThetaErrGe0.
+  - apply ThetaErrLe90IR.
+Qed.
+
+Hint Resolve ThetaErrGe0 CosThetaErrGe0 : ICR.
+
 Lemma ThetaErrLe1180 : 
   θErrTrnsl + θErrTurn ≤  π.
 Proof.
@@ -2187,7 +2210,7 @@ Proof.
     [| apply AbsIR_imp_AbsSmall;
        eapply leEq_transitive;[apply Hb|apply ThetaErrLe1180]].
   apply TrigMon.Sin_resp_leEq; [| | assumption].
-  + info_eauto using leEq_transitive, 
+  + eauto using leEq_transitive, 
       MinusPiBy2Le0,AbsIR_nonneg.
   + apply ThetaErrLe90IR.
 - apply SpeedUbEv2To3; assumption.
@@ -2231,7 +2254,104 @@ Proof.
   autounfold with IRMC.
   ring.
 Qed.
-  
+
+(** Move to core *)
+
+Lemma injQ_nonneg: ∀ q,
+   (0<=q)%Q -> ([0] [<=] Q2R q).
+Proof.
+  intros ? H.
+  rewrite <- inj_Q_Zero.
+  apply inj_Q_leEq.
+  assumption.
+Qed.
+
+Hint Resolve injQ_nonneg : CoRN.
+
+Lemma QPQTQplusnNeg: ∀ sp qt,
+   (0<=(Qplus (QposAsQ sp) (QT2Q qt)))%Q.
+Proof.
+  intros.
+  destruct sp.
+  destruct qt as [? y].
+  simpl.
+  apply QTimeD in y.
+  lra.
+Qed.
+
+Hint Resolve QPQTQplusnNeg : ROSCOQ.
+
+Variable speedTransErrTrans : (0 <= speed - transErrTrans)%Q.
+
+Lemma SpeedLbEv2To3 : ∀ (t:QTime), 
+  let t3 : QTime := MotorEventsNthTime 3 (decAuto (3<4)%nat I) in
+  let t2 : QTime := MotorEventsNthTime 2 (decAuto (2<4)%nat I) in
+  t2 ≤ t ≤ t3 
+  -> Q2R (speed - transErrTrans)%Q [<=] AbsIR ({transVel icreate} t).
+Proof.
+  intros ? ? ? Hb.
+  pose proof correctVel2to3 as Hc.
+  fold t2 t3 in Hc.
+  cbv zeta in Hc.
+  apply proj1 in Hc.
+  simpl in Hc.
+  fold (transErrTrans) in Hc.
+  destruct Hc as [qtrans Hc].
+  repnd.
+  pose proof transVelAtEv2 as ht.
+  fold t2 in ht.
+  cbv zeta in ht.
+  unfold between in Hcrr.
+  setoid_rewrite ht in Hcrr.
+  pose proof (λ t p, (betweenRAbs _ _ _ _ (qtimePosIR transErrTrans)
+       (Hcrr t p)))
+     as Hqt. clear Hcrr ht.
+Admitted.
+
+
+Lemma XDerivEv2To3 : ∀ (t:QTime), 
+  let t3 : QTime := MotorEventsNthTime 3 (decAuto (3<4)%nat I) in
+  let t2 : QTime := MotorEventsNthTime 2 (decAuto (2<4)%nat I) in
+  t2 ≤ t ≤ t3 
+  → (Cos (θErrTrnsl + θErrTurn)) * (speed - transErrTrans)%Q
+      ≤ AbsIR ({XDerivRot} t) ≤ (speed + transErrTrans)%Q.
+Proof.
+  intros ? ? ? Hb.
+  unfold XDerivRot.
+  autounfold with IRMC TContRMC.
+  fold (theta icreate[-](ConstTContR optimalTurnAngle)).
+  autorewrite with IContRApDown.
+  rewrite AbsIR_resp_mult.
+  rewrite mult_commut_unfolded.
+  split.
+- pose proof Hb as Hbb.
+  apply ThetaEv2To3_3 in Hb.
+  apply AbsIR_imp_AbsSmall in Hb.
+  unfold AbsSmall in Hb.
+  repnd.
+  apply mult_resp_leEq_both;
+    [eauto 2 with CoRN; fail| apply CosThetaErrGe0| |].
+  + apply SpeedLbEv2To3. split; assumption.
+  + rewrite AbsIR_eq_x.
+    * apply TrigMon.Cos_resp_leEq;
+        trivial;[| apply ThetaErrLe1180].
+    (*unprovable*)
+     admit. 
+
+    * apply Cos_nonneg.
+      eapply leEq_transitive; 
+        [apply inv_resp_leEq; apply ThetaErrLe90IR | apply Hbl]; fail.
+      eapply leEq_transitive;
+        [apply Hbr | apply ThetaErrLe90IR].
+      
+
+- match goal with
+  [|- _ [<=] ?r ] => rewrite <- (mult_one _ r)
+  end.
+  apply mult_resp_leEq_both; 
+      try apply AbsIR_nonneg
+      ;[apply SpeedUbEv2To3; assumption|apply AbsIR_Cos_leEq_One].
+Qed.
 
 
 (*
