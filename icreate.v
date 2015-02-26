@@ -2229,6 +2229,17 @@ Qed.
 Definition transErrTrans
 := (rad (motorPrec {| rad := QposAsQ speed; θ := 0 |})).
 
+Lemma AbsIRQpos : ∀ (qp : Qpos),
+  AbsIR speed [=] speed.
+Proof.
+  intros. 
+  rewrite AbsIR_eq_x;[reflexivity|].
+  rewrite <- inj_Q_Zero.
+  apply inj_Q_leEq.
+  simpl.
+  destruct speed. simpl. lra.
+Qed.
+
 Lemma SpeedUbEv2To3 : ∀ (t:QTime), 
   let t3 : QTime := MotorEventsNthTime 3 (decAuto (3<4)%nat I) in
   let t2 : QTime := MotorEventsNthTime 2 (decAuto (2<4)%nat I) in
@@ -2242,14 +2253,39 @@ Proof.
   apply proj1 in Hc.
   simpl in Hc.
   fold (transErrTrans) in Hc.
-  destruct Hc as [st Hc].
+  destruct Hc as [qtrans Hc].
   repnd.
   pose proof transVelAtEv2 as ht.
   fold t2 in ht.
   cbv zeta in ht.
   unfold between in Hcrr.
   setoid_rewrite ht in Hcrr.
-Admitted.
+  pose proof (λ t p, (betweenLAbs _ _ _ _ (qtimePosIR transErrTrans)
+       (Hcrr t p)))
+     as Hqt. clear Hcrr ht.
+  setoid_rewrite IR_inv_Qzero in Hqt.
+  setoid_rewrite AbsIR_minus in Hqt.
+  setoid_rewrite IR_inv_Qzero in Hqt.
+  setoid_rewrite AbsIR_minus in Hcrl.
+  pose proof (λ t p, (AbsIR_bnd_AbsIR  _ _ _
+          (Hcrl t p)))
+     as Hmrl. clear Hcrl.
+  setoid_rewrite (AbsIRQpos speed) in Hmrl.
+  setoid_rewrite (AbsIRQpos speed) in Hqt.
+  unfold QT2R in Hqt.
+  unfold Q2R.
+  autorewrite with InjQDown.
+  rename Hqt into Hmrr.
+  pose proof (Qlt_le_dec t qtrans) as Hdec.
+  Dor Hdec;[clear Hmrl | clear Hmrr].
+- apply Qlt_le_weak in Hdec.
+  specialize (Hmrr t (conj Hbl Hdec)). 
+  assumption.
+- unfold le, Le_instance_QTime in Hbr.
+  assert (t <= t3)%Q as Hup by lra.
+  specialize (Hmrl t (conj Hdec Hup)).
+  assumption.
+Qed.
   
 
 Hint Resolve PiBy2Ge0 MinusPiBy2Le0 AbsIR_nonneg: CoRN.
