@@ -1795,6 +1795,42 @@ Local Transparent Q2R. unfold Q2R in H0c.
   apply AbsIR_nonneg.
 Qed.
 
+Local Opaque Q2R.
+
+Lemma transVelAtEv2 : let t2 := MotorEventsNthTime 2 (decAuto (2 < 4)%nat I) in
+    {transVel icreate} t2 = 0.
+Proof.
+  intro. pose proof correctVel1to2 as H0c.
+  simpl in H0c.
+  apply proj1 in H0c.
+  destruct H0c as [qtrans H0c].
+  simpl in H0c.
+  pose proof (proj2 (proj1 H0c)) as Ht.
+  apply proj2 in H0c.
+  apply proj1 in H0c.
+  fold t2 in H0c.
+  specialize (H0c t2).
+  DestImp H0c;
+  [|  split;[| reflexivity];
+      eapply Qle_trans;[apply Ht|];
+      subst t2; apply MotorEventsNthTimeReacLe; omega].
+  rewrite motorPrec0 in H0c.
+  simpl in H0c.
+  unfold zero, stdlib_rationals.Q_0 in H0c.
+  rewrite IR_inv_Qzero in H0c.
+  unfoldMC.
+  unfold Zero_Instace_IR_better.
+  rewrite inj_Q_Zero.
+  unfold zero in H0c.
+  unfold Zero_instance_QTime in H0c.
+  simpl in H0c.
+Local Transparent Q2R. unfold Q2R in H0c.
+  rewrite inj_Q_Zero in H0c.
+  apply AbsIR_eq_zero.
+  apply leEq_imp_eq;[exact H0c|].
+  apply AbsIR_nonneg.
+Qed.
+
 Hint Resolve OmegaAtEv2 MotorEventsNthTimeInc: ICR.
 
 Lemma correctVel2to3:
@@ -2193,6 +2229,29 @@ Qed.
 Definition transErrTrans
 := (rad (motorPrec {| rad := QposAsQ speed; θ := 0 |})).
 
+Lemma SpeedUbEv2To3 : ∀ (t:QTime), 
+  let t3 : QTime := MotorEventsNthTime 3 (decAuto (3<4)%nat I) in
+  let t2 : QTime := MotorEventsNthTime 2 (decAuto (2<4)%nat I) in
+  t2 ≤ t ≤ t3 
+  -> AbsIR ({transVel icreate} t)[<=](speed + transErrTrans)%Q.
+Proof.
+  intros ? ? ? Hb.
+  pose proof correctVel2to3 as Hc.
+  fold t2 t3 in Hc.
+  cbv zeta in Hc.
+  apply proj1 in Hc.
+  simpl in Hc.
+  fold (transErrTrans) in Hc.
+  destruct Hc as [st Hc].
+  repnd.
+  pose proof transVelAtEv2 as ht.
+  fold t2 in ht.
+  cbv zeta in ht.
+  unfold between in Hcrr.
+  setoid_rewrite ht in Hcrr.
+Admitted.
+  
+
 Hint Resolve PiBy2Ge0 MinusPiBy2Le0 AbsIR_nonneg: CoRN.
 (** prepping for [TDerivativeAbsQ] *)
 Lemma YDerivEv2To3 : ∀ (t:QTime), 
@@ -2219,8 +2278,8 @@ Proof.
   + info_eauto using leEq_transitive, 
       MinusPiBy2Le0,AbsIR_nonneg.
   + apply ThetaErrLe90IR.
-- admit.
-Abort.
+- apply SpeedUbEv2To3; assumption.
+Qed.
 
 
 
