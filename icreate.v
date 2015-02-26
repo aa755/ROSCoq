@@ -1839,7 +1839,7 @@ Definition rotErrTrans
 := (θ (motorPrec {| rad := QposAsQ speed; θ := 0 |})).
 
 
-Lemma OmegaThetaEv2To3 :
+Lemma ThetaEv2To3 :
   let t3 : QTime := MotorEventsNthTime 3 (decAuto (3<4)%nat I) in
   let t2 : QTime := MotorEventsNthTime 2 (decAuto (2<4)%nat I) in
   ∀ (t : QTime),  t2 ≤ t ≤ t3
@@ -1969,13 +1969,13 @@ Proof.
 Qed.
 
 
-Lemma OmegaThetaEv2To3_2 :
+Lemma ThetaEv2To3_2 :
   let t3 : QTime := MotorEventsNthTime 3 (decAuto (3<4)%nat I) in
   let t2 : QTime := MotorEventsNthTime 2 (decAuto (2<4)%nat I) in
   ∀ (t : QTime),  t2 ≤ t ≤ t3
       → AbsIR ({theta icreate} t[-]θ2)[<=]θErrTrnsl.
 Proof.
-  intros ? ? ? Hb. apply OmegaThetaEv2To3 in Hb.
+  intros ? ? ? Hb. apply ThetaEv2To3 in Hb.
   fold t2 t3 in Hb.
   unfold θErrTrnsl.
   rewrite inj_Q_mult in Hb.
@@ -1997,14 +1997,14 @@ Hint Unfold canonical_names.negate
   Negate_instance_IR : 
  IRMC.
 
-Lemma OmegaThetaEv2To3_3 :
+Lemma ThetaEv2To3_3 :
   let t3 : QTime := MotorEventsNthTime 3 (decAuto (3<4)%nat I) in
   let t2 : QTime := MotorEventsNthTime 2 (decAuto (2<4)%nat I) in
   ∀ (t : QTime),  t2 ≤ t ≤ t3
       → AbsIR ({theta icreate} t[-]optimalTurnAngle)
         ≤ θErrTrnsl + θErrTurn.
 Proof.
-  intros ? ? ? Hb. apply OmegaThetaEv2To3_2 in Hb.
+  intros ? ? ? Hb. apply ThetaEv2To3_2 in Hb.
   pose proof ThetaAtEV2 as Ht.
   cbv zeta in Ht.
   fold θ2 in Ht.
@@ -2049,17 +2049,31 @@ Require Export CartIR.
 
 Variable nztp : ([0] [<] normIR (' targetPos)).
 
-Lemma DerivRotOriginTowardsTargetPos : 
+Definition YDerivRot : TContR :=
   let optimalTurnAngleF := ConstTContR optimalTurnAngle in
+((transVel icreate) 
+                      * (CFSine (theta icreate - optimalTurnAngleF))).
+
+Definition XDerivRot : TContR :=
+  let optimalTurnAngleF := ConstTContR optimalTurnAngle in
+ ((transVel icreate) 
+                      * (CFCos (theta icreate - optimalTurnAngleF))).
+Lemma DerivRotOriginTowardsTargetPos : 
   let ptR := rotateOriginTowardsF (' targetPos) nztp (position icreate) in 
-  (isDerivativeOf ((transVel icreate) 
-                      * (CFCos (theta icreate - optimalTurnAngleF))) (X ptR)
- × isDerivativeOf ((transVel icreate) 
-                      * (CFSine (theta icreate - optimalTurnAngleF))) (Y ptR)).
+  (isDerivativeOf XDerivRot (X ptR)
+ × isDerivativeOf YDerivRot (Y ptR)).
 Proof.
-  simpl.
+  unfold YDerivRot, XDerivRot.
   apply DerivativerotateOriginTowards2; eauto with ICR.
 Qed.
+
+(** prepping for [TDerivativeAbsQ] *)
+Lemma YDerivEv2To3 : ∀ (t:QTime), 
+  let t3 : QTime := MotorEventsNthTime 3 (decAuto (3<4)%nat I) in
+  let t2 : QTime := MotorEventsNthTime 2 (decAuto (2<4)%nat I) in
+  t2 ≤ t ≤ t3 
+  → AbsIR ({YDerivRot} t) ≤  (Sin (θErrTrnsl + θErrTurn)) * speed.
+Abort.
 
   
 
