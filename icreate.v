@@ -1689,15 +1689,18 @@ Abort.
 
 Local Opaque Q2R.
 
+Definition θErrTurn : Q :=
+  let omPrec : QTime :=  (motorTurnOmegaPrec newVal) in 
+(rotspeed * (E2EDelVar + 2 * reacTime) 
+        + anglePrec + omPrec * (E2EDelVar + reacTime)
+        + omPrec * qthetaAbs * / rotspeed )%Q.
+
 Lemma ThetaAtEV2 :
   let t2 : QTime := MotorEventsNthTime 2 (decAuto (2<4)%nat I) in
-  let omPrec : QTime :=  (motorTurnOmegaPrec newVal) in 
- |{theta icreate} t2 - optimalTurnAngle| ≤ 
-    Q2R(rotspeed * (E2EDelVar + 2 * reacTime) 
-        + anglePrec + omPrec * (E2EDelVar + reacTime)
-        + omPrec * qthetaAbs * / rotspeed ).
+ |{theta icreate} t2 - optimalTurnAngle| ≤ Q2R θErrTurn.
 Proof.
-  intros ? ?.
+  intros ?.
+  unfold θErrTurn.
   pose proof correctVel1to2 as Hc.
   simpl in Hc. fold t2 in Hc.
   unfold correctVelDuring in Hc.
@@ -1747,7 +1750,7 @@ Hint Unfold Le_instance_IR  Plus_instance_IR Negate_instance_IR : IRMC.
   apply inj_Q_leEq.
   apply QeqQle. destruct sendTimeAcc, delivDelayVar.
   simpl.
-  simpl. simpl. idtac. fold (omPrec).
+  simpl. simpl. idtac.
   field.
   destruct rotspeed.
   simpl.
@@ -1892,11 +1895,6 @@ Definition θErrTrnsl : IR :=
 (QT2R rotErrTrans) * Ev23TimeGapUB.
 
 
-Definition θErrTurn : Q :=
-  let omPrec : QTime :=  (motorTurnOmegaPrec newVal) in 
-(rotspeed * (E2EDelVar + 2 * reacTime) 
-        + anglePrec + omPrec * (E2EDelVar + reacTime)
-        + omPrec * qthetaAbs * / rotspeed )%Q.
 
 
 
@@ -1968,6 +1966,57 @@ Proof.
   unfold Q2R. 
   rewrite inj_Q_plus.
   ring.
+Qed.
+
+
+Lemma OmegaThetaEv2To3_2 :
+  let t3 : QTime := MotorEventsNthTime 3 (decAuto (3<4)%nat I) in
+  let t2 : QTime := MotorEventsNthTime 2 (decAuto (2<4)%nat I) in
+  ∀ (t : QTime),  t2 ≤ t ≤ t3
+      → AbsIR ({theta icreate} t[-]θ2)[<=]θErrTrnsl.
+Proof.
+  intros ? ? ? Hb. apply OmegaThetaEv2To3 in Hb.
+  fold t2 t3 in Hb.
+  unfold θErrTrnsl.
+  rewrite inj_Q_mult in Hb.
+  eapply leEq_transitive;[apply Hb|].
+  eapply mult_resp_leEq_lft;[| eauto with ROSCOQ; fail].
+  apply MotorEv23Gap2_3.
+Qed.
+
+Hint Unfold canonical_names.negate
+  canonical_names.negate
+  plus
+  one zero
+  equiv  mult
+  dec_recip
+  zero
+  le
+  lt
+  canonical_names.negate
+  Negate_instance_IR : 
+ IRMC.
+
+Lemma OmegaThetaEv2To3_3 :
+  let t3 : QTime := MotorEventsNthTime 3 (decAuto (3<4)%nat I) in
+  let t2 : QTime := MotorEventsNthTime 2 (decAuto (2<4)%nat I) in
+  ∀ (t : QTime),  t2 ≤ t ≤ t3
+      → AbsIR ({theta icreate} t[-]optimalTurnAngle)
+        ≤ θErrTrnsl + θErrTurn.
+Proof.
+  intros ? ? ? Hb. apply OmegaThetaEv2To3_2 in Hb.
+  pose proof ThetaAtEV2 as Ht.
+  cbv zeta in Ht.
+  fold θ2 in Ht.
+  apply AbsIR_imp_AbsSmall in Ht.
+  apply AbsIR_imp_AbsSmall in Hb.
+  apply AbsSmall_imp_AbsIR.
+  pose proof (AbsSmall_plus _ _ _ _ _  Hb Ht) as Hadd.
+  clear Ht Hb. 
+  autounfold with IRMC in Hadd.
+  unfold cg_minus in Hadd.
+  ring_simplify in Hadd.
+  assumption.
 Qed.
 
 (*TrigMon.Sin_resp_less*)
