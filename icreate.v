@@ -2308,6 +2308,10 @@ Proof.
      as Hqt. clear Hcrr ht.
 Admitted.
 
+Lemma AbsIRCos : ∀ θ, 
+  AbsIR θ ≤ Pi [/]TwoNZ
+  -> AbsIR (Cos θ) = Cos (AbsIR θ).
+Admitted.
 
 Lemma XDerivEv2To3 : ∀ (t:QTime), 
   let t3 : QTime := MotorEventsNthTime 3 (decAuto (3<4)%nat I) in
@@ -2326,24 +2330,14 @@ Proof.
   split.
 - pose proof Hb as Hbb.
   apply ThetaEv2To3_3 in Hb.
-  apply AbsIR_imp_AbsSmall in Hb.
-  unfold AbsSmall in Hb.
-  repnd.
   apply mult_resp_leEq_both;
     [eauto 2 with CoRN; fail| apply CosThetaErrGe0| |].
-  + apply SpeedLbEv2To3. split; assumption.
-  + rewrite AbsIR_eq_x.
+  + apply SpeedLbEv2To3.  assumption.
+  + rewrite AbsIRCos.
     * apply TrigMon.Cos_resp_leEq;
-        trivial;[| apply ThetaErrLe1180].
-    (*unprovable*)
-     admit. 
-
-    * apply Cos_nonneg.
-      eapply leEq_transitive; 
-        [apply inv_resp_leEq; apply ThetaErrLe90IR | apply Hbl]; fail.
-      eapply leEq_transitive;
-        [apply Hbr | apply ThetaErrLe90IR].
-      
+        trivial;[apply AbsIR_nonneg| apply ThetaErrLe1180].
+    * eapply leEq_transitive;[apply Hb|].
+      apply  ThetaErrLe90IR.
 
 - match goal with
   [|- _ [<=] ?r ] => rewrite <- (mult_one _ r)
