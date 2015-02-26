@@ -1524,7 +1524,7 @@ Definition qthetaAbs : Q :=
   (|approximate (polarTheta targetPos) anglePrec |).
 
 Definition E2EDelVar : Q := 
-  2 * (sendTimeAcc + delivDelayVar).
+  (2 * (sendTimeAcc + delivDelayVar))%Q.
 
   
 (** rearrange the above to show relation to rotspeed 
@@ -1903,12 +1903,11 @@ Definition θErrTurn : Q :=
 Lemma MotorEv23Gap2_2 :
   let t0 : QTime := MotorEventsNthTime 2 (decAuto (2<4)%nat I) in
   let t1 : QTime := MotorEventsNthTime 3 (decAuto (3<4)%nat I) in
-  let tgap :Q := (approximate (|targetPos|) distPrec * (Qinv speed)) in
    AbsIR ((Q2R (QT2Q t1 - QT2Q t0)) 
       - ((CRasIR (|targetPos|)) * (Qinv speed)))
   [<=] Q2R ((distPrec* (Qinv speed)) + 2 * (sendTimeAcc + delivDelayVar)).
 Proof.
-  intros ? ? ?.
+  intros ? ? .
   pose proof  MotorEv23Gap  as Hg.
   simpl in Hg.
   fold t0 t1 in Hg.
@@ -1937,6 +1936,38 @@ Proof.
     [| | apply Hadd].
 - apply inj_Q_wd. simpl. ring.
 - unfold Q2R, Qminus, cg_minus. reflexivity.
+Qed.
+
+Lemma MotorEv23Gap2_3 :
+  let t2 : QTime := MotorEventsNthTime 2 (decAuto (2<4)%nat I) in
+  let t3 : QTime := MotorEventsNthTime 3 (decAuto (3<4)%nat I) in
+   Q2R (QT2Q t3 - QT2Q t2) ≤ Ev23TimeGapUB.
+Proof.
+  intros ? ?.
+  pose proof MotorEv23Gap2_2 as Hp.
+  fold t2 t3 in Hp.
+  Local Opaque Q2R.
+  simpl in Hp.
+  apply AbsIR_imp_AbsSmall in Hp.
+  unfold AbsSmall in Hp.
+  apply proj2 in Hp.
+  apply shift_leEq_plus in Hp.
+  unfold Ev23TimeGapUB.
+  eapply leEq_transitive;[apply Hp|].
+  clear Hp.
+  unfold E2EDelVar.
+  unfoldMC.
+  autounfold with IRMC.
+  unfold Mult_instance_IR.
+  rewrite ring_distl_unfolded.
+  simpl. idtac. destruct sendTimeAcc, delivDelayVar.
+  simpl. apply eqImpliesLeEq.
+  simpl.  
+  autorewrite with QSimpl. simpl.
+  Local Transparent Q2R.
+  unfold Q2R. 
+  rewrite inj_Q_plus.
+  ring.
 Qed.
 
 (*TrigMon.Sin_resp_less*)
