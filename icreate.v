@@ -2280,15 +2280,6 @@ Proof.
   apply MotorEventsNthTimeInc. omega.
 Qed.
 
-(** delete *)
-Lemma injQ_nonneg: ∀ q,
-   (0<=q)%Q -> ([0] [<=] Q2R q).
-Proof.
-  intros ? H.
-  rewrite <- inj_Q_Zero.
-  apply inj_Q_leEq.
-  assumption.
-Qed.
 
 Hint Resolve injQ_nonneg : CoRN.
 
@@ -2348,7 +2339,7 @@ Proof.
 Qed.
 
   
-Lemma XDerivEv2To3UB : ∀ (t:QTime), 
+Lemma XDerivEv2To3UBAux : ∀ (t:QTime), 
   let t3 : QTime := MotorEventsNthTime 3 (decAuto (3<4)%nat I) in
   let t2 : QTime := MotorEventsNthTime 2 (decAuto (2<4)%nat I) in
   t2 ≤ t ≤ t3 
@@ -2368,6 +2359,49 @@ Proof.
 - apply SpeedUbEv2To3. assumption.
 - apply AbsIR_Cos_leEq_One.
 Qed.
+
+Lemma XDerivEv2To3UB : ∀ (t:QTime), 
+  let t3 : QTime := MotorEventsNthTime 3 (decAuto (3<4)%nat I) in
+  let t2 : QTime := MotorEventsNthTime 2 (decAuto (2<4)%nat I) in
+  t2 ≤ t ≤ t3 
+  → ({XDerivRot} t) ≤ (speed + transErrTrans)%Q.
+Proof.
+  intros ? ? ? Hb.
+  eapply leEq_transitive;[| apply (XDerivEv2To3UBAux t); assumption].
+  apply leEq_AbsIR.
+Qed.
+
+Lemma XChangeUBEv2To3 :
+  let t3 : QTime := MotorEventsNthTime 3 (decAuto (3<4)%nat I) in
+  let t2 : QTime := MotorEventsNthTime 2 (decAuto (2<4)%nat I) in
+   ({X rotOrigininPos} t3 [-] {X rotOrigininPos} t2) 
+      ≤  ((t3 - t2) * (speed + transErrTrans))%Q.
+Proof.
+  intros ? ?.
+  unfold Q2R.
+  rewrite Qmult_comm.
+  rewrite inj_Q_mult.
+  eapply TDerivativeUBQ; eauto 2 with ICR;
+   [apply MotorEventsNthTimeInc; omega|].
+  apply XDerivEv2To3UB.
+Qed.
+
+Lemma XChangeUBEv2To3_2 :
+  let t3 : QTime := MotorEventsNthTime 3 (decAuto (3<4)%nat I) in
+  let t2 : QTime := MotorEventsNthTime 2 (decAuto (2<4)%nat I) in
+   ({X rotOrigininPos} t3 [-] {X rotOrigininPos} t2) 
+      ≤  (Ev23TimeGapUB * (speed + transErrTrans)%Q).
+Proof.
+  intros.
+  pose proof (XChangeUBEv2To3) as Hyd.
+  cbv zeta in Hyd.
+  eapply leEq_transitive;[apply Hyd|].
+  fold t2 t3. clear Hyd.
+  unfold Q2R. rewrite inj_Q_mult.
+  apply mult_resp_leEq_rht;[apply MotorEv23Gap2_3; fail|].
+  eauto 2 with CoRN ROSCOQ.
+Qed.
+
 
 Lemma SpeedLbEv2To3 :
   let t3 : QTime := MotorEventsNthTime 3 (decAuto (3<4)%nat I) in
