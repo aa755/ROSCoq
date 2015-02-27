@@ -2334,19 +2334,6 @@ Proof.
   reflexivity.
 Qed.
 
-Lemma TimeRangeShortenL :
-  ∀ (a b t : Q) (qt : QTime),
-    a + qt ≤ t ≤ b
-    -> a ≤ t ≤ b.
-Proof.
-  unfoldMC.
-  intros ? ? ? ? Hb.
-  destruct qt as [? p].
-  simpl. pose proof p as pb.
-  apply QTimeD in pb.
-  repnd. simpl in Hbl. split; lra.
-Qed.
-
   
 Lemma XDerivEv2To3UBAux : ∀ (t:QTime), 
   let t3 : QTime := MotorEventsNthTime 3 (decAuto (3<4)%nat I) in
@@ -2452,14 +2439,6 @@ Proof.
   lra.
 Qed.
 
-Lemma Cos_nonnegAbs
-  : ∀ θ : ℝ, AbsIR θ [<=] Pi [/]TwoNZ → [0] [<=]Cos θ.
-Proof.
-  intros ? H.
-  apply AbsIR_imp_AbsSmall in H.
-  destruct H.
-  apply Cos_nonneg; assumption.
-Qed.
 
 
 

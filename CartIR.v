@@ -52,7 +52,63 @@ Proof.
 Qed.
 
 
+(** This proof can be generalized for even functions.
+    Similarly, [AbsIRSin] can be generalized for odd functions *)
+Lemma CosEven2 : ∀ θ, 
+  AbsIR θ ≤ Pi [/]TwoNZ
+  -> Cos θ = Cos (AbsIR θ).
+Proof.
+  intros ? H.
+  pose proof (leEq_or_leEq _ θ [0]) as Hd.
+  apply not_ap_imp_eq.
+  intro Hc.
+  apply Hd.
+  clear Hd. intro Hd.
+  apply ap_tight in Hc;[contradiction|].
+  repnd.
+  destruct Hd as [c|].
+- rewrite AbsIR_eq_inv_x;[|assumption].
+  rewrite Cos_inv. reflexivity.
+- rewrite AbsIR_eq_x; [|assumption].
+  reflexivity.
+Qed.
+
+Lemma AbsIRCos : ∀ θ, 
+  AbsIR θ ≤ Pi [/]TwoNZ
+  -> AbsIR (Cos θ) = Cos (AbsIR θ).
+Proof.
+  intros ? Hb.
+  rewrite <- CosEven2 by assumption.
+  apply AbsIR_imp_AbsSmall in Hb.
+  unfold AbsSmall in Hb.
+  repnd.
+  eapply Cos_nonneg in Hbl; eauto.
+  rewrite AbsIR_eq_x;[| assumption].
+  reflexivity.
+Qed.
+
+Lemma Cos_nonnegAbs
+  : ∀ θ : ℝ, AbsIR θ [<=] Pi [/]TwoNZ → [0] [<=]Cos θ.
+Proof.
+  intros ? H.
+  apply AbsIR_imp_AbsSmall in H.
+  destruct H.
+  apply Cos_nonneg; assumption.
+Qed.
   
+
+Lemma TimeRangeShortenL :
+  ∀ (a b t : Q) (qt : QTime),
+    a + qt ≤ t ≤ b
+    -> a ≤ t ≤ b.
+Proof.
+  unfoldMC.
+  intros ? ? ? ? Hb.
+  destruct qt as [? p].
+  simpl. pose proof p as pb.
+  apply QTimeD in pb.
+  repnd. simpl in Hbl. split; lra.
+Qed.
 
 Lemma AbsIRSine : ∀ θ, 
   -π ≤ θ ≤ π
