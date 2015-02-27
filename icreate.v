@@ -2307,30 +2307,6 @@ Hint Resolve QPQTQplusnNeg : ROSCOQ.
 
 Variable speedTransErrTrans : (0 <= speed - transErrTrans)%Q.
 
-Lemma SpeedLbEv2To3 : ∀ (t:QTime), 
-  let t3 : QTime := MotorEventsNthTime 3 (decAuto (3<4)%nat I) in
-  let t2 : QTime := MotorEventsNthTime 2 (decAuto (2<4)%nat I) in
-  t2 ≤ t ≤ t3 
-  -> Q2R (speed - transErrTrans)%Q [<=] AbsIR ({transVel icreate} t).
-Proof.
-  intros ? ? ? Hb.
-  pose proof correctVel2to3 as Hc.
-  fold t2 t3 in Hc.
-  cbv zeta in Hc.
-  apply proj1 in Hc.
-  simpl in Hc.
-  fold (transErrTrans) in Hc.
-  destruct Hc as [qtrans Hc].
-  repnd.
-  pose proof transVelAtEv2 as ht.
-  fold t2 in ht.
-  cbv zeta in ht.
-  unfold between in Hcrr.
-  setoid_rewrite ht in Hcrr.
-  pose proof (λ t p, (betweenRAbs _ _ _ _ (qtimePosIR transErrTrans)
-       (Hcrr t p)))
-     as Hqt. clear Hcrr ht.
-Admitted.
 
 (** This proof can be generalized for even functions.
     Similarly, [AbsIRSin] can be generalized for odd functions *)
@@ -2357,14 +2333,26 @@ Proof.
 - rewrite AbsIR_eq_x; [|assumption].
   reflexivity.
 Qed.
-  
 
-Lemma XDerivEv2To3 : ∀ (t:QTime), 
+Lemma TimeRangeShortenL :
+  ∀ (a b t : Q) (qt : QTime),
+    a + qt ≤ t ≤ b
+    -> a ≤ t ≤ b.
+Proof.
+  unfoldMC.
+  intros ? ? ? ? Hb.
+  destruct qt as [? p].
+  simpl. pose proof p as pb.
+  apply QTimeD in pb.
+  repnd. simpl in Hbl. split; lra.
+Qed.
+
+  
+Lemma XDerivEv2To3UB : ∀ (t:QTime), 
   let t3 : QTime := MotorEventsNthTime 3 (decAuto (3<4)%nat I) in
   let t2 : QTime := MotorEventsNthTime 2 (decAuto (2<4)%nat I) in
   t2 ≤ t ≤ t3 
-  → (Cos (θErrTrnsl + θErrTurn)) * (speed - transErrTrans)%Q
-      ≤ AbsIR ({XDerivRot} t) ≤ (speed + transErrTrans)%Q.
+  → AbsIR ({XDerivRot} t) ≤ (speed + transErrTrans)%Q.
 Proof.
   intros ? ? ? Hb.
   unfold XDerivRot.
@@ -2372,9 +2360,73 @@ Proof.
   fold (theta icreate[-](ConstTContR optimalTurnAngle)).
   autorewrite with IContRApDown.
   rewrite AbsIR_resp_mult.
+  match goal with
+  [|- _ [<=] ?r ] => rewrite <- (mult_one _ r)
+  end.
+  apply mult_resp_leEq_both;
+      try apply AbsIR_nonneg.
+- apply SpeedUbEv2To3. assumption.
+- apply AbsIR_Cos_leEq_One.
+Qed.
+
+Lemma SpeedLbEv2To3 :
+  let t3 : QTime := MotorEventsNthTime 3 (decAuto (3<4)%nat I) in
+  let t2 : QTime := MotorEventsNthTime 2 (decAuto (2<4)%nat I) in
+  ∃ qtrans : QTime, (t2 <= qtrans <= t2 + reacTime)%Q ∧
+  (∀ t:QTime, t2 ≤ t ≤ qtrans →  0 ≤ ({transVel icreate} t))
+  ∧ (∀ t:QTime, qtrans ≤ t ≤ t3 →
+        Q2R (speed - transErrTrans)%Q [<=] ({transVel icreate} t)).
+Proof.
+  intros ? ?.
+  pose proof correctVel2to3 as Hc.
+  fold t2 t3 in Hc.
+  cbv zeta in Hc.
+  apply proj1 in Hc.
+  simpl in Hc.
+  fold (transErrTrans) in Hc.
+  destruct Hc as [qtrans Hc].
+  repnd.
+  pose proof transVelAtEv2 as ht.
+  fold t2 in ht.
+  cbv zeta in ht.
+  unfold between in Hcrr.
+  setoid_rewrite ht in Hcrr.
+  pose proof (λ t p, (betweenRAbs _ _ _ _ (qtimePosIR transErrTrans)
+       (Hcrr t p)))
+     as Hqt. clear Hcrr ht.
+Admitted.
+
+Lemma XDerivEv2To3LB : 
+  let t3 : QTime := MotorEventsNthTime 3 (decAuto (3<4)%nat I) in
+  let t2 : QTime := MotorEventsNthTime 2 (decAuto (2<4)%nat I) in
+  ∃ qtrans : QTime, (t2 <= qtrans <= t2 + reacTime)%Q ∧
+  (∀ t:QTime, t2 ≤ t ≤ qtrans →  0 ≤ ({XDerivRot} t))
+  ∧ (∀ t:QTime, qtrans ≤ t ≤ t3 →
+        (Cos (θErrTrnsl + θErrTurn)) * (speed - transErrTrans)%Q 
+          [<=] (({XDerivRot} t))).
+Proof.
+  intros ? ?.
+  pose proof SpeedLbEv2To3 as Hs.
+  fold t2 t3 in Hs.
+  cbv zeta in Hs. destruct Hs as [qtrans Hs].
+  exists qtrans. repnd.
+  split;[split;assumption|].
+  split;[clear Hsrr | clear Hsrl].
+- admit.
+- unfold XDerivRot.
+    autounfold with IRMC TContRMC.
+  fold (theta icreate[-](ConstTContR optimalTurnAngle)).
+  autorewrite with IContRApDown.
+  intros t Hb.
+  apply Hsrr in Hb.
+  clear Hsrr.
+(*  rewrite AbsIR_resp_mult.
   rewrite mult_commut_unfolded.
-  split.
-- pose proof Hb as Hbb.
+  pose proof Hb as Hbb.
+  unfold le, Le_instance_QTime, plus, Plus_instance_QTime in Hb.
+  simpl in Hb.
+  apply TimeRangeShortenL in Hb.
+  pose proof Hb as Hbbl.
   apply ThetaEv2To3_3 in Hb.
   apply mult_resp_leEq_both;
     [eauto 2 with CoRN; fail| apply CosThetaErrGe0| |].
@@ -2385,13 +2437,9 @@ Proof.
     * eapply leEq_transitive;[apply Hb|].
       apply  ThetaErrLe90IR.
 
-- match goal with
-  [|- _ [<=] ?r ] => rewrite <- (mult_one _ r)
-  end.
-  apply mult_resp_leEq_both; 
-      try apply AbsIR_nonneg
-      ;[apply SpeedUbEv2To3; assumption|apply AbsIR_Cos_leEq_One].
-Qed.
+Qed. *)
+Abort.
+
 
 
 (*
