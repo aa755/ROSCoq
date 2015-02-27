@@ -2419,18 +2419,31 @@ Proof.
   simpl in Hc.
   fold (transErrTrans) in Hc.
   destruct Hc as [qtrans Hc].
+  exists qtrans.
   repnd.
-  pose proof transVelAtEv2 as ht.
-  fold t2 in ht.
-  cbv zeta in ht.
-  unfold between in Hcrr.
-  setoid_rewrite ht in Hcrr.
-  pose proof (λ t p, (betweenRAbs _ _ _ _ (qtimePosIR transErrTrans)
-       (Hcrr t p)))
-     as Hqt. clear Hcrr ht.
-Admitted.
+  split;[split; assumption|].
+  split;[clear Hcrl | clear Hcrr]; intros ? Hb.
+- apply Hcrr in Hb.
+  unfold between in Hb.
+  apply proj1 in Hb.
+  unfold t2 in Hb.
+  rewrite transVelAtEv2 in Hb.
+  rewrite leEq_imp_Min_is_lft in Hb;[assumption|].
+  autorewrite with QSimpl. apply inj_Q_leEq.
+  simpl. assumption.
+- apply Hcrl in Hb.
+  apply AbsIR_imp_AbsSmall in Hb.
+  unfold AbsSmall in Hb.
+  apply proj1 in Hb.
+  apply shift_plus_leEq in Hb.
+  eapply leEq_transitive;[|apply Hb].
+  autorewrite with QSimpl.
+  apply inj_Q_leEq.
+  simpl.
+  lra.
+Qed.
 
-Lemma XDerivEv2To3LB : 
+Lemma XDerivLBEv2To3 : 
   let t3 : QTime := MotorEventsNthTime 3 (decAuto (3<4)%nat I) in
   let t2 : QTime := MotorEventsNthTime 2 (decAuto (2<4)%nat I) in
   ∃ qtrans : QTime, (t2 <= qtrans <= t2 + reacTime)%Q ∧
@@ -2445,12 +2458,22 @@ Proof.
   cbv zeta in Hs. destruct Hs as [qtrans Hs].
   exists qtrans. repnd.
   split;[split;assumption|].
-  split;[clear Hsrr | clear Hsrl].
-- admit.
-- unfold XDerivRot.
-    autounfold with IRMC TContRMC.
+  unfold XDerivRot.
+  autounfold with IRMC TContRMC.
+  unfold Le_instance_QTime, stdlib_rationals.Q_0.
   fold (theta icreate[-](ConstTContR optimalTurnAngle)).
-  autorewrite with IContRApDown.
+  split;[clear Hsrr | clear Hsrl]; intros t Hb.
+- autorewrite with IContRApDown.
+  apply Hsrl in Hb. clear Hsrl.
+  rewrite inj_Q_Zero.
+  autounfold with IRMC in Hb.
+  rewrite inj_Q_Zero in Hb.
+  apply mult_resp_nonneg;[assumption|].
+  clear Hb.
+  apply Cos_nonneg.
+  + admit.
+  + admit.
+- autorewrite with IContRApDown.
   intros t Hb.
   apply Hsrr in Hb.
   clear Hsrr.
