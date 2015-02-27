@@ -2301,16 +2301,11 @@ Variable speedTransErrTrans : (0 <= speed - transErrTrans)%Q.
 
 (** This proof can be generalized for even functions.
     Similarly, [AbsIRSin] can be generalized for odd functions *)
-Lemma AbsIRCos : ∀ θ, 
+Lemma CosEven2 : ∀ θ, 
   AbsIR θ ≤ Pi [/]TwoNZ
-  -> AbsIR (Cos θ) = Cos (AbsIR θ).
+  -> Cos θ = Cos (AbsIR θ).
 Proof.
-  intros ? Hb.
-  apply AbsIR_imp_AbsSmall in Hb.
-  unfold AbsSmall in Hb.
-  repnd.
-  eapply Cos_nonneg in Hbl; eauto.
-  rewrite AbsIR_eq_x;[| assumption].
+  intros ? H.
   pose proof (leEq_or_leEq _ θ [0]) as Hd.
   apply not_ap_imp_eq.
   intro Hc.
@@ -2322,6 +2317,20 @@ Proof.
 - rewrite AbsIR_eq_inv_x;[|assumption].
   rewrite Cos_inv. reflexivity.
 - rewrite AbsIR_eq_x; [|assumption].
+  reflexivity.
+Qed.
+
+Lemma AbsIRCos : ∀ θ, 
+  AbsIR θ ≤ Pi [/]TwoNZ
+  -> AbsIR (Cos θ) = Cos (AbsIR θ).
+Proof.
+  intros ? Hb.
+  rewrite <- CosEven2 by assumption.
+  apply AbsIR_imp_AbsSmall in Hb.
+  unfold AbsSmall in Hb.
+  repnd.
+  eapply Cos_nonneg in Hbl; eauto.
+  rewrite AbsIR_eq_x;[| assumption].
   reflexivity.
 Qed.
 
@@ -2443,6 +2452,18 @@ Proof.
   lra.
 Qed.
 
+Lemma Cos_nonnegAbs
+  : ∀ θ : ℝ, AbsIR θ [<=] Pi [/]TwoNZ → [0] [<=]Cos θ.
+Proof.
+  intros ? H.
+  apply AbsIR_imp_AbsSmall in H.
+  destruct H.
+  apply Cos_nonneg; assumption.
+Qed.
+
+
+
+
 Lemma XDerivLBEv2To3 : 
   let t3 : QTime := MotorEventsNthTime 3 (decAuto (3<4)%nat I) in
   let t2 : QTime := MotorEventsNthTime 2 (decAuto (2<4)%nat I) in
@@ -2464,38 +2485,34 @@ Proof.
   fold (theta icreate[-](ConstTContR optimalTurnAngle)).
   split;[clear Hsrr | clear Hsrl]; intros t Hb.
 - autorewrite with IContRApDown.
-  apply Hsrl in Hb. clear Hsrl.
+  pose proof Hb as Hbb. apply Hsrl in Hb. clear Hsrl.
   rewrite inj_Q_Zero.
   autounfold with IRMC in Hb.
   rewrite inj_Q_Zero in Hb.
   apply mult_resp_nonneg;[assumption|].
   clear Hb.
-  apply Cos_nonneg.
-  + admit.
-  + admit.
+  apply Cos_nonnegAbs.
+  eapply leEq_transitive;[apply ThetaEv2To3_3| apply ThetaErrLe90IR].
+  fold t2 t3.
+  unfold le, Le_instance_QTime.
+  repnd. split; try lra.
+  pose proof MotorEventsNthTimeReac.
+  assert ((t2 + reacTime < t3)%Q) 
+    as Hassumption by (apply MotorEventsNthTimeReac; omega).
+   lra.
 - autorewrite with IContRApDown.
-  intros t Hb.
+  assert ((t2 <= t <= t3)%Q) as Hbb by lra.
   apply Hsrr in Hb.
   clear Hsrr.
-(*  rewrite AbsIR_resp_mult.
   rewrite mult_commut_unfolded.
-  pose proof Hb as Hbb.
-  unfold le, Le_instance_QTime, plus, Plus_instance_QTime in Hb.
-  simpl in Hb.
-  apply TimeRangeShortenL in Hb.
-  pose proof Hb as Hbbl.
-  apply ThetaEv2To3_3 in Hb.
-  apply mult_resp_leEq_both;
-    [eauto 2 with CoRN; fail| apply CosThetaErrGe0| |].
-  + apply SpeedLbEv2To3.  assumption.
-  + rewrite AbsIRCos.
-    * apply TrigMon.Cos_resp_leEq;
+  apply ThetaEv2To3_3 in Hbb.
+  apply mult_resp_leEq_both; trivial;
+    [eauto 2 with CoRN; fail| apply CosThetaErrGe0| ].
+  setoid_rewrite CosEven2 at 2;
+    [|eapply leEq_transitive;[apply Hbb| apply ThetaErrLe90IR]].
+  apply TrigMon.Cos_resp_leEq;
         trivial;[apply AbsIR_nonneg| apply ThetaErrLe1180].
-    * eapply leEq_transitive;[apply Hb|].
-      apply  ThetaErrLe90IR.
-
-Qed. *)
-Abort.
+Qed.
 
 
 
