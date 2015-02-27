@@ -2255,8 +2255,32 @@ Proof.
   ring.
 Qed.
 
-(** Move to core *)
+(** Whis this spec is totally in terms of the parameters,
+    it does not clarify how ttanslation speed matters, because 
+    [Ev23TimeGapUB] has terms that depend on speed.
+    So does [θErrTrnsl]. 
+    One can unfold Ev23TimeGapUB and cancel out some terms. *)
+Lemma YChangeEv2To3_2 :
+  let t3 : QTime := MotorEventsNthTime 3 (decAuto (3<4)%nat I) in
+  let t2 : QTime := MotorEventsNthTime 2 (decAuto (2<4)%nat I) in
+  AbsIR ({Y rotOrigininPos} t3 [-] {Y rotOrigininPos} t2) 
+      ≤  Ev23TimeGapUB  * ((Sin (θErrTrnsl + θErrTurn))
+                       * (speed + transErrTrans)%Q).
+Proof.
+  intros.
+  pose proof (YChangeEv2To3) as Hyd.
+  cbv zeta in Hyd.
+  eapply leEq_transitive;[apply Hyd|].
+  fold t2 t3. clear Hyd.
+  apply mult_resp_leEq_rht;[apply MotorEv23Gap2_3; fail|].
+  eapply leEq_transitive;[apply AbsIR_nonneg| apply YDerivEv2To3].
+  instantiate (1:=MotorEventsNthTime 2 (decAuto (2 < 4)%nat I)).
+  unfold le, Le_instance_QTime.
+  split;[reflexivity|].
+  apply MotorEventsNthTimeInc. omega.
+Qed.
 
+(** delete *)
 Lemma injQ_nonneg: ∀ q,
    (0<=q)%Q -> ([0] [<=] Q2R q).
 Proof.
@@ -2308,10 +2332,32 @@ Proof.
      as Hqt. clear Hcrr ht.
 Admitted.
 
+(** This proof can be generalized for even functions.
+    Similarly, [AbsIRSin] can be generalized for odd functions *)
 Lemma AbsIRCos : ∀ θ, 
   AbsIR θ ≤ Pi [/]TwoNZ
   -> AbsIR (Cos θ) = Cos (AbsIR θ).
-Admitted.
+Proof.
+  intros ? Hb.
+  apply AbsIR_imp_AbsSmall in Hb.
+  unfold AbsSmall in Hb.
+  repnd.
+  eapply Cos_nonneg in Hbl; eauto.
+  rewrite AbsIR_eq_x;[| assumption].
+  pose proof (leEq_or_leEq _ θ [0]) as Hd.
+  apply not_ap_imp_eq.
+  intro Hc.
+  apply Hd.
+  clear Hd. intro Hd.
+  apply ap_tight in Hc;[contradiction|].
+  repnd.
+  destruct Hd as [c|].
+- rewrite AbsIR_eq_inv_x;[|assumption].
+  rewrite Cos_inv. reflexivity.
+- rewrite AbsIR_eq_x; [|assumption].
+  reflexivity.
+Qed.
+  
 
 Lemma XDerivEv2To3 : ∀ (t:QTime), 
   let t3 : QTime := MotorEventsNthTime 3 (decAuto (3<4)%nat I) in

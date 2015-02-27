@@ -303,6 +303,19 @@ Qed.
 Hint Rewrite cg_zero_inv cg_inv_inv : CoRN.
 Hint Resolve AbsIR_nonneg: CoRN.
 
+(** Move to core *)
+
+Lemma injQ_nonneg: ∀ q,
+   (0<=q)%Q -> ([0] [<=] Q2R q).
+Proof.
+  intros ? H.
+  rewrite <- inj_Q_Zero.
+  apply inj_Q_leEq.
+  assumption.
+Qed.
+
+Hint Resolve injQ_nonneg : CoRN.
+
 Lemma pfstrlt:  forall (p : PartFunct IR) (x y : IR) 
       (Hx : Dom p x)
       (Hy : Dom p y), 
