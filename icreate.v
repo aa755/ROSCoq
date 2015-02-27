@@ -2576,6 +2576,34 @@ Proof.
   eapply TDerivativeLBQ; eauto 2 with ICR; try lra.
 Qed.
 
+Lemma XChangeLBEv2To3_2 :
+  let t3 : QTime := MotorEventsNthTime 3 (decAuto (3<4)%nat I) in
+  let t2 : QTime := MotorEventsNthTime 2 (decAuto (2<4)%nat I) in
+  (Cos (θErrTrnsl + θErrTurn) 
+      * (speed - transErrTrans)%Q 
+      * (Ev23TimeGapLB - QT2Q reacTime))
+  ≤  ({X rotOrigininPos} t3 [-] {X rotOrigininPos} t2).
+Proof.
+  intros ? ?.
+  destruct XChangeLBEv2To3 as [qtrans Hd].
+  fold t2 t3 in Hd.
+  repnd.
+  eapply leEq_transitive;[|apply Hdr].
+  apply mult_resp_leEq_lft.
+- assert (t3-t2-reacTime <=(t3 - qtrans))%Q as Hle by lra.
+  apply (inj_Q_leEq IR) in Hle.
+  eapply leEq_transitive;[|apply Hle].
+  rewrite inj_Q_minus.
+  unfoldMC.
+  autounfold with IRMC.
+  unfold Q2R.
+  rewrite inj_Q_inv.
+  apply minus_resp_leEq.
+  apply MotorEv23GapLB.
+- apply mult_resp_nonneg; eauto 1 with ICR;[].
+  apply injQ_nonneg. simpl. assumption.
+Qed.
+
 (*
 Lemma XChangeUBEv2To3_2 :
   let t3 : QTime := MotorEventsNthTime 3 (decAuto (3<4)%nat I) in
