@@ -2439,10 +2439,6 @@ Proof.
   lra.
 Qed.
 
-
-
-
-
 Lemma XDerivLBEv2To3 : 
   let t3 : QTime := MotorEventsNthTime 3 (decAuto (3<4)%nat I) in
   let t2 : QTime := MotorEventsNthTime 2 (decAuto (2<4)%nat I) in
@@ -2493,7 +2489,56 @@ Proof.
         trivial;[apply AbsIR_nonneg| apply ThetaErrLe1180].
 Qed.
 
+Lemma XChangeLBEv2To3 :
+  let t3 : QTime := MotorEventsNthTime 3 (decAuto (3<4)%nat I) in
+  let t2 : QTime := MotorEventsNthTime 2 (decAuto (2<4)%nat I) in
+  ∃ qtrans : QTime,  (t2 <= qtrans <= t2 + reacTime)%Q
+  ∧ (Cos (θErrTrnsl + θErrTurn) 
+        * (speed - transErrTrans)%Q 
+        * (t3 - qtrans)%Q)
+      ≤  ({X rotOrigininPos} t3 [-] {X rotOrigininPos} t2).
+Proof.
+  intros ? ?.
+  pose proof XDerivLBEv2To3 as H.
+  cbv zeta in H.
+  destruct H as [qtrans H]. exists qtrans.
+  fold t2 t3 in H. repnd.
+  split;[split;assumption|].
+  match goal with
+  [|- ?l ≤ _] => assert (l [=] l [+] [0] [*] (Q2R(qtrans -t2)%Q))
+        as Heq by ring
+  end.
+  rewrite <- inj_Q_Zero in Heq.
+  rewrite Heq. clear Heq.
+  assert ({X rotOrigininPos} t3[-]{X rotOrigininPos} t2
+          [=]
+          ({X rotOrigininPos} t3[-]{X rotOrigininPos} qtrans)
+          [+]({X rotOrigininPos} qtrans [-]{X rotOrigininPos} t2))
+     as Heq by (unfold cg_minus; ring).
+  rewrite Heq. clear Heq.
+  assert ((t2 + reacTime < t3)%Q) 
+    as Hassumption by (apply MotorEventsNthTimeReac; omega).
+  apply plus_resp_leEq_both;
+  eapply TDerivativeLBQ; eauto 2 with ICR; try lra.
+Qed.
 
+(*
+Lemma XChangeUBEv2To3_2 :
+  let t3 : QTime := MotorEventsNthTime 3 (decAuto (3<4)%nat I) in
+  let t2 : QTime := MotorEventsNthTime 2 (decAuto (2<4)%nat I) in
+   ({X rotOrigininPos} t3 [-] {X rotOrigininPos} t2) 
+      ≤  (Ev23TimeGapUB * (speed + transErrTrans)%Q).
+Proof.
+  intros.
+  pose proof (XChangeUBEv2To3) as Hyd.
+  cbv zeta in Hyd.
+  eapply leEq_transitive;[apply Hyd|].
+  fold t2 t3. clear Hyd.
+  unfold Q2R. rewrite inj_Q_mult.
+  apply mult_resp_leEq_rht;[apply MotorEv23Gap2_3; fail|].
+  eauto 2 with CoRN ROSCOQ.
+Qed.
+*)
 
 (*
 Lemma ThetaConstFunSin :  IContREqInIntvl 
