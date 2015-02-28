@@ -2420,7 +2420,6 @@ Proof.
   apply AbsIR_nonneg.
 Qed.
 
-(** prepping for [TDerivativeAbsQ] *)
 Lemma XYDerivEv0To1 : ∀ (t:QTime), 
   mt0 ≤ t ≤ mt1 
   → AbsIR ({transVel icreate} t) ≤ QT2Q transErrRot.
@@ -2515,16 +2514,12 @@ Proof.
   - exact XYDerivEv0To1.
 Qed.
 
-
-(*
-Lemma XYDerivEv1To2Aux: 
+Lemma SpeedEv1To2: 
   ∃ qtrans : QTime, (mt1 ≤ qtrans ≤ mt1 + reacTime) ∧
-  (∀ t:QTime, mt1 ≤ t ≤ qtrans 
-        → (AbsIR ({XDerivRot} t) ≤ QT2Q transErrRot)
-           ∧ (AbsIR ({YDerivRot} t) ≤ QT2Q transErrRot))
+  (∀ t : QTime,
+       mt1 ≤ t ≤ qtrans → AbsIR ({transVel icreate} t) ≤ QT2Q transErrRot)
   ∧ (∀ t:QTime, qtrans ≤ t ≤ mt2 
-        → (AbsIR ({XDerivRot} t) [=] [0] 
-            ∧ AbsIR ({XDerivRot} t) [=] [0])).
+        → AbsIR ({transVel icreate} t) ≤ 0).
 Proof.  
   pose proof correctVel1to2 as Hc.
   fold mt1 mt2 in Hc.
@@ -2541,62 +2536,89 @@ Proof.
   pose proof (λ t p, (betweenRAbs _ _ _ _ (qtimePosIR 0)
        (Hcrr t p))) as Hcr.
   clear Hcrr.
-  split; auto.
-- intros ? Hb.
-  apply Hcr in Hb.
+  split;[clear Hcrl | clear Hcr]; intros ? Hb.
+- apply Hcr in Hb.
   unfold QT2R in Hb.
   autorewrite with CoRN in Hb.
-
-  fold (transErrTrans) in Hc.
-  destruct Hc as [qtrans Hc].
-  exists qtrans.
-  repnd.
-  split;[split; assumption|].
-  split;[clear Hcrl | clear Hcrr]; intros ? Hb.
-- apply Hcrr in Hb.
-  unfold between in Hb.
-  apply proj1 in Hb.
-  unfold t2 in Hb.
-  rewrite transVelAtEv2 in Hb.
-  rewrite leEq_imp_Min_is_lft in Hb;[assumption|].
-  autorewrite with QSimpl. apply inj_Q_leEq.
-  simpl. assumption.
+  eapply leEq_transitive;[apply Hb|].
+  apply XYDerivEv0To1.
+  unfold le, Le_instance_QTime.
+  split; [apply EautoTimeICR0|reflexivity].
 - apply Hcrl in Hb.
-  apply AbsIR_imp_AbsSmall in Hb.
-  unfold AbsSmall in Hb.
-  apply proj1 in Hb.
-  apply shift_plus_leEq in Hb.
-  eapply leEq_transitive;[|apply Hb].
-  autorewrite with QSimpl.
-  apply inj_Q_leEq.
-  simpl.
-  lra.
+  autorewrite with CoRN in Hb.
+  assumption.
 Qed.
 
-Lemma PosRotAxisAtEV2
-   AbsIR (X (rotOrgPosAtTime mt1)) ≤ (QT2R transErrRot * Ev01TimeGapUB)
-   ∧ AbsIR (Y (rotOrgPosAtTime mt1)) ≤ (QT2R transErrRot * Ev01TimeGapUB).
-Proof.
-  destruct PosRotAxisAtEV1 as [Hl Hr].
-  split;(eapply leEq_transitive;[| apply TimeGap01Aux]);
-    assumption.
-Qed.
-*)
+Local Transparent Q2R.
 
-Lemma TransVelPosAtEV2 :
-  let t1 : QTime := MotorEventsNthTime 1 (decAuto (1<4)%nat I) in
-  let t2 : QTime := MotorEventsNthTime 2 (decAuto (2<4)%nat I) in
-  ∀ (t : QTime),  t1 ≤ t ≤ t2
-      → ({transVel icreate} t = 0 ∧ (posAtTime t) = (posAtTime 0)).
+Lemma multZeroIRMC :
+  ∀ (r : IR),
+    0*r =0.
 Proof.
-  intros ? ? ? Hle.
-  unfold le, Le_instance_QTime in Hle.
-  pose proof correctVel1to2 as Hc.
-  simpl in Hc. fold t1 t2 in Hc.
-  unfold correctVelDuring in Hc.
-  apply proj1 in Hc. simpl rad in Hc.
-  unfold zero, stdlib_rationals.Q_0 in Hc.
-Abort.
+  intros.
+  autounfold with IRMC.
+  autorewrite with CoRN.
+  reflexivity.
+Qed.
+
+Global Instance hjfkhskajhfksh  `{Equiv A} : Proper 
+  (equiv ==> equiv ==> equiv) (@mkCart2D A).
+Proof.
+  intros ? ? Heq ? ? Hq.
+  split; simpl; trivial.
+Qed.
+
+Hint Rewrite multZeroIRMC : CoRN.
+
+Lemma XYAbsLeAdd :
+  ∀ a b c d,
+    XYAbs a ≤ c
+    -> XYAbs b ≤ d
+    -> XYAbs (a+b) ≤ (c+d).
+Proof.
+  intros ? ? ? ? H1 H2.
+  destruct H1 as [H1x H1y].
+  destruct H2 as [H2x H2y].
+  simpl in H1x, H1y, H2x, H2y.
+  split; simpl;
+  apply AbsIR_plus; assumption.
+Qed.
+
+Lemma PosRotAxisAtEV1to2 :
+  XYAbs (rotOrgPosAtTime mt2 - rotOrgPosAtTime mt1) 
+      ≤ sameXY  (Q2R (transErrRot * reacTime)).
+Proof.
+  pose proof SpeedEv1To2 as Hc.
+  destruct Hc as [qtrans Hc].
+  repnd.
+  unfold le, Le_instance_QTime, plus, Plus_instance_QTime in Hclr.
+  simpl in Hclr.
+  apply LeRotIntegSpeed2 with (tub:= QT2R reacTime) in Hcrl;
+  [| assumption| apply inj_Q_leEq; simpl; lra ].
+  
+  unfold le, Le_instance_QTime, plus in Hcll.
+  assert ((mt1 + reacTime < mt2)%Q) 
+    as Hassumption by (apply MotorEventsNthTimeReac; omega).
+  apply LeRotIntegSpeed2 with (tub:= Q2R ((mt2 - qtrans))) in Hcrr;
+  [| unfold le, Le_instance_QTime; lra | apply inj_Q_leEq; simpl; reflexivity].
+  clear Hassumption.
+  rewrite multZeroIRMC in Hcrr.
+  pose proof (XYAbsLeAdd _ _ _ _ Hcrr Hcrl) as Hadd.
+  clear Hcrr Hcrl.
+  assert ((rotOrgPosAtTime mt2 - rotOrgPosAtTime qtrans +
+          (rotOrgPosAtTime qtrans - rotOrgPosAtTime mt1))
+      = (rotOrgPosAtTime mt2 - rotOrgPosAtTime mt1)) as Heq by ring.
+  rewrite Heq in Hadd. clear Heq.
+  rewrite Zero_Instace_Cart2DMess in Hadd.
+  fold Cart2DIRZeroMess in Hadd.
+  fold zero in Hadd.
+  unfold Cart2DIRZeroMess in Hadd.
+  ring_simplify in Hadd.
+  unfold Q2R. unfold sameXY.
+  rewrite  inj_Q_mult.
+  exact Hadd.
+Qed.
+  
 
 (* consider changing types of [θErrTrnsl]
     and [θErrTurn] to [Qpos]*)
