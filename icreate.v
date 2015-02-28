@@ -2485,7 +2485,7 @@ Instance  :
   split; simpl; rewrite Heq; auto.
 Qed.
 
-Instance : Proper 
+Instance ProperLeCartIR : Proper 
  (equiv ==> equiv ==> iff)
 (@le (Cart2D IR) _).
 Proof.
@@ -2584,6 +2584,13 @@ Proof.
   apply AbsIR_plus; assumption.
 Qed.
 
+Instance ProperSameXY `{Equiv A}:
+  Proper (equiv ==> equiv) (@sameXY A).
+  intros a b Heq.
+  split; auto.
+Qed.
+
+
 Lemma PosRotAxisAtEV1to2 :
   XYAbs (rotOrgPosAtTime mt2 - rotOrgPosAtTime mt1) 
       ≤ sameXY  (Q2R (transErrRot * reacTime)).
@@ -2618,7 +2625,36 @@ Proof.
   rewrite  inj_Q_mult.
   exact Hadd.
 Qed.
-  
+
+(** move to Vector.v *)
+
+Lemma sameXYAdd  : ∀ (a b: IR),
+  sameXY a + sameXY b = sameXY (a + b).
+Proof.
+  intros.
+  split; simpl; reflexivity.
+Qed.
+
+Lemma PosRotAxisAtEV2 :
+  XYAbs (rotOrgPosAtTime mt2) 
+      ≤ sameXY  ((QT2R transErrRot * (QT2R reacTime + Ev01TimeGapUB))).
+Proof.
+  pose proof (XYAbsLeAdd _ _ _ _ PosRotAxisAtEV1to2 PosRotAxisAtEV1) 
+    as Hadd.
+  ring_simplify in Hadd.
+  assert ((rotOrgPosAtTime mt2 - rotOrgPosAtTime mt1 + rotOrgPosAtTime mt1)
+        = rotOrgPosAtTime mt2) as Heq by ring.
+  rewrite Heq in Hadd.
+  clear Heq.
+  rewrite sameXYAdd in Hadd.
+  eapply ProperLeCartIR;[| | apply Hadd];
+    [reflexivity|].
+  apply ProperSameXY.
+  unfold QT2R, Q2R.
+  autounfold with IRMC.
+  rewrite inj_Q_mult.
+  ring.
+Qed.
 
 (* consider changing types of [θErrTrnsl]
     and [θErrTurn] to [Qpos]*)
