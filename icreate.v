@@ -2519,7 +2519,7 @@ Proof.
     assumption.
 Qed.
 
-(** prepping for [TDerivativeAbsQ] *)
+(*
 Lemma XYDerivEv1To2Aux: 
   ∃ qtrans : QTime, (mt1 ≤ qtrans ≤ mt1 + reacTime) ∧
   (∀ t:QTime, mt1 ≤ t ≤ qtrans 
@@ -2576,7 +2576,6 @@ Proof.
   lra.
 Qed.
 
-
 Lemma PosRotAxisAtEV2
    AbsIR (X (rotOrgPosAtTime mt1)) ≤ (QT2R transErrRot * Ev01TimeGapUB)
    ∧ AbsIR (Y (rotOrgPosAtTime mt1)) ≤ (QT2R transErrRot * Ev01TimeGapUB).
@@ -2585,6 +2584,7 @@ Proof.
   split;(eapply leEq_transitive;[| apply TimeGap01Aux]);
     assumption.
 Qed.
+*)
 
 Lemma TransVelPosAtEV2 :
   let t1 : QTime := MotorEventsNthTime 1 (decAuto (1<4)%nat I) in
