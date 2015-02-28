@@ -465,3 +465,7 @@ Local Opaque Sine Cos Cosine.
   fold TContR.
   ring.
 Qed.
+
+
+Definition Cart2DIRRing := 
+  (rings.stdlib_ring_theory (Cart2D IR)).

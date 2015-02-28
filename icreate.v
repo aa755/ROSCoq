@@ -2218,6 +2218,8 @@ Definition distTraveled : IR := Cintegral Ev2To3Interval (transVel icreate).
 
 Require Export CartIR.
 
+Add Ring cart2dir : Cart2DIRRing.
+
 Variable nztp : ([0] [<] normIR (' targetPos)).
 
 Definition rotOrigininPos : Cart2D TContR:=
@@ -2320,36 +2322,6 @@ Definition rotDerivAtTime (t : Time) : Cart2D IR:=
   {|X:= {XDerivRot} t; Y:= {YDerivRot} t|}.
 
   
-(** prepping for [TDerivativeAbsQ] *)
-Lemma XYDerivEv0To1 : ∀ (t:QTime), 
-  mt0 ≤ t ≤ mt1 
-  → (AbsIR ({XDerivRot} t) ≤ QT2Q transErrRot
-      ∧ AbsIR ({YDerivRot} t) ≤ QT2Q transErrRot).
-Proof.
-  intros ? Hb.
-  rewrite YDerivAtTime, XDerivAtTime.
-  rewrite AbsIR_resp_mult.
-  rewrite AbsIR_resp_mult.
-  match goal with
-  [|- _ ∧ (_ ≤ ?r) ] => rewrite <- (mult_one _ r)
-  end.
-  pose proof correctVel0to1 as H01.
-  simpl in H01.
-  fold mt0 mt1 in H01.
-  apply proj1 in H01.
-  Local Opaque Q2R.
-  simpl in H01.
-  fold newVal transErrRot in H01.
-  eapply changesToDerivSameDeriv in H01; eauto with ICR;
-    [|apply MotorEventsNthTimeIncSn | apply TransVelPosAtEV0; unfold le, Le_instance_QTime; reflexivity].
-  autorewrite with CoRN in H01.
-  fold transErrRot in H01.
-  unfold YDerivRot.
-  autounfold with IRMC TContRMC.
-  split; apply mult_resp_leEq_both; trivial;
-      try apply AbsIR_nonneg;
-  [apply AbsIR_Cos_leEq_One|apply AbsIR_Sin_leEq_One].
-Qed.
 Hint Rewrite cg_inv_zero : CoRN.
 
 Lemma RotXYDerivLeSpeed : ∀ (t : Time) (ub : IR),
@@ -2448,18 +2420,27 @@ Proof.
   apply AbsIR_nonneg.
 Qed.
 
+(** prepping for [TDerivativeAbsQ] *)
+Lemma XYDerivEv0To1 : ∀ (t:QTime), 
+  mt0 ≤ t ≤ mt1 
+  → AbsIR ({transVel icreate} t) ≤ QT2Q transErrRot.
+Proof.
+  intros ? Hb.
+  pose proof correctVel0to1 as H01.
+  simpl in H01.
+  fold mt0 mt1 in H01.
+  apply proj1 in H01.
+  Local Opaque Q2R.
+  simpl in H01.
+  fold newVal transErrRot in H01.
+  eapply changesToDerivSameDeriv in H01; eauto with ICR;
+    [|apply MotorEventsNthTimeIncSn | apply TransVelPosAtEV0; unfold le, Le_instance_QTime; reflexivity].
+  autorewrite with CoRN in H01.
+  assumption.
+Qed.
+
 Local Transparent Q2R.
 
-(** prepping for [TDerivativeAbsQ] *)
-Lemma XYDerivEv0To1Aux : ∀ (t:QTime), 
-  mt0 ≤ t ≤ mt1 
-  → (AbsIR ({XDerivRot} t [-] [0]) ≤ QT2Q transErrRot
-      ∧ AbsIR ({YDerivRot} t [-] [0]) ≤ QT2Q transErrRot).
-Proof.
-  intros.
-  autorewrite with CoRN.
-  apply XYDerivEv0To1; trivial.
-Qed.
 
 Lemma AutoRWX0 :
   {X rotOrigininPos} mt0 [=] 0.
@@ -2477,47 +2458,63 @@ Qed.
 
 Hint Rewrite AutoRWX0 AutoRWY0: ICR.
 
+Definition sameXY {A} (a:A) : Cart2D A :=
+  {|X :=a ; Y:= a|}.
+
+
+Lemma Zero_Instace_IR_mess :
+  Zero_Instace_IR_better =  Zero_instance_IR.
+  unfold Zero_Instace_IR_better.
+  rewrite inj_Q_Zero.
+  reflexivity.
+Qed.
+
+Lemma Zero_Instace_Cart2DMess :
+ @Zero_instance_Cart2D _ Zero_Instace_IR_better
+ = @Zero_instance_Cart2D _ Zero_instance_IR.
+Proof.
+  unfold Zero_instance_Cart2D.
+  unfold equiv, EquivCart. simpl.
+  unfold zero.
+  rewrite Zero_Instace_IR_mess.
+  split; reflexivity.
+Qed.
+
+Instance  : 
+  Proper (equiv ==> equiv ) XYAbs.
+  intros a b Heq.
+  split; simpl; rewrite Heq; auto.
+Qed.
+
+Instance : Proper 
+ (equiv ==> equiv ==> iff)
+(@le (Cart2D IR) _).
+Proof.
+  intros ? ? ? ? ? ?.
+  unfold le, Cart2D_instance_le.
+  rewrite H, H0.
+  tauto.
+Qed.
+
+Instance Cart2DIRZeroMess : (Zero (Cart2D IR)) 
+:= @Zero_instance_Cart2D _ Zero_instance_IR.
 
 Lemma PosRotAxisAtEV1 :
-   AbsIR (X (rotOrgPosAtTime mt1)) ≤ (transErrRot * (mt1-mt0))%Q
-   ∧ AbsIR (Y (rotOrgPosAtTime mt1)) ≤ (transErrRot * (mt1-mt0))%Q%Q.
+  XYAbs (rotOrgPosAtTime mt1) 
+      ≤ sameXY  (QT2R transErrRot * Ev01TimeGapUB).
 Proof.
-  pose proof (λ t p, proj1 (XYDerivEv0To1Aux t p)) as Hx.
-  pose proof (λ t p, proj2 (XYDerivEv0To1Aux t p)) as Hy.
-  eapply TDerivativeAbsQ in Hx;
-    [|apply MotorEventsNthTimeIncSn |
-        apply (fst DerivRotOriginTowardsTargetPos) ].
-  autorewrite with CoRN in Hx.
-  rewrite AutoRWX0 in Hx.
-  eapply TDerivativeAbsQ in Hy;
-    [|apply MotorEventsNthTimeIncSn |
-        apply (snd DerivRotOriginTowardsTargetPos) ].
-  autorewrite with CoRN in Hy.
-  rewrite AutoRWY0 in Hy.
-  autorewrite with CoRN in Hy.
-  autorewrite with CoRN in Hx.
-  unfold Q2R. rewrite inj_Q_mult.
-  split; assumption.
+  assert (rotOrgPosAtTime mt1 = rotOrgPosAtTime mt1 -0).
+  idtac. unfold Cart2DIRZeroMess.  ring.
+  rewrite H.
+  rewrite <-  Zero_Instace_Cart2DMess.
+  rewrite <- (PosRotAxisAtEV0 mt0);
+    [| unfold le, Le_instance_QTime; reflexivity].
+  apply LeRotIntegSpeed2.
+  - exact EautoTimeICR0.
+  - exact MotorEv01Gap2_3.
+  - exact XYDerivEv0To1.
 Qed.
 
-Lemma TimeGap01Aux :
-  Q2R (transErrRot * (mt1-mt0))%Q  ≤ (QT2R transErrRot * Ev01TimeGapUB).
-Proof.
-  unfold Q2R.
-  rewrite inj_Q_mult.
-  apply mult_resp_leEq_lft.
-- apply MotorEv01Gap2_3.
-- apply qtimePosIR.
-Qed.
-
-Lemma PosRotAxisAtEV1_2 :
-   AbsIR (X (rotOrgPosAtTime mt1)) ≤ (QT2R transErrRot * Ev01TimeGapUB)
-   ∧ AbsIR (Y (rotOrgPosAtTime mt1)) ≤ (QT2R transErrRot * Ev01TimeGapUB).
-Proof.
-  destruct PosRotAxisAtEV1 as [Hl Hr].
-  split;(eapply leEq_transitive;[| apply TimeGap01Aux]);
-    assumption.
-Qed.
 
 (*
 Lemma XYDerivEv1To2Aux: 
