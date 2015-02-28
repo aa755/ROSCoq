@@ -1009,6 +1009,56 @@ Definition decAuto :  ∀ (P: Prop) `{Decision P},
   destruct (decide P); tauto.
 Defined.
 
+Definition  mt0 : QTime 
+  := MotorEventsNthTime 0 (decAuto (0<4)%nat I).
+
+Definition  mt1 : QTime 
+  := MotorEventsNthTime 1 (decAuto (1<4)%nat I).
+
+Definition  mt2 : QTime 
+  := MotorEventsNthTime 2 (decAuto (2<4)%nat I).
+
+Definition  mt3 : QTime 
+  := MotorEventsNthTime 3 (decAuto (3<4)%nat I).
+
+Lemma MotorEventsNthTimeInc:
+  ∀ (n1 n2 : nat) p1 p2,
+  (n1 < n2)%nat
+   -> MotorEventsNthTime n1 p1 
+      ≤ MotorEventsNthTime n2 p2.
+Proof.
+  unfold MotorEventsNthTime, MotorEventsNth.
+  intros.
+  destruct (MotorEvents2 n1 p1) as [ev1  H1e].
+  destruct (MotorEvents2 n2 p2)  as [ev2  H2e].
+  simpl. repnd.
+  apply Qlt_le_weak.
+  apply timeIndexConsistent.
+  congruence.
+Qed.
+
+Lemma MotorEventsNthTimeIncSn:
+  ∀ (n : nat) p1 p2,
+   (MotorEventsNthTime n p1 
+      <= MotorEventsNthTime (S n) p2)%Q.
+Proof.
+  intros.
+  apply MotorEventsNthTimeInc.
+  auto.
+Qed.
+
+Lemma EautoTimeICR0 :  (mt0 <= mt1)%Q.
+  apply MotorEventsNthTimeIncSn.
+Qed.
+
+Lemma EautoTimeICR1 :  (mt1 <= mt2)%Q.
+  apply MotorEventsNthTimeIncSn.
+Qed.
+
+Lemma EautoTimeICR2 :  (mt2 <= mt3)%Q.
+  apply MotorEventsNthTimeIncSn.
+Qed.
+
 Close Scope nat_scope.
 
 (** Also, this is the way 0 is defined for CR *)
@@ -1637,21 +1687,6 @@ Proof.
 Qed.
 
 
-Lemma MotorEventsNthTimeInc:
-  ∀ (n1 n2 : nat) p1 p2,
-  (n1 < n2)%nat
-   -> MotorEventsNthTime n1 p1 
-      ≤ MotorEventsNthTime n2 p2.
-Proof.
-  unfold MotorEventsNthTime, MotorEventsNth.
-  intros.
-  destruct (MotorEvents2 n1 p1) as [ev1  H1e].
-  destruct (MotorEvents2 n2 p2)  as [ev2  H2e].
-  simpl. repnd.
-  apply Qlt_le_weak.
-  apply timeIndexConsistent.
-  congruence.
-Qed.
 
 Local Opaque Q2R.
 
@@ -1897,6 +1932,22 @@ Definition θErrTrnsl : IR :=
 
 
 
+Lemma QposDivLe0 : ∀ (qp : Qpos),
+0[<=](/ qp)%Q.
+Proof.
+  intros.
+  destruct qp.
+  simpl. apply Qinv_le_0_compat.
+  lra.
+Qed.
+
+Lemma QposDivLe0IR : ∀ (qp : Qpos),
+[0][<=]Q2R (/ qp)%Q.
+Proof.
+  intros.
+  apply injQ_nonneg.
+  apply QposDivLe0.
+Qed.
 
 
 Lemma MotorEv23Gap2_2 :
@@ -1916,7 +1967,7 @@ Proof.
   pose proof (approximateAbsSmallIR (|targetPos |) distPrec) as Hball.
   apply AbsSmall_minus in Hball.
   apply mult_resp_AbsSmallR with (y:= Q2R (Qinv speed)) in Hball;
-    [| admit (*easy*)].
+    [| apply QposDivLe0IR].
   rewrite  IRDistMinus in Hball.
   autorewrite with QSimpl in Hball.
   simpl in Hball.
@@ -1952,6 +2003,85 @@ Proof.
   apply proj2 in Hp.
   apply shift_leEq_plus in Hp.
   unfold Ev23TimeGapUB.
+  eapply leEq_transitive;[apply Hp|].
+  clear Hp.
+  unfold E2EDelVar.
+  unfoldMC.
+  autounfold with IRMC.
+  unfold Mult_instance_IR.
+  rewrite ring_distl_unfolded.
+  simpl. idtac. destruct sendTimeAcc, delivDelayVar.
+  simpl. apply eqImpliesLeEq.
+  simpl.  
+  autorewrite with QSimpl. simpl.
+  Local Transparent Q2R.
+  unfold Q2R. 
+  rewrite inj_Q_plus.
+  ring.
+Qed.
+
+Lemma AbsSmallAbsIR : ∀ a b : IR,
+  AbsSmall a b → AbsSmall (AbsIR a) (AbsIR b).
+Proof.
+  intros ? ? Hab.
+  apply AbsIR_imp_AbsSmall.
+  rewrite AbsIR_eq_x;[| apply AbsIR_nonneg].
+Admitted.
+
+Lemma MotorEv01Gap_2 :
+   AbsIR ((Q2R (QT2Q mt1 - QT2Q mt0)) 
+      - ((CRasIR (CRabs (polarTheta targetPos))) * (Qinv rotspeed)))
+  [<=] Q2R ((anglePrec* (Qinv rotspeed)) + 2 * (sendTimeAcc + delivDelayVar)).
+Proof.
+  pose proof  MotorEv01Gap  as Hg.
+  fold mt0 mt1 in Hg.
+  simpl in Hg.
+  apply (inj_Q_leEq IR) in Hg.
+  rewrite <- AbsIR_Qabs in Hg.
+  rewrite cgminus_Qminus, inj_Q_minus in Hg.
+  pose proof (approximateAbsSmallIR 
+      (CRabs (polarTheta targetPos)) anglePrec) as Hball.
+  rewrite approximate_CRabs in Hball.
+  apply AbsSmall_minus in Hball.
+  apply mult_resp_AbsSmallR with (y:= Q2R (Qinv rotspeed)) in Hball;
+    [| apply QposDivLe0IR].
+  rewrite  IRDistMinus in Hball.
+  autorewrite with QSimpl in Hball.
+Local Opaque CRabs.
+  simpl in Hball.
+  apply AbsIR_imp_AbsSmall in Hg.
+  pose proof (AbsSmall_plus _ _ _ _ _  Hg Hball) as Hadd.
+  clear Hball Hg.
+  unfold Q2R, cg_minus in Hadd.
+  simpl in Hadd. revert Hadd.
+  unfoldMC. intro Hadd.
+  unfold CanonicalNotations.norm, NormSpace_instance_Q in Hadd.
+  ring_simplify in Hadd.
+  autounfold with IRMC.
+  apply AbsSmall_imp_AbsIR.
+  autorewrite with QSimpl in Hadd.
+  unfold Mult_instance_IR.
+  eapply AbsSmall_morph_wd;
+    [| | apply Hadd].
+- apply inj_Q_wd. simpl. ring.
+- unfold Q2R, Qminus, cg_minus. reflexivity.
+Qed.
+
+Definition Ev01TimeGapUB : IR :=
+  ((CRasIR (CRabs (polarTheta targetPos)) + anglePrec) * (Qinv rotspeed))
+  + E2EDelVar.
+
+Lemma MotorEv01Gap2_3 :
+   Q2R (QT2Q mt1 - QT2Q mt0) ≤ Ev01TimeGapUB.
+Proof.
+  pose proof MotorEv01Gap_2 as Hp.
+  Local Opaque Q2R.
+  simpl in Hp.
+  apply AbsIR_imp_AbsSmall in Hp.
+  unfold AbsSmall in Hp.
+  apply proj2 in Hp.
+  apply shift_leEq_plus in Hp.
+  unfold Ev01TimeGapUB.
   eapply leEq_transitive;[apply Hp|].
   clear Hp.
   unfold E2EDelVar.
@@ -2144,39 +2274,6 @@ Qed.
 Definition rotOrgPosAtTime : Time → (Cart2D IR) :=
   CartFunEta rotOrigininPos.
 
-Definition  mt0 : QTime 
-  := MotorEventsNthTime 0 (decAuto (0<4)%nat I).
-
-Definition  mt1 : QTime 
-  := MotorEventsNthTime 1 (decAuto (1<4)%nat I).
-
-Definition  mt2 : QTime 
-  := MotorEventsNthTime 2 (decAuto (2<4)%nat I).
-
-Definition  mt3 : QTime 
-  := MotorEventsNthTime 3 (decAuto (3<4)%nat I).
-
-Lemma MotorEventsNthTimeIncSn:
-  ∀ (n : nat) p1 p2,
-   (MotorEventsNthTime n p1 
-      <= MotorEventsNthTime (S n) p2)%Q.
-Proof.
-  intros.
-  apply MotorEventsNthTimeInc.
-  auto.
-Qed.
-
-Lemma EautoTimeICR0 :  (mt0 <= mt1)%Q.
-  apply MotorEventsNthTimeIncSn.
-Qed.
-
-Lemma EautoTimeICR1 :  (mt1 <= mt2)%Q.
-  apply MotorEventsNthTimeIncSn.
-Qed.
-
-Lemma EautoTimeICR2 :  (mt2 <= mt3)%Q.
-  apply MotorEventsNthTimeIncSn.
-Qed.
 
 
 Lemma PosRotAxisAtEV0:
@@ -2296,9 +2393,24 @@ Proof.
   split; assumption.
 Qed.
 
-Definition Ev01TimeGapUB : IR :=
-  ((CRasIR ((|targetPos|)) + distPrec) * (Qinv speed))
-  + E2EDelVar.
+Lemma TimeGap01Aux :
+  Q2R (transErrRot * (mt1-mt0))%Q  ≤ (QT2R transErrRot * Ev01TimeGapUB).
+Proof.
+  unfold Q2R.
+  rewrite inj_Q_mult.
+  apply mult_resp_leEq_lft.
+- apply MotorEv01Gap2_3.
+- apply qtimePosIR.
+Qed.
+
+Lemma PosRotAxisAtEV1_2 :
+   AbsIR (X (rotOrgPosAtTime mt1)) ≤ (QT2R transErrRot * Ev01TimeGapUB)
+   ∧ AbsIR (Y (rotOrgPosAtTime mt1)) ≤ (QT2R transErrRot * Ev01TimeGapUB).
+Proof.
+  destruct PosRotAxisAtEV1 as [Hl Hr].
+  split;(eapply leEq_transitive;[| apply TimeGap01Aux]);
+    assumption.
+Qed.
 
 Lemma TransVelPosAtEV2 :
   let t1 : QTime := MotorEventsNthTime 1 (decAuto (1<4)%nat I) in
