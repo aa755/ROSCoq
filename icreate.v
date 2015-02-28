@@ -1290,6 +1290,13 @@ Proof.
   intros ? ? ?.
   apply MotorEvGap.
 Qed.
+
+Definition qthetaAbs : Q := 
+  (|approximate (polarTheta targetPos) anglePrec |).
+
+Definition E2EDelVar : Q := 
+  (2 * (sendTimeAcc + delivDelayVar))%Q.
+
 Lemma QabsQpos : ∀ (qp: Qpos),
    ((Qabs.Qabs qp) == qp)%Q.
   intros.
@@ -1301,7 +1308,8 @@ Hint Rewrite QabsQpos : CoRN.
 
 Lemma  QabsNewOmega : 
       (Qabs.Qabs
-          (QSign (approximate (polarTheta targetPos) anglePrec) 1 * rotspeed)%mc ==
+          (QSign (approximate (polarTheta targetPos) anglePrec) 1 * rotspeed)%mc 
+        ==
         rotspeed)%Q.
 Proof.
   unfold mult, stdlib_rationals.Q_mult.
@@ -1518,11 +1526,6 @@ Proof.
 Qed.
 
 
-Definition qthetaAbs : Q := 
-  (|approximate (polarTheta targetPos) anglePrec |).
-
-Definition E2EDelVar : Q := 
-  (2 * (sendTimeAcc + delivDelayVar))%Q.
 
   
 (** rearrange the above to show relation to rotspeed 
@@ -1554,23 +1557,6 @@ Proof.
   simpl.
   lra.
 Qed.
-
-Lemma TransVelPosAtEV1 :
-  let t0 : QTime := MotorEventsNthTime 0 (decAuto (0<4)%nat I) in
-  let t1 : QTime := MotorEventsNthTime 1 (decAuto (1<4)%nat I) in
-  ∀ (t : QTime),  t0 ≤ t ≤ t1
-      → ({transVel icreate} t = 0 ∧ (posAtTime t) = (posAtTime 0)).
-Proof.
-  intros ? ? ? Hle.
-  unfold le, Le_instance_QTime in Hle.
-  pose proof correctVel0to1 as Hc.
-  simpl in Hc. fold t0 in Hc.
-  unfold correctVelDuring in Hc.
-  apply proj1 in Hc. simpl rad in Hc.
-  unfold zero, stdlib_rationals.Q_0 in Hc.
-  unfold initialVel in Hc.
-Abort.
-
 
 Lemma MotorEventsNthTimeReacLe:
   ∀ (n1 n2 : nat) p1 p2,
@@ -1666,24 +1652,6 @@ Proof.
   apply timeIndexConsistent.
   congruence.
 Qed.
-
-
-Lemma TransVelPosAtEV2 :
-  let t1 : QTime := MotorEventsNthTime 1 (decAuto (1<4)%nat I) in
-  let t2 : QTime := MotorEventsNthTime 2 (decAuto (2<4)%nat I) in
-  ∀ (t : QTime),  t1 ≤ t ≤ t2
-      → ({transVel icreate} t = 0 ∧ (posAtTime t) = (posAtTime 0)).
-Proof.
-  intros ? ? ? Hle.
-  unfold le, Le_instance_QTime in Hle.
-  pose proof correctVel1to2 as Hc.
-  simpl in Hc. fold t1 t2 in Hc.
-  unfold correctVelDuring in Hc.
-  apply proj1 in Hc. simpl rad in Hc.
-  unfold zero, stdlib_rationals.Q_0 in Hc.
-Abort.
-
-
 
 Local Opaque Q2R.
 
@@ -2142,7 +2110,210 @@ Proof.
   apply DerivativerotateOriginTowards2; eauto with ICR.
 Qed.
 
+Hint Resolve (fst DerivRotOriginTowardsTargetPos) 
+             (snd DerivRotOriginTowardsTargetPos) : ICR.
 
+Hint Unfold Mult_instance_TContR Plus_instance_TContR
+  Negate_instance_TContR : TContR.
+
+Lemma YDerivAtTime : ∀ (t: Time),
+  {YDerivRot} t 
+  = {transVel icreate} t[*]Sin ({theta icreate} t[-]optimalTurnAngle).
+Proof.
+  intros ?.
+  unfold YDerivRot.
+  unfoldMC.
+  autounfold with TContR.
+  autorewrite with IContRApDown.
+  reflexivity.
+Qed.
+
+Lemma XDerivAtTime : ∀ (t: Time),
+  {XDerivRot} t 
+  = {transVel icreate} t[*]Cos ({theta icreate} t[-]optimalTurnAngle).
+Proof.
+  intros ?.
+  unfold XDerivRot.
+  unfoldMC.
+  autounfold with TContR.
+  autorewrite with IContRApDown.
+  reflexivity.
+Qed.
+
+
+Definition rotOrgPosAtTime : Time → (Cart2D IR) :=
+  CartFunEta rotOrigininPos.
+
+Definition  mt0 : QTime 
+  := MotorEventsNthTime 0 (decAuto (0<4)%nat I).
+
+Definition  mt1 : QTime 
+  := MotorEventsNthTime 1 (decAuto (1<4)%nat I).
+
+Definition  mt2 : QTime 
+  := MotorEventsNthTime 2 (decAuto (2<4)%nat I).
+
+Definition  mt3 : QTime 
+  := MotorEventsNthTime 3 (decAuto (3<4)%nat I).
+
+Lemma MotorEventsNthTimeIncSn:
+  ∀ (n : nat) p1 p2,
+   (MotorEventsNthTime n p1 
+      <= MotorEventsNthTime (S n) p2)%Q.
+Proof.
+  intros.
+  apply MotorEventsNthTimeInc.
+  auto.
+Qed.
+
+Lemma EautoTimeICR0 :  (mt0 <= mt1)%Q.
+  apply MotorEventsNthTimeIncSn.
+Qed.
+
+Lemma EautoTimeICR1 :  (mt1 <= mt2)%Q.
+  apply MotorEventsNthTimeIncSn.
+Qed.
+
+Lemma EautoTimeICR2 :  (mt2 <= mt3)%Q.
+  apply MotorEventsNthTimeIncSn.
+Qed.
+
+
+Lemma PosRotAxisAtEV0:
+  ∀ t : QTime, t ≤ mt0 → rotOrgPosAtTime t = 0.
+Proof.
+  intros ? Hle.
+  apply TransVelPosAtEV0 in Hle.
+  apply proj2 in Hle.
+  unfold posAtTime in Hle.
+  unfold equiv, EquivCart in Hle.
+  simpl in Hle.
+  destruct (initPos icreate) as [Hx Hy].
+  repnd. 
+  setoid_rewrite Hx in Hlel.
+  setoid_rewrite Hy in Hler.
+  unfold rotOrgPosAtTime, rotOrigininPos.
+  rewrite rotateOriginTowardsFAp.
+  unfold rotateOriginTowards.
+  simpl.
+  unfold zero, Zero_instance_Cart2D, equiv, EquivCart.
+  simpl.
+  rewrite Hler, Hlel.
+  unfoldMC.
+  autounfold with IRMC.
+  rewrite inj_Q_Zero.
+  split; ring.
+Qed.
+
+Definition transErrRot
+:= (rad (motorPrec {| rad := 0 ; θ := newVal |})).
+
+
+
+Hint Resolve MotorEventsNthTimeIncSn : ICR.
+
+(** prepping for [TDerivativeAbsQ] *)
+Lemma XYDerivEv0To1 : ∀ (t:QTime), 
+  mt0 ≤ t ≤ mt1 
+  → (AbsIR ({XDerivRot} t) ≤ QT2Q transErrRot
+      ∧ AbsIR ({YDerivRot} t) ≤ QT2Q transErrRot).
+Proof.
+  intros ? Hb.
+  rewrite YDerivAtTime, XDerivAtTime.
+  rewrite AbsIR_resp_mult.
+  rewrite AbsIR_resp_mult.
+  match goal with
+  [|- _ ∧ (_ ≤ ?r) ] => rewrite <- (mult_one _ r)
+  end.
+  pose proof correctVel0to1 as H01.
+  simpl in H01.
+  fold mt0 mt1 in H01.
+  apply proj1 in H01.
+  Local Opaque Q2R.
+  simpl in H01.
+  fold newVal transErrRot in H01.
+  eapply changesToDerivSameDeriv in H01; eauto with ICR;
+    [|apply MotorEventsNthTimeIncSn | apply TransVelPosAtEV0; unfold le, Le_instance_QTime; reflexivity].
+  autorewrite with CoRN in H01.
+  fold transErrRot in H01.
+  unfold YDerivRot.
+  autounfold with IRMC TContRMC.
+  split; apply mult_resp_leEq_both; trivial;
+      try apply AbsIR_nonneg;
+  [apply AbsIR_Cos_leEq_One|apply AbsIR_Sin_leEq_One].
+Qed.
+
+Local Transparent Q2R.
+Hint Rewrite cg_inv_zero : CoRN.
+
+(** prepping for [TDerivativeAbsQ] *)
+Lemma XYDerivEv0To1Aux : ∀ (t:QTime), 
+  mt0 ≤ t ≤ mt1 
+  → (AbsIR ({XDerivRot} t [-] [0]) ≤ QT2Q transErrRot
+      ∧ AbsIR ({YDerivRot} t [-] [0]) ≤ QT2Q transErrRot).
+Proof.
+  intros.
+  autorewrite with CoRN.
+  apply XYDerivEv0To1; trivial.
+Qed.
+
+Lemma AutoRWX0 :
+  {X rotOrigininPos} mt0 [=] 0.
+Proof.
+  apply (λ p , proj1 (PosRotAxisAtEV0 mt0 p)).
+  unfold le, Le_instance_QTime; reflexivity.
+Qed.
+
+Lemma AutoRWY0 :
+  {Y rotOrigininPos} mt0 [=] 0.
+Proof.
+  apply (λ p , proj2 (PosRotAxisAtEV0 mt0 p)).
+  unfold le, Le_instance_QTime; reflexivity.
+Qed.
+
+Hint Rewrite AutoRWX0 AutoRWY0: ICR.
+
+
+Lemma PosRotAxisAtEV1 :
+   AbsIR (X (rotOrgPosAtTime mt1)) ≤ (transErrRot * (mt1-mt0))%Q
+   ∧ AbsIR (Y (rotOrgPosAtTime mt1)) ≤ (transErrRot * (mt1-mt0))%Q%Q.
+Proof.
+  pose proof (λ t p, proj1 (XYDerivEv0To1Aux t p)) as Hx.
+  pose proof (λ t p, proj2 (XYDerivEv0To1Aux t p)) as Hy.
+  eapply TDerivativeAbsQ in Hx;
+    [|apply MotorEventsNthTimeIncSn |
+        apply (fst DerivRotOriginTowardsTargetPos) ].
+  autorewrite with CoRN in Hx.
+  rewrite AutoRWX0 in Hx.
+  eapply TDerivativeAbsQ in Hy;
+    [|apply MotorEventsNthTimeIncSn |
+        apply (snd DerivRotOriginTowardsTargetPos) ].
+  autorewrite with CoRN in Hy.
+  rewrite AutoRWY0 in Hy.
+  autorewrite with CoRN in Hy.
+  autorewrite with CoRN in Hx.
+  unfold Q2R. rewrite inj_Q_mult.
+  split; assumption.
+Qed.
+
+Definition Ev01TimeGapUB : IR :=
+  ((CRasIR ((|targetPos|)) + distPrec) * (Qinv speed))
+  + E2EDelVar.
+
+Lemma TransVelPosAtEV2 :
+  let t1 : QTime := MotorEventsNthTime 1 (decAuto (1<4)%nat I) in
+  let t2 : QTime := MotorEventsNthTime 2 (decAuto (2<4)%nat I) in
+  ∀ (t : QTime),  t1 ≤ t ≤ t2
+      → ({transVel icreate} t = 0 ∧ (posAtTime t) = (posAtTime 0)).
+Proof.
+  intros ? ? ? Hle.
+  unfold le, Le_instance_QTime in Hle.
+  pose proof correctVel1to2 as Hc.
+  simpl in Hc. fold t1 t2 in Hc.
+  unfold correctVelDuring in Hc.
+  apply proj1 in Hc. simpl rad in Hc.
+  unfold zero, stdlib_rationals.Q_0 in Hc.
+Abort.
 
 (* consider changing types of [θErrTrnsl]
     and [θErrTurn] to [Qpos]*)
@@ -2270,8 +2441,6 @@ Proof.
 - apply SpeedUbEv2To3; assumption.
 Qed.
 
-Hint Resolve (fst DerivRotOriginTowardsTargetPos) 
-             (snd DerivRotOriginTowardsTargetPos) : ICR.
 
 (** trivial simplification *)
 Lemma YDerivEv2To3_1 : ∀ (t:QTime), 
@@ -2287,7 +2456,6 @@ Proof.
 Qed.
 
 
-Hint Rewrite cg_inv_zero : CoRN.
 
 Lemma YChangeEv2To3 :
   let t3 : QTime := MotorEventsNthTime 3 (decAuto (3<4)%nat I) in

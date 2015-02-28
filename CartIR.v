@@ -269,6 +269,27 @@ Definition rotateOriginTowardsF
 {|X:= (Xf * X pt + Yf * Y pt);
   Y:= (Xf * Y pt - Yf * X pt)|}.
 
+Definition CartFunEta (ptf : Cart2D TContR) (t:Time) : Cart2D IR :=
+{|X:= {X ptf} t ; Y:= {Y ptf} t|}.
+
+
+Lemma rotateOriginTowardsFAp : ∀
+  (XTowards : Cart2D IR)
+  (nz : 0 [<] normIR XTowards)
+  (pt : Cart2D TContR) (t : Time),
+CartFunEta (rotateOriginTowardsF XTowards nz pt) t
+= rotateOriginTowards XTowards nz (CartFunEta pt t).
+Proof.
+  intros ? ? ? ?.
+  unfold CartFunEta, rotateOriginTowardsF.
+  simpl. autorewrite with IContRApDown.
+  unfold rotateOriginTowards.
+  simpl. unfold equiv, EquivCart. simpl.
+  unfoldMC. autounfold with IRMC.
+  simpl. unfold getF. simpl.
+  split; ring.
+Qed.
+
 Lemma DerivativerotateOriginTowards :
   ∀ (XTowards : Cart2D IR)
   (nz : 0 [<] normIR XTowards)
