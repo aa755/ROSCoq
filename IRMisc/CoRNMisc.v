@@ -843,3 +843,5 @@ Proof.
   rewrite pfwdef with (Hy := Hx) in Hsum; trivial.
   apply eq_reflexive.
 Qed.
+
+Hint Rewrite cg_inv_zero : CoRN.

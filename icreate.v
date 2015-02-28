@@ -2305,10 +2305,21 @@ Qed.
 Definition transErrRot
 := (rad (motorPrec {| rad := 0 ; θ := newVal |})).
 
+(* move to [CartIR.v] *)
+Definition XYAbs (pt : Cart2D IR) : Cart2D IR :=
+{| X:= AbsIR (X pt) ; Y:= AbsIR (Y pt)|}.
+
+(* move to Vector.v *)
+Instance Cart2D_instance_le `{Le A}: Le (Cart2D A) :=
+  λ p1 p2, (X p1 ≤ X p2) ∧ (Y p1 ≤ Y p2).
 
 
 Hint Resolve MotorEventsNthTimeIncSn : ICR.
 
+Definition rotDerivAtTime (t : Time) : Cart2D IR:=
+  {|X:= {XDerivRot} t; Y:= {YDerivRot} t|}.
+
+  
 (** prepping for [TDerivativeAbsQ] *)
 Lemma XYDerivEv0To1 : ∀ (t:QTime), 
   mt0 ≤ t ≤ mt1 
@@ -2339,9 +2350,105 @@ Proof.
       try apply AbsIR_nonneg;
   [apply AbsIR_Cos_leEq_One|apply AbsIR_Sin_leEq_One].
 Qed.
+Hint Rewrite cg_inv_zero : CoRN.
+
+Lemma RotXYDerivLeSpeed : ∀ (t : Time) (ub : IR),
+  AbsIR ({transVel icreate} t) ≤ ub
+  → XYAbs (rotDerivAtTime t) ≤ {|X:=ub; Y:=ub|} .
+Proof.
+  intros ? ? Hb.
+  unfold rotDerivAtTime, XYAbs, le, Cart2D_instance_le.
+  simpl.
+  rewrite YDerivAtTime, XDerivAtTime.
+  rewrite AbsIR_resp_mult.
+  rewrite AbsIR_resp_mult.
+  match goal with
+  [|- _ ∧ (_ ≤ ?r) ] => rewrite <- (mult_one _ r)
+  end.
+  split; apply mult_resp_leEq_both; trivial;
+      try apply AbsIR_nonneg;
+  [apply AbsIR_Cos_leEq_One|apply AbsIR_Sin_leEq_One].
+Qed.
+
+(* move to core.v *)
+Lemma TDerivativeAbsQ0 :forall (F F' : TContR)
+   (ta tb : QTime) (Hab : (ta <= tb)%Q) (eps: ℝ),
+   isDerivativeOf F' F
+   -> (forall (t:QTime), (ta <= t <= tb)%Q -> AbsIR ({F'} t) [<=] eps)
+   -> AbsIR({F} tb[-] {F} ta) [<=] eps [*] (tb - ta)%Q.
+Proof.
+  intros ? ? ? ? ? ? ? Hub.
+  assert (∀ t : QTime, (ta <= t <= tb)%Q → AbsIR ({F'} t [-] [0])[<=]eps)
+    as Has by (intros; autorewrite with CoRN; auto).
+  clear Hub.
+  eapply TDerivativeAbsQ in Has; eauto.
+  autorewrite with CoRN in Has.
+  assumption.
+Qed.
+
+(* move to CartIR.v? will need to generalize *)
+Lemma RotDerivInteg : ∀ (a b : QTime) (ubx uby : IR),
+  a ≤ b
+  → (∀ (t:QTime), 
+        a ≤ t ≤ b
+        → XYAbs (rotDerivAtTime t) ≤ {|X:=ubx; Y:=uby|})
+  → XYAbs (rotOrgPosAtTime b - rotOrgPosAtTime a)
+    ≤ {|X:=ubx * (b-a)%Q ; Y:=uby * (b-a)%Q|}.
+Proof.
+  intros ? ?  ? ? Hle Hd.
+  pose proof (λ t p, proj1 (Hd t p)) as Hx.
+  pose proof (λ t p, proj2 (Hd t p)) as Hy.
+  simpl in Hx, Hy.
+  eapply TDerivativeAbsQ0 in Hx; auto;
+    [|apply (fst DerivRotOriginTowardsTargetPos)].
+  eapply TDerivativeAbsQ0 in Hy; auto;
+    [|apply (snd DerivRotOriginTowardsTargetPos)].
+  split; auto.
+Qed.
+
+Lemma LeRotIntegSpeed : ∀ (a b : QTime) (ub : IR),
+   a ≤ b
+  → (∀ (t:QTime), a ≤ t ≤ b → AbsIR ({transVel icreate} t) ≤ ub)
+  → XYAbs (rotOrgPosAtTime b - rotOrgPosAtTime a) 
+      ≤ {|X:=ub* (b-a)%Q; Y:=ub* (b-a)%Q|} .
+Proof.
+  intros.
+  apply RotDerivInteg; [assumption|].
+  intros.
+  apply RotXYDerivLeSpeed; auto.
+Qed.
+
+Lemma Cart2D_instance_le_IRtransitive : ∀
+  (a b c : Cart2D IR),
+  a ≤ b
+  → b ≤ c
+  → a ≤ c.
+Proof.
+  intros ? ? ?  H1 H2.
+  destruct H1, H2.
+  split; eapply leEq_transitive; eauto.
+Qed.
+
+
+
+Lemma LeRotIntegSpeed2 : ∀ (a b : QTime) (tub : IR) (ub : IR),
+   a ≤ b
+  → Q2R (b - a)%Q ≤ tub
+  → (∀ (t:QTime), a ≤ t ≤ b → AbsIR ({transVel icreate} t) ≤ ub)
+  → XYAbs (rotOrgPosAtTime b - rotOrgPosAtTime a) 
+      ≤ {|X:=ub* tub%Q; Y:=ub* tub%Q|} .
+Proof.
+  intros ? ? ? ? Hle Htle Hd.
+  eapply Cart2D_instance_le_IRtransitive;[apply LeRotIntegSpeed|]; 
+    eauto.
+  specialize (Hd a).
+  DestImp Hd; [|split;auto; unfold le,Le_instance_QTime; reflexivity].
+  split; apply mult_resp_leEq_lft; auto;
+  (eapply leEq_transitive;[|apply Hd]);
+  apply AbsIR_nonneg.
+Qed.
 
 Local Transparent Q2R.
-Hint Rewrite cg_inv_zero : CoRN.
 
 (** prepping for [TDerivativeAbsQ] *)
 Lemma XYDerivEv0To1Aux : ∀ (t:QTime), 
@@ -2404,6 +2511,73 @@ Proof.
 Qed.
 
 Lemma PosRotAxisAtEV1_2 :
+   AbsIR (X (rotOrgPosAtTime mt1)) ≤ (QT2R transErrRot * Ev01TimeGapUB)
+   ∧ AbsIR (Y (rotOrgPosAtTime mt1)) ≤ (QT2R transErrRot * Ev01TimeGapUB).
+Proof.
+  destruct PosRotAxisAtEV1 as [Hl Hr].
+  split;(eapply leEq_transitive;[| apply TimeGap01Aux]);
+    assumption.
+Qed.
+
+(** prepping for [TDerivativeAbsQ] *)
+Lemma XYDerivEv1To2Aux: 
+  ∃ qtrans : QTime, (mt1 ≤ qtrans ≤ mt1 + reacTime) ∧
+  (∀ t:QTime, mt1 ≤ t ≤ qtrans 
+        → (AbsIR ({XDerivRot} t) ≤ QT2Q transErrRot)
+           ∧ (AbsIR ({YDerivRot} t) ≤ QT2Q transErrRot))
+  ∧ (∀ t:QTime, qtrans ≤ t ≤ mt2 
+        → (AbsIR ({XDerivRot} t) [=] [0] 
+            ∧ AbsIR ({XDerivRot} t) [=] [0])).
+Proof.  
+  pose proof correctVel1to2 as Hc.
+  fold mt1 mt2 in Hc.
+  cbv zeta in Hc.
+  apply proj1 in Hc.
+  Local Opaque Q2R.
+  simpl in Hc.
+  rewrite motorPrec0 in Hc.
+  simpl in Hc.
+  destruct Hc as [qtrans Hc].
+  exists qtrans.
+  repnd.
+  split;[split; assumption|].
+  pose proof (λ t p, (betweenRAbs _ _ _ _ (qtimePosIR 0)
+       (Hcrr t p))) as Hcr.
+  clear Hcrr.
+  split; auto.
+- intros ? Hb.
+  apply Hcr in Hb.
+  unfold QT2R in Hb.
+  autorewrite with CoRN in Hb.
+
+  fold (transErrTrans) in Hc.
+  destruct Hc as [qtrans Hc].
+  exists qtrans.
+  repnd.
+  split;[split; assumption|].
+  split;[clear Hcrl | clear Hcrr]; intros ? Hb.
+- apply Hcrr in Hb.
+  unfold between in Hb.
+  apply proj1 in Hb.
+  unfold t2 in Hb.
+  rewrite transVelAtEv2 in Hb.
+  rewrite leEq_imp_Min_is_lft in Hb;[assumption|].
+  autorewrite with QSimpl. apply inj_Q_leEq.
+  simpl. assumption.
+- apply Hcrl in Hb.
+  apply AbsIR_imp_AbsSmall in Hb.
+  unfold AbsSmall in Hb.
+  apply proj1 in Hb.
+  apply shift_plus_leEq in Hb.
+  eapply leEq_transitive;[|apply Hb].
+  autorewrite with QSimpl.
+  apply inj_Q_leEq.
+  simpl.
+  lra.
+Qed.
+
+
+Lemma PosRotAxisAtEV2
    AbsIR (X (rotOrgPosAtTime mt1)) ≤ (QT2R transErrRot * Ev01TimeGapUB)
    ∧ AbsIR (Y (rotOrgPosAtTime mt1)) ≤ (QT2R transErrRot * Ev01TimeGapUB).
 Proof.
