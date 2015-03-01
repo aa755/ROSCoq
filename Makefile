@@ -1,4 +1,5 @@
 COQC = coqc -R . ROSCOQ -R ../../../ssrcorn/math-classes/src -as MathClasses -R ../../../ssrcorn -as CoRN
+COQDOC = coqdoc -R . ROSCOQ -R ../../../ssrcorn/math-classes/src -as MathClasses -R ../../../ssrcorn -as CoRN
 
 all : icreate.vo train.vo CartCR.vo
 train.vo : train.v ROSCyberPhysicalSystem.vo
@@ -55,7 +56,7 @@ CRMisc/IRLemmasAsCR.vo : CRMisc/IRLemmasAsCR.v IRMisc/IRTrig.vo CanonicalNotatio
 
 %.tex: %.v %.vo
 	$(COQC) $<
-	coqdoc   -l --latex --interpolate --body-only $< -o $(@)	
+	COQDOC   -l --latex --interpolate --body-only $< -o $(@)	
 
 
 clean:
