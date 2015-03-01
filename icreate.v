@@ -6,6 +6,14 @@ Require Export LibTactics.
 (** printing ≡ $\equiv$ #≡# *)
 (** printing [*] $*$ #*# *)
 (** printing ∧ $\wedge$ #∧# *)
+(** printing ∀ $\forall$ #∀# *)
+(** printing → $\rightarrow$ #→# *)
+(** printing ∃ $\exists$ #∃# *)
+(** printing ≤ $\le$ #≤# *)
+(** printing θ $\theta$ #θ# *)
+(** printing eeev $\epsilon_v$ #∊ᵥ# *)
+(** printing tm $t_m$ #tm# *)
+(** printing tr $t_r$ #tr# *)
 
 Require Export Vector.
 Require Export ROSCyberPhysicalSystem.
@@ -244,14 +252,54 @@ Definition BaseMotors  : Device iCreate :=
 Definition onlyRecvEvts (evs : nat -> option Event) : Prop :=
 ∀ n:nat, isDeqEvtOp (evs n).
 
-(*
-Definition BaseMotorsP  (ic: iCreate) (evs : nat -> option Event)
-  : Prop :=
-onlyRecvEvts evs
-∧ ∀ t: QTime,
-  let (lastVel, lastTime) := lastVelAndTime t
-*)  
-  
+Definition eeev  a b : Q  :=
+ (rad (motorPrec {|rad:= a; θ:= b|})).
+
+Definition eeew  a b : Q :=
+ (θ (motorPrec {|rad:= a; θ:= b|})).
+
+Definition BaseMotorsP (ic: iCreate) (evs : nat -> option Event): Prop :=
+onlyRecvEvts evs ∧ ∀ t: QTime,
+  let (lastCmd, tm ) := lastVelAndTime evs t in 
+  let a : Q := rad (lastCmd) in
+  let b : Q := θ (lastCmd) in
+  ∃ tr : QTime, (tm ≤ tr ≤ tm + reacTime)
+    ∧ (∀ t' : QTime, (tm ≤ t' ≤ tr) 
+        → (Min ({transVel ic} tm) (a - eeev a b) 
+            ≤ {transVel ic} t' ≤ Max ({transVel ic} tm) (a+ eeev a b)))
+    ∧ (∀ t' : QTime, (tr ≤ t' ≤ t) → |{transVel ic} t' - a | ≤ Q2R (eeev a b)).
+
+Lemma BaseMotorsPCorr1 :
+  ∀ icr evs,
+  BaseMotors icr evs ->  BaseMotorsP icr evs.
+Proof.
+  intros ? ? H.
+  destruct H as [Hr H].
+  split; [assumption|]. clear H.
+  intros t.
+  specialize (Hr t).
+  unfold corrSinceLastVel in Hr.
+  destruct (lastVelAndTime evs t) as [lc lt].
+  apply proj1 in Hr.
+  destruct Hr as [qtrans Hr].
+  exists qtrans.
+  unfold le, Le_instance_QTime.
+  autounfold with IRMC. unfold Plus_instance_QTime.
+  unfoldMC. repnd.
+  split; auto.
+  unfold eeev.
+  destruct lc.
+  simpl Vector.rad.
+  simpl Vector.rad in Hrrl, Hrrr.
+  unfold Q2R. setoid_rewrite inj_Q_inv.
+  split; auto.
+  unfold between, Q2R in Hrrr.
+  intros ? H.
+  apply Hrrr in H.
+  autorewrite with QSimpl in H.
+  exact H.
+Qed.
+
 Definition PureSwProgram:
   PureProcWDelay TARGETPOS VELOCITY:=
   robotPureProgam.
