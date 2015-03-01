@@ -189,8 +189,8 @@ Definition velocityMessages (t : QTime) :=
 
 
 Definition lastVelAndTime
-  (t : QTime) : ((Polar2D Q) × QTime) :=
-  lastPayloadAndTime VELOCITY (localEvts MOVABLEBASE) t initialVel.
+  (evs : nat -> option Event) (t : QTime) : ((Polar2D Q) × QTime) :=
+  lastPayloadAndTime VELOCITY evs t initialVel.
 
 
 Instance ProjectionFst_instance_sig 
@@ -232,7 +232,7 @@ Definition corrSinceLastVel
   (evs : nat -> option Event)
   (uptoTime : QTime)
   (robot: iCreate) :=
-let (lastVel, lastTime) := lastVelAndTime uptoTime in
+let (lastVel, lastTime) := lastVelAndTime evs uptoTime in
 correctVelDuring lastVel lastTime uptoTime robot.
 
 
@@ -241,7 +241,17 @@ Definition BaseMotors  : Device iCreate :=
   (∀ t: QTime, corrSinceLastVel evs t robot)
   ∧ ∀ n:nat, isDeqEvtOp (evs n).
 
+Definition onlyRecvEvts (evs : nat -> option Event) : Prop :=
+∀ n:nat, isDeqEvtOp (evs n).
 
+(*
+Definition BaseMotorsP  (ic: iCreate) (evs : nat -> option Event)
+  : Prop :=
+onlyRecvEvts evs
+∧ ∀ t: QTime,
+  let (lastVel, lastTime) := lastVelAndTime t
+*)  
+  
 Definition PureSwProgram:
   PureProcWDelay TARGETPOS VELOCITY:=
   robotPureProgam.
