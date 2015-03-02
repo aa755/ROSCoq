@@ -87,19 +87,18 @@ Section RobotProgam.
 Variables   rotspeed speed anglePrec distPrec delay : Qpos.
 
 
-Definition robotPureProgam 
-      (target : Cart2D Q) : list (Q × Polar2D Q):=
-    let polarTarget : Polar2D CR := Cart2Polar target in
-    let approxTheta : Q := approximate (θ polarTarget) anglePrec in
-    let rotDirection : Q := QSign approxTheta 1 in (** +1 or -1*)
-    let approxDist : Q := approximate (rad polarTarget) distPrec in
-    let rotDuration : Q :=  (|approxTheta|) / (QposAsQ rotspeed) in
-    let translDuration : Q :=  approxDist / (QposAsQ speed) in
-    [ (0,{|rad:= 0 ; θ := rotDirection*rotspeed |}) 
-        ; (rotDuration, {|rad:= 0 ; θ := 0 |}) 
-        ; (QposAsQ delay , {|rad:= QposAsQ speed ; θ := 0 |}) 
-        ; (translDuration , {|rad:= 0 ; θ := 0 |}) 
-    ].
+Definition robotPureProgam (target : Cart2D Q) : list (Q × Polar2D Q) :=
+  let polarTarget : Polar2D CR := Cart2Polar target in
+  let approxTheta : Q := approximate (θ polarTarget) anglePrec in
+  let rotDirection : Q := QSign approxTheta 1 in (* +1 or -1*)
+  let approxDist : Q := approximate (rad polarTarget) distPrec in
+  let rotDuration : Q :=  (|approxTheta|) / (QposAsQ rotspeed) in
+  let translDuration : Q :=  approxDist / (QposAsQ speed) in
+  [ (0,{|rad:= 0 ; θ := rotDirection*rotspeed |}) 
+      ; (rotDuration, {|rad:= 0 ; θ := 0 |}) 
+      ; (QposAsQ delay , {|rad:= QposAsQ speed ; θ := 0 |}) 
+      ; (translDuration , {|rad:= 0 ; θ := 0 |}) 
+  ].
 
 
 Inductive Topic :=  VELOCITY | TARGETPOS. (* similar to CMD_VEL *)
