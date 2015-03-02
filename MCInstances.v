@@ -14,6 +14,21 @@ Defined.
 Require Import interfaces.abstract_algebra.
 Require Import MathClasses.theory.rings.
 
+Definition decAuto :  ∀ (P: Prop) `{Decision P},
+  (if decide P then True else False) -> P.
+  intros ? ? Hd.
+  destruct (decide P); tauto.
+Defined.
+
+Require Export Psatz.
+Lemma QTimeLeRefl : ∀ {t : QTime},
+  t ≤ t.
+intros.
+unfold le, Le_instance_QTime; lra.
+Qed.
+
+
+
 Instance Zero_instance_IR : Zero IR := [0]. 
 Instance One_instance_IR : One IR := [1]. 
 Instance Plus_instance_IR : Plus IR := csg_op .

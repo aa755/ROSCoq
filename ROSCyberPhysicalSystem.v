@@ -219,8 +219,6 @@ Definition isDeqEvtOp (ev: option Event) : bool :=
   opApPure isDeqEvt false ev.
 
 
-
-(** !!FIX!! this should be [isEnqEvt] *)
 Definition isRecvEvt := isDeqEvt.
 
 Close Scope Q_scope.
@@ -290,6 +288,23 @@ Proof.
   destruct (eKind evD); inversion Hd.
   reflexivity.
 Defined.
+Lemma deqSingleMessage3 : forall evD,
+  isDeqEvt evD
+  -> (deqMesg evD = Some (eMesg evD)).
+Proof.
+  intros ? Hd.
+  unfold isDeqEvt in Hd.
+  unfold deqMesg. destruct (eKind evD); try (inversion Hd; fail);[].
+  eexists; eauto.
+Defined.
+
+Lemma moveMapInsideSome : forall tp lm,
+  opBind (getPayload tp)  (Some lm)
+  = (getPayloadR tp) (fst lm).
+Proof.
+  intros ?. destruct lm; reflexivity.
+Qed.
+
 
 
 Definition sentMesg (ev : Event) : option Message :=

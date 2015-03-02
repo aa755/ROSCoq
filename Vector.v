@@ -33,6 +33,16 @@ Definition vnth {T : Type} {m:nat} (v : Vector m T) (n : Fin m) : T.
     exists n. apply sdjflksdjsdlkf3. trivial.
 Defined.
 
+(*
+Definition isVecDerivativeOf 
+    {n : nat} (f f' : Vector n TContR) : Type.
+  revert f f'.
+  induction n as [| np Hind]; intros f f';[exact unit|].
+  destruct f as [fv ft].
+  destruct f' as [fv' ft'].
+  exact ((isDerivativeOf ft ft') × (Hind fv fv')).
+Defined.
+*)
 Record Cart2D (T : Type) : Type := mkCart2D {X : T; Y: T}.
 Record Polar2D (T : Type) : Type := mkPolar2D {rad : T; θ : T}.
 

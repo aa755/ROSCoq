@@ -20,7 +20,67 @@ Proof.
   rewrite Hc. reflexivity.
 Qed.
 
+Lemma QAbsQSign : 
+  ∀ a c, |QSign a c| = |c|.
+Proof.
+  intros.
+  unfold QSign, CanonicalNotations.norm,
+  NormSpace_instance_Q.
+  destruct (decide (a < 0)) as [Hd | Hd]; auto.
+  apply Qabs.Qabs_opp.
+Qed.
+
+
+
 Require Import Psatz.
+
+
+Lemma QabsQpos : ∀ (qp: Qpos),
+   ((Qabs.Qabs qp) == qp)%Q.
+  intros.
+  destruct qp; simpl.
+  rewrite Qabs.Qabs_pos; lra.
+Qed.
+
+Hint Rewrite QabsQpos : CoRN.
+
+Lemma QAbsMultSign: forall (a : Q) (b : Qpos),
+  ((Qabs.Qabs a) * / b * ((QSign a 1) * b) == a)%Q.
+Proof.
+  intros ? ?.
+  unfold QSign. destruct b as [b bp].
+  simpl.
+  destruct (decide (a < 0)) as [Hd | Hd]; revert Hd; unfoldMC; intro Hd.
+- ring_simplify. rewrite Qabs.Qabs_neg;[|lra]. field. lra.
+- ring_simplify. rewrite Qabs.Qabs_pos;[|lra]. field. lra.
+Qed.
+
+
+Lemma approximateAbsSmallIR: ∀ (r:CR) (eps : Qpos),
+    AbsSmall eps (CRasIR r [-] (approximate r eps)).
+  intros ? ?.
+  pose proof (ball_approx_r r eps ) as Hball.
+  apply CRAbsSmall_ball in Hball.
+  fold (inject_Q_CR) in Hball.
+  apply CR_AbsSmall_as_IR in Hball.
+  rewrite CR_minus_asIR2 in Hball.
+  rewrite <- IR_inj_Q_as_CR in Hball.
+  rewrite <- IR_inj_Q_as_CR in Hball.
+  rewrite IRasCRasIR_id in Hball.
+  rewrite IRasCRasIR_id in Hball.
+  exact Hball.
+Qed.
+
+Require Export Coq.QArith.Qabs.
+
+Lemma QMinusShiftRLe:
+  ∀ a b c,
+  ((a - b) <= c
+  -> a <= c +b)%Q.
+Proof.
+  intros.
+  lra.
+Qed.
 
 Lemma AbsIRQpos : ∀ (qp : Qpos),
   AbsIR qp [=] qp.

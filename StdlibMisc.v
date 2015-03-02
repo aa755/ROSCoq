@@ -196,3 +196,38 @@ Ltac Dor H := destruct H as [H|H].
 
 Ltac provefalse :=
   assert False ;[| contradiction].
+
+
+Definition ltac_something (P:Type) (e:P) := e.
+
+Notation "'Something'" := 
+  (@ltac_something _ _).
+
+Lemma ltac_something_eq : forall (e:Type),
+  e = (@ltac_something _ e).
+Proof. auto. Qed.
+
+Lemma ltac_something_hide : forall (e:Type),
+  e -> (@ltac_something _ e).
+Proof. auto. Qed.
+
+Lemma ltac_something_show : forall (e:Type),
+  (@ltac_something _ e) -> e.
+Proof. auto. Qed.
+
+Ltac show_hyp H :=
+  apply ltac_something_show in H.
+
+Ltac hide_hyp H :=
+  apply ltac_something_hide in H.
+
+
+Ltac show_hyps :=
+  repeat match goal with
+    H: @ltac_something _ _ |- _ => show_hyp H end.
+
+Ltac Replace T :=
+assert T as Heq by reflexivity; rewrite Heq; clear Heq.
+
+Ltac ReplaceH T H :=
+assert T as Heq by reflexivity; rewrite Heq in H; clear Heq.
