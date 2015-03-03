@@ -28,6 +28,12 @@ Require Import CartCR.
 
 Definition initialVel : (Polar2D Q) := {|rad:=0; θ:=0|}.
 
+Require Export CartIR.
+
+Notation FConst := ConstTContR.
+Notation FSin:= CFSine.
+Notation FCos:= CFCos.
+
 
 Record iCreate : Type := {
   position :> Cart2D TContR;          (* x, y co-ordinates*)
@@ -336,8 +342,8 @@ Instance rllllfjkfhsdakfsdakh : @RosLocType iCreate Topic Event  RosLoc _.
 Defined.
 
 Variable acceptableDist : Q.
-Variable icreate : iCreate.
-Variable eo : (@PossibleEventOrder _  icreate minGap _ _ _ _ _ _ _ _ _).
+Variable ic : iCreate.
+Variable eo : (@PossibleEventOrder _  ic minGap _ _ _ _ _ _ _ _ _).
 
 
 Lemma derivXNoMC : ∀ icr, isDerivativeOf (transVel icr[*] (CFCos (theta icr))) (X (position icr)).
@@ -349,7 +355,7 @@ Lemma derivYNoMC : ∀ icr, isDerivativeOf (transVel icr[*] (CFSine (theta icr))
 Qed.
 
 Definition posAtTime (t: Time) : Cart2D IR :=
-  {| X:= {X (position icreate)} t ; Y := {Y (position icreate)} t |}.
+  {| X:= {X (position ic)} t ; Y := {Y (position ic)} t |}.
 
 Definition targetPosR : Cart2D IR := ' targetPos.
 
@@ -1039,7 +1045,7 @@ Hint Unfold Zero_Instace_IR_better : IRMC.
 
 Lemma correctVelTill0:
   let t0 : QTime := MotorEventsNthTime 0 (decAuto (0<4)%nat I) in
-    correctVelDuring initialVel (mkQTime 0 I) t0 icreate.
+    correctVelDuring initialVel (mkQTime 0 I) t0 ic.
 Proof.
   intros. pose proof (corrNodes eo MOVABLEBASE) as Hc.
   simpl in Hc.
@@ -1065,7 +1071,7 @@ Qed.
 Lemma OmegaThetaAtEV0 :
   let t0 : QTime := MotorEventsNthTime 0 (decAuto (0<4)%nat I) in
   ∀ (t : QTime),  t ≤ t0
-      → ({omega icreate} t = 0 ∧ {theta icreate} t = {theta icreate} 0).
+      → ({omega ic} t = 0 ∧ {theta ic} t = {theta ic} 0).
 Proof.
   intros ? ? Hle.
   unfold zero, Zero_instance_IR, Zero_instance_Time.
@@ -1098,7 +1104,7 @@ Qed.
 Lemma TransVelPosAtEV0 :
   let t0 : QTime := MotorEventsNthTime 0 (decAuto (0<4)%nat I) in
   ∀ (t : QTime),  t ≤ t0
-      → ({transVel icreate} t = 0 ∧ (posAtTime t) = (posAtTime 0)).
+      → ({transVel ic} t = 0 ∧ (posAtTime t) = (posAtTime 0)).
 Proof.
   intros ? ? Hle.
   unfold zero, Zero_instance_IR, Zero_instance_Time.
@@ -1126,7 +1132,7 @@ Local Opaque getF mkQTime.
   split.
 Local Transparent mkQTime.
 - apply TDerivativeEqQ0 with 
-    (F':=(transVel icreate[*]CFCos (theta icreate)));
+    (F':=(transVel ic[*]CFCos (theta ic)));
     eauto with ICR.
   intros tq Hbw. simpl in Hbw.
   rewrite IContRMultAp, Hd0; [| lra].
@@ -1135,7 +1141,7 @@ Local Transparent mkQTime.
   rewrite inj_Q_Zero. reflexivity.
 
 - apply TDerivativeEqQ0 with 
-    (F':=(transVel icreate[*]CFSine (theta icreate)));
+    (F':=(transVel ic[*]CFSine (theta ic)));
     eauto with ICR.
   intros tq Hbw. simpl in Hbw.
   rewrite IContRMultAp, Hd0; [| lra].
@@ -1153,7 +1159,7 @@ Lemma correctVel0to1:
        rad := 0;
        θ := QSign (approximate (polarTheta targetPos) anglePrec) 1
             * rotspeed |} in
-  correctVelDuring requestedVel t0 t1 icreate.
+  correctVelDuring requestedVel t0 t1 ic.
 Proof.
   intros. pose proof (corrNodes eo MOVABLEBASE) as Hc.
   simpl in Hc.
@@ -1293,7 +1299,6 @@ Definition qthetaAbs : Q :=
 Definition E2EDelVar : Q := 
   (2 * (sendTimeAcc + delivDelayVar))%Q.
 
-Require Export CartIR.
 
 Lemma  QabsNewOmega : 
       (Qabs.Qabs
@@ -1377,7 +1382,7 @@ Definition motorTurnOmegaPrec (ω : Q) : QTime := θ (motorPrec {| rad :=(0%Q) ;
 Lemma ThetaAtEV1 :
   let t0 : QTime := MotorEventsNthTime 0 (decAuto (0<4)%nat I) in
   let t1 : QTime := MotorEventsNthTime 1 (decAuto (1<4)%nat I) in
-     |{theta icreate} t1 - optimalTurnAngle| ≤ 
+     |{theta ic} t1 - optimalTurnAngle| ≤ 
           Q2R (rotspeed * (2 * (sendTimeAcc + delivDelayVar) + reacTime) +
                anglePrec + (motorTurnOmegaPrec ω) * (t1 - t0))%Q.
 Proof.
@@ -1397,7 +1402,7 @@ Proof.
   pose proof (OmegaThetaAtEV0 t0 QTimeLeRefl) as Ht0.
   repnd.
   apply changesToDerivInteg2
-    with (F:=(theta icreate)) (oldVal:=0) in Hc;
+    with (F:=(theta ic)) (oldVal:=0) in Hc;
     eauto with ICR.
   clear H99.
   rewrite initTheta in Ht0r.
@@ -1529,7 +1534,7 @@ Qed.
 
 Hint Resolve qtimePosIR : ROQCOQ.
 Lemma ThetaAtEV1_2 :
-     (|{theta icreate} mt1 - optimalTurnAngle|) ≤ 
+     (|{theta ic} mt1 - optimalTurnAngle|) ≤ 
           Q2R (rotspeed * (2 * (sendTimeAcc + delivDelayVar) + reacTime) +
                anglePrec)%Q + (Q2R (motorTurnOmegaPrec ω) * Ev01TimeGapUB).
 Proof.
@@ -1555,7 +1560,7 @@ Qed.
 
 Lemma ThetaAtEV1_3 :
   let omPrec : Q :=  (eeew 0%Q ω) in 
- |{theta icreate} mt1 - optimalTurnAngle| ≤ 
+ |{theta ic} mt1 - optimalTurnAngle| ≤ 
    Q2R(rotspeed * (E2EDelVar + reacTime) 
     + anglePrec + omPrec * E2EDelVar)
     + Q2R (omPrec / rotspeed)%Q * ('(CRabs (polarTheta targetPos)) + Q2R anglePrec).
@@ -1596,7 +1601,7 @@ Qed.
 Local Transparent Q2R.
 
 Lemma OmegaAtEv1 : let t1 := MotorEventsNthTime 1 (decAuto (1 < 4)%nat I) in
-    AbsSmall (Q2R (rotspeed + motorTurnOmegaPrec ω)) ({omega icreate} t1).
+    AbsSmall (Q2R (rotspeed + motorTurnOmegaPrec ω)) ({omega ic} t1).
 Proof.
   intro. pose proof correctVel0to1 as H0c.
   simpl in H0c.
@@ -1630,7 +1635,7 @@ Lemma correctVel1to2:
   let t1 : QTime := MotorEventsNthTime 1 (decAuto (1<4)%nat I) in
   let t2 : QTime := MotorEventsNthTime 2 (decAuto (2<4)%nat I) in
   let requestedVel : Polar2D Q := {|rad := 0;θ := 0|} in
-  correctVelDuring requestedVel t1 t2 icreate.
+  correctVelDuring requestedVel t1 t2 ic.
 Proof.
   intros. pose proof (corrNodes eo MOVABLEBASE) as Hc.
   simpl in Hc.
@@ -1668,7 +1673,7 @@ Q2R (rotspeed * (E2EDelVar + 2 * reacTime)
     + Q2R ((eeew 0%Q ω) / rotspeed)%Q * ('(CRabs (polarTheta targetPos)) + Q2R anglePrec).
 
 Lemma ThetaAtEV2 :
- (|{theta icreate} mt2 - optimalTurnAngle|) ≤ θErrTurn.
+ (|{theta ic} mt2 - optimalTurnAngle|) ≤ θErrTurn.
 Proof.
   unfold θErrTurn.
   pose proof correctVel1to2 as Hc.
@@ -1683,7 +1688,7 @@ Proof.
   pose proof (ThetaAtEV1_3) as Ht0. simpl in Ht0.
   simpl in Ht0.
   apply changesToDerivInteg2
-    with (F:=(theta icreate)) (oldVal:={omega icreate} mt1) in Hc;
+    with (F:=(theta ic)) (oldVal:={omega ic} mt1) in Hc;
     eauto with ICR;[| reflexivity].
   rewrite IR_inv_Qzero in Hc.
   rewrite Qmult_0_l in Hc. 
@@ -1722,7 +1727,7 @@ Proof.
 Qed.
 
 
-Lemma ThetaAtEV2P : (|{theta icreate} mt2 - idealDirection|) ≤  θErrTurn.
+Lemma ThetaAtEV2P : (|{theta ic} mt2 - idealDirection|) ≤  θErrTurn.
 Proof.
   apply ThetaAtEV2.
 Qed.
@@ -1730,7 +1735,7 @@ Qed.
 Local Opaque Q2R.
   
 Lemma OmegaAtEv2 : let t2 := MotorEventsNthTime 2 (decAuto (2 < 4)%nat I) in
-    {omega icreate} t2 = 0.
+    {omega ic} t2 = 0.
 Proof.
   intro. pose proof correctVel1to2 as H0c.
   simpl in H0c.
@@ -1766,7 +1771,7 @@ Qed.
 Local Opaque Q2R.
 
 Lemma transVelAtEv2 : let t2 := MotorEventsNthTime 2 (decAuto (2 < 4)%nat I) in
-    {transVel icreate} t2 = 0.
+    {transVel ic} t2 = 0.
 Proof.
   intro. pose proof correctVel1to2 as H0c.
   simpl in H0c.
@@ -1805,7 +1810,7 @@ Lemma correctVel2to3:
   let t1 : QTime := MotorEventsNthTime 2 (decAuto (2<4)%nat I) in
   let t2 : QTime := MotorEventsNthTime 3 (decAuto (3<4)%nat I) in
   let requestedVel : Polar2D Q := {|rad:= QposAsQ speed ; θ := 0 |} in
-  correctVelDuring requestedVel t1 t2 icreate.
+  correctVelDuring requestedVel t1 t2 ic.
 Proof.
   intros. pose proof (corrNodes eo MOVABLEBASE) as Hc.
   simpl in Hc.
@@ -1835,7 +1840,7 @@ Proof.
   auto.
 Qed.
 
-Definition θ2 := {theta icreate} mt2.
+Definition θ2 := {theta ic} mt2.
 
 Definition rotErrTrans
 := (θ (motorPrec {| rad := QposAsQ speed; θ := 0 |})).
@@ -1845,7 +1850,7 @@ Lemma ThetaEv2To3 :
   let t3 : QTime := MotorEventsNthTime 3 (decAuto (3<4)%nat I) in
   let t2 : QTime := MotorEventsNthTime 2 (decAuto (2<4)%nat I) in
   ∀ (t : QTime),  t2 ≤ t ≤ t3
-      → AbsIR ({theta icreate} t[-]θ2)[<=]inj_Q ℝ (rotErrTrans * (t3 - t2))%Q.
+      → AbsIR ({theta ic} t[-]θ2)[<=]inj_Q ℝ (rotErrTrans * (t3 - t2))%Q.
 Proof.
   intros ? ? ? Hle.
   pose proof (qtimePos t) as Hq.
@@ -2008,7 +2013,7 @@ Lemma ThetaEv2To3_2 :
   let t3 : QTime := MotorEventsNthTime 3 (decAuto (3<4)%nat I) in
   let t2 : QTime := MotorEventsNthTime 2 (decAuto (2<4)%nat I) in
   ∀ (t : QTime),  t2 ≤ t ≤ t3
-      → AbsIR ({theta icreate} t[-]θ2)[<=]θErrTrnsl.
+      → AbsIR ({theta ic} t[-]θ2)[<=]θErrTrnsl.
 Proof.
   intros ? ? ? Hb. apply ThetaEv2To3 in Hb.
   fold t2 t3 in Hb.
@@ -2023,7 +2028,7 @@ Lemma ThetaEv2To3_3 :
   let t3 : QTime := MotorEventsNthTime 3 (decAuto (3<4)%nat I) in
   let t2 : QTime := MotorEventsNthTime 2 (decAuto (2<4)%nat I) in
   ∀ (t : QTime),  t2 ≤ t ≤ t3
-      → AbsIR ({theta icreate} t[-]optimalTurnAngle)
+      → AbsIR ({theta ic} t[-]optimalTurnAngle)
         ≤ θErrTrnsl + θErrTurn.
 Proof.
   intros ? ? ? Hb. apply ThetaEv2To3_2 in Hb.
@@ -2065,7 +2070,7 @@ Definition Ev2To3Interval : TIntgBnds.
   omega.
 Defined.
 
-Definition distTraveled : IR := Cintegral Ev2To3Interval (transVel icreate).
+Definition distTraveled : IR := Cintegral Ev2To3Interval (transVel ic).
 
 
 Add Ring cart2dir : Cart2DIRRing.
@@ -2073,17 +2078,15 @@ Add Ring cart2dir : Cart2DIRRing.
 Variable nztp : ([0] [<] normIR (' targetPos)).
 
 Definition rotOrigininPos : Cart2D TContR:=
-  rotateOriginTowardsF (' targetPos) nztp (position icreate).
+  rotateOriginTowardsF (' targetPos) nztp (position ic).
+
 
 Definition YDerivRot : TContR :=
-  let optimalTurnAngleF := ConstTContR optimalTurnAngle in
-((transVel icreate) 
-                      * (CFSine (theta icreate - optimalTurnAngleF))).
+(transVel ic) * (FSin (theta ic - FConst optimalTurnAngle)).
 
 Definition XDerivRot : TContR :=
-  let optimalTurnAngleF := ConstTContR optimalTurnAngle in
- ((transVel icreate) 
-                      * (CFCos (theta icreate - optimalTurnAngleF))).
+(transVel ic) * (FCos (theta ic - FConst optimalTurnAngle)).
+
 Lemma DerivRotOriginTowardsTargetPos : 
   (isDerivativeOf XDerivRot (X rotOrigininPos)
    × isDerivativeOf YDerivRot (Y rotOrigininPos)).
@@ -2100,7 +2103,7 @@ Hint Unfold Mult_instance_TContR Plus_instance_TContR
 
 Lemma YDerivAtTime : ∀ (t: Time),
   {YDerivRot} t 
-  = {transVel icreate} t[*]Sin ({theta icreate} t[-]optimalTurnAngle).
+  = {transVel ic} t[*]Sin ({theta ic} t[-]optimalTurnAngle).
 Proof.
   intros ?.
   unfold YDerivRot.
@@ -2112,7 +2115,7 @@ Qed.
 
 Lemma XDerivAtTime : ∀ (t: Time),
   {XDerivRot} t 
-  = {transVel icreate} t[*]Cos ({theta icreate} t[-]optimalTurnAngle).
+  = {transVel ic} t[*]Cos ({theta ic} t[-]optimalTurnAngle).
 Proof.
   intros ?.
   unfold XDerivRot.
@@ -2137,7 +2140,7 @@ Proof.
   unfold posAtTime in Hle.
   unfold equiv, EquivCart in Hle.
   simpl in Hle.
-  destruct (initPos icreate) as [Hx Hy].
+  destruct (initPos ic) as [Hx Hy].
   repnd. 
   setoid_rewrite Hx in Hlel.
   setoid_rewrite Hy in Hler.
@@ -2165,7 +2168,7 @@ Definition rotDerivAtTime (t : Time) : Cart2D IR:=
 
  
 Lemma RotXYDerivLeSpeed : ∀ (t : Time) (ub : IR),
-  AbsIR ({transVel icreate} t) ≤ ub
+  AbsIR ({transVel ic} t) ≤ ub
   → XYAbs (rotDerivAtTime t) ≤ {|X:=ub; Y:=ub|} .
 Proof.
   intros ? ? Hb.
@@ -2204,7 +2207,7 @@ Qed.
 
 Lemma LeRotIntegSpeed : ∀ (a b : QTime) (ub : IR),
    a ≤ b
-  → (∀ (t:QTime), a ≤ t ≤ b → AbsIR ({transVel icreate} t) ≤ ub)
+  → (∀ (t:QTime), a ≤ t ≤ b → AbsIR ({transVel ic} t) ≤ ub)
   → XYAbs (rotOrgPosAtTime b - rotOrgPosAtTime a) 
       ≤ {|X:=ub* (b-a)%Q; Y:=ub* (b-a)%Q|} .
 Proof.
@@ -2217,7 +2220,7 @@ Qed.
 Lemma LeRotIntegSpeed2 : ∀ (a b : QTime) (tub : IR) (ub : IR),
    a ≤ b
   → Q2R (b - a)%Q ≤ tub
-  → (∀ (t:QTime), a ≤ t ≤ b → AbsIR ({transVel icreate} t) ≤ ub)
+  → (∀ (t:QTime), a ≤ t ≤ b → AbsIR ({transVel ic} t) ≤ ub)
   → XYAbs (rotOrgPosAtTime b - rotOrgPosAtTime a) 
       ≤ {|X:=ub* tub%Q; Y:=ub* tub%Q|} .
 Proof.
@@ -2233,7 +2236,7 @@ Qed.
 
 Lemma XYDerivEv0To1 : ∀ (t:QTime), 
   mt0 ≤ t ≤ mt1 
-  → AbsIR ({transVel icreate} t) ≤ QT2Q transErrRot.
+  → AbsIR ({transVel ic} t) ≤ QT2Q transErrRot.
 Proof.
   intros ? Hb.
   pose proof correctVel0to1 as H01.
@@ -2310,9 +2313,9 @@ Qed.
 Lemma SpeedEv1To2: 
   ∃ qtrans : QTime, (mt1 ≤ qtrans ≤ mt1 + reacTime) ∧
   (∀ t : QTime,
-       mt1 ≤ t ≤ qtrans → AbsIR ({transVel icreate} t) ≤ QT2Q transErrRot)
+       mt1 ≤ t ≤ qtrans → AbsIR ({transVel ic} t) ≤ QT2Q transErrRot)
   ∧ (∀ t:QTime, qtrans ≤ t ≤ mt2 
-        → AbsIR ({transVel icreate} t) ≤ 0).
+        → AbsIR ({transVel ic} t) ≤ 0).
 Proof.  
   pose proof correctVel1to2 as Hc.
   fold mt1 mt2 in Hc.
@@ -2469,7 +2472,7 @@ Lemma SpeedUbEv2To3 : ∀ (t:QTime),
   let t3 : QTime := MotorEventsNthTime 3 (decAuto (3<4)%nat I) in
   let t2 : QTime := MotorEventsNthTime 2 (decAuto (2<4)%nat I) in
   t2 ≤ t ≤ t3 
-  -> AbsIR ({transVel icreate} t)[<=](speed + transErrTrans)%Q.
+  -> AbsIR ({transVel ic} t)[<=](speed + transErrTrans)%Q.
 Proof.
   intros ? ? ? Hb.
   pose proof correctVel2to3 as Hc.
@@ -2524,7 +2527,7 @@ Proof.
   intros ? ? ? Hb.
   unfold YDerivRot.
   autounfold with IRMC TContRMC.
-  fold (theta icreate[-](ConstTContR optimalTurnAngle)).
+  fold (theta ic[-](ConstTContR optimalTurnAngle)).
   rewrite YDerivAtTime.
   rewrite AbsIR_resp_mult.
   rewrite mult_commut_unfolded.
@@ -2622,7 +2625,7 @@ Proof.
   intros ? ? ? Hb.
   unfold XDerivRot.
   autounfold with IRMC TContRMC.
-  fold (theta icreate[-](ConstTContR optimalTurnAngle)).
+  fold (theta ic[-](ConstTContR optimalTurnAngle)).
   rewrite XDerivAtTime.
   rewrite AbsIR_resp_mult.
   match goal with
@@ -2681,9 +2684,9 @@ Lemma SpeedLbEv2To3 :
   let t3 : QTime := MotorEventsNthTime 3 (decAuto (3<4)%nat I) in
   let t2 : QTime := MotorEventsNthTime 2 (decAuto (2<4)%nat I) in
   ∃ qtrans : QTime, (t2 <= qtrans <= t2 + reacTime)%Q ∧
-  (∀ t:QTime, t2 ≤ t ≤ qtrans →  0 ≤ ({transVel icreate} t))
+  (∀ t:QTime, t2 ≤ t ≤ qtrans →  0 ≤ ({transVel ic} t))
   ∧ (∀ t:QTime, qtrans ≤ t ≤ t3 →
-        Q2R (speed - transErrTrans)%Q [<=] ({transVel icreate} t)).
+        Q2R (speed - transErrTrans)%Q [<=] ({transVel ic} t)).
 Proof.
   intros ? ?.
   pose proof correctVel2to3 as Hc.
@@ -2735,7 +2738,7 @@ Proof.
   unfold XDerivRot.
   autounfold with IRMC TContRMC.
   unfold Le_instance_QTime, stdlib_rationals.Q_0.
-  fold (theta icreate[-](ConstTContR optimalTurnAngle)).
+  fold (theta ic[-](ConstTContR optimalTurnAngle)).
   split;[clear Hsrr | clear Hsrl]; intros t Hb.
 - rewrite XDerivAtTime.
   pose proof Hb as Hbb. apply Hsrl in Hb. clear Hsrl.
