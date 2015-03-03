@@ -19,6 +19,7 @@ Require Export LibTactics.
 (** printing CR $\mathbb{R}$ #CR# *)
 (** printing tr $t_r$ #tr# *)
 (** printing θErrTurn $\theta ErrTurn$ #θErrTurn# *)
+(** printing θErrTrans $\theta ErrTrans$ #θErrTrans# *)
 Require Export Vector.
 Require Export ROSCyberPhysicalSystem.
 
@@ -2551,9 +2552,7 @@ Qed.
 
 (** trivial simplification *)
 Lemma YDerivEv2To3_1 : ∀ (t:QTime), 
-  let t3 : QTime := MotorEventsNthTime 3 (decAuto (3<4)%nat I) in
-  let t2 : QTime := MotorEventsNthTime 2 (decAuto (2<4)%nat I) in
-  t2 ≤ t ≤ t3 
+  mt2 ≤ t ≤ mt3 
   → AbsIR ({YDerivRot} t [-] [0]) 
       ≤   (Sin (θErrTrans + θErrTurn)) * (speed + transErrTrans)%Q.
 Proof.
@@ -2565,15 +2564,11 @@ Qed.
 
 
 Lemma YChangeEv2To3 :
-  let t3 : QTime := MotorEventsNthTime 3 (decAuto (3<4)%nat I) in
-  let t2 : QTime := MotorEventsNthTime 2 (decAuto (2<4)%nat I) in
-  AbsIR ({Y rotOrigininPos} t3 [-] {Y rotOrigininPos} t2) 
-      ≤   Q2R (t3 - t2)%Q * ((Sin (θErrTrans + θErrTurn))
+  AbsIR ({Y rotOrigininPos} mt3 [-] {Y rotOrigininPos} mt2) 
+      ≤   Q2R (mt3 - mt2)%Q * ((Sin (θErrTrans + θErrTurn))
                        * (speed + transErrTrans)%Q).
 Proof.
-  intros ? ?.
   pose proof (YDerivEv2To3_1) as Hyd.
-  fold t2 t3 in Hyd.
   apply (TDerivativeAbsQ (Y rotOrigininPos)) in Hyd;
     eauto 2 with ICR;
     [|apply MotorEventsNthTimeInc; omega].
@@ -2590,9 +2585,7 @@ Qed.
     So does [θErrTrans]. 
     One can unfold Ev23TimeGapUB and cancel out some terms. *)
 Lemma YChangeEv2To3_2 :
-  let t3 : QTime := MotorEventsNthTime 3 (decAuto (3<4)%nat I) in
-  let t2 : QTime := MotorEventsNthTime 2 (decAuto (2<4)%nat I) in
-  AbsIR ({Y rotOrigininPos} t3 [-] {Y rotOrigininPos} t2) 
+  AbsIR ({Y rotOrigininPos} mt3 [-] {Y rotOrigininPos} mt2) 
       ≤  Ev23TimeGapUB  * ((Sin (θErrTrans + θErrTurn))
                        * (speed + transErrTrans)%Q).
 Proof.
@@ -2600,13 +2593,93 @@ Proof.
   pose proof (YChangeEv2To3) as Hyd.
   cbv zeta in Hyd.
   eapply leEq_transitive;[apply Hyd|].
-  fold t2 t3. clear Hyd.
+  clear Hyd.
   apply mult_resp_leEq_rht;[apply MotorEv23Gap2_3; fail|].
   eapply leEq_transitive;[apply AbsIR_nonneg| apply YDerivEv2To3].
   instantiate (1:=MotorEventsNthTime 2 (decAuto (2 < 4)%nat I)).
   unfold le, Le_instance_QTime.
   split;[reflexivity|].
   apply MotorEventsNthTimeInc. omega.
+Qed.
+
+Lemma qpCancel  : ∀ (q : Qpos) (r: IR),
+  (inj_Q IR (QposAsQ q)) [*] r [*] (inj_Q IR (/q)%Q) [=] r.
+Proof.
+  intros.
+  symmetry.
+  autounfold with IRMC.
+  rewrite  mult_commut_unfolded, mult_assoc_unfolded.
+  rewrite <- inj_Q_mult.
+  match goal with
+  [|- _ [=] ?r ] => remember r as rr
+  end.
+  rewrite <- mult_one.
+  rewrite  mult_commut_unfolded.
+  subst rr.
+  apply mult_wdl.
+  rewrite <- inj_Q_One.
+  apply inj_Q_wd.
+  simpl. destruct q as [qq qp].
+  simpl. field.
+  lra.
+Qed.
+
+
+Lemma YChangeEv2To3_3 :
+  AbsIR ({Y rotOrigininPos} mt3 [-] {Y rotOrigininPos} mt2) 
+      ≤ (Sin (θErrTrans + θErrTurn) * 
+        ((CRasIR (|targetPos |) + distPrec) 
+          + Ev23TimeGapUB * QT2R transErrTrans
+          + Q2R speed * E2EDelVar)).
+Proof.
+  intros.
+  pose proof (YChangeEv2To3_2) as Hyd.
+  cbv zeta in Hyd.
+  eapply leEq_transitive;[apply Hyd|].
+  clear Hyd.
+  apply eqImpliesLeEq.
+  unfold Ev23TimeGapUB.
+  unfoldMC. autounfold with IRMC.
+  rewrite mult_commut_unfolded, <- mult_assoc_unfolded.
+  apply mult_wdr.
+  unfold QT2R, Q2R.
+  rewrite inj_Q_plus.
+  ring_simplify.
+  rewrite qpCancel.
+  rewrite qpCancel.
+  ring_simplify.
+  autorewrite with InjQDown.
+  apply plus_resp_eq.
+  reflexivity.
+Qed.
+
+Definition ErrY': IR := (QT2R transErrRot * (QT2R reacTime + Ev01TimeGapUB))
++ (Sin (θErrTrans + θErrTurn) * ((CRasIR (|targetPos |) + distPrec) + Ev23TimeGapUB * QT2R transErrTrans + Q2R speed * E2EDelVar)).
+
+Lemma Ev3Y' : AbsIR ({Y rotOrigininPos} mt3)  ≤ ErrY'.
+Proof.
+  pose proof YChangeEv2To3_3 as Ha.
+  pose proof PosRotAxisAtEV2 as Hb.
+  apply proj2 in Hb.
+  unfold XYAbs in Hb.
+  Local Opaque rotOrigininPos.
+  simpl in Hb.
+  apply AbsIR_imp_AbsSmall in Hb.
+  apply AbsIR_imp_AbsSmall in Ha.
+  pose proof (AbsSmall_plus _ _ _ _ _ Hb Ha) as Hadd.
+  clear Ha Hb.
+  match type of Hadd with
+    AbsSmall ?l _ => remember l as ll
+  end.
+  autounfold with IRMC in Hadd.
+  unfold cg_minus in Hadd.
+  Local Opaque Sin.
+  simpl in Hadd. ring_simplify in Hadd.
+  apply AbsSmall_imp_AbsIR in Hadd.
+  eapply leEq_transitive;[apply Hadd|].
+  subst ll. clear.
+  apply eqImpliesLeEq.
+  unfold ErrY'. reflexivity.
 Qed.
 
 
