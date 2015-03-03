@@ -1893,7 +1893,7 @@ Definition Ev23TimeGapUB : IR :=
   ((CRasIR ((|targetPos|)) + distPrec) * (Qinv speed))
   + E2EDelVar.
 
-Definition θErrTrnsl : IR :=
+Definition θErrTrans : IR :=
 (QT2R rotErrTrans) * Ev23TimeGapUB.
 
 Lemma MotorEv23Gap2_2 :
@@ -2013,11 +2013,11 @@ Lemma ThetaEv2To3_2 :
   let t3 : QTime := MotorEventsNthTime 3 (decAuto (3<4)%nat I) in
   let t2 : QTime := MotorEventsNthTime 2 (decAuto (2<4)%nat I) in
   ∀ (t : QTime),  t2 ≤ t ≤ t3
-      → AbsIR ({theta ic} t[-]θ2)[<=]θErrTrnsl.
+      → AbsIR ({theta ic} t[-]θ2)[<=]θErrTrans.
 Proof.
   intros ? ? ? Hb. apply ThetaEv2To3 in Hb.
   fold t2 t3 in Hb.
-  unfold θErrTrnsl.
+  unfold θErrTrans.
   rewrite inj_Q_mult in Hb.
   eapply leEq_transitive;[apply Hb|].
   eapply mult_resp_leEq_lft;[| eauto with ROSCOQ; fail].
@@ -2027,7 +2027,7 @@ Qed.
 Lemma ThetaEv2To3_3 :
   ∀ (t : QTime),  mt2 ≤ t ≤ mt3
       → AbsIR ({theta ic} t[-]optimalTurnAngle)
-        ≤ θErrTrnsl + θErrTurn.
+        ≤ θErrTrans + θErrTurn.
 Proof.
   intros ? Hb. apply ThetaEv2To3_2 in Hb.
   pose proof ThetaAtEV2 as Ht.
@@ -2046,7 +2046,7 @@ Proof.
 Qed.
 
 Lemma ThetaEv2To3P : ∀ (t : QTime),  mt2 ≤ t ≤ mt3 
-  → |{theta ic} t - idealDirection| ≤ θErrTrnsl + θErrTurn.
+  → |{theta ic} t - idealDirection| ≤ θErrTrans + θErrTurn.
 Proof.
   apply ThetaEv2To3_3.
 Qed.
@@ -2422,14 +2422,14 @@ Proof.
   ring.
 Qed.
 
-(* consider changing types of [θErrTrnsl]
+(* consider changing types of [θErrTrans]
     and [θErrTurn] to [Qpos]*)
 Variable ThetaErrLe90 :
-   θErrTrnsl + θErrTurn ≤  ('½) * π.
+   θErrTrans + θErrTurn ≤  ('½) * π.
 
 
 Lemma ThetaErrLe90IR :
-   θErrTrnsl + θErrTurn ≤ Pi [/]TwoNZ.
+   θErrTrans + θErrTurn ≤ Pi [/]TwoNZ.
 Proof.
   rewrite <- PiBy2NoMC.
   assumption.
@@ -2438,7 +2438,7 @@ Qed.
 Hint Resolve ThetaErrLe90IR : ICR.
 
 Lemma ThetaErrGe0:
-   [0] [<=] θErrTrnsl + θErrTurn.
+   [0] [<=] θErrTrans + θErrTurn.
 Proof.
   pose proof (ThetaEv2To3_3 
       (MotorEventsNthTime 2 (decAuto (2 < 4)%nat I))) as H.
@@ -2449,7 +2449,7 @@ Proof.
 Qed.
 
 Lemma CosThetaErrGe0:
-   [0] [<=] Cos (θErrTrnsl + θErrTurn).
+   [0] [<=] Cos (θErrTrans + θErrTurn).
 Proof.
   apply Cos_nonneg.
   - eauto using leEq_transitive, MinusPiBy2Le0, ThetaErrGe0.
@@ -2459,7 +2459,7 @@ Qed.
 Hint Resolve ThetaErrGe0 CosThetaErrGe0 : ICR.
 
 Lemma ThetaErrLe1180 : 
-  θErrTrnsl + θErrTurn ≤  π.
+  θErrTrans + θErrTurn ≤  π.
 Proof.
   rewrite PiBy2NoMC in ThetaErrLe90.
   eapply leEq_transitive;[apply ThetaErrLe90 |].
@@ -2526,7 +2526,7 @@ Lemma YDerivEv2To3 : ∀ (t:QTime),
   let t2 : QTime := MotorEventsNthTime 2 (decAuto (2<4)%nat I) in
   t2 ≤ t ≤ t3 
   → AbsIR ({YDerivRot} t) 
-      ≤   (Sin (θErrTrnsl + θErrTurn)) * (speed + transErrTrans)%Q.
+      ≤   (Sin (θErrTrans + θErrTurn)) * (speed + transErrTrans)%Q.
 Proof.
   intros ? ? ? Hb.
   unfold YDerivRot.
@@ -2555,7 +2555,7 @@ Lemma YDerivEv2To3_1 : ∀ (t:QTime),
   let t2 : QTime := MotorEventsNthTime 2 (decAuto (2<4)%nat I) in
   t2 ≤ t ≤ t3 
   → AbsIR ({YDerivRot} t [-] [0]) 
-      ≤   (Sin (θErrTrnsl + θErrTurn)) * (speed + transErrTrans)%Q.
+      ≤   (Sin (θErrTrans + θErrTurn)) * (speed + transErrTrans)%Q.
 Proof.
   intros.
   rewrite cg_inv_zero.
@@ -2568,7 +2568,7 @@ Lemma YChangeEv2To3 :
   let t3 : QTime := MotorEventsNthTime 3 (decAuto (3<4)%nat I) in
   let t2 : QTime := MotorEventsNthTime 2 (decAuto (2<4)%nat I) in
   AbsIR ({Y rotOrigininPos} t3 [-] {Y rotOrigininPos} t2) 
-      ≤   Q2R (t3 - t2)%Q * ((Sin (θErrTrnsl + θErrTurn))
+      ≤   Q2R (t3 - t2)%Q * ((Sin (θErrTrans + θErrTurn))
                        * (speed + transErrTrans)%Q).
 Proof.
   intros ? ?.
@@ -2587,13 +2587,13 @@ Qed.
 (** Whis this spec is totally in terms of the parameters,
     it does not clarify how ttanslation speed matters, because 
     [Ev23TimeGapUB] has terms that depend on speed.
-    So does [θErrTrnsl]. 
+    So does [θErrTrans]. 
     One can unfold Ev23TimeGapUB and cancel out some terms. *)
 Lemma YChangeEv2To3_2 :
   let t3 : QTime := MotorEventsNthTime 3 (decAuto (3<4)%nat I) in
   let t2 : QTime := MotorEventsNthTime 2 (decAuto (2<4)%nat I) in
   AbsIR ({Y rotOrigininPos} t3 [-] {Y rotOrigininPos} t2) 
-      ≤  Ev23TimeGapUB  * ((Sin (θErrTrnsl + θErrTurn))
+      ≤  Ev23TimeGapUB  * ((Sin (θErrTrans + θErrTurn))
                        * (speed + transErrTrans)%Q).
 Proof.
   intros.
@@ -2728,7 +2728,7 @@ Lemma XDerivLBEv2To3 :
   ∃ qtrans : QTime, (mt2 <= qtrans <= mt2 + reacTime)%Q ∧
   (∀ t:QTime, mt2 ≤ t ≤ qtrans →  0 ≤ ({XDerivRot} t))
   ∧ (∀ t:QTime, qtrans ≤ t ≤ mt3 →
-        (Cos (θErrTrnsl + θErrTurn)) * (speed - transErrTrans)%Q 
+        (Cos (θErrTrans + θErrTurn)) * (speed - transErrTrans)%Q 
           [<=] (({XDerivRot} t))).
 Proof.
   pose proof SpeedLbEv2To3 as Hs.
@@ -2772,7 +2772,7 @@ Qed.
 
 Lemma XChangeLBEv2To3 :
   ∃ qtrans : QTime,  (mt2 <= qtrans <= mt2 + reacTime)%Q
-  ∧ (Cos (θErrTrnsl + θErrTurn) 
+  ∧ (Cos (θErrTrans + θErrTurn) 
         * (speed - transErrTrans)%Q 
         * (mt3 - qtrans)%Q)
       ≤  ({X rotOrigininPos} mt3 [-] {X rotOrigininPos} mt2).
@@ -2803,7 +2803,7 @@ Qed.
 Lemma XChangeLBEv2To3_2 :
   let t3 : QTime := MotorEventsNthTime 3 (decAuto (3<4)%nat I) in
   let t2 : QTime := MotorEventsNthTime 2 (decAuto (2<4)%nat I) in
-  (Cos (θErrTrnsl + θErrTurn) 
+  (Cos (θErrTrans + θErrTurn) 
       * (speed - transErrTrans)%Q 
       * (Ev23TimeGapLB - QT2Q reacTime))
   ≤  ({X rotOrigininPos} t3 [-] {X rotOrigininPos} t2).
