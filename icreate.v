@@ -2025,13 +2025,11 @@ Proof.
 Qed.
 
 Lemma ThetaEv2To3_3 :
-  let t3 : QTime := MotorEventsNthTime 3 (decAuto (3<4)%nat I) in
-  let t2 : QTime := MotorEventsNthTime 2 (decAuto (2<4)%nat I) in
-  ∀ (t : QTime),  t2 ≤ t ≤ t3
+  ∀ (t : QTime),  mt2 ≤ t ≤ mt3
       → AbsIR ({theta ic} t[-]optimalTurnAngle)
         ≤ θErrTrnsl + θErrTurn.
 Proof.
-  intros ? ? ? Hb. apply ThetaEv2To3_2 in Hb.
+  intros ? Hb. apply ThetaEv2To3_2 in Hb.
   pose proof ThetaAtEV2 as Ht.
   cbv zeta in Ht.
   
@@ -2045,6 +2043,12 @@ Proof.
   unfold cg_minus in Hadd.
   ring_simplify in Hadd.
   assumption.
+Qed.
+
+Lemma ThetaEv2To3P : ∀ (t : QTime),  mt2 ≤ t ≤ mt3 
+  → |{theta ic} t - idealDirection| ≤ θErrTrnsl + θErrTurn.
+Proof.
+  apply ThetaEv2To3_3.
 Qed.
 
 Lemma MotorEventsNthTimeIncIR:
@@ -2721,17 +2725,14 @@ Proof.
 Qed.
 
 Lemma XDerivLBEv2To3 : 
-  let t3 : QTime := MotorEventsNthTime 3 (decAuto (3<4)%nat I) in
-  let t2 : QTime := MotorEventsNthTime 2 (decAuto (2<4)%nat I) in
-  ∃ qtrans : QTime, (t2 <= qtrans <= t2 + reacTime)%Q ∧
-  (∀ t:QTime, t2 ≤ t ≤ qtrans →  0 ≤ ({XDerivRot} t))
-  ∧ (∀ t:QTime, qtrans ≤ t ≤ t3 →
+  ∃ qtrans : QTime, (mt2 <= qtrans <= mt2 + reacTime)%Q ∧
+  (∀ t:QTime, mt2 ≤ t ≤ qtrans →  0 ≤ ({XDerivRot} t))
+  ∧ (∀ t:QTime, qtrans ≤ t ≤ mt3 →
         (Cos (θErrTrnsl + θErrTurn)) * (speed - transErrTrans)%Q 
           [<=] (({XDerivRot} t))).
 Proof.
-  intros ? ?.
   pose proof SpeedLbEv2To3 as Hs.
-  fold t2 t3 in Hs.
+  fold mt2 mt3 in Hs.
   cbv zeta in Hs. destruct Hs as [qtrans Hs].
   exists qtrans. repnd.
   split;[split;assumption|].
@@ -2749,15 +2750,14 @@ Proof.
   clear Hb.
   apply Cos_nonnegAbs.
   eapply leEq_transitive;[apply ThetaEv2To3_3| apply ThetaErrLe90IR].
-  fold t2 t3.
   unfold le, Le_instance_QTime.
   repnd. split; try lra.
   pose proof MotorEventsNthTimeReac.
-  assert ((t2 + reacTime < t3)%Q) 
+  assert ((mt2 + reacTime < mt3)%Q) 
     as Hassumption by (apply MotorEventsNthTimeReac; omega).
    lra.
 - rewrite XDerivAtTime.
-  assert ((t2 <= t <= t3)%Q) as Hbb by lra.
+  assert ((mt2 <= t <= mt3)%Q) as Hbb by lra.
   apply Hsrr in Hb.
   clear Hsrr.
   rewrite mult_commut_unfolded.
@@ -2771,33 +2771,30 @@ Proof.
 Qed.
 
 Lemma XChangeLBEv2To3 :
-  let t3 : QTime := MotorEventsNthTime 3 (decAuto (3<4)%nat I) in
-  let t2 : QTime := MotorEventsNthTime 2 (decAuto (2<4)%nat I) in
-  ∃ qtrans : QTime,  (t2 <= qtrans <= t2 + reacTime)%Q
+  ∃ qtrans : QTime,  (mt2 <= qtrans <= mt2 + reacTime)%Q
   ∧ (Cos (θErrTrnsl + θErrTurn) 
         * (speed - transErrTrans)%Q 
-        * (t3 - qtrans)%Q)
-      ≤  ({X rotOrigininPos} t3 [-] {X rotOrigininPos} t2).
+        * (mt3 - qtrans)%Q)
+      ≤  ({X rotOrigininPos} mt3 [-] {X rotOrigininPos} mt2).
 Proof.
-  intros ? ?.
   pose proof XDerivLBEv2To3 as H.
   cbv zeta in H.
   destruct H as [qtrans H]. exists qtrans.
-  fold t2 t3 in H. repnd.
+  repnd.
   split;[split;assumption|].
   match goal with
-  [|- ?l ≤ _] => assert (l [=] l [+] [0] [*] (Q2R(qtrans -t2)%Q))
+  [|- ?l ≤ _] => assert (l [=] l [+] [0] [*] (Q2R(qtrans -mt2)%Q))
         as Heq by ring
   end.
   rewrite <- inj_Q_Zero in Heq.
   rewrite Heq. clear Heq.
-  assert ({X rotOrigininPos} t3[-]{X rotOrigininPos} t2
+  assert ({X rotOrigininPos} mt3[-]{X rotOrigininPos} mt2
           [=]
-          ({X rotOrigininPos} t3[-]{X rotOrigininPos} qtrans)
-          [+]({X rotOrigininPos} qtrans [-]{X rotOrigininPos} t2))
+          ({X rotOrigininPos} mt3[-]{X rotOrigininPos} qtrans)
+          [+]({X rotOrigininPos} qtrans [-]{X rotOrigininPos} mt2))
      as Heq by (unfold cg_minus; ring).
   rewrite Heq. clear Heq.
-  assert ((t2 + reacTime < t3)%Q) 
+  assert ((mt2 + reacTime < mt3)%Q) 
     as Hassumption by (apply MotorEventsNthTimeReac; omega).
   apply plus_resp_leEq_both;
   eapply TDerivativeLBQ; eauto 2 with ICR; try lra.
@@ -2817,7 +2814,7 @@ Proof.
   repnd.
   eapply leEq_transitive;[|apply Hdr].
   apply mult_resp_leEq_lft.
-- assert (t3-t2-reacTime <=(t3 - qtrans))%Q as Hle by lra.
+- assert (mt3-mt2-reacTime <=(mt3 - qtrans))%Q as Hle by lra.
   apply (inj_Q_leEq IR) in Hle.
   eapply leEq_transitive;[|apply Hle].
   rewrite inj_Q_minus.
