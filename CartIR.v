@@ -31,6 +31,10 @@ Proof.
 Qed.
 
 
+Lemma cgminus_Qminus : forall (a b : Q),
+  (a-b) ≡ a[-]b.
+  reflexivity.
+Qed.
 
 Require Import Psatz.
 
