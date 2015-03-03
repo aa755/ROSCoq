@@ -1467,6 +1467,22 @@ Proof.
   apply qtimePos.
 Qed.
 
+Lemma TDerivativeAbsQ0 :forall (F F' : TContR)
+   (ta tb : QTime) (Hab : (ta <= tb)%Q) (eps: ℝ),
+   isDerivativeOf F' F
+   -> (forall (t:QTime), (ta <= t <= tb)%Q -> AbsIR ({F'} t) [<=] eps)
+   -> AbsIR({F} tb[-] {F} ta) [<=] eps [*] (tb - ta)%Q.
+Proof.
+  intros ? ? ? ? ? ? ? Hub.
+  assert (∀ t : QTime, (ta <= t <= tb)%Q → AbsIR ({F'} t [-] [0])[<=]eps)
+    as Has by (intros; autorewrite with CoRN; auto).
+  clear Hub.
+  eapply TDerivativeAbsQ in Has; eauto.
+  autorewrite with CoRN in Has.
+  assumption.
+Qed.
+
+
 (*
 Lemma changesToDeriv0EpsInteg :  ∀ (F' F: TContR)
   (atTime uptoTime reacTime : QTime)

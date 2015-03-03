@@ -32,7 +32,7 @@ Proof.
   - apply leEq_reflexive.
 Defined.
 
-
+Hint Rewrite cg_inv_zero : CoRN.
 
 Lemma cll : forall {a b}, a[<]b 
   -> (clcr a b) a.

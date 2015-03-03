@@ -184,6 +184,27 @@ Global Instance Proper_distSqr :
   reflexivity.
 Qed.
 
+
 End Cart2DRing.
+
+Global Instance Cart2D_instance_le `{Le A}: Le (Cart2D A) :=
+  λ p1 p2, (X p1 ≤ X p2) ∧ (Y p1 ≤ Y p2).
+
+Definition sameXY {A} (a:A) : Cart2D A :=
+  {|X :=a ; Y:= a|}.
+
+Global Instance hjfkhskajhfksh  `{Equiv A} : Proper 
+  (equiv ==> equiv ==> equiv) (@mkCart2D A).
+Proof.
+  intros ? ? Heq ? ? Hq.
+  split; simpl; trivial.
+Qed.
+
+Global Instance ProperSameXY `{Equiv A}:
+  Proper (equiv ==> equiv) (@sameXY A).
+  intros a b Heq.
+  split; auto.
+Qed.
+
 
 

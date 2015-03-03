@@ -1183,7 +1183,8 @@ Qed.
 Definition optimalTurnAngle : IR :=
   CRasIR (polarTheta targetPos).
 
-
+Definition idealDirection : IR :=
+  CRasIR (θ (Cart2Polar targetPos)).
 
 Lemma IR_inv_Qzero:
     ∀ (x : IR), x[-]0[=]x.
@@ -1193,12 +1194,8 @@ Proof.
   rewrite inj_Q_Zero.
   apply  cg_inv_zero.
 Qed.
-
-
   
 Local Transparent Q2R.
-
-
 
 Open Scope nat_scope.
 
@@ -1476,9 +1473,6 @@ Proof.
   apply QMinusShiftRLe in Hp.
   auto.
 Qed.
-
-
-
   
 (** rearrange the above to show relation to rotspeed 
     first line of errors is proportional to rotspeed
@@ -1588,8 +1582,6 @@ Proof.
   auto.
 Qed.
 
-
-
 Local Opaque Q2R.
 
 Definition θErrTurn : Q :=
@@ -1660,6 +1652,10 @@ Proof.
 Qed.
 
 
+Lemma ThetaAtEV2P : (|{theta icreate} mt2 - idealDirection|) ≤ Q2R θErrTurn.
+Proof.
+  apply ThetaAtEV2.
+Qed.
 
 Local Opaque Q2R.
   
@@ -1832,26 +1828,6 @@ Definition Ev23TimeGapUB : IR :=
 Definition θErrTrnsl : IR :=
 (QT2R rotErrTrans) * Ev23TimeGapUB.
 
-
-
-Lemma QposDivLe0 : ∀ (qp : Qpos),
-0[<=](/ qp)%Q.
-Proof.
-  intros.
-  destruct qp.
-  simpl. apply Qinv_le_0_compat.
-  lra.
-Qed.
-
-Lemma QposDivLe0IR : ∀ (qp : Qpos),
-[0][<=]Q2R (/ qp)%Q.
-Proof.
-  intros.
-  apply injQ_nonneg.
-  apply QposDivLe0.
-Qed.
-
-
 Lemma MotorEv23Gap2_2 :
   let t0 : QTime := MotorEventsNthTime 2 (decAuto (2<4)%nat I) in
   let t1 : QTime := MotorEventsNthTime 3 (decAuto (3<4)%nat I) in
@@ -1997,17 +1973,6 @@ Qed.
 Definition Ev23TimeGapLB : IR :=
   ((CRasIR ((|targetPos|)) - QposAsQ distPrec) * (Qinv speed))
   - E2EDelVar.
-
-Lemma QDivQopp : ∀ (a b: Q),
-  (-(a /b )== ((-a )/ b))%Q.
-Proof.
-  intros.
-  destruct (decide (b=0)) as [Hd|Hd].
-- rewrite Hd. destruct a.
-  unfoldMC. unfold Qdiv, Qinv. simpl.
-  ring.
-- field. assumption.
-Qed.
 
 
 Lemma MotorEv23GapLB :
@@ -2201,23 +2166,13 @@ Qed.
 Definition transErrRot
 := (rad (motorPrec {| rad := 0 ; θ := newVal |})).
 
-(* move to [CartIR.v] *)
-Definition XYAbs (pt : Cart2D IR) : Cart2D IR :=
-{| X:= AbsIR (X pt) ; Y:= AbsIR (Y pt)|}.
-
-(* move to Vector.v *)
-Instance Cart2D_instance_le `{Le A}: Le (Cart2D A) :=
-  λ p1 p2, (X p1 ≤ X p2) ∧ (Y p1 ≤ Y p2).
-
 
 Hint Resolve MotorEventsNthTimeIncSn : ICR.
 
 Definition rotDerivAtTime (t : Time) : Cart2D IR:=
   {|X:= {XDerivRot} t; Y:= {YDerivRot} t|}.
 
-  
-Hint Rewrite cg_inv_zero : CoRN.
-
+ 
 Lemma RotXYDerivLeSpeed : ∀ (t : Time) (ub : IR),
   AbsIR ({transVel icreate} t) ≤ ub
   → XYAbs (rotDerivAtTime t) ≤ {|X:=ub; Y:=ub|} .
@@ -2236,23 +2191,7 @@ Proof.
   [apply AbsIR_Cos_leEq_One|apply AbsIR_Sin_leEq_One].
 Qed.
 
-(* move to core.v *)
-Lemma TDerivativeAbsQ0 :forall (F F' : TContR)
-   (ta tb : QTime) (Hab : (ta <= tb)%Q) (eps: ℝ),
-   isDerivativeOf F' F
-   -> (forall (t:QTime), (ta <= t <= tb)%Q -> AbsIR ({F'} t) [<=] eps)
-   -> AbsIR({F} tb[-] {F} ta) [<=] eps [*] (tb - ta)%Q.
-Proof.
-  intros ? ? ? ? ? ? ? Hub.
-  assert (∀ t : QTime, (ta <= t <= tb)%Q → AbsIR ({F'} t [-] [0])[<=]eps)
-    as Has by (intros; autorewrite with CoRN; auto).
-  clear Hub.
-  eapply TDerivativeAbsQ in Has; eauto.
-  autorewrite with CoRN in Has.
-  assumption.
-Qed.
 
-(* move to CartIR.v? will need to generalize *)
 Lemma RotDerivInteg : ∀ (a b : QTime) (ubx uby : IR),
   a ≤ b
   → (∀ (t:QTime), 
@@ -2283,19 +2222,6 @@ Proof.
   intros.
   apply RotXYDerivLeSpeed; auto.
 Qed.
-
-Lemma Cart2D_instance_le_IRtransitive : ∀
-  (a b c : Cart2D IR),
-  a ≤ b
-  → b ≤ c
-  → a ≤ c.
-Proof.
-  intros ? ? ?  H1 H2.
-  destruct H1, H2.
-  split; eapply leEq_transitive; eauto.
-Qed.
-
-
 
 Lemma LeRotIntegSpeed2 : ∀ (a b : QTime) (tub : IR) (ub : IR),
    a ≤ b
@@ -2351,8 +2277,6 @@ Qed.
 
 Hint Rewrite AutoRWX0 AutoRWY0: ICR.
 
-Definition sameXY {A} (a:A) : Cart2D A :=
-  {|X :=a ; Y:= a|}.
 
 
 Lemma Zero_Instace_IR_mess :
@@ -2371,22 +2295,6 @@ Proof.
   unfold zero.
   rewrite Zero_Instace_IR_mess.
   split; reflexivity.
-Qed.
-
-Instance  : 
-  Proper (equiv ==> equiv ) XYAbs.
-  intros a b Heq.
-  split; simpl; rewrite Heq; auto.
-Qed.
-
-Instance ProperLeCartIR : Proper 
- (equiv ==> equiv ==> iff)
-(@le (Cart2D IR) _).
-Proof.
-  intros ? ? ? ? ? ?.
-  unfold le, Cart2D_instance_le.
-  rewrite H, H0.
-  tauto.
 Qed.
 
 Instance Cart2DIRZeroMess : (Zero (Cart2D IR)) 
@@ -2455,34 +2363,8 @@ Proof.
   reflexivity.
 Qed.
 
-Global Instance hjfkhskajhfksh  `{Equiv A} : Proper 
-  (equiv ==> equiv ==> equiv) (@mkCart2D A).
-Proof.
-  intros ? ? Heq ? ? Hq.
-  split; simpl; trivial.
-Qed.
 
 Hint Rewrite multZeroIRMC : CoRN.
-
-Lemma XYAbsLeAdd :
-  ∀ a b c d,
-    XYAbs a ≤ c
-    -> XYAbs b ≤ d
-    -> XYAbs (a+b) ≤ (c+d).
-Proof.
-  intros ? ? ? ? H1 H2.
-  destruct H1 as [H1x H1y].
-  destruct H2 as [H2x H2y].
-  simpl in H1x, H1y, H2x, H2y.
-  split; simpl;
-  apply AbsIR_plus; assumption.
-Qed.
-
-Instance ProperSameXY `{Equiv A}:
-  Proper (equiv ==> equiv) (@sameXY A).
-  intros a b Heq.
-  split; auto.
-Qed.
 
 
 Lemma PosRotAxisAtEV1to2 :
@@ -2520,14 +2402,6 @@ Proof.
   exact Hadd.
 Qed.
 
-(** move to Vector.v *)
-
-Lemma sameXYAdd  : ∀ (a b: IR),
-  sameXY a + sameXY b = sameXY (a + b).
-Proof.
-  intros.
-  split; simpl; reflexivity.
-Qed.
 
 Lemma PosRotAxisAtEV2 :
   XYAbs (rotOrgPosAtTime mt2) 
@@ -2740,17 +2614,6 @@ Qed.
 
 Hint Resolve injQ_nonneg : CoRN.
 
-Lemma QPQTQplusnNeg: ∀ sp qt,
-   (0<=(Qplus (QposAsQ sp) (QT2Q qt)))%Q.
-Proof.
-  intros.
-  destruct sp.
-  destruct qt as [? y].
-  simpl.
-  apply QTimeD in y.
-  lra.
-Qed.
-
 Hint Resolve QPQTQplusnNeg : ROSCOQ.
 
 Variable speedTransErrTrans : (0 <= speed - transErrTrans)%Q.
@@ -2758,39 +2621,6 @@ Variable speedTransErrTrans : (0 <= speed - transErrTrans)%Q.
 
 (** This proof can be generalized for even functions.
     Similarly, [AbsIRSin] can be generalized for odd functions *)
-Lemma CosEven2 : ∀ θ, 
-  AbsIR θ ≤ Pi [/]TwoNZ
-  -> Cos θ = Cos (AbsIR θ).
-Proof.
-  intros ? H.
-  pose proof (leEq_or_leEq _ θ [0]) as Hd.
-  apply not_ap_imp_eq.
-  intro Hc.
-  apply Hd.
-  clear Hd. intro Hd.
-  apply ap_tight in Hc;[contradiction|].
-  repnd.
-  destruct Hd as [c|].
-- rewrite AbsIR_eq_inv_x;[|assumption].
-  rewrite Cos_inv. reflexivity.
-- rewrite AbsIR_eq_x; [|assumption].
-  reflexivity.
-Qed.
-
-Lemma AbsIRCos : ∀ θ, 
-  AbsIR θ ≤ Pi [/]TwoNZ
-  -> AbsIR (Cos θ) = Cos (AbsIR θ).
-Proof.
-  intros ? Hb.
-  rewrite <- CosEven2 by assumption.
-  apply AbsIR_imp_AbsSmall in Hb.
-  unfold AbsSmall in Hb.
-  repnd.
-  eapply Cos_nonneg in Hbl; eauto.
-  rewrite AbsIR_eq_x;[| assumption].
-  reflexivity.
-Qed.
-
   
 Lemma XDerivEv2To3UBAux : ∀ (t:QTime), 
   let t3 : QTime := MotorEventsNthTime 3 (decAuto (3<4)%nat I) in
@@ -3006,7 +2836,6 @@ Proof.
 - apply mult_resp_nonneg; eauto 1 with ICR;[].
   apply injQ_nonneg. simpl. assumption.
 Qed.
-
 
 Lemma Liveness :
   ∃ (ts : QTime), ∀ (t : QTime), 

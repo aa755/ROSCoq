@@ -81,6 +81,33 @@ Proof.
   intros.
   lra.
 Qed.
+Lemma QposDivLe0 : ∀ (qp : Qpos),
+0[<=](/ qp)%Q.
+Proof.
+  intros.
+  destruct qp.
+  simpl. apply Qinv_le_0_compat.
+  lra.
+Qed.
+
+Lemma QposDivLe0IR : ∀ (qp : Qpos),
+[0][<=]Q2R (/ qp)%Q.
+Proof.
+  intros.
+  apply injQ_nonneg.
+  apply QposDivLe0.
+Qed.
+
+Lemma QDivQopp : forall (a b: Q),
+  (-(a /b )== ((-a )/ b))%Q.
+Proof.
+  intros.
+  destruct (decide (b=0)) as [Hd|Hd].
+- rewrite Hd. destruct a.
+  unfoldMC. unfold Qdiv, Qinv. simpl.
+  ring.
+- field. assumption.
+Qed.
 
 Lemma AbsIRQpos : ∀ (qp : Qpos),
   AbsIR qp [=] qp.
@@ -156,6 +183,7 @@ Proof.
   apply Cos_nonneg; assumption.
 Qed.
   
+
 
 Lemma TimeRangeShortenL :
   ∀ (a b t : Q) (qt : QTime),
@@ -312,7 +340,7 @@ Qed.
 Definition ConstTContR :=
   (ContConstFun (closel [0]) I).
 
-Instance Proper_instance_ConstTContR :
+Global Instance Proper_instance_ConstTContR :
   Proper (@st_eq IR  ==> @st_eq TContR) ConstTContR.
 Proof.
   intros ? ? Heq ?.
@@ -332,6 +360,69 @@ Definition rotateOriginTowardsF
 Definition CartFunEta (ptf : Cart2D TContR) (t:Time) : Cart2D IR :=
 {|X:= {X ptf} t ; Y:= {Y ptf} t|}.
 
+
+Definition XYAbs (pt : Cart2D IR) : Cart2D IR :=
+{| X:= AbsIR (X pt) ; Y:= AbsIR (Y pt)|}.
+
+Lemma Cart2D_instance_le_IRtransitive : ∀
+  (a b c : Cart2D IR),
+  a ≤ b
+  → b ≤ c
+  → a ≤ c.
+Proof.
+  intros ? ? ?  H1 H2.
+  destruct H1, H2.
+  split; eapply leEq_transitive; eauto.
+Qed.
+
+Local Opaque AbsIR.
+Global Instance  : 
+  Proper (equiv ==> equiv ) XYAbs.
+  intros a b Heq.
+  split; simpl; rewrite Heq; auto.
+Qed.
+
+Global Instance ProperLeCartIR : Proper 
+ (equiv ==> equiv ==> iff)
+(@le (Cart2D IR) _).
+Proof.
+  intros ? ? ? ? ? ?.
+  unfold le, Cart2D_instance_le.
+  rewrite H, H0.
+  tauto.
+Qed.
+
+Lemma XYAbsLeAdd :
+  ∀ a b c d,
+    XYAbs a ≤ c
+    -> XYAbs b ≤ d
+    -> XYAbs (a+b) ≤ (c+d).
+Proof.
+  intros ? ? ? ? H1 H2.
+  destruct H1 as [H1x H1y].
+  destruct H2 as [H2x H2y].
+  simpl in H1x, H1y, H2x, H2y.
+  split; simpl;
+  apply AbsIR_plus; assumption.
+Qed.
+
+Lemma sameXYAdd  : ∀ (a b: IR),
+  sameXY a + sameXY b = sameXY (a + b).
+Proof.
+  intros.
+  split; simpl; reflexivity.
+Qed.
+
+Lemma QPQTQplusnNeg: ∀ sp qt,
+   (0<=(Qplus (QposAsQ sp) (QT2Q qt)))%Q.
+Proof.
+  intros.
+  destruct sp.
+  destruct qt as [? y].
+  simpl.
+  apply QTimeD in y.
+  lra.
+Qed.
 
 Lemma rotateOriginTowardsFAp : ∀
   (XTowards : Cart2D IR)
