@@ -19,6 +19,7 @@ Require Export LibTactics.
 (** printing CR $\mathbb{R}$ #CR# *)
 (** printing tr $t_r$ #tr# *)
 (** printing θErrTurn $\theta ErrTurn$ #θErrTurn# *)
+(** remove printing * *)
 (** printing θErrTrans $\theta ErrTrans$ #θErrTrans# *)
 Require Export Vector.
 Require Export ROSCyberPhysicalSystem.
@@ -2653,8 +2654,19 @@ Proof.
   reflexivity.
 Qed.
 
-Definition ErrY': IR := (QT2R transErrRot * (QT2R reacTime + Ev01TimeGapUB))
-+ (Sin (θErrTrans + θErrTurn) * ((CRasIR (|targetPos |) + distPrec) + Ev23TimeGapUB * QT2R transErrTrans + Q2R speed * E2EDelVar)).
+Lemma transErrRotEq :
+  (eeev 0 ω) = transErrRot.
+reflexivity.
+Qed.
+
+Lemma transErrTransEq :
+  (eeev speed 0) = transErrTrans.
+reflexivity.
+Qed.
+
+
+Definition ErrY': IR :=  '(eeev 0 ω) * (QT2R reacTime + Ev01TimeGapUB)
++ (Sin (θErrTrans + θErrTurn) * ((CRasIR (|targetPos |) + distPrec) + Ev23TimeGapUB * '(eeev speed 0) + (Q2R speed) * E2EDelVar)).
 
 Lemma Ev3Y' : AbsIR ({Y rotOrigininPos} mt3)  ≤ ErrY'.
 Proof.
@@ -2679,7 +2691,7 @@ Proof.
   eapply leEq_transitive;[apply Hadd|].
   subst ll. clear.
   apply eqImpliesLeEq.
-  unfold ErrY'. reflexivity.
+  reflexivity.
 Qed.
 
 
