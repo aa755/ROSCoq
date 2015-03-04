@@ -2666,7 +2666,7 @@ Qed.
 
 
 Definition ErrY': IR :=  '(eeev 0 ω) * (QT2R reacTime + Ev01TimeGapUB)
-+ (Sin (θErrTrans + θErrTurn) * ((CRasIR (|targetPos |) + distPrec) + Ev23TimeGapUB * '(eeev speed 0) + (Q2R speed) * E2EDelVar)).
++ (Sin (θErrTrans + θErrTurn)) * (CRasIR (|targetPos |) + distPrec + Ev23TimeGapUB * '(eeev speed 0) + (Q2R speed) * E2EDelVar).
 
 Lemma Ev3Y' : AbsIR ({Y rotOrigininPos} mt3)  ≤ ErrY'.
 Proof.
