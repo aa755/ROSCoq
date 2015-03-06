@@ -2920,3 +2920,30 @@ Abort.
 
 End iCREATECPS.
 End RobotProgam.
+
+
+Definition rotSpeedRadPerSec : Qpos := QposMake 1 10.
+
+Definition speedMetresPerSec : Qpos := QposMake 1 10.
+
+Definition anglePrecRadPerSec : Qpos := QposMake 1 100.
+
+Definition distPrecRadPerSec : Qpos := QposMake 1 100.
+
+Definition distSec : Qpos := QposMake 5 1.
+
+Definition robotProgramInstance : Cart2D Q → list (Q ** Polar2D Q) :=
+  robotPureProgam 
+          rotSpeedRadPerSec 
+          speedMetresPerSec
+          anglePrecRadPerSec
+          distPrecRadPerSec
+          distSec.
+
+Definition target1Metres := {|X:= Qmake 1 2 ; Y:=  Qmake 1 2|}.
+
+
+Lemma trial1 : robotProgramInstance target1Metres ≡ [].
+vm_compute.
+Abort.
+
