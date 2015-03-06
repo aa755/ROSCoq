@@ -197,6 +197,8 @@ Require Export CanonicalNotations.
 Instance CRsqrt_SqrtFun_instance : SqrtFun CR CR := CRsqrt.
 Instance rational_sqrt_SqrtFun_instance : SqrtFun Q CR 
     := rational_sqrt.
+Instance : NormSpace CR CR := CRabs.
+
 
 Ltac QRing_simplify :=
     repeat match goal with
@@ -478,6 +480,35 @@ Instance CR_Half_instance : HalfNum CR := (inject_Q_CR (1#2)).
 
 Close Scope Q_scope.
 
+Require Import Ring. 
+Require Import CoRN.tactics.CornTac.
+Require Import CoRN.algebra.CRing_as_Ring.
+
+Add Ring RisaRing: (CRing_Ring IR).
+
+
+Lemma Cos_minus_Pi : ∀ θ : IR, Cos (θ[-]Pi)[=][--](Cos θ).
+Proof.
+  intros.
+  rewrite <-Cos_periodic.
+  rewrite <- Cos_plus_Pi.
+  apply Cos_wd.
+  rewrite <-one_plus_one.
+  unfold cg_minus.
+  ring.
+Qed.
+
+Lemma Sin_minus_Pi : ∀ θ : IR, Sin (θ[-]Pi)[=][--](Sin θ).
+Proof.
+  intros.
+  rewrite <-Sin_periodic.
+  rewrite <- Sin_plus_Pi.
+  apply Sin_wd.
+  rewrite <-one_plus_one.
+  unfold cg_minus.
+  ring.
+Qed.
+
 Lemma CRCos_plus_Pi: ∀θ , cos (θ + π) = - (cos θ).
   intros θ.
   pose proof (Pi.Cos_plus_Pi (CRasIR θ)) as Hc.
@@ -494,6 +525,37 @@ Lemma CRSin_plus_Pi: ∀ θ : CR, sin (θ + π) = (- sin θ).
   autorewrite with IRtoCR in Hc.
   rewrite CRasIRasCR_id in Hc.
   exact Hc.
+Qed.
+
+Lemma CRCos_minus_Pi: ∀θ , cos (θ - π) = - (cos θ).
+  intros θ.
+  pose proof (Cos_minus_Pi (CRasIR θ)) as Hc.
+  apply IRasCR_wd in Hc.
+  autorewrite with IRtoCR in Hc.
+  rewrite CRasIRasCR_id in Hc.
+  exact Hc.
+Qed.
+
+Lemma CRSin_minus_Pi: ∀ θ : CR, sin (θ - π) = (- sin θ).
+  intros x.
+  pose proof (Sin_minus_Pi (CRasIR x)) as Hc.
+  apply IRasCR_wd in Hc.
+  autorewrite with IRtoCR in Hc.
+  rewrite CRasIRasCR_id in Hc.
+  exact Hc.
+Qed.
+
+Definition QSign `{Negate A} (q : Q) (a:A) : A :=
+  if (decide (q < 0)) then (-a) else (a).
+
+Lemma CRCos_PlusMinus_Pi: ∀θ q, cos (θ + (QSign q π)) = - (cos θ).
+  intros θ q. unfold QSign.
+  destruct (decide (q < 0));[apply CRCos_minus_Pi|apply CRCos_plus_Pi].
+Qed.
+
+Lemma CRSin_PlusMinus_Pi: ∀θ q, sin (θ + (QSign q π)) = - (sin θ).
+  intros θ q. unfold QSign.
+  destruct (decide (q < 0));[apply CRSin_minus_Pi|apply CRSin_plus_Pi].
 Qed.
 
 

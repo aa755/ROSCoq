@@ -8,8 +8,6 @@ Require Export MathClasses.interfaces.canonical_names.
 Require Export MathClasses.misc.decision.
 Require Export IRLemmasAsCR.
 
-Definition QSign (q r: Q) : Q :=
-  if (decide (q < 0)) then (-r) else (r).
 
 Definition QSignHalf (q: Q) : Q :=
   QSign q ½ .
@@ -24,7 +22,10 @@ Definition polarTheta (cart :Cart2D Q) : CR :=
       CRpi * ' QSignHalf (Y cart)
     else
       let angle := (rational_arctan (Y cart / (X cart))) in
-      if decide (X cart < 0) then angle + π else angle.
+      if decide (X cart < 0) then angle + (QSign (Y cart) π) else angle.
+
+
+Definition polarθSign (target : Cart2D Q) : Q := QSign (Y target) 1.
 
 Definition Cart2Polar (cart :Cart2D Q) : Polar2D CR :=
   {|rad := ( |cart| )  
@@ -84,7 +85,7 @@ Proof.
   simpl. destruct c as [cx cy].
   unfold polarTheta. simpl.
   destruct (decide (cx = 0)) as [Hcx0 | Hcx0];
-  unfold equiv,EquivCart,CanonicalNotations.norm, NormSpace_instance_Cart2D ; simpl. simpl.
+  unfold equiv,EquivCart,CanonicalNotations.norm, NormSpace_instance_Cart2D ; simpl;[|].
 - rewrite Hcx0. prepareForCRRing.
   unfold stdlib_rationals.Q_mult, stdlib_rationals.Q_plus. QRing_simplify.
   simpl. rewrite CRrational_sqrt_ofsqr.
@@ -94,7 +95,7 @@ Proof.
   prepareForCRRing; try rewrite (morph_opp QCRM);
   split; CRRing.
 - destruct (decide (cx < 0)) as [HcxNeg | HcxNeg].
-  + rewrite  CRCos_plus_Pi,  CRSin_plus_Pi. split;
+  + rewrite  CRCos_PlusMinus_Pi,  CRSin_PlusMinus_Pi. split;
     [apply cos_o_arctan_west| apply sin_o_arctan_west]; assumption.
   + apply orders.full_pseudo_srorder_le_iff_not_lt_flip in HcxNeg.
     apply CRle_Qle in HcxNeg.
@@ -106,8 +107,11 @@ Qed.
 Require Export orders.
 
 Hint Resolve CRweakenLt CRLtAddLHS CRLtAddRHS : CRBasics.
+
+(** broke after making the angle more optimal s
+    
 Lemma Cart2PolarAngleRange : forall (c :Cart2D Q),
-  -(½*π)  ≤ θ (Cart2Polar c) ≤ ('(3*½))*π.
+  -π  ≤ θ (Cart2Polar c) ≤ π.
 Proof.
   intro c.
   destruct c. simpl.
@@ -117,8 +121,13 @@ Proof.
   destruct (decide (Y < 0));
   [split;[|apply CRweakenLt]|apply CRweakenRange; split];  
     try(exists (1%nat); vm_compute; reflexivity).
-  rewrite rings.mult_comm, <- multNegShiftOut.
-  rewrite <- CRopp_Qopp. reflexivity.
+  rewrite <- CRopp_Qopp.
+  rewrite  multNegShiftOut.
+  rewrite <- CRle_opp.
+  assert (π = π * 1) by ring.
+
+
+ reflexivity.
 - destruct (CRarctan_range ('(Y/X)%Q)) as [Hl Hr].
   destruct (decide (X < 0)); rewrite <- arctan_Qarctan.
   + apply (CRLtAddRHS π) in Hr.
@@ -137,6 +146,7 @@ Proof.
     eapply (orders.strict_po_trans); eauto.
     exists 1%nat. vm_compute. reflexivity.
 Qed.
+*)
 
 Lemma Cart2PolarRadRange : forall (c :Cart2D Q),
   0  ≤ rad (Cart2Polar c).
