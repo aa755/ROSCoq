@@ -2922,7 +2922,7 @@ End iCREATECPS.
 End RobotProgam.
 
 
-Definition rotSpeedRadPerSec : Qpos := QposMake 1 10.
+Definition rotSpeedRadPerSec : Qpos := QposMake 1 2.
 
 Definition speedMetresPerSec : Qpos := QposMake 1 10.
 
@@ -2940,10 +2940,15 @@ Definition robotProgramInstance : Cart2D Q → list (Q ** Polar2D Q) :=
           distPrecRadPerSec
           distSec.
 
-Definition target1Metres := {|X:= Qmake 1 2 ; Y:=  Qmake 1 2|}.
+Definition target1Metres := {|X:= - Qmake 1 2 ; Y:=  - Qmake 1 2|}.
 
+Definition microSeconds (q : Q) : Z :=
+Zdiv ((Qnum q) * 100) (Qden q).
 
-Lemma trial1 : robotProgramInstance target1Metres ≡ [].
+Definition approxTime (lm: list (Q ** Polar2D Q)) : list (Z ** Polar2D Q) := 
+map (λ p, ((microSeconds (fst p)), snd p)) lm.
+
+Lemma trial1 : approxTime (robotProgramInstance target1Metres) ≡ [].
 vm_compute.
 Abort.
 
