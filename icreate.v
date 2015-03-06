@@ -45,8 +45,8 @@ Record iCreate : Type := {
 
   (** derivatives *)
   derivRot : isDerivativeOf omega theta;
-  derivX : isDerivativeOf (transVel * (CFCos theta)) (X position);
-  derivY : isDerivativeOf (transVel * (CFSine theta)) (Y position);
+  derivX : isDerivativeOf (transVel * (FCos theta)) (X position);
+  derivY : isDerivativeOf (transVel * (FSin theta)) (Y position);
 
   (** Initial (at time:=0) Conditions *)  
 
