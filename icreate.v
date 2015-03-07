@@ -1587,18 +1587,6 @@ Proof.
   remember (CRasIR (CRabs (polarTheta targetPos))) as crabs.
   autorewrite with QSimpl.
   unfold Qdiv.
-
-(* delete *)
-Lemma CRasIRInj : ∀ q,
-  CRasIR (inject_Q_CR q) = inj_Q IR q.
-Proof.
-  intros.
-  apply (injective IRasCR).
-  rewrite CRasIRasCR_id.
-  autorewrite with IRtoCR.
-  reflexivity.
-Qed.
-Hint Rewrite CRasIRInj : CRtoIR.
   autorewrite with CRtoIR.
   autorewrite with InjQDown.
   Local Transparent Q2R.
