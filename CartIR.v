@@ -20,15 +20,6 @@ Proof.
   rewrite Hc. reflexivity.
 Qed.
 
-Lemma QAbsQSign : 
-  ∀ a c, |QSign a c| = |c|.
-Proof.
-  intros.
-  unfold QSign, CanonicalNotations.norm,
-  NormSpace_instance_Q.
-  destruct (decide (a < 0)) as [Hd | Hd]; auto.
-  apply Qabs.Qabs_opp.
-Qed.
 
 
 Lemma cgminus_Qminus : forall (a b : Q),

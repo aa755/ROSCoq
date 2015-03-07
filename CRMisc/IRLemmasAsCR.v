@@ -1310,6 +1310,45 @@ Proof.
 Qed.
 
 
+Lemma arctan_nonneg : ∀ r, 
+  0 ≤ r -> 0 ≤ arctan r.
+Proof.
+  intros ? Hle.
+  pose proof (CRArcTan_resp_leEq 0 r Hle) as Hxx.
+  rewrite CRArcTan_zero in Hxx.
+  assumption.
+Qed.
+
+Lemma arctan_nonpos : ∀ r, 
+  r ≤ 0 -> arctan r ≤ 0.
+Proof.
+  intros ? Hle.
+  pose proof (CRArcTan_resp_leEq _ _ Hle) as Hxx.
+  rewrite CRArcTan_zero in Hxx.
+  assumption.
+Qed.
+
+Lemma rational_arctan_nonneg : ∀ r, 
+  0 ≤ r -> 0 ≤ rational_arctan r.
+Proof.
+  intros ? Hle.
+  rewrite <- arctan_Qarctan.
+  apply arctan_nonneg.
+  apply CRle_Qle.
+  assumption.
+Qed.
+
+Lemma rational_arctan_nonpos : ∀ r, 
+  r ≤ 0 -> rational_arctan r ≤ 0.
+Proof.
+  intros ? Hle.
+  rewrite <- arctan_Qarctan.
+  apply arctan_nonpos.
+  apply CRle_Qle.
+  assumption.
+Qed.
+
+
 Lemma sin_o_arctan_nonneg : ∀ r, 0 ≤ r  →  0 ≤ sin (arctan r).
 Proof.
   intros r Hle.
@@ -1318,9 +1357,7 @@ Proof.
   destruct Harc as [Harcl Harcr].
   pose proof (orders.strict_po_trans _ _ _ Harcr PiHalfLt).
   split;[| apply CRweakenLt; assumption].
-  pose proof (CRArcTan_resp_leEq 0 r Hle) as Hxx.
-  rewrite CRArcTan_zero in Hxx.
-  assumption.
+  apply arctan_nonneg. assumption.
 Qed.
 
 

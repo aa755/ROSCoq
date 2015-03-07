@@ -108,6 +108,168 @@ Require Export orders.
 
 Hint Resolve CRweakenLt CRLtAddLHS CRLtAddRHS : CRBasics.
 
+(*
+Lemma polarθSignCorr : ∀ targetPos,
+ 0 < polarTheta targetPos ↔  0 < (Y targetPos).
+Proof.
+  intros. unfold polarθSign, polarTheta.
+  destruct (decide (X targetPos = 0)); auto.
+- unfold QSignHalf.
+-   
+*)
+
+Lemma CRabsCRpi : CRabs CRpi = CRpi.
+  rewrite CRabs_pos;[reflexivity|].
+  apply CRweakenLt.
+  apply CR_lt_ltT.
+  apply CRpi_pos.
+Qed.
+
+Instance NormSpace_instance_Q : NormSpace Q Q := Qabs.Qabs.
+
+
+Lemma QAbsQSign : 
+  ∀ a c,  (|QSign a c|) = |c|.
+Proof.
+  intros.
+  unfold QSign, CanonicalNotations.norm,
+  NormSpace_instance_Q.
+  destruct (decide (a < 0)) as [Hd | Hd]; auto.
+  apply Qabs.Qabs_opp.
+Qed.
+
+Lemma multMiddle: ∀ (a b c : CR),
+  a*b*c = a*c*b.
+Proof.
+  intros.
+  prepareForCRRing.
+  ring.
+Qed.
+
+Open Scope Q_scope.
+Lemma  Qle_shift_div_r_neg:
+   ∀ a b, 0 <= a  → b < 0 → (Qdiv a  b <= 0).
+Proof.
+  intros. 
+  unfold Qle, Qinv.
+  simpl. ring_simplify.
+  destruct a, b.
+  unfold Qlt in H0.
+  unfold Qle in H.
+  simpl in H, H0.
+  simpl.
+  ring_simplify in H.
+  ring_simplify in H0.
+  unfold Qinv. simpl.
+  destruct Qnum0; simpl; try omega.
+  nia.
+  nia.
+Qed.
+
+
+Close Scope Q_scope.
+
+
+Lemma CRLtAddRHSConv
+     : ∀ c a b : CR,  a + c < b + c -> a < b.
+Proof.
+  intros ? ? ? H.
+  apply (CRLtAddRHS (-c)) in H.
+  revert H. prepareForCRRing.
+  intro H. ring_simplify in H.
+  assumption.
+Qed.
+
+Lemma CRLtTrans : ∀ a b c:CR,
+  a < b
+  -> b < c
+  -> a < c.
+Proof.
+  intros ? ? ? ? ? .  eapply ( orders.strict_po_trans _ _ _ );
+  eauto.
+Qed.
+
+  
+Lemma AddCancel : ∀ a b:CR,
+  a +b -b =a.
+Proof.
+  intros.
+  prepareForCRRing. ring.
+Qed.
+
+Hint Rewrite  <- CRopp_Qopp : MoveInjQCRIn.
+Lemma polarθSignCorr1 : ∀ targetPos,
+(|polarTheta targetPos|)* '(polarθSign targetPos) =polarTheta targetPos.
+Proof.
+  intros. unfold polarθSign, polarTheta.
+  destruct (decide (X targetPos = 0)); auto.
+- rewrite (mult_comm CRpi). 
+  unfold CanonicalNotations.norm, NormSpace_instance_0.
+  rewrite CRabs_CRmult_Q.
+  rewrite CRabsCRpi.
+  unfold QSignHalf.
+  rewrite QAbsQSign.
+  unfold CanonicalNotations.norm, NormSpace_instance_Q.
+  simpl Qabs.Qabs. rewrite multMiddle.
+  apply CRmult_wd;[| reflexivity].
+  rewrite CRmult_Qmult.
+  apply inject_Q_CR_wd.
+  unfold QSign.
+  destruct (decide (Y targetPos < 0)); reflexivity.
+- destruct (decide (X targetPos < 0)) as [Hd | Hd].
+  + unfold lt, stdlib_rationals.Q_lt, zero,
+    stdlib_rationals.Q_0 in Hd, n.
+    unfold QSign, CanonicalNotations.norm,
+    NormSpace_instance_0.
+    destruct (decide (Y targetPos < 0)) as [Hdy | Hdy].
+    * rewrite CRabs_neg;[ prepareForCRRing;
+      unfold stdlib_rationals.Q_1; ring|].
+      apply CRweakenLt.
+      apply (CRLtAddRHSConv CRpi).
+      unfold π, CRpi_RealNumberPi_instance.
+      prepareForCRRing.
+      ring_simplify.
+      rewrite <- arctan_Qarctan.
+      eapply CRLtTrans;[apply CRarctan_range|].
+      exists 1%nat.
+      vm_compute. reflexivity.
+
+    * rewrite CRabs_pos;[ prepareForCRRing;
+      unfold stdlib_rationals.Q_1; ring|].
+      apply CRweakenLt.
+      apply (CRLtAddRHSConv (- CRpi)).
+      unfold π, CRpi_RealNumberPi_instance.
+      rewrite AddCancel.
+      rewrite <- arctan_Qarctan.
+      eapply CRLtTrans; [|apply (proj1 (CRarctan_range _))].
+      exists 1%nat.
+      vm_compute. reflexivity.
+
+  + unfold lt, stdlib_rationals.Q_lt, zero,
+    stdlib_rationals.Q_0 in Hd, n.
+    unfold QSign, CanonicalNotations.norm,
+    NormSpace_instance_0.
+    destruct (decide (Y targetPos < 0)) as [Hdy | Hdy].
+    * unfold lt, stdlib_rationals.Q_lt, zero,
+      stdlib_rationals.Q_0 in Hdy.
+      unfold cast. autorewrite with MoveInjQCRIn.
+      rewrite CRabs_neg;[ prepareForCRRing;
+        unfold stdlib_rationals.Q_1; ring|].
+      apply rational_arctan_nonpos.
+      prepareForLra. prepareForCRRing.
+      unfold equiv, stdlib_rationals.Q_eq in n.
+      apply Qle_shift_div_r; try lra.
+
+    * unfold lt, stdlib_rationals.Q_lt, zero,
+      stdlib_rationals.Q_0 in Hdy.
+      rewrite CRabs_pos;[ prepareForCRRing;
+        unfold stdlib_rationals.Q_1; ring|].
+      apply rational_arctan_nonneg.
+      prepareForLra. prepareForCRRing.
+      unfold equiv, stdlib_rationals.Q_eq in n.
+      apply Qle_shift_div_l; try lra.
+Qed.
+
 (** broke after making the angle more optimal s
     
 Lemma Cart2PolarAngleRange : forall (c :Cart2D Q),

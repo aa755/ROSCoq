@@ -56,7 +56,6 @@ Instance Equivalence_instance_IR : @Equivalence IR equiv.
 Defined.
 
 
-Instance NormSpace_instance_Q : NormSpace Q Q := Qabs.Qabs.
 
 Require Export CoRN.reals.fast.CRIR.
 Instance Cart_CR_IR : Cast CR IR := CRasIR.

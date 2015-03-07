@@ -1365,11 +1365,36 @@ Proof.
   apply leEq_reflexive.
 Qed.
 
+Lemma OptimalAngleEq : CRasIR rotDuration[*]inj_Q ℝ ω = optimalTurnAngle.
+Proof.
+  unfold rotDuration, optimalTurnAngle, ω. 
+  apply (injective IRasCR).
+  autorewrite with IRtoCR.
+  rewrite CRasIRasCR_id.
+  rewrite CRasIRasCR_id.
+  rewrite multMiddle.
+  rewrite <- CRmult_Qmult.
+  fold (@mult CR _).
+  rewrite sr_mult_associative.
+  rewrite polarθSignCorr1.
+  rewrite mult_comm.
+  rewrite sr_mult_associative.
+  rewrite multMiddle.
+  autorewrite with MoveInjQCROut.
+  destruct rotspeed.
+  simpl.
+  assert ((/ x * x) ==1)%Q as Heq by (field; lra).
+  rewrite Heq.
+  prepareForCRRing.
+  ring.
+Qed.
+
 Local Opaque approximate CRmult.
 Lemma ThetaAtEV1 :
      (|{theta ic} mt1 - optimalTurnAngle|) ≤ 
-          Q2R (rotspeed * (2 * (sendTimeAcc + delivDelayVar) + reacTime) +
-               R2QPrec + (motorTurnOmegaPrec ω) * (mt1 - mt0))%Q.
+          Q2R (rotspeed * (2 * (sendTimeAcc + delivDelayVar) 
+                  + reacTime + R2QPrec) 
+              + (motorTurnOmegaPrec ω) * (mt1 - mt0))%Q.
 Proof.
   pose proof correctVel0to1 as Hc.
   simpl in Hc.
@@ -1441,16 +1466,8 @@ Proof.
   simpl in Hadd.
   apply AbsSmall_imp_AbsIR in Hadd.
   autounfold with IRMC.
-Lemma OptimalAngleEq : CRasIR rotDuration[*]inj_Q ℝ ω = optimalTurnAngle.
-Proof.
-  unfold rotDuration, optimalTurnAngle, ω.
-(* move to CartCR.v *)
-Lemma polarθSignCorr1 :
-(|polarTheta targetPos|)* '(polarθSign targetPos) =polarTheta targetPos.
-Proof.
-  unfold polarθSign, polarTheta.
 
-  unfold rotDuration in Hadd.
+  rewrite OptimalAngleEq in Hadd.
   eapply leEq_transitive;[apply Hadd|].
   apply eqImpliesLeEq.
   apply inj_Q_wd.
