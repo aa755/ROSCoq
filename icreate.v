@@ -21,6 +21,11 @@ Require Export LibTactics.
 (** printing θErrTurn $\theta ErrTurn$ #θErrTurn# *)
 (** remove printing * *)
 (** printing θErrTrans $\theta ErrTrans$ #θErrTrans# *)
+(** printing polarθSign $polar \theta Sign$ #polarθSign# *)
+(** printing idealθ $ideal \theta$ #idealθ# *)
+
+(** printing ' $ $ #'# *)
+
 Require Export Vector.
 Require Export ROSCyberPhysicalSystem.
 
@@ -72,15 +77,12 @@ Variables   rotspeed speed R2QPrec delay : Qpos.
 
 Definition robotPureProgam (target : Cart2D Q) : list (Q × Polar2D Q) :=
   let polarTarget : Polar2D CR := Cart2Polar target in
-  let rotDirection : Q := polarθSign target in
   let rotDuration : CR :=  ((| θ polarTarget |) * '(/ rotspeed)%Q) in
   let translDuration : CR :=  (rad polarTarget) * '(/ speed)%Q in
-  [ (0,{|rad:= 0 ; θ := rotDirection*rotspeed |}) 
+  [ (0,{|rad:= 0 ; θ := (polarθSign target) * rotspeed |}) 
       ; (approximate rotDuration R2QPrec , {|rad:= 0 ; θ := 0 |}) 
-      ; (QposAsQ delay , {|rad:= QposAsQ speed ; θ := 0 |}) 
-      ; (approximate translDuration R2QPrec, {|rad:= 0 ; θ := 0 |}) 
-  ].
-
+      ; ('delay , {|rad:=  'speed ; θ := 0 |}) 
+      ; (approximate translDuration R2QPrec, {|rad:= 0 ; θ := 0 |}) ].
 
 Inductive Topic :=  VELOCITY | TARGETPOS. (* similar to CMD_VEL *)
 
@@ -1189,7 +1191,7 @@ Qed.
 Definition optimalTurnAngle : IR :=
   CRasIR (polarTheta targetPos).
 
-Definition idealDirection : IR :=
+Definition idealθ : IR :=
   CRasIR (θ (Cart2Polar targetPos)).
 
 Lemma IR_inv_Qzero:
@@ -1736,7 +1738,7 @@ Proof.
 Qed.
 
 
-Lemma ThetaAtEV2P : (|{theta ic} mt2 - idealDirection|) ≤  θErrTurn.
+Lemma ThetaAtEV2P : (|{theta ic} mt2 - idealθ|) ≤  θErrTurn.
 Proof.
   apply ThetaAtEV2.
 Qed.
@@ -2007,7 +2009,7 @@ Proof.
 Qed.
 
 Lemma ThetaEv2To3P : ∀ (t : QTime),  mt2 ≤ t ≤ mt3 
-  → |{theta ic} t - idealDirection| ≤ θErrTrans + θErrTurn.
+  → |{theta ic} t - idealθ| ≤ θErrTrans + θErrTurn.
 Proof.
   apply ThetaEv2To3_3.
 Qed.
