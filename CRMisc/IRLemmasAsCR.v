@@ -103,6 +103,17 @@ Proof.
   reflexivity.
 Qed.
 
+Lemma CRasIRInj : ∀ q,
+  CRasIR (inject_Q_CR q) = inj_Q IR q.
+Proof.
+  intros.
+  apply (injective IRasCR).
+  rewrite CRasIRasCR_id.
+  autorewrite with IRtoCR.
+  reflexivity.
+Qed.
+Hint Rewrite CRasIRInj : CRtoIR.
+
 
 Hint Rewrite CRasIR0 CRasIR_inv CR_mult_asIR 
   CR_plus_asIR CRpower_N_asIR: CRtoIR .
