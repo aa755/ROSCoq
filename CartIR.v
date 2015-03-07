@@ -75,6 +75,19 @@ Lemma approximateAbsSmallIR: ∀ (r:CR) (eps : Qpos),
   exact Hball.
 Qed.
 
+
+Lemma multRAbsSmallIR:
+  ∀  (y x e : IR),
+  AbsSmall e x → AbsSmall (e[*]AbsIR y) (x[*]y).
+Proof.
+  intros.
+  apply mult_AbsSmall;[assumption|].
+  apply AbsIR_imp_AbsSmall.
+  apply leEq_reflexive.
+Qed.
+
+
+
 Require Export Coq.QArith.Qabs.
 
 Lemma QMinusShiftRLe:
