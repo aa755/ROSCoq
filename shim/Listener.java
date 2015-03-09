@@ -110,7 +110,9 @@ public class Listener extends AbstractNodeMain {
           String respLine;
           result.readLine();
           
-          Thread.sleep(30000);
+         final Publisher<geometry_msgs.Vector3> publisher
+                = connectedNode.newPublisher("icreate_vel", geometry_msgs.Vector3._TYPE);
+         Thread.sleep(30000);
           String humanResp
                   = JOptionPane.showInputDialog("Enter target coordinates "
                           + "w.r.t robot's current position, e.g. -1,1");
@@ -152,8 +154,6 @@ public class Listener extends AbstractNodeMain {
               System.out.println(""+msg[i]);
           } 
           
-        final Publisher<geometry_msgs.Vector3> publisher
-                = connectedNode.newPublisher("icreate_vel", geometry_msgs.Vector3._TYPE);
           for (int i=0;i<numMesgs;i++)
           {
               Thread.sleep(msg[i].delay);
