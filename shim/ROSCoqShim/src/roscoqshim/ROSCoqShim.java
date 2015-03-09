@@ -72,19 +72,12 @@ public class ROSCoqShim {
     ProcessBuilder pb = new ProcessBuilder(commandParts);
     Process process = pb.directory(new File("C:\\Users\\Abhishek"
             + "\\Desktop\\PhDWork\\coq\\ROSCOQ")).start();
-//private static BufferedReader err;
 
     PrintWriter input = new PrintWriter(new OutputStreamWriter(process.getOutputStream()), true);
     BufferedReader result = new BufferedReader(new InputStreamReader(process.getInputStream()));
     input.print("Require Export icreateConcrete.\n");
     input.flush();
     String respLine=result.readLine();
-//    for (int i=0;i<24;i++)
-//    {
-//      respLine=result.readLine();
-//      //result.
-//    }
-     // Thread.sleep(10);
 
     Thread.sleep(30000);
     String humanResp
