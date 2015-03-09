@@ -1,5 +1,5 @@
 
-Require Import icreate.
+Require Export icreate.
 
 Definition rotSpeedRadPerSec : Qpos := QposMake 1 2.
 
@@ -24,6 +24,21 @@ Definition robotOutput : list (Q ** Polar2D Q).
 let t:= (eval vm_compute in (robotProgramInstance target1Metres)) in
 exact t.
 Defined.
+
+Definition nthDelay (resp : list (Q ** Polar2D Q)) (n:nat) : option Q :=
+  option_map fst (nth_error resp n).
+
+Definition nthLinVel (resp : list (Q ** Polar2D Q)) (n:nat) : option Q :=
+  option_map ((@rad _) ∘ snd) (nth_error resp n).
+
+Definition nthTheta (resp : list (Q ** Polar2D Q)) (n:nat) : option Q :=
+  option_map ((@θ _) ∘ snd) (nth_error resp n).
+
+Definition QNumOp  : option Q -> option Z :=
+  option_map Qnum.
+
+Definition QDenOp  : option Q -> option positive :=
+  option_map Qden.
 
 
 (*

@@ -28,9 +28,9 @@ Require Export LibTactics.
 Require Export Vector.
 Require Export ROSCyberPhysicalSystem.
 
-Require Import MathClasses.interfaces.canonical_names.
-Require Import MCInstances.
-Require Import CartCR.
+Require Export MathClasses.interfaces.canonical_names.
+Require Export MCInstances.
+Require Export CartCR.
 
 Definition initialVel : (Polar2D Q) := {|rad:=0; θ:=0|}.
 
@@ -291,7 +291,7 @@ Definition SwProcess
 
 Variable procTime : QTime.
 Variable sendTimeAcc : Qpos.
-Require Import CoRN.model.metric2.Qmetric.
+Require Export CoRN.model.metric2.Qmetric.
 
 
 Definition ControllerNode : RosSwNode :=
@@ -362,7 +362,7 @@ Definition posAtTime (t: Time) : Cart2D IR :=
 Definition targetPosR : Cart2D IR := ' targetPos.
 
 
-Require Import Coq.Lists.List.
+Require Export Coq.Lists.List.
 Hint Resolve (fun a b x => proj1 (locEvtIndex a b x)) : ROSCOQ.
 
 Ltac contra :=
