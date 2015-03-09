@@ -1,9 +1,9 @@
 
 Require Export CoRN.reals.faster.ARtrans.
 Require Export CoRN.reals.fast.CRtrans.
-(* Require Export CoRN.reals.faster.ARbigD. *)
+Require Export CoRN.reals.faster.ARbigD.
 Require Export CoRN.ftc.IntegrationRules.
-
+(*bigD_approx*)
 Require Export Coq.Program.Tactics.
 
 Section Programs.
@@ -27,7 +27,7 @@ Abort.
 
 Require Export Vector.
 
-Definition polarAngle (cart :Vec2D AQ) : AR.
+Definition polarAngle (cart :Cart2D AQ) : AR.
   pose proof (decide ((X cart) = 0)) as Hdec.
   destruct Hdec as [Hdec| Hdec].
 - exact (ARpi * (AQSignHalf (Y cart))).

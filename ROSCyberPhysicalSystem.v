@@ -1,4 +1,4 @@
-Add LoadPath "../../../nuprl/coq".
+(* Add LoadPath "../../../nuprl/coq". *)
 
 Require Export roscore.
 Require Import Coq.QArith.QArith.

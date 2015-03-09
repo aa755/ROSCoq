@@ -1,4 +1,4 @@
-Add LoadPath "../../../nuprl/coq".
+(* Add LoadPath "../../../nuprl/coq". *)
 Require Export Coq.Program.Tactics.
 Require Export LibTactics.
 
