@@ -16,12 +16,15 @@
 package com.github.rosjava.rosjava_catkin_package_a.my_pub_sub_tutorial;
 //package com.github.rosjava_catkin_package_a.my_pub_sub_tutorial;
 
+import geometry_msgs.Vector3;
+import org.ros.message.MessageListener;
 import org.ros.concurrent.CancellableLoop;
 import org.ros.namespace.GraphName;
 import org.ros.node.AbstractNodeMain;
 import org.ros.node.ConnectedNode;
 import org.ros.node.NodeMain;
 import org.ros.node.topic.Publisher;
+import org.ros.node.topic.Subscriber;
 
 /**
  * A simple {@link Publisher} {@link NodeMain}.
@@ -33,7 +36,22 @@ public class Talker extends AbstractNodeMain {
         return GraphName.of("rosjava/talker");
     }
 
-    class RoboCancellableLoop extends CancellableLoop {
+    class RoboCancellableLoop extends CancellableLoop 
+        implements MessageListener<geometry_msgs.Vector3>{
+
+        double linVel, turnVel;
+        
+        synchronized void setVel(double linVel, double turnVel)
+        {
+            this.linVel=linVel;
+            this.turnVel=turnVel;
+        }
+        
+        synchronized void prepareVelMessage(geometry_msgs.Twist str)
+        {
+            str.getAngular().setZ(turnVel);
+            str.getLinear().setX(linVel);
+        }
 
         final Publisher<geometry_msgs.Twist> publisher;
 
@@ -48,9 +66,14 @@ public class Talker extends AbstractNodeMain {
         @Override
         protected void loop() throws InterruptedException {
             geometry_msgs.Twist str = publisher.newMessage();
-            str.getAngular().setZ(0.1);
+            prepareVelMessage(str);
             publisher.publish(str);
             Thread.sleep(100);
+        }
+
+        @Override
+        public void onNewMessage(Vector3 t) {
+            setVel(t.getX(), t.getY());
         }
 
     }
@@ -60,9 +83,15 @@ public class Talker extends AbstractNodeMain {
         final Publisher<geometry_msgs.Twist> publisher
                 = connectedNode.newPublisher("mobile_base/commands/velocity", geometry_msgs.Twist._TYPE);
 
+    RoboCancellableLoop roboLoop= new RoboCancellableLoop(publisher);
+    Subscriber<geometry_msgs.Vector3> subscriber 
+            = connectedNode.newSubscriber("icreate_vel", geometry_msgs.Vector3._TYPE);
+        
     // This CancellableLoop will be canceled automatically when the node shuts
         // down.
-        connectedNode.executeCancellableLoop(new RoboCancellableLoop(publisher));
+        subscriber.addMessageListener(roboLoop);
+        connectedNode.executeCancellableLoop(roboLoop);
+        
 
     }
 }
