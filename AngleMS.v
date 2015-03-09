@@ -4,7 +4,7 @@
     type where equality and distance are right *)
 
 Section Angles.
-Require Export IRLemmasAsCR.
+Require Export CRMisc.IRLemmasAsCR.
 (** [CR] is an instance of CReals.
      But [IR] is not declared to be a [Ring] with [order]?
     There is something from 
