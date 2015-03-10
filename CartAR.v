@@ -7,13 +7,29 @@ Require Export CoRN.ftc.IntegrationRules.
 Require Export Coq.Program.Tactics.
 
 Section Programs.
-Context `{AppRationals AQ}.
+
+Definition R2QPrec : Qpos := QposMake 1 100.
+
+Definition threeBy2 : bigD .
+exact ((inject_Z_bigD 3) ≪ (-1)).
+Defined.
 
 
+Definition val : ARbigD .
+exact ('threeBy2*ARpi).
+Defined.
 
-Definition ARhalf : AR := (cast CR AR (cast Q CR (1#2)%Q)).
+Eval vm_compute in (cast bigD Q (approximate val R2QPrec)).
 
-Definition AQSignHalf (q: AQ) : AR :=
+Definition crNum : CR := ((('(3#2)%Q)*CRpi)).
+Eval vm_compute in (approximate crNum R2QPrec).
+Eval vm_compute in (cast bigD Q (approximate (cast CR ARbigD crNum) R2QPrec)).
+
+
+Definition ARhalf : ARbigD := '((inject_Z_bigD 1) ≪ (-1)).
+
+(*
+Definition AQSignHalf (q: Q) : AR :=
   if (decide (q < 0)) then (-ARhalf) else ARhalf.
 
 (** CRlt_Qlt *)
@@ -34,5 +50,6 @@ Definition polarAngle (cart :Cart2D AQ) : AR.
 - apply aq_trivial_apart in Hdec.
   assert (AQ ₀) as Haq by (exists (X cart);auto).
 Abort.
+*)
 
 End Programs.
