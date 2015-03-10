@@ -25,8 +25,14 @@ let t:= (eval vm_compute in (robotProgramInstance target1Metres)) in
 exact t.
 Defined.
 
+Definition milliSeconds (q : Q) : Z :=
+Zdiv ((Qnum q) * 1000) (Qden q).
+
+Definition milliSecondsQ (q : Q) : Q :=
+(milliSeconds q)# 1000.
+
 Definition nthDelay (resp : list (Q ** Polar2D Q)) (n:nat) : option Q :=
-  option_map fst (nth_error resp n).
+  option_map (milliSecondsQ ∘ fst) (nth_error resp n).
 
 Definition nthLinVel (resp : list (Q ** Polar2D Q)) (n:nat) : option Q :=
   option_map ((@rad _) ∘ snd) (nth_error resp n).
@@ -42,8 +48,6 @@ Definition QDenOp  : option Q -> option positive :=
 
 
 (*
-Definition microSeconds (q : Q) : Z :=
-Zdiv ((Qnum q) * 100) (Qden q).
 
 Definition approxTime (lm: list (Q ** Polar2D Q)) : list (Z ** Polar2D Q) := 
 map (λ p, ((microSeconds (fst p)), snd p)) lm.

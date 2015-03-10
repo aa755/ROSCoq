@@ -1551,6 +1551,14 @@ Proof.
 Qed.
 
 (*
+Require Import ARtrans.
+Require Import ARbigD.
+Definition timeApproxMillis (r : CR) : Z.
+pose proof (approximate (cast CR ARbigD r)) 
+  (Qpos2QposInf (QposMake 1 1000)) as ar.
+*)
+
+(*
 Notation "¼" := (QposMake xH (xO (xO xH))).
 Notation  "2" := (QposMake (xO xH) xH).
 Require Export CoRN.util.Extract.
