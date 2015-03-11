@@ -17,8 +17,7 @@ while nodes:
    and not node.endswith('CRMisc/PointWiseRing.v')
    and not node.endswith('Everything.v')
    and not node.endswith('trash.v')
-   and not node.endswith('train.v')
-   and not node.endswith('CartAR.v')):
+   and not node.endswith('train.v')):
     vs += [File(node)]
   if os.path.isdir(node):
     dirs += [node]
