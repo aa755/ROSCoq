@@ -281,12 +281,10 @@ Proof.
   exact H.
 Qed.
 
-Definition PureSwProgram:
-  PureProcWDelay TARGETPOS VELOCITY:=
+Definition PureSwProgram: PureProcWDelay TARGETPOS VELOCITY:=
   robotPureProgam.
 
-Definition SwProcess 
-      : Process Message (list Message):= 
+Definition SwProcess : Process Message (list Message):= 
   mkPureProcess (delayedLift2Mesg (PureSwProgram)).
 
 Variable procTime : QTime.
