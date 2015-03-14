@@ -20,10 +20,6 @@ Require Export StdlibMisc.
 Definition N2R  (n: nat) : IR := (inj_Q IR  (inject_Z n)).
 
 
-(** Time is modeled as a real number. One is allowed to make non-deterministic
-   decisions on time *)
-
-
 
 Notation "a < b < c" := (Qlt a  b /\  Qlt b  c) : Q_scope .
 
@@ -133,11 +129,6 @@ Defined.
 
 Definition RTime :=Time.
 
-
-
-(** Much of the work in defining devices is to decide what the inputs
-    and outputs are and what property they specify. Each device is defined
-    in it's own file *)
 
 Close Scope R_scope.
 
@@ -889,7 +880,7 @@ match goal with
 end.
 
 
-(** Qbetween does not work. [a] needs to be an [IR] 
+(* Qbetween does not work. [a] needs to be an [IR] 
     even when changesTo is used for [motorSpec].
     With a little more effort, similar lemmas were proven for
     between. So [qbetween] should not be needed at all
@@ -994,8 +985,6 @@ Proof.
   rewrite <- Hub. unfold cg_minus. IRRing.
 Qed.
 
-
-(** often a better way to prove conjumction*)
 
 
 Lemma  qtimePosIR : ∀ y,  [0][<=]QT2R y.

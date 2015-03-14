@@ -8,7 +8,7 @@ Require Import Psatz.
 
 
 Record SendEvtInfo := mkSendEvtInfo  {
-    (** index of the corresponding enq message which trigerred this processing *)
+    (* index of the corresponding enq message which trigerred this processing *)
     enqIndex : nat;
     (** [startIndex] into the list of messages output by the process
         on the message received at index [enqIndex]. In this send event,
@@ -16,7 +16,7 @@ Record SendEvtInfo := mkSendEvtInfo  {
     startIndex : nat
 }.
 
-(** received messages are enqued in a mailbox
+(* received messages are enqued in a mailbox
     and the dequed.
     Should we add another event to mark the time when processing of an
     event finished. Now, one has to compute this from the particular
@@ -36,7 +36,7 @@ Close Scope Q_scope.
 
 Class EventType (Event: Type) 
       (Loc : Type) 
-      (** minimum time diff between events *)
+      (* minimum time diff between events *)
     	(minGap : Q) 
       {tdeq: DecEq Event}  := {
   eLoc : Event ->  Loc;
@@ -68,10 +68,6 @@ Class EventType (Event: Type)
     -> m <n 
     -> {tm : Event | ((eLoc tm) = l /\ (eLocIndex tm) = m)};
 
-    (** At any time, we can partition local events
-      into a finite set of events happening before
-      and ones happening after *)
-
   eventSpacing :  forall (e1 e2 : Event),
     (eTime e1 >  minGap)%Q
     /\ (eLoc e1 = eLoc e2 
@@ -91,10 +87,10 @@ Class EventType (Event: Type)
 (** A device is a relation between how the assosiated (measured/actuated)
     physical quantity changes over time and a trace of events
     generated/consumed by the device.
-    The latter is represented by the type [(nat -> Event)].
+    The latter is represented by the type [(nat -> option Event)].
     It will be obtained by plugging in a location in [localEvts] above.
     
-    The type [(nat -> Event)] needs to be specialized to indicate
+    The type [(nat -> option Event)] needs to be specialized to indicate
     facts that events are of same location and have increasing timestamps
     Right now, a device property writer can assume that these hold. *)
 
@@ -112,15 +108,15 @@ Context
   `{dteq : Deq RosTopic}
   `{etype : @EventType _ _ _ Event LocT minGap tdeq }.
 
+
+Definition eTimeOp := 
+option_map eTime.
+
 (** would fail if [QTime] is changed to [Time].
     This should be definable, thanks to [minGap].
     if the returned value is is [n], the indices of prev events are less than
     [n]. see [numPrevEvtsCorrect]
  *)
-
-Definition eTimeOp := 
-option_map eTime.
-
 Definition numPrevEvts : (nat -> option Event) -> QTime -> nat.
 Admitted.
 
@@ -223,7 +219,7 @@ Definition isRecvEvt := isDeqEvt.
 
 Close Scope Q_scope.
 
-(** FIFO queue axiomatization 
+(* FIFO queue axiomatization 
 Fixpoint CorrectFIFOQueueUpto   (upto : nat)
     (locEvts: nat -> option Event) :  Prop * list Message :=
 match upto with
@@ -255,7 +251,6 @@ forall (l: LocT)
 Definition deqMesg (ev : Event): option Message :=
 match eKind ev with
  | deqEvt => Some (eMesg ev)
-(** BTW, [(eMesg ev)] is supposed to be a singletop *)
  | _ => None
 end.
 
@@ -811,7 +806,7 @@ Require Export Coq.Program.Basics.
 
 Open Scope program_scope.
   
-(** assuming all outgoing messages resulting from processing
+(** semantics where all outgoing messages resulting from processing
     an event happen in a single send event (send once) *)
 Definition possibleDeqSendOncePair
   (swNode : RosSwNode)
@@ -819,7 +814,7 @@ Definition possibleDeqSendOncePair
   (nd ns: nat) := 
   match (locEvts nd, locEvts ns) with
   | (Some evd, Some evs) => 
-    isDeqEvt evd ∧ isSendEvt evs ∧ nd < ns (** the last bit is redundant because of time *)
+    isDeqEvt evd ∧ isSendEvt evs ∧ nd < ns (* the last bit is redundant because of time *)
     ∧ (eTime evd < eTime evs < (eTime evd) + (procTime swNode))%Q
     ∧ let procEvts := prevProcessedEvents nd locEvts in
       let procMsgs := map eMesg procEvts in
@@ -1080,7 +1075,7 @@ Record PossibleEventOrder  := {
       → (eLocIndex evs1 < eLocIndex evs2
          ↔ eLocIndex evr1 < eLocIndex evr2);
       
-    (** the stuff below can probably be
+    (* the stuff below can probably be
       derived from the stuff above *)
     causalWf : well_founded _ causedBy
 

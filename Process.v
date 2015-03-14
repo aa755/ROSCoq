@@ -10,7 +10,7 @@ CoFixpoint mkPureProcess {In Out}
  (f : In -> Out) : Process In Out :=
 buildP (λ inp, (mkPureProcess f, f inp)).
 
-(** cofix works
+(* cofix works
 Definition SPP1 := mkPureProcess (fun n:nat => 1).
 
 Goal forall x, ((match SPP1 with
@@ -35,7 +35,7 @@ end.
 
 Require Export Coq.Lists.List.
 
-(** outermost event is the last event *)
+(* outermost event is the last event *)
 Fixpoint getNewProcL  {In Out : Type}
   (p: Process In Out) (linp : list In ): Process In Out :=
 match linp with
