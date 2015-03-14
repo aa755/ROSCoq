@@ -20,17 +20,14 @@ Require Export StdlibMisc.
 Definition N2R  (n: nat) : IR := (inj_Q IR  (inject_Z n)).
 
 
-(** Time is modeled as a real number. One is allowed to make non-deterministic
-   decisions on time *)
-
-
 
 Notation "a < b < c" := (Qlt a  b /\  Qlt b  c) : Q_scope .
 
 
-(** CatchFileBetweenTagsStartTime *)
-Definition Time := (RInIntvl (closel [0])).
-(** CatchFileBetweenTagsEndTime *)
+(** [Time] is the type of non-negative real numbers. Its definition
+   is slightly complicated because it is defined as a Setoid
+   to get the equality right *)
+Definition Time : CSetoid := (RInIntvl (closel [0])).
 
 
 Open Scope Q_scope.
@@ -133,25 +130,21 @@ Defined.
 Definition RTime :=Time.
 
 
-
-(** Much of the work in defining devices is to decide what the inputs
-    and outputs are and what property they specify. Each device is defined
-    in it's own file *)
-
 Close Scope R_scope.
 
 
-(** A [TContR] is a partial function from reals to reals,
-   such that its domain includes the non-negative reals.
-   From this, one can extract a member of [Time -> R]
-   representing how the physical quantity changed over time.
-  [PartIR] ensures functionality, unlike  [Time -> R] *)
+(** [TContR] is a ring of continuous functions over time.
+    It is defined by first using a pointwise ring constructor
+    ([FS_as_PointWise_CRing])
+    and then a subsetoid ring constructor [SubCRing] *)
 
-
-Definition TContR := (IContR (closel [0])) I.
+Definition TContR : CRing := (IContR (closel [0])) I.
 
 (* Coercion TContR2Fun : TContR >-> PartFunct. *)
-  
+
+
+(** asserts that [F'] is the constructive derivative of
+    [F] w.r.t. [Time *)   
 Definition isDerivativeOf (F' F : TContR) : CProp :=
   @isIDerivativeOf (closel [0]) I F' F.
 
@@ -887,7 +880,7 @@ match goal with
 end.
 
 
-(** Qbetween does not work. [a] needs to be an [IR] 
+(* Qbetween does not work. [a] needs to be an [IR] 
     even when changesTo is used for [motorSpec].
     With a little more effort, similar lemmas were proven for
     between. So [qbetween] should not be needed at all
@@ -992,8 +985,6 @@ Proof.
   rewrite <- Hub. unfold cg_minus. IRRing.
 Qed.
 
-
-(** often a better way to prove conjumction*)
 
 
 Lemma  qtimePosIR : ∀ y,  [0][<=]QT2R y.

@@ -38,7 +38,12 @@ public class ROSCoqShim {
   {
     String [] parts= exp.split(" ");
     String num=parts[parts.length-1];
-    return Long.parseLong(num.split("%")[0]);
+    String numNoScope=num.split("%")[0];
+    if(numNoScope.startsWith("("))
+    {
+        numNoScope=numNoScope.substring(1, numNoScope.length()-1);
+    }
+    return Long.parseLong(numNoScope);
   }
   
   static double parseQ(PrintWriter input, BufferedReader result, String qexp) throws IOException
