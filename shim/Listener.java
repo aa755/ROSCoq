@@ -70,7 +70,12 @@ public class Listener extends AbstractNodeMain {
   {
     String [] parts= exp.split(" ");
     String num=parts[parts.length-1];
-    return Long.parseLong(num.split("%")[0]);
+    String numNoScope=num.split("%")[0];
+    if(numNoScope.startsWith("("))
+    {
+        numNoScope=numNoScope.substring(1, numNoScope.length()-1);
+    }
+    return Long.parseLong(numNoScope);
   }
   
   static double parseQ(PrintWriter input, BufferedReader result, String qexp) throws IOException
@@ -112,6 +117,7 @@ public class Listener extends AbstractNodeMain {
           
          final Publisher<geometry_msgs.Vector3> publisher
                 = connectedNode.newPublisher("icreate_vel", geometry_msgs.Vector3._TYPE);
+         publisher.setLatchMode(true);
          Thread.sleep(30000);
           String humanResp
                   = JOptionPane.showInputDialog("Enter target coordinates "
