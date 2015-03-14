@@ -9,10 +9,18 @@ Definition anglePrecRadPerSec : Qpos := QposMake 1 100.
 
 Definition R2QPrec : Qpos := QposMake 1 100.
 
-Definition distSec : Qpos := QposMake 5 1.
+Definition distSec : Qpos := QposMake 3 1.
+
 
 Definition robotProgramInstance : Cart2D Q → list (Q ** Polar2D Q) :=
   robotPureProgam 
+          rotSpeedRadPerSec 
+          speedMetresPerSec
+          R2QPrec
+          distSec.
+
+Definition SwProcessInstance : Process Message (list Message) :=
+  SwProcess
           rotSpeedRadPerSec 
           speedMetresPerSec
           R2QPrec

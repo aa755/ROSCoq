@@ -281,8 +281,7 @@ Proof.
   exact H.
 Qed.
 
-Definition PureSwProgram:
-  PureProcWDelay TARGETPOS VELOCITY:=
+Definition PureSwProgram: PureProcWDelay TARGETPOS VELOCITY:=
   robotPureProgam.
 
 Definition SwProcess 
