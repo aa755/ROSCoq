@@ -22,9 +22,14 @@ vm_compute.
 
 Definition getOutput {In Out : Type}
   (p: Process In Out) (inp : In ): Out :=
-
 match p with
 | buildP f => snd (f inp)
+end.
+
+Definition applyProc {In Out : Type}
+  (p: Process In Out) (inp : In ): (Process In Out) * Out :=
+match p with
+| buildP f =>  (f inp)
 end.
 
 Definition getNewProc {In Out : Type}

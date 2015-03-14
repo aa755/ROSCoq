@@ -87,7 +87,7 @@ Inductive Topic :=  VELOCITY | TARGETPOS. (* similar to CMD_VEL *)
 
 Scheme Equality for Topic.
 
-Instance ldskflskdalfkTopic_eq_dec : DecEq Topic.
+Global Instance ldskflskdalfkTopic_eq_dec : DecEq Topic.
 constructor. exact Topic_eq_dec.
 Defined.
 
@@ -100,7 +100,7 @@ match t with
 end.
 
 
-Instance  ttttt : @RosTopicType Topic _.
+Global Instance  ttttt : @RosTopicType Topic _.
   constructor. exact topic2Type.
 Defined.
 
@@ -108,7 +108,7 @@ Inductive RosLoc :=  MOVABLEBASE | EXTERNALCMD | SWNODE.
 
 Scheme Equality for RosLoc.
 
-Instance rldeqdsjfklsajlk : DecEq RosLoc.
+Global Instance rldeqdsjfklsajlk : DecEq RosLoc.
   constructor. exact RosLoc_eq_dec.
 Defined.
 
@@ -118,6 +118,8 @@ Close Scope Q_scope.
 Definition getVelM  : Message -> option (Polar2D Q) :=
   getPayload VELOCITY.
 
+Definition mkTargetMsg  (q: Cart2D Q) : Message :=
+  mkImmMesg TARGETPOS q.
 
 Section iCREATECPS.
 
@@ -321,7 +323,7 @@ end.
 Variable expectedDelivDelay : Qpos.
 Variable delivDelayVar : Qpos.
 
-Instance rllllfjkfhsdakfsdakh : @RosLocType iCreate Topic Event  RosLoc _.
+Global Instance rllllfjkfhsdakfsdakh : @RosLocType iCreate Topic Event  RosLoc _.
   apply Build_RosLocType.
   - exact locNode.
   - exact locTopics.

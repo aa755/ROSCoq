@@ -26,11 +26,25 @@ Definition SwProcessInstance : Process Message (list Message) :=
           R2QPrec
           distSec.
 
-Definition target1Metres := {|X:= - Qmake 1 1 ; Y:=   Qmake 1 1|}.
+Definition target1Metres : Cart2D Q 
+  := {|X:= - Qmake 1 1 ; Y:=   Qmake 1 1|}.
 
+Definition mkInpMsg (mp : Cart2D Q) : Message := mkTargetMsg mp.
+ 
 Definition robotOutput : list (Q ** Polar2D Q).
 let t:= (eval vm_compute in (robotProgramInstance target1Metres)) in
 exact t.
+Defined.
+
+
+Definition robotProcOutput : 
+   (Process Message (list Message)) * (list Message).
+  remember (getNewProc SwProcessInstance (mkInpMsg target1Metres)) as Hr.
+  vm_compute in HeqHr.
+
+let t:= (eval vm_compute in 
+          ) in
+  exact t.
 Defined.
 
 
