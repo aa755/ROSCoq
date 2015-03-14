@@ -16,7 +16,7 @@ Coq = SCons.Builder.Builder(
 def coqdoc_gen(source, target, env, for_signature):
   for s in source:
     base, _ = os.path.splitext(str(s))
-    env.Depends(target, env.File(base + '.glob'))
+    #env.Depends(target, env.File(base + '.glob'))
   return [SCons.Defaults.Mkdir(target), 'coqdoc $COQDOCFLAGS -d $TARGET $COQFLAGS $SOURCES']
 
 CoqDoc = SCons.Builder.Builder(generator = coqdoc_gen)
