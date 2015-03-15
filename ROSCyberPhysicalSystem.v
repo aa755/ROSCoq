@@ -877,8 +877,6 @@ Definition possibleDeqSendOncePair2
     as soon as the message gets delivered *)
 
 
-
-
 Definition sendInfoStartIndex (ev: Event) : option nat :=
 match eKind ev with
 | sendEvt sinf => Some (startIndex sinf)
@@ -1200,9 +1198,9 @@ Proof.
   inversion Hnc.
   simpl.
   pose proof (@UIPReflDeq RosTopic _ _ Heq) as Heqr.
-  rewrite Heqr.
-  simpl. reflexivity.
-Qed.
+  (* rewrite Heqr.
+  simpl. reflexivity. *)
+Abort.
 
 Lemma isDeqEvtImplies : forall ev,
   isDeqEvt ev -> eKind ev = deqEvt.
@@ -1262,7 +1260,7 @@ Proof.
   rewrite <- Heqoevd in Hrs.
   simpl in Hrs.
   rewrite getNewProcLPure in Hrs.
-  unfold getDeqOutput2 in Hrs.
+  unfold mkPureProcess, getDeqOutput2, getOutput in Hrs.
   unfold delayedLift2Mesg in Hrs.
   simpl in Hrs. apply getRecdPayloadSpecMsg in Hcrd.
   rewrite Hcrd in Hrs. simpl in Hrs.

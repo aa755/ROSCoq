@@ -33,13 +33,15 @@ Definition Message := (sigT topicType) × Header .
 (* string could be rrplaced by a list bool to indicate a binary blob *)
 
 
-Require Export Process.
+Require Export MsgHandler.
 
 
 (** needs to be made more general. 
-    previously it used to depend on a proces
-    but a process will change to sth else in next step *)
-Definition ProcessTiming :=
+    previously it used to depend on a proces. it needs to do so again.
+    such a dependence was useless for the coniductive type
+    because the process will change in the next step.
+ *)
+Definition ProcessTiming  :=
   Message -> QTime.
 
 Set Implicit Arguments.
