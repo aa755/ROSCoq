@@ -9,32 +9,36 @@ Definition anglePrecRadPerSec : Qpos := QposMake 1 100.
 
 Definition R2QPrec : Qpos := QposMake 1 100.
 
-Definition distSec : Qpos := QposMake 3 1.
+Definition initDelayLin : Qpos := QposMake 1 1.
 
 
-Definition robotProgramInstance : Cart2D Q → list (Q ** Polar2D Q) :=
+Definition robotProgramInstance distSec :  PureProcWDelay TARGETPOS VELOCITY :=
   robotPureProgam 
           rotSpeedRadPerSec 
           speedMetresPerSec
           R2QPrec
           distSec.
 
-Definition SwProcessInstance : Process Message (list Message) :=
-  SwProcess
-          rotSpeedRadPerSec 
-          speedMetresPerSec
-          R2QPrec
-          distSec.
+Definition SwProcessInstance : Process Message (list Message).
+  apply Build_Process with (State := Qpos).
+  exact initDelayLin.
+  intros ins inm.
+  split.
+  - exact (Qpos_mult ins  2).
+  - exact ((delayedLift2Mesg (robotProgramInstance ins)) inm).
+Defined.
 
 Definition target1Metres : Cart2D Q 
   := {|X:= - Qmake 1 1 ; Y:=   Qmake 1 1|}.
 
 Definition mkInpMsg (mp : Cart2D Q) : Message := mkTargetMsg mp.
- 
+
+(* 
 Definition robotOutput : list (Q ** Polar2D Q).
 let t:= (eval vm_compute in (robotProgramInstance target1Metres)) in
 exact t.
 Defined.
+*)
 
 Definition StateType : Type.
   let t := eval vm_compute in (State SwProcessInstance) in exact t.
@@ -42,6 +46,7 @@ Defined.
 Definition state0 := curState SwProcessInstance.
 
 (*
+
 Definition roboOut1 : 
    StateType * (list Message).
   let t := eval vm_compute in 
