@@ -37,11 +37,10 @@ exact t.
 Defined.
 
 Definition robotProcOutput : 
-   (Process Message (list Message)) * (list Message).
-  remember (getNewProc SwProcessInstance (mkInpMsg target1Metres)) as Hr.
-  remember SwProcessInstance as Hs.
-  vm_compute in Hs.
-  (* vm_compute in HeqHr. goes on forever*)
+   unit * (list Message).
+  remember (applyProc SwProcessInstance (mkInpMsg target1Metres)) as Hr.
+  simpl in Hr.
+  vm_compute in HeqHr.
 
 Abort.
 

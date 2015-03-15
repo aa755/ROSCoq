@@ -20,11 +20,9 @@ Definition getOutput {In Out : Type}
   (p: Process In Out) (inp : In ): Out :=
  snd ((handler p) (curState p) inp).
 
-(*
 Definition applyProc {In Out : Type}
-  (p: Process In Out) (inp : In ): (Process In Out) * Out :=
+  (p: Process In Out) (inp : In ): (State p) * Out :=
 ((handler p) (curState p) inp).
-*)
 
 Definition updateState {In Out : Type}
   (p: Process In Out) (state : State p)
