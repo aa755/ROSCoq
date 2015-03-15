@@ -36,17 +36,14 @@ let t:= (eval vm_compute in (robotProgramInstance target1Metres)) in
 exact t.
 Defined.
 
-
 Definition robotProcOutput : 
    (Process Message (list Message)) * (list Message).
   remember (getNewProc SwProcessInstance (mkInpMsg target1Metres)) as Hr.
-  vm_compute in HeqHr.
+  remember SwProcessInstance as Hs.
+  vm_compute in Hs.
+  (* vm_compute in HeqHr. goes on forever*)
 
-let t:= (eval vm_compute in 
-          ) in
-  exact t.
-Defined.
-
+Abort.
 
 Definition milliSeconds (q : Q) : Z :=
 Zdiv ((Qnum q) * 1000) (Qden q).
