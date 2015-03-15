@@ -20,12 +20,12 @@ Definition robotProgramInstance distSec :  PureProcWDelay TARGETPOS VELOCITY :=
           distSec.
 
 Definition SwProcessInstance : Process Message (list Message).
-  apply Build_Process with (State := Qpos).
+  apply Build_Process with (State := Q).
   exact initDelayLin.
   intros ins inm.
   split.
-  - exact (Qpos_mult ins  2).
-  - exact ((delayedLift2Mesg (robotProgramInstance ins)) inm).
+  - exact (ins * 2).
+  - exact ((delayedLift2Mesg (robotProgramInstance (QabsQpos ins))) inm).
 Defined.
 
 Definition target1Metres : Cart2D Q 
@@ -46,7 +46,6 @@ Defined.
 Definition state0 := curState SwProcessInstance.
 
 (*
-
 Definition roboOut1 : 
    StateType * (list Message).
   let t := eval vm_compute in 
