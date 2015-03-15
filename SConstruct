@@ -41,4 +41,4 @@ mc_vs, mc_vos, mc_globs = env.SConscript(dirs='../../../ssrcorn')
 #open('coqidescript', 'w').write('#!/bin/sh\ncoqide ' + Rs + ' $@ \n')
 #os.chmod('coqidescript', 0755)
 
-env.CoqDoc(env.Dir('coqdoc'), vs+mc_vs, COQDOCFLAGS='-utf8 --toc --no-lib-name --coqlib http://coq.inria.fr/library')
+env.CoqDoc(env.Dir('coqdoc'), vs+mc_vs, COQDOCFLAGS='-utf8 --toc --interpolate --no-lib-name --coqlib http://coq.inria.fr/library')
