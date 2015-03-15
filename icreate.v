@@ -688,6 +688,9 @@ Proof.
   rewrite getNewProcLPure in Hexrrl.
   unfold delayedLift2Mesg, PureSwProgram in Hexrrl.
   simpl in Hexrrl. rewrite (locEvtIndexRW ed) in Hexrrl; auto.
+  unfold mkPureProcess, getDeqOutput2, getOutput in Hexrrl.
+  unfold delayedLift2Mesg in Hexrrl.
+  simpl in Hexrrl.
   destruct (getPayload TARGETPOS (eMesg ed)); simpl in Hexrrl;
     try discriminate.
   rewrite  nth_error_nil in Hexrrl; discriminate.
