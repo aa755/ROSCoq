@@ -239,7 +239,7 @@ public class Listener extends AbstractNodeMain
                 "  let t := eval vm_compute in (State SwProcessInstance) in exact t.\n" +
                 "Defined.\n" +
                 "Definition state0 := curState SwProcessInstance.\n";
-          input.print("Require Export icreateConcrete.\n"+defInitState);
+          input.print("Require Export icreateConcrete.\n");
           input.flush();
           result.readLine();
           spub=new ROSPublisher(connectedNode);
