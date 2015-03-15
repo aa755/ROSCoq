@@ -18,6 +18,7 @@ package com.github.rosjava.rosjava_catkin_package_a.my_pub_sub_tutorial;
 //package com.github.rosjava_catkin_package_a.my_pub_sub_tutorial;
 
 //import org.apache.commons.logging.Log;
+import geometry_msgs.Vector3;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
@@ -27,6 +28,8 @@ import java.io.PrintWriter;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.JOptionPane;
@@ -41,36 +44,137 @@ import org.ros.node.topic.Subscriber;
 /**
  * A simple {@link Subscriber} {@link NodeMain}.
  */
-public class Listener extends AbstractNodeMain {
+public class Listener extends AbstractNodeMain 
+        implements MessageListener<std_msgs.String>{
 
   @Override
   public GraphName getDefaultNodeName() {
     return GraphName.of("rosjava/listener");
   }
 
-  static class MsgInfo{
-    long delay;
+  Timer timer;
+  int inpCtr=0;
+    @Override
+    public synchronized void onNewMessage(std_msgs.String t) {
+      try {
+          String humanResp=t.getData();
+          String[] coordinates = humanResp.split(",");
+          //if(coordinates.length<2)
+          String xc = coordinates[0];
+          String yc = coordinates[1];
+          
+          String Cart2D = "{|X:= " +xc+ "; Y:= "+yc+"|}";
+          
+          String inpCoqName = "inpMsg"+inpCtr;
+          String outMsgsCoqName = "outMsgs"+inpCtr;
+          input.write("Definition "+inpCoqName+" : Cart2D Q := "+ Cart2D +".\n"
+                  + "Definition "+outMsgsCoqName+" : list (Q ** Polar2D Q).\n" +
+                  "let t:= (eval vm_compute in (robotProgramInstance "
+                  +inpCoqName+")) in\n" +
+                  "exact t.\n" +
+                  "Defined.\n");
+          input.flush();
+          
+          Thread.sleep(1000);
+          // remove the sleep and put appropriate number of readLines
+          String out="";
+          while(result.ready())
+          {
+              out=out+(char)result.read(); // the stuff so far is not useful
+          }
+          System.out.println("result of the definitions:"+ out);
+          input.write("Eval vm_compute in length "+outMsgsCoqName+". \n");
+          input.flush();
+          
+          String respLine;
+          
+          respLine=result.readLine();
+          result.readLine();
+          final int numMesgs = Integer.parseInt(((respLine.split("="))[1]).trim());
+          MotorMsg msg;// = new MotorMsg[numMesgs];
+          long totdelay=0;
+          for (int i=0;i<numMesgs;i++)
+          {
+              msg=new MotorMsg(spub);
+              msg.delay=(long) (1000.0*parseQ(input, result, "nthDelay "+outMsgsCoqName+" "+i));
+              msg.rad = parseQ(input, result, "nthLinVel "+outMsgsCoqName+" "+i);
+              msg.omega = parseQ(input, result, "nthTheta "+outMsgsCoqName+" "+i);
+              System.out.println(""+msg);
+              totdelay=totdelay+msg.delay;
+              timer.schedule(msg, totdelay);
+          } 
+          
+      } catch (IOException | InterruptedException ex) {
+          Logger.getLogger(Listener.class.getName()).log(Level.SEVERE, null, ex);
+      }
+
+    }
+
+
+  static class MotorMsg extends TimerTask{
+    long delay; // not used
     double rad;
     double omega;
+    ROSPublisher rpub;
 
     @Override
     public String toString() {
       return ""+delay+","+rad+","+omega+"\n";
     }
 
-    synchronized void prepareVelMessage(geometry_msgs.Vector3 str)
+    MotorMsg(ROSPublisher rpub)
+    {
+        this.rpub=rpub;
+    }
+    
+    void prepareVelMessage(geometry_msgs.Vector3 str)
     {
         str.setX(rad);
         str.setY(omega);
     }
+
+    @Override
+    public void run() {
+        rpub.publishMotorMsg(this);
+    }
     
   }
-  
+
+  /**
+   * Wraps around the ROSJava Publisher class
+   * to ensure synchronized sending of messages.
+   * At the time of making this class, the ROSJava
+   * documentation was not clear whether Publisher
+   * is inherently threadsafe.
+   * TODO: make the message type and topic name generic
+   */
+    static class ROSPublisher {
+
+        Publisher<geometry_msgs.Vector3> publisher;
+
+        public ROSPublisher(ConnectedNode connectedNode) {
+            publisher
+                    = connectedNode.newPublisher("icreate_vel", geometry_msgs.Vector3._TYPE);
+            publisher.setLatchMode(true);
+        }
+
+        synchronized void publishMotorMsg(MotorMsg msg) {
+            geometry_msgs.Vector3 str = publisher.newMessage();
+            msg.prepareVelMessage(str);
+            publisher.publish(str);
+        }
+    }
+
   static long parseZ(String exp)
   {
     String [] parts= exp.split(" ");
     String num=parts[parts.length-1];
-    return Long.parseLong(num.split("%")[0]);
+    String numNoScope=num.split("%")[0];
+    if(numNoScope.startsWith("("))
+    {
+        numNoScope=numNoScope.substring(1, numNoScope.length()-1);
+    }
+    return Long.parseLong(numNoScope);
   }
   
   static double parseQ(PrintWriter input, BufferedReader result, String qexp) throws IOException
@@ -85,6 +189,11 @@ public class Listener extends AbstractNodeMain {
       result.readLine();      
       return ((double)num)/((double)den);
   }
+  
+    PrintWriter input;
+    BufferedReader result;
+  
+  ROSPublisher spub;
   @Override
   public void onStart(ConnectedNode connectedNode) {
       try {
@@ -103,70 +212,30 @@ public class Listener extends AbstractNodeMain {
           Process process = pb.directory(new File("/home/gunjan/"
                   + "padhaiWC/coq/ROSCOQ")).start();
           
-          PrintWriter input = new PrintWriter(new OutputStreamWriter(process.getOutputStream()), true);
-          BufferedReader result = new BufferedReader(new InputStreamReader(process.getInputStream()));
+          input = new PrintWriter(new OutputStreamWriter(process.getOutputStream()), true);
+          result = new BufferedReader(new InputStreamReader(process.getInputStream()));
           input.print("Require Export icreateConcrete.\n");
           input.flush();
-          String respLine;
           result.readLine();
-          
-         final Publisher<geometry_msgs.Vector3> publisher
-                = connectedNode.newPublisher("icreate_vel", geometry_msgs.Vector3._TYPE);
+          spub=new ROSPublisher(connectedNode);
          Thread.sleep(30000);
-          String humanResp
-                  = JOptionPane.showInputDialog("Enter target coordinates "
-                          + "w.r.t robot's current position, e.g. -1,1");
+         // String humanResp
+           //       = JOptionPane.showInputDialog("Enter target coordinates "
+             //             + "w.r.t robot's current position, e.g. -1,1");
           
-          String[] coordinates = humanResp.split(",");
-          //if(coordinates.length<2)
-          String xc = coordinates[0];
-          String yc = coordinates[1];
+         timer=new Timer();
           
-          String Cart2D = "{|X:= " +xc+ "; Y:= "+yc+"|}";
-          
-          input.write("Definition roboinp : Cart2D Q := "+ Cart2D +".\n"
-                  + "Definition robotOutput : list (Q ** Polar2D Q).\n" +
-                  "let t:= (eval vm_compute in (robotProgramInstance roboinp)) in\n" +
-                  "exact t.\n" +
-                  "Defined.\n");
-          input.flush();
-          
-          Thread.sleep(1000);
-          while(result.ready())
-          {
-              result.read(); // the stuff so far is not useful
-          }
-          
-          input.write("Eval vm_compute in length robotOutput. \n");
-          input.flush();
-          
-          
-          respLine=result.readLine();
-          result.readLine();
-          final int numMesgs = Integer.parseInt(((respLine.split("="))[1]).trim());
-          MsgInfo [] msg = new MsgInfo[numMesgs];
-          for (int i=0;i<numMesgs;i++)
-          {
-              msg[i]=new MsgInfo();
-              msg[i].delay=(long) (1000.0*parseQ(input, result, "nthDelay robotOutput "+i));
-              msg[i].rad = parseQ(input, result, "nthLinVel robotOutput "+i);
-              msg[i].omega = parseQ(input, result, "nthTheta robotOutput "+i);
-              System.out.println(""+msg[i]);
-          } 
-          
-          for (int i=0;i<numMesgs;i++)
-          {
-              Thread.sleep(msg[i].delay);
-              geometry_msgs.Vector3 str = publisher.newMessage();
-              msg[i].prepareVelMessage(str);
-              publisher.publish(str);
-              //Thread.sleep(100);
-          }
       
-      } catch (IOException ex) {
-          Logger.getLogger(Listener.class.getName()).log(Level.SEVERE, null, ex);
-      } catch (InterruptedException ex) {
+      } catch (IOException | InterruptedException ex) {
           Logger.getLogger(Listener.class.getName()).log(Level.SEVERE, null, ex);
       }
+      
+          Subscriber<std_msgs.String> subscriber 
+            = connectedNode.newSubscriber("ROSCoq/TARGETPOS", std_msgs.String._TYPE);
+        
+    // This CancellableLoop will be canceled automatically when the node shuts
+        // down.
+        subscriber.addMessageListener(this);
+
   }
 }

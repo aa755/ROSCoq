@@ -43,8 +43,8 @@ public class Talker extends AbstractNodeMain {
         
         synchronized void setVel(double linVel, double turnVel)
         {
-            this.linVel=linVel;
-            this.turnVel=turnVel;
+            this.linVel=linVel*1.05;
+            this.turnVel=turnVel*1.05;
         }
         
         synchronized void prepareVelMessage(geometry_msgs.Twist str)

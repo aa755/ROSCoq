@@ -87,7 +87,7 @@ Inductive Topic :=  VELOCITY | TARGETPOS. (* similar to CMD_VEL *)
 
 Scheme Equality for Topic.
 
-Instance ldskflskdalfkTopic_eq_dec : DecEq Topic.
+Global Instance ldskflskdalfkTopic_eq_dec : DecEq Topic.
 constructor. exact Topic_eq_dec.
 Defined.
 
@@ -100,7 +100,7 @@ match t with
 end.
 
 
-Instance  ttttt : @RosTopicType Topic _.
+Global Instance  ttttt : @RosTopicType Topic _.
   constructor. exact topic2Type.
 Defined.
 
@@ -108,7 +108,7 @@ Inductive RosLoc :=  MOVABLEBASE | EXTERNALCMD | SWNODE.
 
 Scheme Equality for RosLoc.
 
-Instance rldeqdsjfklsajlk : DecEq RosLoc.
+Global Instance rldeqdsjfklsajlk : DecEq RosLoc.
   constructor. exact RosLoc_eq_dec.
 Defined.
 
@@ -118,19 +118,16 @@ Close Scope Q_scope.
 Definition getVelM  : Message -> option (Polar2D Q) :=
   getPayload VELOCITY.
 
+Definition mkTargetMsg  (q: Cart2D Q) : Message :=
+  mkImmMesg TARGETPOS q.
 
 Section iCREATECPS.
 
-(** To define IO devices, we already need
+(** To define devices, we already need
     an Event type *)
 Context  
   (minGap : Q)
  `{etype : @EventType _ _ _ Event RosLoc minGap tdeq}.
-
-
-(** In some cases, the equations might invove transcendental 
-  functions like sine, cos which can output 
-  irrationals even on rational *)
 
 
 
@@ -155,7 +152,7 @@ Definition isEqualDuring
   (forall t : QTime, ( tStart <= t <= tEnd   -> (f t) [=] vel))%Q.
 
 Variable reacTime : QTime.
-(** It is more sensible to change the type o [QNonNeg]
+(** It is more sensible to change the type to [QNonNeg]
     as the value certainly does not represent time.
     However, the coercion QT2Q does not work then *)
 Variable motorPrec : Polar2D Q → Polar2D QTime.
@@ -165,7 +162,7 @@ Variable motorPrec0 : motorPrec {| rad :=0 ; θ :=0 |} ≡ {| rad :=0 ; θ :=0 |
 Close Scope Q_scope.
 
 
-(** all velocity messages whose index  < numPrevEvts .
+(* all velocity messages whose index  < numPrevEvts .
     the second item is the time that messsage was dequed.
     last message, if any  is the outermost (head)
     Even though just the last message is needed,
@@ -210,12 +207,6 @@ Definition correctVelDuring
     (θ lastVelCmd) 
     reacTime 
     (θ (motorPrec lastVelCmd)).
-
-(** TODO : second bit of conjunction is incorrect it will force the
-   orientation in [iCreate] to jump from [2π] to [0] while turning.
-   changes_to is based on a notion of distance or norm. we need to generalize 
-    it to use the norm typeclass and then define appropriate notion for distance
-    for angles*)
 
 Definition corrSinceLastVel
   (evs : nat -> option Event)
@@ -296,7 +287,7 @@ Definition ControllerNode : RosSwNode :=
   Build_RosSwNode (SwProcess) (procTime, sendTimeAcc).
 
 
-(** The software could reply back to the the external agent saying "done".
+(* The software could reply back to the the external agent saying "done".
     Then the s/w will output messages to two different topics
     In that case, change the [SWNODE] claue *)
 Definition locTopics (rl : RosLoc) : TopicInfo :=
@@ -311,8 +302,6 @@ Variable targetPos : Cart2D Q.
 Variable eCmdEv0 : Event.
 
 
-(** 10 should be replaced by something which is a function of 
-    velocity accuracy, angle accuracy, max velocity etc *)
 Definition externalCmdSemantics {Phys : Type} 
  : @NodeSemantics Phys Event :=
   λ _ evs , ((evs 0) ≡ Some eCmdEv0) 
@@ -334,7 +323,7 @@ end.
 Variable expectedDelivDelay : Qpos.
 Variable delivDelayVar : Qpos.
 
-Instance rllllfjkfhsdakfsdakh : @RosLocType iCreate Topic Event  RosLoc _.
+Global Instance rllllfjkfhsdakfsdakh : @RosLocType iCreate Topic Event  RosLoc _.
   apply Build_RosLocType.
   - exact locNode.
   - exact locTopics.
@@ -849,9 +838,6 @@ Qed.
 Require Import Psatz.
 
 
-(** change message semantics so that message receipt 
-    is at a ball near ed + deliveryTime.
-    make the balls size be a parameter *)
 Lemma MotorEvents:
   let resp := PureSwProgram targetPos in
   ∀ n: nat, 
@@ -981,10 +967,6 @@ Defined.
 Definition MotorEventsNthTime (n:nat) (p :  n < 4) : QTime :=
   (eTime (MotorEventsNth n p)).
 
-(** only the fly proof construction for closed (transparently) 
-     decidable propositions.
-   For example, (decAuto (2<4) I) is a of type (2<4) *)
-
 
 Definition  mt0 : QTime 
   := MotorEventsNthTime 0 (decAuto (0<4)%nat I).
@@ -1051,7 +1033,6 @@ Proof.
   simpl in Hc.
   unfold DeviceSemantics, BaseMotors in Hc.
   apply proj1 in Hc.
-  (** lets go one by one starting from the first message *)
 
   unfold MotorEventsNthTime, MotorEventsNth in t0.
   destruct (MotorEvents2 0 (decAuto (0<4)%nat I)) as [evStartTurn  H0m].
@@ -1162,7 +1143,6 @@ Proof.
   simpl in Hc.
   unfold DeviceSemantics, BaseMotors in Hc.
   apply proj1 in Hc.
-  (** lets go one by one starting from the first message *)
   unfold mt0, mt1.
   unfold MotorEventsNthTime, MotorEventsNth.
   destruct (MotorEvents2 0 (decAuto (0<4)%nat I)) as [evStartTurn  H0m].
@@ -1353,7 +1333,7 @@ Admitted.
 
 Definition motorTurnOmegaPrec (ω : Q) : QTime := θ (motorPrec {| rad :=(0%Q) ; θ := ω |}).
 
-(** Delete!! *)
+(* Delete!! *)
 Lemma multRAbsSmallIR:
   ∀  (y x e : IR),
   AbsSmall e x → AbsSmall (e[*]AbsIR y) (x[*]y).
@@ -1647,7 +1627,6 @@ Proof.
   simpl in Hc.
   unfold DeviceSemantics, BaseMotors in Hc.
   apply proj1 in Hc.
-  (** lets go one by one starting from the first message *)
 
   unfold MotorEventsNthTime, MotorEventsNth in t1, t2.
   destruct (MotorEvents2 1 (decAuto (1<4)%nat I)) as [evStartTurn  H0m].
@@ -1824,7 +1803,6 @@ Proof.
   simpl in Hc.
   unfold DeviceSemantics, BaseMotors in Hc.
   apply proj1 in Hc.
-  (** lets go one by one starting from the first message *)
 
   unfold MotorEventsNthTime, MotorEventsNth in t1, t2.
   destruct (MotorEvents2 2 (decAuto (2<4)%nat I)) as [evStartTurn  H0m].
@@ -2538,7 +2516,7 @@ Proof.
   ring.
 Qed.
 
-(** Whis this spec is totally in terms of the parameters,
+(** While this spec is totally in terms of the parameters,
     it does not clarify how ttanslation speed matters, because 
     [Ev23TimeGapUB] has terms that depend on speed.
     So does [θErrTrans]. 
@@ -2662,9 +2640,6 @@ Hint Resolve QPQTQplusnNeg : ROSCOQ.
 
 Variable speedTransErrTrans : (0 <= speed - transErrTrans)%Q.
 
-
-(** This proof can be generalized for even functions.
-    Similarly, [AbsIRSin] can be generalized for odd functions *)
   
 Lemma XDerivEv2To3UBAux : ∀ (t:QTime), 
   let t3 : QTime := MotorEventsNthTime 3 (decAuto (3<4)%nat I) in

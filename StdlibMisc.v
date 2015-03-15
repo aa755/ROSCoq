@@ -104,7 +104,7 @@ Coercion assert : bool >-> Sortclass.
 
 Inductive void: Set :=.
 
-(** Using typeclasses, this can be made to work for other types of products,
+(* Using typeclasses, this can be made to work for other types of products,
     e.g. propositional conjunctions 
 
   Notation π₁ := fst.
