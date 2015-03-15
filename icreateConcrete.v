@@ -36,13 +36,29 @@ let t:= (eval vm_compute in (robotProgramInstance target1Metres)) in
 exact t.
 Defined.
 
-Definition robotProcOutput : 
-   unit * (list Message).
-  remember (applyProc SwProcessInstance (mkInpMsg target1Metres)) as Hr.
-  simpl in Hr.
-  vm_compute in HeqHr.
+Definition StateType : Type.
+  let t := eval vm_compute in (State SwProcessInstance) in exact t.
+Defined.
+Definition state0 := curState SwProcessInstance.
 
-Abort.
+(*
+Definition roboOut1 : 
+   StateType * (list Message).
+  let t := eval vm_compute in 
+     ((handler SwProcessInstance) state0 (mkInpMsg target1Metres)) in
+  exact t.
+Defined.
+
+Definition state1 : StateType.
+  let t := eval vm_compute in (fst roboOut1) in
+  exact t.
+Defined.
+
+Definition outMsgs1 : list Message.
+  let t := eval vm_compute in (snd roboOut1) in
+  exact t.
+Defined.
+*)
 
 Definition milliSeconds (q : Q) : Z :=
 Zdiv ((Qnum q) * 1000) (Qden q).
@@ -50,14 +66,22 @@ Zdiv ((Qnum q) * 1000) (Qden q).
 Definition milliSecondsQ (q : Q) : Q :=
 (milliSeconds q)# 1000.
 
-Definition nthDelay (resp : list (Q ** Polar2D Q)) (n:nat) : option Q :=
-  option_map (milliSecondsQ ∘ fst) (nth_error resp n).
+Definition nthMsgPayload (lm : list Message) 
+  (tp : Topic) (n:nat) : option (topicType tp) :=
+   getPayloadOp tp (nth_error lm n).
 
-Definition nthLinVel (resp : list (Q ** Polar2D Q)) (n:nat) : option Q :=
-  option_map ((@rad _) ∘ snd) (nth_error resp n).
+Definition nthVelMsgPayload (lm : list Message) 
+   (n:nat) : option (Polar2D Q) :=
+   nthMsgPayload lm VELOCITY n.
 
-Definition nthTheta (resp : list (Q ** Polar2D Q)) (n:nat) : option Q :=
-  option_map ((@θ _) ∘ snd) (nth_error resp n).
+Definition nthDelay (resp : list Message) (n:nat) : option Q :=
+  option_map (milliSecondsQ ∘ delay ∘ snd) (nth_error resp n).
+
+Definition nthLinVel (resp : list Message) (n:nat) : option Q :=
+  option_map ((@rad _)) (nthVelMsgPayload resp n).
+
+Definition nthTheta (resp : list Message) (n:nat) : option Q :=
+  option_map ((@θ _)) (nthVelMsgPayload resp n).
 
 Definition QNumOp  : option Q -> option Z :=
   option_map Qnum.
@@ -65,9 +89,7 @@ Definition QNumOp  : option Q -> option Z :=
 Definition QDenOp  : option Q -> option positive :=
   option_map Qden.
 
-
 (*
-
 Definition approxTime (lm: list (Q ** Polar2D Q)) : list (Z ** Polar2D Q) := 
 map (λ p, ((microSeconds (fst p)), snd p)) lm.
 
