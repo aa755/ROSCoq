@@ -65,14 +65,35 @@ public class Listener extends AbstractNodeMain
           
           String Cart2D = "{|X:= " +xc+ "; Y:= "+yc+"|}";
           
+          String stateCoqName = "state"+inpCtr;
           String inpCoqName = "inpMsg"+inpCtr;
+          String procOutCoqName = "procOut"+inpCtr;
           String outMsgsCoqName = "outMsgs"+inpCtr;
-          input.write("Definition "+inpCoqName+" : Cart2D Q := "+ Cart2D +".\n"
-                  + "Definition "+outMsgsCoqName+" : list (Q ** Polar2D Q).\n" +
-                  "let t:= (eval vm_compute in (robotProgramInstance "
-                  +inpCoqName+")) in\n" +
-                  "exact t.\n" +
-                  "Defined.\n");
+          String defineInp = "Definition "+inpCoqName+" "
+                  + ": Cart2D Q := "+ Cart2D +".\n";
+          String newStateCoqName = "state"+(inpCtr+1);
+          String defineProcP = 
+              "Definition "+procOutCoqName+" : \n" +
+              "   StateType * (list Message).\n" +
+                "  let t := eval vm_compute in \n" +
+                "     ((handler SwProcessInstance) "+stateCoqName+" "
+                  +     "(mkInpMsg "+inpCoqName+")) in\n" +
+                "  exact t.\n" +
+                "Defined.\n";
+          String defineNewState = 
+              "Definition "+newStateCoqName+" : StateType.\n" +
+                "  let t := eval vm_compute in (fst "+procOutCoqName+") in\n" +
+                "  exact t.\n" +
+                "Defined.\n";
+          String defineNewMsgs = 
+              "Definition "+outMsgsCoqName+" : list Message.\n" +
+                "  let t := eval vm_compute in (snd "+procOutCoqName+") in\n" +
+                "  exact t.\n" +
+                "Defined.\n";
+          
+          input.write(defineInp+defineProcP+defineNewState+defineNewMsgs);
+              
+               
           input.flush();
           
           Thread.sleep(1000);
@@ -103,7 +124,7 @@ public class Listener extends AbstractNodeMain
               totdelay=totdelay+msg.delay;
               timer.schedule(msg, totdelay);
           } 
-          
+          inpCtr=inpCtr+1;
       } catch (IOException | InterruptedException ex) {
           Logger.getLogger(Listener.class.getName()).log(Level.SEVERE, null, ex);
       }
@@ -214,7 +235,11 @@ public class Listener extends AbstractNodeMain
           
           input = new PrintWriter(new OutputStreamWriter(process.getOutputStream()), true);
           result = new BufferedReader(new InputStreamReader(process.getInputStream()));
-          input.print("Require Export icreateConcrete.\n");
+          String defInitState ="Definition StateType : Type.\n" +
+                "  let t := eval vm_compute in (State SwProcessInstance) in exact t.\n" +
+                "Defined.\n" +
+                "Definition state0 := curState SwProcessInstance.\n";
+          input.print("Require Export icreateConcrete.\n"+defInitState);
           input.flush();
           result.readLine();
           spub=new ROSPublisher(connectedNode);
@@ -223,8 +248,15 @@ public class Listener extends AbstractNodeMain
            //       = JOptionPane.showInputDialog("Enter target coordinates "
              //             + "w.r.t robot's current position, e.g. -1,1");
           
+         
          timer=new Timer();
-          
+                    String out="";
+          while(result.ready())
+          {
+              out=out+(char)result.read(); // the stuff so far is not useful
+          }
+          System.out.println("result of the init:"+ out);
+
       
       } catch (IOException | InterruptedException ex) {
           Logger.getLogger(Listener.class.getName()).log(Level.SEVERE, null, ex);
