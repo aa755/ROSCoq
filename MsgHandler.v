@@ -1,5 +1,7 @@
 Require Import Coq.Unicode.Utf8.
 Require Export StdlibMisc.
+(** printing → $\rightarrow$ #→# *)
+(** printing × $\times$ #×# *)
 
 Set Implicit Arguments.
 Definition MsgHandlerType (S I O : Type) := S → I → (S × O).
