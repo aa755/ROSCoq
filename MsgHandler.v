@@ -2,8 +2,7 @@ Require Import Coq.Unicode.Utf8.
 Require Export StdlibMisc.
 
 Set Implicit Arguments.
-Definition MsgHandlerType (State In Out : Type) :=
-  State → In → (State × Out).
+Definition MsgHandlerType (S I O : Type) := S → I → (S × O).
  
 Definition mkPureHandler {In Out} 
  (f : In → Out) : MsgHandlerType unit In Out :=
