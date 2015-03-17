@@ -1550,6 +1550,95 @@ Proof.
   intros. apply CR_minus_asIR.
 Qed.
 
+Definition approxNum (r: CR) (den : positive) : Z:=
+  let q:= (approximate r (QposMake 1 den)) in
+  (Zdiv ( (Qnum q)*den) (Qden q)).
+
+Definition badApproximate (r: CR) (den : positive) : Q:=
+  let q:= (approximate r (QposMake 1 den)) in
+  (Zdiv ((Qnum q)*den) (Qden q)).
+
+Open Scope Q_scope.
+
+Require Import Coq.QArith.Qround.
+
+Definition Q2Zapprox (q : Q) : Z :=
+  let qf := Qfloor q in
+  if (decide (Qle (q - qf) (1#2)))
+    then qf
+    else (qf+1)%Z.
+
+
+Require Import CoRN.model.metric2.Qmetric.
+
+Lemma Q2ZapproxSpec: ∀ (q:Q),
+  Qball (QposMake 1 2) q (Q2Zapprox q).
+Proof.
+  intros.
+  unfold Qball.
+  unfold AbsSmall.
+  simpl.
+  unfold Q2Zapprox.
+  destruct (decide (q - Qfloor q <= 1 # 2)) as [Hd | Hd].
+- split; [| lra].
+  pose proof (Qfloor_le q) as Hq.
+  lra.
+- pose proof (Qlt_floor q) as Hq.
+  split; try lra.
+  assert (q - Qfloor q > 1 # 2) as Ht by lra.
+  clear Hd.
+  rewrite inject_Z_plus.
+  unfold inject_Z.
+  simpl. clear Hq. 
+  unfold inject_Z in Ht.
+  lra.
+Qed.
+
+(** This might be of general interest to CoRN *)
+Definition R2ZApprox (r: CR) (eps : Qpos) : Z :=
+  Q2Zapprox (approximate r eps).
+
+Lemma R2ZApproxSpec : ∀ (r: CR) (eps : Qpos), 
+  ball (eps + (QposMake 1 2)) r (''(R2ZApprox r eps)).
+Proof.
+  intros ? ?.
+  pose proof (ball_approx_r r eps ) as Hball.
+  pose proof (Q2ZapproxSpec (approximate r eps)) as Hq.
+  eapply ball_triangle; eauto.
+  unfold cast, stdlib_rationals.inject_Z_Q.
+  unfold R2ZApprox.
+  apply ball_Cunit.
+  exact Hq.
+Qed.
+
+
+Close Scope Q_scope.
+
+Global Instance : Cast positive CR :=
+  (cast Q CR) ∘ (cast Z Q) ∘ (Zpos).
+
+
+Definition simpleApproximate (r: CR) (den : positive) (eps : Qpos): Q:=
+  Qmake (R2ZApprox (r * '(den)) eps)  den.
+
+(*
+Lemma ballDiv : ∀ (r1 r2 : CR) (d : positive) (qp : Qpos),
+  ball qp r1 r2
+  → ball (qp/d) (r1 /d) (r2 / d).
+
+
+
+Lemma simpleApproximateSpec : ∀ (r: CR) (den : positive) (eps : Qpos), 
+  ball ((eps + (QposMake 1 (2)))/den) r ('simpleApproximate r den eps).
+Proof.
+  intros ? ? ?.
+  unfold simpleApproximate.
+  pose proof (R2ZApproxSpec (r * ' den) eps) as Hb.
+
+Qed.
+
+*)
+
 (*
 Require Import ARtrans.
 Require Import ARbigD.
