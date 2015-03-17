@@ -1550,13 +1550,15 @@ Proof.
   intros. apply CR_minus_asIR.
 Qed.
 
-Definition approxNum (r: CR) (den : positive) : Z:=
+(*
+Definition badapproxNum (r: CR) (den : positive) : Z:=
   let q:= (approximate r (QposMake 1 den)) in
   (Zdiv ( (Qnum q)*den) (Qden q)).
 
 Definition badApproximate (r: CR) (den : positive) : Q:=
   let q:= (approximate r (QposMake 1 den)) in
   (Zdiv ((Qnum q)*den) (Qden q)).
+*)
 
 Open Scope Q_scope.
 
@@ -1621,12 +1623,39 @@ Global Instance : Cast positive CR :=
 Definition simpleApproximate (r: CR) (den : positive) (eps : Qpos): Q:=
   Qmake (R2ZApprox (r * '(den)) eps)  den.
 
-(*
 Lemma ballDiv : ∀ (r1 r2 : CR) (d : positive) (qp : Qpos),
   ball qp r1 r2
-  → ball (qp/d) (r1 /d) (r2 / d).
+  → ball (qp/d) (r1 * '(/inject_Z d)) (r2 * '(/ inject_Z  d)).
+Proof.
+  intros ? ? ? ? Hb.
+  unfold ball.
+  simpl. apply CRAbsSmall_ball.
+  unfold mult.
+  rewrite <- ring_distl_minus.
+  unfold cast.
+  idtac. simpl.
+  rewrite <- CRmult_Qmult.
+  apply mult_AbsSmall.
+- apply CRAbsSmall_ball. assumption.
+- apply AbsSmall_reflexive.
+  apply CRle_Qle.
+  unfoldMC.
+  unfold Qinv.  simpl.
+  unfold Qle.
+  simpl.
+  omega.
+Qed.
 
-
+Lemma ringMultDiv : ∀ (a b c : CR),
+  b * c = 1
+  -> a = a* b* c.
+Proof.
+  intros ? ? ? H.
+  rewrite <- sr_mult_associative.
+  rewrite H.
+  prepareForCRRing.
+  ring.
+Qed.
 
 Lemma simpleApproximateSpec : ∀ (r: CR) (den : positive) (eps : Qpos), 
   ball ((eps + (QposMake 1 (2)))/den) r ('simpleApproximate r den eps).
@@ -1634,10 +1663,29 @@ Proof.
   intros ? ? ?.
   unfold simpleApproximate.
   pose proof (R2ZApproxSpec (r * ' den) eps) as Hb.
-
+  apply ballDiv with (d:=den) in Hb.
+  idtac.
+  eapply ball_wd;[reflexivity | | | apply Hb]; auto.
+- apply ringMultDiv.
+  unfold cast, Cast_instance_0.
+  unfold cast.
+  unfold stdlib_rationals.inject_Z_Q, Basics.compose.
+  rewrite CRmult_Qmult.
+  apply inject_Q_CR_wd.
+  unfoldMC. field.
+  auto using Q.positive_nonzero_in_Q.
+- unfold cast.
+  unfold cast, Cast_instance_0.
+  unfold cast.
+  unfold stdlib_rationals.inject_Z_Q, Basics.compose.
+  rewrite CRmult_Qmult.
+  apply inject_Q_CR_wd.
+  unfold dec_recip, stdlib_rationals.Q_recip.
+  unfoldMC.
+  remember (R2ZApprox (r * ' den)%CR eps) as hh.
+  rewrite Qmake_Qdiv.
+  reflexivity.
 Qed.
-
-*)
 
 (*
 Require Import ARtrans.
