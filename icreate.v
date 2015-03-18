@@ -39,6 +39,7 @@ Require Export CartIR.
 Notation FConst := ConstTContR.
 Notation FSin:= CFSine.
 Notation FCos:= CFCos.
+Notation "Z⁺" := positive.
 
 
 Record iCreate : Type := {
@@ -71,17 +72,17 @@ Record iCreate : Type := {
 
 
 Section RobotProgam.
-Variables   rotspeed speed R2QPrec delay : Qpos.
-
+Variables  rotspeed speed delay delayEps : Qpos.
+Variable delayRes : Z⁺.
 
 Definition robotPureProgam (target : Cart2D Q) : list (Q × Polar2D Q) :=
   let polarTarget : Polar2D CR := Cart2Polar target in
   let rotDuration : CR :=  ((| θ polarTarget |) * '(/ rotspeed)%Q) in
   let translDuration : CR :=  (rad polarTarget) * '(/ speed)%Q in
   [ (0,{|rad:= 0 ; θ := (polarθSign target) * rotspeed |}) 
-      ; (approximate rotDuration R2QPrec , {|rad:= 0 ; θ := 0 |}) 
+      ; (simpleApproximate rotDuration  delayRes delayEps , {|rad:= 0 ; θ := 0 |}) 
       ; ('delay , {|rad:=  'speed ; θ := 0 |}) 
-      ; (approximate translDuration R2QPrec, {|rad:= 0 ; θ := 0 |}) ].
+      ; (simpleApproximate translDuration delayRes delayEps , {|rad:= 0 ; θ := 0 |}) ].
 
 Inductive Topic :=  VELOCITY | TARGETPOS. (* similar to CMD_VEL *)
 
@@ -1261,8 +1262,16 @@ Close Scope nat_scope.
 
 Definition rotDuration : CR :=  ((| polarTheta targetPos |) * '(/ rotspeed)%Q).
 
+Open Scope Qpos_scope.
+
+Definition simpleApproximateErr (res : Z⁺) (eps : Qpos) : Qpos :=
+  ((eps + (QposMake 1 (2)))/ res).
+Close Scope Qpos_scope.
+
+Definition R2QPrec : Qpos := simpleApproximateErr delayRes delayEps.
+
 Lemma MotorEv01Gap :
-   (|QT2Q mt1 - QT2Q mt0 -  approximate rotDuration R2QPrec|)
+   (|QT2Q mt1 - QT2Q mt0 -  simpleApproximate rotDuration  delayRes delayEps|)
   ≤ 2 * (sendTimeAcc + delivDelayVar)%Q.
 Proof.
   apply MotorEvGap.
@@ -1302,7 +1311,7 @@ Definition ω :=  (polarθSign targetPos) * rotspeed.
   
 Lemma MotorEv01Gap2 :
     (Qabs.Qabs
-        ((mt1 - mt0) * ω - (approximate rotDuration R2QPrec)*ω) <=
+        ((mt1 - mt0) * ω - (simpleApproximate rotDuration  delayRes delayEps)*ω) <=
       (2) * (sendTimeAcc + delivDelayVar) * rotspeed)%Q.
 Proof.
   pose proof MotorEv01Gap as Hg.
@@ -1372,6 +1381,24 @@ Proof.
 Qed.
 
 Local Opaque approximate CRmult.
+
+
+Lemma simpleApproximateAbsSmallIR: ∀ (r:CR) (res : Z⁺) (eps : Qpos),
+    AbsSmall (simpleApproximateErr res eps) 
+      (CRasIR r [-] (simpleApproximate r res eps)).
+  intros ? ? ?.
+  pose proof (simpleApproximateSpec r res eps) as Hball.
+  apply CRAbsSmall_ball in Hball.
+  fold (inject_Q_CR) in Hball.
+  apply CR_AbsSmall_as_IR in Hball.
+  rewrite CR_minus_asIR2 in Hball.
+  rewrite <- IR_inj_Q_as_CR in Hball.
+  rewrite <- IR_inj_Q_as_CR in Hball.
+  rewrite IRasCRasIR_id in Hball.
+  rewrite IRasCRasIR_id in Hball.
+  exact Hball.
+Qed.
+
 Lemma ThetaAtEV1 :
      (|{theta ic} mt1 - optimalTurnAngle|) ≤ 
           Q2R (rotspeed * (R2QPrec+ 2 * (sendTimeAcc + delivDelayVar) 
@@ -1430,7 +1457,7 @@ Proof.
   AbsSmall (inj_Q _ ?r%Q) _ => assert (r == rotspeed * (2 * (sendTimeAcc + delivDelayVar) + reacTime) + opr * (mt1 - mt0))%Q
                                     as Heqq by (unfoldMC ;ring); rewrite Heqq in Hadd; clear Heqq
   end.
-  pose proof (approximateAbsSmallIR rotDuration R2QPrec) as Hball.
+  pose proof (simpleApproximateAbsSmallIR rotDuration delayRes delayEps) as Hball.
   apply AbsSmall_minus in Hball.
   apply (multRAbsSmallIR ω) in Hball.
   rewrite AbsIRNewOmega, IRDistMinus in Hball.
@@ -1470,7 +1497,7 @@ Proof.
   apply (inj_Q_leEq IR) in Hg.
   rewrite <- AbsIR_Qabs in Hg.
   rewrite cgminus_Qminus, inj_Q_minus in Hg.
-  pose proof (approximateAbsSmallIR  rotDuration R2QPrec) as Hball.
+  pose proof (simpleApproximateAbsSmallIR  rotDuration delayRes delayEps) as Hball.
   apply AbsIR_imp_AbsSmall in Hg.
   apply AbsSmall_minus in Hball.
   unfold Q2R in Hball.
@@ -1871,7 +1898,7 @@ Definition transDuration : CR :=  ((| targetPos |) * '(/speed)%Q).
 
 
 Lemma MotorEv23Gap :
-   (|QT2Q mt3 - QT2Q mt2 -  approximate transDuration R2QPrec|)
+   (|QT2Q mt3 - QT2Q mt2 -  simpleApproximate transDuration  delayRes delayEps|)
    ≤ 2 * (sendTimeAcc + delivDelayVar)%Q.
 Proof.
   apply MotorEvGap.
@@ -1891,7 +1918,7 @@ Proof.
   apply (inj_Q_leEq IR) in Hg.
   rewrite <- AbsIR_Qabs in Hg.
   rewrite cgminus_Qminus, inj_Q_minus in Hg.
-  pose proof (approximateAbsSmallIR  transDuration R2QPrec) as Hball.
+  pose proof (simpleApproximateAbsSmallIR  transDuration delayRes delayEps) as Hball.
   apply AbsIR_imp_AbsSmall in Hg.
   apply AbsSmall_minus in Hball.
   unfold Q2R in Hball.

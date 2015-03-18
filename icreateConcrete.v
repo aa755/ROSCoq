@@ -7,7 +7,7 @@ Definition speedMetresPerSec : Qpos := QposMake 1 10.
 
 Definition anglePrecRadPerSec : Qpos := QposMake 1 100.
 
-Definition R2QPrec : Qpos := QposMake 1 100.
+Definition R2QPrec : Qpos := QposMake 1 10000.
 
 Definition initDelayLin : Qpos := QposMake 1 1.
 
@@ -16,8 +16,9 @@ Definition robotProgramInstance distSec :  PureProcWDelay TARGETPOS VELOCITY :=
   robotPureProgam 
           rotSpeedRadPerSec 
           speedMetresPerSec
+          distSec
           R2QPrec
-          distSec.
+          1000.
 
 Definition SwProcessInstance : Process Message (list Message).
   apply Build_Process with (State := Q).
@@ -33,7 +34,7 @@ Definition target1Metres : Cart2D Q
 
 Definition mkInpMsg (mp : Cart2D Q) : Message := mkTargetMsg mp.
 
-(* 
+(*
 Definition robotOutput : list (Q ** Polar2D Q).
 let t:= (eval vm_compute in (robotProgramInstance target1Metres)) in
 exact t.
@@ -64,11 +65,13 @@ Definition outMsgs1 : list Message.
 Defined.
 *)
 
+(*
 Definition milliSeconds (q : Q) : Z :=
 Zdiv ((Qnum q) * 1000) (Qden q).
 
 Definition milliSecondsQ (q : Q) : Q :=
 (milliSeconds q)# 1000.
+*)
 
 Definition nthMsgPayload (lm : list Message) 
   (tp : Topic) (n:nat) : option (topicType tp) :=
@@ -79,7 +82,7 @@ Definition nthVelMsgPayload (lm : list Message)
    nthMsgPayload lm VELOCITY n.
 
 Definition nthDelay (resp : list Message) (n:nat) : option Q :=
-  option_map (milliSecondsQ ∘ delay ∘ snd) (nth_error resp n).
+  option_map (delay ∘ snd) (nth_error resp n).
 
 Definition nthLinVel (resp : list Message) (n:nat) : option Q :=
   option_map ((@rad _)) (nthVelMsgPayload resp n).
