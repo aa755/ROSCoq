@@ -71,18 +71,19 @@ Record iCreate : Type := {
     point in robot's direction. Then add 90 in cartesian <-> polar conversion. *)
 
 
+Notation tapprox := simpleApproximate.
 Section RobotProgam.
-Variables  rotspeed speed delay delayEps : Qpos.
-Variable delayRes : Z⁺.
+Variables  rotspeed speed delay delEps : Qpos.
+Variable delRes : Z⁺.
 
 Definition robotPureProgam (target : Cart2D Q) : list (Q × Polar2D Q) :=
   let polarTarget : Polar2D CR := Cart2Polar target in
   let rotDuration : CR :=  ((| θ polarTarget |) * '(/ rotspeed)%Q) in
   let translDuration : CR :=  (rad polarTarget) * '(/ speed)%Q in
   [ (0,{|rad:= 0 ; θ := (polarθSign target) * rotspeed |}) 
-      ; (simpleApproximate rotDuration  delayRes delayEps , {|rad:= 0 ; θ := 0 |}) 
+      ; (tapprox rotDuration  delRes delEps , {|rad:= 0 ; θ := 0 |}) 
       ; ('delay , {|rad:=  'speed ; θ := 0 |}) 
-      ; (simpleApproximate translDuration delayRes delayEps , {|rad:= 0 ; θ := 0 |}) ].
+      ; (tapprox translDuration delRes delEps , {|rad:= 0 ; θ := 0 |}) ].
 
 Inductive Topic :=  VELOCITY | TARGETPOS. (* similar to CMD_VEL *)
 
@@ -1268,10 +1269,10 @@ Definition simpleApproximateErr (res : Z⁺) (eps : Qpos) : Qpos :=
   ((eps + (QposMake 1 (2)))/ res).
 Close Scope Qpos_scope.
 
-Definition R2QPrec : Qpos := simpleApproximateErr delayRes delayEps.
+Definition R2QPrec : Qpos := simpleApproximateErr delRes delEps.
 
 Lemma MotorEv01Gap :
-   (|QT2Q mt1 - QT2Q mt0 -  simpleApproximate rotDuration  delayRes delayEps|)
+   (|QT2Q mt1 - QT2Q mt0 -  simpleApproximate rotDuration  delRes delEps|)
   ≤ 2 * (sendTimeAcc + delivDelayVar)%Q.
 Proof.
   apply MotorEvGap.
@@ -1311,7 +1312,7 @@ Definition ω :=  (polarθSign targetPos) * rotspeed.
   
 Lemma MotorEv01Gap2 :
     (Qabs.Qabs
-        ((mt1 - mt0) * ω - (simpleApproximate rotDuration  delayRes delayEps)*ω) <=
+        ((mt1 - mt0) * ω - (simpleApproximate rotDuration  delRes delEps)*ω) <=
       (2) * (sendTimeAcc + delivDelayVar) * rotspeed)%Q.
 Proof.
   pose proof MotorEv01Gap as Hg.
@@ -1457,7 +1458,7 @@ Proof.
   AbsSmall (inj_Q _ ?r%Q) _ => assert (r == rotspeed * (2 * (sendTimeAcc + delivDelayVar) + reacTime) + opr * (mt1 - mt0))%Q
                                     as Heqq by (unfoldMC ;ring); rewrite Heqq in Hadd; clear Heqq
   end.
-  pose proof (simpleApproximateAbsSmallIR rotDuration delayRes delayEps) as Hball.
+  pose proof (simpleApproximateAbsSmallIR rotDuration delRes delEps) as Hball.
   apply AbsSmall_minus in Hball.
   apply (multRAbsSmallIR ω) in Hball.
   rewrite AbsIRNewOmega, IRDistMinus in Hball.
@@ -1497,7 +1498,7 @@ Proof.
   apply (inj_Q_leEq IR) in Hg.
   rewrite <- AbsIR_Qabs in Hg.
   rewrite cgminus_Qminus, inj_Q_minus in Hg.
-  pose proof (simpleApproximateAbsSmallIR  rotDuration delayRes delayEps) as Hball.
+  pose proof (simpleApproximateAbsSmallIR  rotDuration delRes delEps) as Hball.
   apply AbsIR_imp_AbsSmall in Hg.
   apply AbsSmall_minus in Hball.
   unfold Q2R in Hball.
@@ -1898,7 +1899,7 @@ Definition transDuration : CR :=  ((| targetPos |) * '(/speed)%Q).
 
 
 Lemma MotorEv23Gap :
-   (|QT2Q mt3 - QT2Q mt2 -  simpleApproximate transDuration  delayRes delayEps|)
+   (|QT2Q mt3 - QT2Q mt2 -  simpleApproximate transDuration  delRes delEps|)
    ≤ 2 * (sendTimeAcc + delivDelayVar)%Q.
 Proof.
   apply MotorEvGap.
@@ -1918,7 +1919,7 @@ Proof.
   apply (inj_Q_leEq IR) in Hg.
   rewrite <- AbsIR_Qabs in Hg.
   rewrite cgminus_Qminus, inj_Q_minus in Hg.
-  pose proof (simpleApproximateAbsSmallIR  transDuration delayRes delayEps) as Hball.
+  pose proof (simpleApproximateAbsSmallIR  transDuration delRes delEps) as Hball.
   apply AbsIR_imp_AbsSmall in Hg.
   apply AbsSmall_minus in Hball.
   unfold Q2R in Hball.
