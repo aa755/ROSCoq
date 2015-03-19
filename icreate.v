@@ -2796,7 +2796,6 @@ Proof.
   eauto 2 with CoRN ROSCOQ.
 Qed.
 
-
 Lemma SpeedLbEv2To3 :
   let t3 : QTime := MotorEventsNthTime 3 (decAuto (3<4)%nat I) in
   let t2 : QTime := MotorEventsNthTime 2 (decAuto (2<4)%nat I) in
@@ -2845,56 +2844,68 @@ Proof.
   intros ? Hb. 
 Admitted.
 
+Require Export Coq.QArith.Qminmax.
 Lemma XDerivLBEv2To3 : 
-  ∃ qtrans : QTime, (mt2 <= qtrans <= mt2 + reacTime)%Q ∧
-  (∀ t:QTime, mt2 ≤ t ≤ qtrans →  0 ≤ ({XDerivRot} t))
-  ∧ (∀ t:QTime, qtrans ≤ t ≤ mt3 →
+  ∃ qtrans : Q, (mt2 <= qtrans <= mt2 + reacTime)%Q ∧
+  (∀ t:QTime, (mt2 <= t <= qtrans)%Q →  0 ≤ ({XDerivRot} t))
+  ∧ (∀ t:QTime, qtrans < t ≤ mt3 →
         (Cos (θErrTrans + θErrTurn)) * (speed - transErrTrans)%Q 
           [<=] (({XDerivRot} t))).
 Proof.
   pose proof SpeedLbEv2To3 as Hs.
   fold mt2 mt3 in Hs.
   cbv zeta in Hs. destruct Hs as [qtrans Hs].
-  exists qtrans. repnd.
-  split;[split;assumption|].
+  unfold le, Le_instance_QTime in Hs.
+  exists (Qmin qtrans mt3).
+  repnd.
+  pose proof (Q.le_min_l qtrans mt3).
+  assert ((mt2 <= Qmin qtrans mt3)%Q) as Hbc by
+    (apply Q.min_glb_iff;
+    split; try lra; apply MotorEventsNthTimeIncSn).
+  split;[split;try lra|].
   unfold XDerivRot.
   autounfold with IRMC TContRMC.
   unfold Le_instance_QTime, stdlib_rationals.Q_0.
   fold (theta ic[-](ConstTContR optimalTurnAngle)).
   split;[clear Hsrr | clear Hsrl]; intros t Hb.
 - rewrite XDerivAtTime.
-  pose proof Hb as Hbb. apply Hsrl in Hb. clear Hsrl.
+  pose proof Hb as Hbb.
+  specialize (Hsrl t).
+  autounfold with IRMC in Hsrl.
+  DestImp Hsrl;[|lra].
   rewrite inj_Q_Zero.
   autounfold with IRMC in Hb.
-  rewrite inj_Q_Zero in Hb.
+  rewrite inj_Q_Zero in Hsrl.
   apply mult_resp_nonneg;[assumption|].
-  clear Hb.
   apply Cos_nonnegAbs.
   eapply leEq_transitive;
       [apply ThetaEv2To2Reac| apply ThetaErrLe90IR].
   unfold le, Le_instance_QTime.
   repnd. split; try lra.
   unfoldMC. unfold Plus_instance_QTime.
-  simpl. lra.
+  simpl. lra. 
 - rewrite XDerivAtTime.
-  assert ((mt2 <= t <= mt3)%Q) as Hbb by lra.
-  apply Hsrr in Hb.
-  clear Hsrr.
+  unfold stdlib_rationals.Q_lt in Hb.
+  repnd.  
+  assert ((mt2 <= t <= mt3)%Q) as Hbb by
+    (split; try lra).
   rewrite mult_commut_unfolded.
   apply ThetaEv2To3_3 in Hbb.
   apply mult_resp_leEq_both; trivial;
-    [eauto 2 with CoRN; fail| apply CosThetaErrGe0| ].
-  setoid_rewrite CosEven2 at 2;
-    [|eapply leEq_transitive;[apply Hbb| apply ThetaErrLe90IR]].
-  apply TrigMon.Cos_resp_leEq;
+    [eauto 2 with CoRN; fail| apply CosThetaErrGe0|  |].
+  + apply Q.min_lt_iff in Hbl.
+    apply Hsrr; lra.
+  + setoid_rewrite CosEven2 at 2;
+      [|eapply leEq_transitive;[apply Hbb| apply ThetaErrLe90IR]].
+    apply TrigMon.Cos_resp_leEq;
         trivial;[apply AbsIR_nonneg| apply ThetaErrLe1180].
 Qed.
 
 Lemma XChangeLBEv2To3 :
-  ∃ qtrans : QTime,  (mt2 <= qtrans <= mt2 + reacTime)%Q
+  ∃ qtrans : Q,  (mt2 <= qtrans <= mt2 + reacTime)%Q
   ∧ (Cos (θErrTrans + θErrTurn) 
         * (speed - transErrTrans)%Q 
-        * (mt3 - qtrans)%Q)
+        * (Qmin 0 (mt3 - qtrans))%Q)
       ≤  ({X rotOrigininPos} mt3 [-] {X rotOrigininPos} mt2).
 Proof.
   pose proof XDerivLBEv2To3 as H.
@@ -2908,7 +2919,7 @@ Proof.
   end.
   rewrite <- inj_Q_Zero in Heq.
   rewrite Heq. clear Heq.
-  assert ({X rotOrigininPos} mt3[-]{X rotOrigininPos} mt2
+(*  assert ({X rotOrigininPos} mt3[-]{X rotOrigininPos} mt2
           [=]
           ({X rotOrigininPos} mt3[-]{X rotOrigininPos} qtrans)
           [+]({X rotOrigininPos} qtrans [-]{X rotOrigininPos} mt2))
@@ -2916,9 +2927,10 @@ Proof.
   rewrite Heq. clear Heq.
   apply plus_resp_leEq_both;
   [|eapply TDerivativeLBQ; eauto 2 with ICR; try lra].
-  admit.
+  *) admit. 
 Qed.
 
+(*
 Lemma XChangeLBEv2To3_2 :
   (Cos (θErrTrans + θErrTurn) 
       * (speed - transErrTrans)%Q 
@@ -2942,6 +2954,7 @@ Proof.
 - apply mult_resp_nonneg; eauto 1 with ICR;[].
   apply injQ_nonneg. simpl. assumption.
 Qed.
+*)
 
 Lemma Liveness :
   ∃ (ts : QTime), ∀ (t : QTime), 
