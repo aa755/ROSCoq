@@ -1929,19 +1929,17 @@ Definition rotErrTrans
 
 
 Lemma ThetaEv2To3 :
-  let t3 : QTime := MotorEventsNthTime 3 (decAuto (3<4)%nat I) in
-  let t2 : QTime := MotorEventsNthTime 2 (decAuto (2<4)%nat I) in
-  ∀ (t : QTime),  t2 ≤ t ≤ t3
-      → AbsIR ({theta ic} t[-]θ2)[<=]inj_Q ℝ (rotErrTrans * (t3 - t2))%Q.
+  ∀ (t : QTime),  mt2 ≤ t ≤ mt3
+      → AbsIR ({theta ic} t[-]θ2)
+      [<=]inj_Q ℝ (rotErrTrans * (mt3 - mt2))%Q.
 Proof.
-  intros ? ? ? Hle.
+  intros ? Hle.
   pose proof (qtimePos t) as Hq.
-  fold t2.
   pose proof correctVel2to3 as Hc.
   simpl in Hc.
   unfold correctVelDuring in Hc.
   apply proj2 in Hc.
-  fold t2 t3 in Hc.
+  fold mt2 mt3 in Hc.
   fold rotErrTrans in Hc.
   simpl θ in Hc.
   unfold zero, stdlib_rationals.Q_0 in Hc.
@@ -1951,9 +1949,7 @@ Proof.
    [|apply MotorEventsNthTimeInc; omega|apply OmegaAtEv2].
   unfold Q2R in Hc. 
   autorewrite with CoRN in Hc.
-  unfold t2 in Hc.
   fold (θ2) in Hc.
-  fold t2 in Hc.
   unfold QT2R in Hc.
   autorewrite with QSimpl in Hc.
   simpl in Hc.
@@ -2841,6 +2837,14 @@ Proof.
   lra.
 Qed.
 
+Lemma ThetaEv2To2Reac :
+  ∀ (t : QTime),  mt2 ≤ t ≤ mt2+reacTime
+      → AbsIR ({theta ic} t[-]optimalTurnAngle)
+        ≤ θErrTrans + θErrTurn.
+Proof.
+  intros ? Hb. 
+Admitted.
+
 Lemma XDerivLBEv2To3 : 
   ∃ qtrans : QTime, (mt2 <= qtrans <= mt2 + reacTime)%Q ∧
   (∀ t:QTime, mt2 ≤ t ≤ qtrans →  0 ≤ ({XDerivRot} t))
@@ -2867,13 +2871,11 @@ Proof.
   clear Hb.
   apply Cos_nonnegAbs.
   eapply leEq_transitive;
-      [apply ThetaEv2To3_3| apply ThetaErrLe90IR].
+      [apply ThetaEv2To2Reac| apply ThetaErrLe90IR].
   unfold le, Le_instance_QTime.
   repnd. split; try lra.
-  (* pose proof MotorEventsNthTimeReac.
-  assert ((mt2 + reacTime < mt3)%Q) 
-    as Hassumption by (apply MotorEventsNthTimeReac; omega).
-   lra. *) admit.
+  unfoldMC. unfold Plus_instance_QTime.
+  simpl. lra.
 - rewrite XDerivAtTime.
   assert ((mt2 <= t <= mt3)%Q) as Hbb by lra.
   apply Hsrr in Hb.
