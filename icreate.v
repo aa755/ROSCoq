@@ -36,10 +36,17 @@ Definition initialVel : (Polar2D Q) := {|rad:=0; θ:=0|}.
 
 Require Export CartIR.
 
+Open Scope Qpos_scope.
+
+(* MOVE!! *)
+Notation "Z⁺" := positive.
+Definition simpleApproximateErr (res : Z⁺) (eps : Qpos) : Qpos :=
+  ((eps + (QposMake 1 (2)))/ res).
+Close Scope Qpos_scope.
+
 Notation FConst := ConstTContR.
 Notation FSin:= CFSine.
 Notation FCos:= CFCos.
-Notation "Z⁺" := positive.
 
 
 Record iCreate : Type := {
@@ -122,6 +129,8 @@ Definition getVelM  : Message -> option (Polar2D Q) :=
 
 Definition mkTargetMsg  (q: Cart2D Q) : Message :=
   mkImmMesg TARGETPOS q.
+
+Definition R2QPrec : Qpos := simpleApproximateErr delRes delEps.
 
 Section iCREATECPS.
 
@@ -300,7 +309,7 @@ match rl with
 end.
 
 
-Variable targetPos : Cart2D Q.
+Variable target : Cart2D Q.
 Variable eCmdEv0 : Event.
 
 
@@ -308,7 +317,7 @@ Definition externalCmdSemantics {Phys : Type}
  : @NodeSemantics Phys Event :=
   λ _ evs , ((evs 0) ≡ Some eCmdEv0) 
               ∧  isSendEvt eCmdEv0 
-              ∧ (getPayload TARGETPOS (eMesg eCmdEv0) ≡ Some targetPos)
+              ∧ (getPayload TARGETPOS (eMesg eCmdEv0) ≡ Some target)
               ∧ ∀ n : nat, (evs (S n)) ≡ None.
 
 
@@ -348,7 +357,7 @@ Qed.
 Definition posAtTime (t: Time) : Cart2D IR :=
   {| X:= {X (position ic)} t ; Y := {Y (position ic)} t |}.
 
-Definition targetPosR : Cart2D IR := ' targetPos.
+Definition targetR : Cart2D IR := ' target.
 
 
 Require Export Coq.Lists.List.
@@ -514,7 +523,7 @@ Qed.
 Lemma SwRecv : ∀ ev:Event,
   eLoc ev ≡ SWNODE
   -> isDeqEvt ev
-  -> (getPayload TARGETPOS (eMesg ev) ≡ Some targetPos
+  -> (getPayload TARGETPOS (eMesg ev) ≡ Some target
             ∧ causedBy eo eCmdEv0 ev).
 Proof.
   intros ev Hl Heqevk.
@@ -565,7 +574,7 @@ Open Scope nat_scope.
 
 Lemma SwEvents0 :
   {ev | eLocIndex ev ≡ 0 ∧ eLoc ev ≡ SWNODE ∧
-       (getRecdPayload TARGETPOS ev ≡ Some targetPos) 
+       (getRecdPayload TARGETPOS ev ≡ Some target) 
              ∧ causedBy eo eCmdEv0 ev}.
 Proof.
   unfold getRecdPayload, deqMesg. 
@@ -590,7 +599,7 @@ Local  Notation π₂ := snd.
 (** Nice warm up proof.
     Got many mistakes in definitions corrected *)
 Lemma SwEventsSn :
-  let resp := PureSwProgram targetPos in
+  let resp := PureSwProgram target in
   ∀ n: nat, 
       n < 4
       → {ev : Event | eLocIndex ev ≡ S n ∧ eLoc ev ≡ SWNODE
@@ -611,7 +620,7 @@ Proof.
   repnd.
   pose proof (corrNodes eo SWNODE) as Hex.
   simpl in Hex. intros n Hlt.
-  apply DelayedPureProcDeqSendPair with (nd:=0) (pl:=targetPos) (n:=n)
+  apply DelayedPureProcDeqSendPair with (nd:=0) (pl:=target) (n:=n)
       in Hex; eauto;
   [|rewrite (locEvtIndexRW ev0); auto; fail].
   simpl in Hex. destruct Hex as [evs Hex]. repnd.
@@ -844,7 +853,7 @@ Require Import Psatz.
 
 
 Lemma MotorEvents:
-  let resp := PureSwProgram targetPos in
+  let resp := PureSwProgram target in
   ∀ n: nat, 
       n < 4
       → {ev : Event | (isRecvEvt ev)  ∧ eLoc ev ≡ MOVABLEBASE
@@ -924,7 +933,7 @@ Open Scope nat_scope.
 
 
 Lemma MotorEvents2:
-  let resp := PureSwProgram targetPos in
+  let resp := PureSwProgram target in
   ∀ n: nat, 
       (n < 4)
       → {ev : Event |  
@@ -1156,7 +1165,7 @@ Lemma correctVel0to1:
   let requestedVel : Polar2D Q :=
     {|
        rad := 0;
-       θ := polarθSign targetPos * rotspeed |} in
+       θ := polarθSign target * rotspeed |} in
   correctVelDuring requestedVel mt0 mt1 ic.
 Proof.
   intros. pose proof (corrNodes eo MOVABLEBASE) as Hc.
@@ -1186,10 +1195,10 @@ Qed.
   
 
 Definition optimalTurnAngle : IR :=
-  CRasIR (polarTheta targetPos).
+  CRasIR (polarTheta target).
 
 Definition idealθ : IR :=
-  CRasIR (θ (Cart2Polar targetPos)).
+  CRasIR (θ (Cart2Polar target)).
 
 Lemma IR_inv_Qzero:
     ∀ (x : IR), x[-]0[=]x.
@@ -1229,7 +1238,7 @@ Qed.
 Lemma MotorEvGap : ∀ (n:nat) (p : n < 4) (ps : S n < 4),
   let t0 : QTime := MotorEventsNthTime n p in
   let t1 : QTime := MotorEventsNthTime (S n) ps in
-  let resp := PureSwProgram targetPos in
+  let resp := PureSwProgram target in
   let tgap :Q := nth (S n) (map fst resp) 0 in 
    |(QT2Q t1 - QT2Q t0 -  tgap)%Q| 
   ≤ (2 * (sendTimeAcc + delivDelayVar))%Q.
@@ -1244,7 +1253,7 @@ Proof.
   repeat (apply proj2 in H0m).
   autounfold with π₁ in H0m, H1m.
   remember (map (λ p : Q ** topicType VELOCITY, mkDelayedMesg (fst p) (π₂ p))
-              (PureSwProgram targetPos)) as ddd.
+              (PureSwProgram target)) as ddd.
   unfold cast, nonneg_semiring_elements.NonNeg_inject in tgap.
   remember tgap as tdiff.
   subst tgap.
@@ -1276,15 +1285,9 @@ Qed.
 
 Close Scope nat_scope.
 
-Definition rotDuration : CR :=  ((| polarTheta targetPos |) * '(/ rotspeed)%Q).
+Definition rotDuration : CR :=  ((| polarTheta target |) * '(/ rotspeed)%Q).
 
-Open Scope Qpos_scope.
 
-Definition simpleApproximateErr (res : Z⁺) (eps : Qpos) : Qpos :=
-  ((eps + (QposMake 1 (2)))/ res).
-Close Scope Qpos_scope.
-
-Definition R2QPrec : Qpos := simpleApproximateErr delRes delEps.
 
 Lemma MotorEv01Gap :
    (|QT2Q mt1 - QT2Q mt0 -  simpleApproximate rotDuration  delRes delEps|)
@@ -1293,13 +1296,13 @@ Proof.
   apply MotorEvGap.
 Qed.
 
-Definition thetaAbs : CR := (| polarTheta targetPos |).
+Definition thetaAbs : CR := (| polarTheta target |).
 
 Definition E2EDelVar : Q := 
   (2 * (sendTimeAcc + delivDelayVar))%Q.
 
 
-Lemma  QabsNewOmega :  (Qabs.Qabs ((polarθSign targetPos) * rotspeed)%mc 
+Lemma  QabsNewOmega :  (Qabs.Qabs ((polarθSign target) * rotspeed)%mc 
         ==
         rotspeed)%Q.
 Proof.
@@ -1315,7 +1318,7 @@ Proof.
 Qed.
 
 Lemma  AbsIRNewOmega : 
-      AbsIR ((polarθSign targetPos) * rotspeed)%mc [=]
+      AbsIR ((polarθSign target) * rotspeed)%mc [=]
         rotspeed.
 Proof.
   rewrite AbsIR_Qabs, QabsNewOmega.
@@ -1323,7 +1326,7 @@ Proof.
 Qed.
 
 
-Definition ω :=  (polarθSign targetPos) * rotspeed.
+Definition ω :=  (polarθSign target) * rotspeed.
   
 Lemma MotorEv01Gap2 :
     (Qabs.Qabs
@@ -1583,7 +1586,7 @@ Lemma ThetaAtEV1_3 :
  |{theta ic} mt1 - optimalTurnAngle| ≤ 
    Q2R(rotspeed * (timeErr + reacTime) +
     omPrec * timeErr)
-    + Q2R (omPrec / rotspeed)%Q * ('(CRabs (polarTheta targetPos))).
+    + Q2R (omPrec / rotspeed)%Q * ('(CRabs (polarTheta target))).
 Proof.
   Local Opaque Q2R.
   simpl.
@@ -1609,7 +1612,7 @@ Proof.
   Local Opaque Q2R.
   simpl.
   rewrite CR_mult_asIR.
-  remember (CRasIR (CRabs (polarTheta targetPos))) as crabs.
+  remember (CRasIR (CRabs (polarTheta target))) as crabs.
   autorewrite with QSimpl.
   unfold Qdiv.
   autorewrite with CRtoIR.
@@ -1715,7 +1718,7 @@ Local Opaque Q2R.
 Definition θErrTurn : IR :=
 Q2R(rotspeed * (timeErr + 2* reacTime) +
     (eeew 0%Q ω) * (timeErr + reacTime))
-    + Q2R ((eeew 0%Q ω) / rotspeed)%Q * ('(|polarTheta targetPos|)).
+    + Q2R ((eeew 0%Q ω) / rotspeed)%Q * ('(|polarTheta target|)).
 
 Lemma ThetaAtEV2 :
  (|{theta ic} mt2 - optimalTurnAngle|) ≤ θErrTurn.
@@ -1956,7 +1959,7 @@ Proof.
   assumption.
 Qed.
 
-Definition transDuration : CR :=  ((| targetPos |) * '(/speed)%Q).
+Definition transDuration : CR :=  ((| target |) * '(/speed)%Q).
 
 
 Lemma MotorEv23Gap :
@@ -2109,10 +2112,10 @@ Definition distTraveled : IR := Cintegral Ev2To3Interval (transVel ic).
 
 Add Ring cart2dir : Cart2DIRRing.
 
-Variable nztp : ([0] [<] normIR (' targetPos)).
+Variable nztp : ([0] [<] normIR (' target)).
 
 Definition rotOrigininPos : Cart2D TContR:=
-  rotateOriginTowardsF (' targetPos) nztp (position ic).
+  rotateOriginTowardsF (' target) nztp (position ic).
 
 
 Definition YDerivRot : TContR :=
@@ -2657,7 +2660,7 @@ Qed.
 Lemma YChangeEv2To3_3 :
   AbsIR ({Y rotOrigininPos} mt3 [-] {Y rotOrigininPos} mt2) 
       ≤ (Sin (θErrTrans + θErrTurn) * 
-        (('(|targetPos |)) 
+        (('(|target |)) 
           + Ev23TimeGapUB * QT2R transErrTrans
           + Q2R speed * timeErr)).
 Proof.
@@ -2697,7 +2700,7 @@ Qed.
 
 
 Definition ErrY': IR :=  '(eeev 0 ω) * (QT2R reacTime + Ev01TimeGapUB)
-+ (Sin (θErrTrans + θErrTurn)) * ('(|targetPos |) + Ev23TimeGapUB * '(eeev speed 0) + (Q2R speed) * timeErr).
++ (Sin (θErrTrans + θErrTurn)) * ('(|target |) + Ev23TimeGapUB * '(eeev speed 0) + (Q2R speed) * timeErr).
 
 Lemma Ev3Y' : AbsIR ({Y rotOrigininPos} mt3)  ≤ ErrY'.
 Proof.
@@ -2971,7 +2974,7 @@ Qed.
 
 Lemma Liveness :
   ∃ (ts : QTime), ∀ (t : QTime), 
-      ts < t → (|(posAtTime t) - targetPosR|) ≤ cast Q IR acceptableDist.
+      ts < t → (|(posAtTime t) - targetR|) ≤ cast Q IR acceptableDist.
 Abort.
 
 End iCREATECPS.
