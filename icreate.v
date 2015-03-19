@@ -1001,6 +1001,21 @@ Proof.
   congruence.
 Qed.
 
+Lemma MotorEventsNthTimeSInc:
+  ∀ (n1 n2 : nat) p1 p2,
+  (n1 < n2)%nat
+   -> (MotorEventsNthTime n1 p1 
+      < MotorEventsNthTime n2 p2)%Q.
+Proof.
+  unfold MotorEventsNthTime, MotorEventsNth.
+  intros.
+  destruct (MotorEvents2 n1 p1) as [ev1  H1e].
+  destruct (MotorEvents2 n2 p2)  as [ev2  H2e].
+  simpl. repnd.
+  apply timeIndexConsistent.
+  congruence.
+Qed.
+
 Lemma MotorEventsNthTimeIncSn:
   ∀ (n : nat) p1 p2,
    (MotorEventsNthTime n p1 
@@ -1342,7 +1357,7 @@ Lemma MotorEventsNthTimeReac:
   (n1 < n2)%nat
    -> MotorEventsNthTime n1 p1 + reacTime
       < MotorEventsNthTime n2 p2.
-Admitted.
+Abort.
 
 Definition motorTurnOmegaPrec (ω : Q) : QTime := θ (motorPrec {| rad :=(0%Q) ; θ := ω |}).
 
@@ -1415,8 +1430,8 @@ Proof.
   context[changesTo _ _ _ (Q2R ?nv) _ (QT2Q ?om)]
     => remember om as opr
   end.
-  assert ((mt0 + reacTime < mt1)%Q) 
-    as Hassumption by (apply MotorEventsNthTimeReac; omega).
+  assert ((mt0 < mt1)%Q) 
+    as Hassumption by (apply MotorEventsNthTimeSInc; omega).
   pose proof (qtimePos reacTime) as H99.
   pose proof (OmegaThetaAtEV0 mt0 QTimeLeRefl) as Ht0.
   repnd.
@@ -1604,6 +1619,7 @@ Proof.
   ring.
 Qed.
 
+(*
 Lemma MotorEventsNthTimeReacLe:
   ∀ (n1 n2 : nat) p1 p2,
   (n1 < n2)%nat
@@ -1614,26 +1630,40 @@ Proof.
   apply MotorEventsNthTimeReac.
   assumption.
 Qed.
+*)
 
 Local Transparent Q2R.
 
-Lemma OmegaAtEv1 : let t1 := MotorEventsNthTime 1 (decAuto (1 < 4)%nat I) in
-    AbsSmall (Q2R (rotspeed + motorTurnOmegaPrec ω)) ({omega ic} t1).
+Lemma OmegaAtEv1 :
+    AbsSmall (Q2R (rotspeed + motorTurnOmegaPrec ω)) ({omega ic} mt1).
 Proof.
-  intro. pose proof correctVel0to1 as H0c.
+  pose proof correctVel0to1 as H0c.
   simpl in H0c.
   apply proj2 in H0c.
   destruct H0c as [qtrans H0c].
   simpl in H0c.
-  pose proof (proj2 (proj1 H0c)) as Ht.
-  apply proj2 in H0c.
-  apply proj1 in H0c.
-  fold t1 in H0c.
-  specialize (H0c t1).
+  repnd.
+  rename H0clr into Ht.
+  destruct (Qlt_le_dec mt1 qtrans) as [Hd | Hd].
+- clear H0crl.
+  pose proof (λ t p, (betweenLAbs _ _ _ _ 
+        (qtimePosIR (motorTurnOmegaPrec ω)) (H0crr t p)))
+     as Hqt. clear H0crr.
+  specialize (Hqt mt1).
+  DestImp Hqt; [|split; [apply MotorEventsNthTimeIncSn |lra]].
+  destruct (OmegaThetaAtEV0 mt0) as [Hom Htt];[apply QTimeLeRefl|].
+  clear Htt.
+  rewrite Hom, IR_inv_Qzero in Hqt.
+  rewrite AbsIR_minus, IR_inv_Qzero in Hqt.
+  rewrite AbsIRNewOmega in Hqt.
+  apply AbsIR_imp_AbsSmall in Hqt.
+  unfold QT2R, Q2R in Hqt.
+  autorewrite with QSimpl in Hqt.
+  exact Hqt.
+- rename H0crl into H0c.
+  specialize (H0c mt1).
   DestImp H0c;
-  [|  split;[| reflexivity];
-      eapply Qle_trans;[apply Ht|];
-      subst t1; apply MotorEventsNthTimeReacLe; omega].
+  [|  split;[assumption | reflexivity]].
   pose proof (AbsIRNewOmega) as Habs.
   apply eq_imp_leEq in Habs.
   pose proof (AbsIR_plus _ _ _ _ Habs H0c) as Hadd.
@@ -1645,7 +1675,6 @@ Proof.
   autorewrite with QSimpl in Hadd.
   exact Hadd.
 Qed.
-
 
 
 Lemma correctVel1to2:
@@ -1697,9 +1726,9 @@ Proof.
   unfold correctVelDuring in Hc.
   apply proj2 in Hc. simpl θ in Hc.
   rewrite motorPrec0 in Hc.
-  assert (mt1 + reacTime < mt2)%Q 
+  assert (mt1 < mt2)%Q 
     as Hassumption 
-    by (apply MotorEventsNthTimeReac; omega).
+    by (apply MotorEventsNthTimeSInc; omega).
   pose proof (qtimePos reacTime) as H99.
   pose proof (ThetaAtEV1_3) as Ht0. simpl in Ht0.
   simpl in Ht0.
@@ -1751,11 +1780,46 @@ Proof.
 Qed.
 
 Local Opaque Q2R.
-  
-Lemma OmegaAtEv2 : let t2 := MotorEventsNthTime 2 (decAuto (2 < 4)%nat I) in
-    {omega ic} t2 = 0.
+
+Lemma MotorEv12Gap :
+   ((|QT2Q mt2 - QT2Q mt1 -  delay |)
+   ≤ 2 * (sendTimeAcc + delivDelayVar))%Q.
 Proof.
-  intro. pose proof correctVel1to2 as H0c.
+  apply MotorEvGap.
+Qed.
+
+Variable delayLargeEnough :
+  (reacTime + 2 * (sendTimeAcc + delivDelayVar) < delay)%Q.
+
+Lemma MotorEventsNthTimeReacLt12:
+   (mt1 + reacTime
+      < mt2)%Q.
+Proof.
+  pose proof MotorEv12Gap as Hp.
+  Local Opaque Q2R.
+  simpl in Hp.
+  apply AbsSmall_Qabs in Hp.
+  apply proj1 in Hp.
+  simpl in Hp.
+  revert Hp. unfoldMC.
+  intro Hp. unfold cg_minus in Hp.
+  simpl in Hp.
+  assert ( (1+1)%Q=2) as H by reflexivity.
+  rewrite H in Hp.
+  lra.
+Qed.
+  
+Lemma MotorEventsNthTimeReacLe12:
+   (mt1 + reacTime
+      <= mt2)%Q.
+Proof.
+  pose proof MotorEventsNthTimeReacLt12.
+  lra.
+Qed.
+
+Lemma OmegaAtEv2 : {omega ic} mt2 = 0.
+Proof.
+  pose proof correctVel1to2 as H0c.
   simpl in H0c.
   apply proj2 in H0c.
   destruct H0c as [qtrans H0c].
@@ -1763,12 +1827,13 @@ Proof.
   pose proof (proj2 (proj1 H0c)) as Ht.
   apply proj2 in H0c.
   apply proj1 in H0c.
-  fold t2 in H0c.
-  specialize (H0c t2).
+  fold mt2 in H0c.
+  fold mt1 in Ht.
+  specialize (H0c mt2).
   DestImp H0c;
   [|  split;[| reflexivity];
       eapply Qle_trans;[apply Ht|];
-      subst t2; apply MotorEventsNthTimeReacLe; omega].
+      apply MotorEventsNthTimeReacLe12; omega].
   rewrite motorPrec0 in H0c.
   simpl in H0c.
   unfold zero, stdlib_rationals.Q_0 in H0c.
@@ -1804,7 +1869,7 @@ Proof.
   DestImp H0c;
   [|  split;[| reflexivity];
       eapply Qle_trans;[apply Ht|];
-      subst t2; apply MotorEventsNthTimeReacLe; omega].
+      subst t2; apply MotorEventsNthTimeReacLe12; omega].
   rewrite motorPrec0 in H0c.
   simpl in H0c.
   unfold zero, stdlib_rationals.Q_0 in H0c.
@@ -2348,7 +2413,7 @@ Proof.
   
   unfold le, Le_instance_QTime, plus in Hcll.
   assert ((mt1 + reacTime < mt2)%Q) 
-    as Hassumption by (apply MotorEventsNthTimeReac; omega).
+    as Hassumption by (apply MotorEventsNthTimeReacLt12; omega).
   apply LeRotIntegSpeed2 with (tub:= Q2R ((mt2 - qtrans))) in Hcrr;
   [| unfold le, Le_instance_QTime; lra | apply inj_Q_leEq; simpl; reflexivity].
   clear Hassumption.
@@ -2801,13 +2866,14 @@ Proof.
   apply mult_resp_nonneg;[assumption|].
   clear Hb.
   apply Cos_nonnegAbs.
-  eapply leEq_transitive;[apply ThetaEv2To3_3| apply ThetaErrLe90IR].
+  eapply leEq_transitive;
+      [apply ThetaEv2To3_3| apply ThetaErrLe90IR].
   unfold le, Le_instance_QTime.
   repnd. split; try lra.
-  pose proof MotorEventsNthTimeReac.
+  (* pose proof MotorEventsNthTimeReac.
   assert ((mt2 + reacTime < mt3)%Q) 
     as Hassumption by (apply MotorEventsNthTimeReac; omega).
-   lra.
+   lra. *) admit.
 - rewrite XDerivAtTime.
   assert ((mt2 <= t <= mt3)%Q) as Hbb by lra.
   apply Hsrr in Hb.
@@ -2846,23 +2912,18 @@ Proof.
           [+]({X rotOrigininPos} qtrans [-]{X rotOrigininPos} mt2))
      as Heq by (unfold cg_minus; ring).
   rewrite Heq. clear Heq.
-  assert ((mt2 + reacTime < mt3)%Q) 
-    as Hassumption by (apply MotorEventsNthTimeReac; omega).
   apply plus_resp_leEq_both;
-  eapply TDerivativeLBQ; eauto 2 with ICR; try lra.
+  [|eapply TDerivativeLBQ; eauto 2 with ICR; try lra].
+  admit.
 Qed.
 
 Lemma XChangeLBEv2To3_2 :
-  let t3 : QTime := MotorEventsNthTime 3 (decAuto (3<4)%nat I) in
-  let t2 : QTime := MotorEventsNthTime 2 (decAuto (2<4)%nat I) in
   (Cos (θErrTrans + θErrTurn) 
       * (speed - transErrTrans)%Q 
       * (Ev23TimeGapLB - QT2Q reacTime))
-  ≤  ({X rotOrigininPos} t3 [-] {X rotOrigininPos} t2).
+  ≤  ({X rotOrigininPos} mt3 [-] {X rotOrigininPos} mt2).
 Proof.
-  intros ? ?.
   destruct XChangeLBEv2To3 as [qtrans Hd].
-  fold t2 t3 in Hd.
   repnd.
   eapply leEq_transitive;[|apply Hdr].
   apply mult_resp_leEq_lft.

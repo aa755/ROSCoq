@@ -1377,7 +1377,7 @@ Qed.
 Lemma changesToDerivInteg :  ∀ (F' F: TContR)
   (atTime uptoTime reacTime : QTime) (oldVal newVal : IR)
   ( eps : QTime),
-  atTime + reacTime < uptoTime
+  atTime < uptoTime
   → changesTo F' atTime uptoTime newVal reacTime eps
   → {F'} atTime [=] oldVal 
   → isDerivativeOf F' F
@@ -1398,7 +1398,26 @@ Proof.
   pose proof (λ t p, (betweenRAbs _ _ _ _ (qtimePosIR eps) (Hmrr t p)))
      as Hqt. clear Hmrr.
   fold eps1 in Hqt.
-  apply TDerivativeAbsQ with (F:=F) in Hqt;[|auto|auto].
+  destruct (Qlt_le_dec uptoTime qtrans) as [Ht | Ht].
+- pattern qtrans in Hqt.
+  match type of Hqt with
+   ?f _  => assert (f uptoTime) as Hqtt by
+      (intros; apply Hqt;split; lra)
+  end.
+  clear Hqt. simpl in Hqtt. rename Hqtt into Hqt.
+  apply TDerivativeAbsQ with (F:=F) in Hqt;[|lra|auto].
+  eapply leEq_transitive;[apply Hqt|].
+  revert Ht. clear. intro Ht.
+  ring_simplify.
+Local Transparent Q2R.
+  unfold QT2R, Q2R.
+  autorewrite with QSimpl.
+  apply plus_resp_leEq.
+  apply mult_resp_leEq_lft;
+    [|subst eps1;eauto 1 with CoRN].
+  apply inj_Q_leEq.
+  simpl. lra.
+- apply TDerivativeAbsQ with (F:=F) in Hqt;[|auto|auto].
   apply TDerivativeAbsQ with (F:=F) in Hmrl;[|lra|auto].
   pose proof (plus_resp_leEq_both _ _ _ _ _ Hqt Hmrl) as Hp.
   eapply leEq_transitive in Hp;[| apply triangle_IR].
@@ -1429,7 +1448,7 @@ Hint Resolve qtimePos : ROSCOQ.
 Lemma changesToDerivInteg2 :  ∀ (F' F: TContR)
   (atTime uptoTime reacTime : QTime) (oldVal newVal : IR)
   ( eps : QTime),
-  atTime + reacTime < uptoTime
+  atTime < uptoTime
   → changesTo F' atTime uptoTime newVal reacTime eps
   → {F'} atTime [=] oldVal 
   → isDerivativeOf F' F
