@@ -2848,7 +2848,7 @@ Require Export Coq.QArith.Qminmax.
 Lemma XDerivLBEv2To3 : 
   ∃ qtrans : Q, (mt2 <= qtrans <= mt2 + reacTime)%Q ∧
   (∀ t:QTime, (mt2 <= t <= qtrans)%Q →  0 ≤ ({XDerivRot} t))
-  ∧ (∀ t:QTime, qtrans < t ≤ mt3 →
+  ∧ (∀ t:QTime, qtrans ≤ t ≤ mt3 →
         (Cos (θErrTrans + θErrTurn)) * (speed - transErrTrans)%Q 
           [<=] (({XDerivRot} t))).
 Proof.
@@ -2867,7 +2867,7 @@ Proof.
   autounfold with IRMC TContRMC.
   unfold Le_instance_QTime, stdlib_rationals.Q_0.
   fold (theta ic[-](ConstTContR optimalTurnAngle)).
-  split;[clear Hsrr | clear Hsrl]; intros t Hb.
+  split;[clear Hsrr |]; intros t Hb.
 - rewrite XDerivAtTime.
   pose proof Hb as Hbb.
   specialize (Hsrl t).
@@ -2885,7 +2885,7 @@ Proof.
   unfoldMC. unfold Plus_instance_QTime.
   simpl. lra. 
 - rewrite XDerivAtTime.
-  unfold stdlib_rationals.Q_lt in Hb.
+  unfold stdlib_rationals.Q_le in Hb.
   repnd.  
   assert ((mt2 <= t <= mt3)%Q) as Hbb by
     (split; try lra).
@@ -2893,8 +2893,12 @@ Proof.
   apply ThetaEv2To3_3 in Hbb.
   apply mult_resp_leEq_both; trivial;
     [eauto 2 with CoRN; fail| apply CosThetaErrGe0|  |].
-  + apply Q.min_lt_iff in Hbl.
-    apply Hsrr; lra.
+  + apply Q.min_le_iff in Hbl.
+    destruct Hbl as [Hbl|Hbl]; try lra.
+    * apply Hsrr.
+      split; try lra.
+    * (* speedTransErrTrans *) 
+      admit.
   + setoid_rewrite CosEven2 at 2;
       [|eapply leEq_transitive;[apply Hbb| apply ThetaErrLe90IR]].
     apply TrigMon.Cos_resp_leEq;
@@ -2902,32 +2906,41 @@ Proof.
 Qed.
 
 Lemma XChangeLBEv2To3 :
-  ∃ qtrans : Q,  (mt2 <= qtrans <= mt2 + reacTime)%Q
+  ∃ qtrans : QTime,  (mt2 <= qtrans <= mt2 + reacTime)%Q
   ∧ (Cos (θErrTrans + θErrTurn) 
         * (speed - transErrTrans)%Q 
-        * (Qmin 0 (mt3 - qtrans))%Q)
+        * (Qmax 0 (mt3 - qtrans))%Q)
       ≤  ({X rotOrigininPos} mt3 [-] {X rotOrigininPos} mt2).
 Proof.
   pose proof XDerivLBEv2To3 as H.
   cbv zeta in H.
-  destruct H as [qtrans H]. exists qtrans.
+  destruct H as [qtrans H]. 
   repnd.
-  split;[split;assumption|].
+  remember (mkQTime1 _ _ Hll) as qtranst.
+  exists qtranst.
+  split;[split;subst qtranst; assumption|].
   match goal with
-  [|- ?l ≤ _] => assert (l [=] l [+] [0] [*] (Q2R(qtrans -mt2)%Q))
+  [|- ?l ≤ _] => assert (l [=] l [+] [0] [*] (Q2R(qtranst -mt2)%Q))
         as Heq by ring
   end.
   rewrite <- inj_Q_Zero in Heq.
   rewrite Heq. clear Heq.
-(*  assert ({X rotOrigininPos} mt3[-]{X rotOrigininPos} mt2
+  destruct (Qlt_le_dec qtrans mt3) as [Ht | Ht].
+- assert ({X rotOrigininPos} mt3[-]{X rotOrigininPos} mt2
           [=]
-          ({X rotOrigininPos} mt3[-]{X rotOrigininPos} qtrans)
-          [+]({X rotOrigininPos} qtrans [-]{X rotOrigininPos} mt2))
+          ({X rotOrigininPos} mt3[-]{X rotOrigininPos} qtranst)
+          [+]({X rotOrigininPos} qtranst [-]{X rotOrigininPos} mt2))
      as Heq by (unfold cg_minus; ring).
   rewrite Heq. clear Heq.
-  apply plus_resp_leEq_both;
-  [|eapply TDerivativeLBQ; eauto 2 with ICR; try lra].
-  *) admit. 
+  apply plus_resp_leEq_both.
+  Focus 2. eapply TDerivativeLBQ; subst qtranst; simpl; eauto 2 with ICR; lra.
+  rewrite (λ a b, proj2 (Q.max_r_iff a b));
+    [|subst qtranst; simpl; lra].
+  unfold le, lt, stdlib_rationals.Q_lt, Le_instance_QTime in Hrr.
+  Local Opaque Cos Q2R.
+  eapply TDerivativeLBQ; subst qtranst; simpl; eauto 2 with ICR; try lra.
+
+- admit.
 Qed.
 
 (*
