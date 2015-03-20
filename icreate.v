@@ -327,7 +327,7 @@ Definition externalCmdSemantics {Phys : Type}
 Definition locNode (rl : RosLoc) : NodeSemantics :=
 match rl with
 | MOVABLEBASE => DeviceSemantics (λ ts,  ts) BaseMotors
-| SWNODE => RSwSemantics ControllerNode
+| SWNODE => SwSemantics ControllerNode
 | EXTERNALCMD  => externalCmdSemantics
 end.
 

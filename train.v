@@ -301,7 +301,7 @@ match rl with
 | PROXSENSOR  side=> DeviceSemantics
                       (proxView side)
                       (ProximitySensor alertDist maxDelay side)
-| SWCONTROLLER => RSwSemantics (ControllerNode speed)
+| SWCONTROLLER => SwSemantics (ControllerNode speed)
 end.
 
 

@@ -953,7 +953,7 @@ Definition DeviceSemantics
      : NodeSemantics :=
  (fun penv evts => inpDev (dview penv) evts).
 
-Definition RSwSemantics
+Definition SwSemantics
     (swn : RosSwNode)
        : NodeSemantics :=
  (fun penv evts => RSwNodeSemanticsAux  swn evts).
@@ -983,7 +983,7 @@ Proof.
 Qed.
 
 Lemma SwFirstMessageIsNotASend:  ∀ (swn : RosSwNode) pp evs ev,
-  RSwSemantics swn pp evs
+  SwSemantics swn pp evs
   → evs 0 = Some ev
   → ~ (isSendEvt ev).
 Proof.
