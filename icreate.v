@@ -10,7 +10,6 @@ Require Export LibTactics.
 (** printing ∃ $\exists$ #∃# *)
 (** printing ≤ $\le$ #≤# *)
 (** printing θ $\theta$ #θ# *)
-(** printing ω $w$ #ω# *)
 (** printing eeev $\epsilon_v$ #∊ᵥ# *)
 (** printing eeew $\epsilon_w$ #∊w# *)
 (** printing tm $t_m$ #tm# *)
@@ -1327,15 +1326,15 @@ Proof.
 Qed.
 
 
-Definition ω :=  (polarθSign target) * rotspeed.
+Definition w :=  (polarθSign target) * rotspeed.
   
 Lemma MotorEv01Gap2 :
     (Qabs.Qabs
-        ((mt1 - mt0) * ω - (simpleApproximate rotDuration  delRes delEps)*ω) <=
+        ((mt1 - mt0) * w - (simpleApproximate rotDuration  delRes delEps)*w) <=
       (2) * (sendTimeAcc + delivDelayVar) * rotspeed)%Q.
 Proof.
   pose proof MotorEv01Gap as Hg.
-  apply Qmult_le_compat_r with (z:= Qabs.Qabs ω) in Hg;
+  apply Qmult_le_compat_r with (z:= Qabs.Qabs w) in Hg;
       [|apply Qabs.Qabs_nonneg].
   rewrite <- Qabs.Qabs_Qmult in Hg.
   revert Hg.
@@ -1363,7 +1362,7 @@ Lemma MotorEventsNthTimeReac:
       < MotorEventsNthTime n2 p2.
 Abort.
 
-Definition motorTurnOmegaPrec (ω : Q) : QTime := θ (motorPrec {| rad :=(0%Q) ; θ := ω |}).
+Definition motorTurnOmegaPrec (w : Q) : QTime := θ (motorPrec {| rad :=(0%Q) ; θ := w |}).
 
 (* Delete!! *)
 Lemma multRAbsSmallIR:
@@ -1376,9 +1375,9 @@ Proof.
   apply leEq_reflexive.
 Qed.
 
-Lemma OptimalAngleEq : CRasIR rotDuration[*]inj_Q ℝ ω = optimalTurnAngle.
+Lemma OptimalAngleEq : CRasIR rotDuration[*]inj_Q ℝ w = optimalTurnAngle.
 Proof.
-  unfold rotDuration, optimalTurnAngle, ω. 
+  unfold rotDuration, optimalTurnAngle, w. 
   apply (injective IRasCR).
   autorewrite with IRtoCR.
   rewrite CRasIRasCR_id.
@@ -1423,13 +1422,13 @@ Lemma ThetaAtEV1 :
      (|{theta ic} mt1 - optimalTurnAngle|) ≤ 
           Q2R (rotspeed * (R2QPrec+ 2 * (sendTimeAcc + delivDelayVar) 
                   + reacTime) 
-              + (motorTurnOmegaPrec ω) * (mt1 - mt0))%Q.
+              + (motorTurnOmegaPrec w) * (mt1 - mt0))%Q.
 Proof.
   pose proof correctVel0to1 as Hc.
   simpl in Hc.
   unfold correctVelDuring in Hc.
   apply proj2 in Hc. simpl θ in Hc.
-  fold (ω) in Hc.
+  fold (w) in Hc.
   match type of Hc with
   context[changesTo _ _ _ (Q2R ?nv) _ (QT2Q ?om)]
     => remember om as opr
@@ -1463,7 +1462,7 @@ Proof.
   apply AbsIR_imp_AbsSmall in Hg.
   apply AbsIR_imp_AbsSmall in Hc.
   pose proof (AbsSmall_plus _ _ _ _ _ Hc Hg) as Hadd.
-  fold (ω) in Hadd.
+  fold (w) in Hadd.
 
   unfold Q2R in Hadd. ring_simplify in Hadd.
   unfold cg_minus in Hadd. ring_simplify in Hadd.
@@ -1479,7 +1478,7 @@ Proof.
   end.
   pose proof (simpleApproximateAbsSmallIR rotDuration delRes delEps) as Hball.
   apply AbsSmall_minus in Hball.
-  apply (multRAbsSmallIR ω) in Hball.
+  apply (multRAbsSmallIR w) in Hball.
   rewrite AbsIRNewOmega, IRDistMinus in Hball.
   rewrite <- inj_Q_mult in Hball.
   rewrite <- inj_Q_mult in Hball.
@@ -1501,7 +1500,7 @@ Proof.
   apply eqImpliesLeEq.
   apply inj_Q_wd.
   simpl. unfoldMC.
-  fold (motorTurnOmegaPrec ω). ring.
+  fold (motorTurnOmegaPrec w). ring.
 Qed.
 
 Require Export Coq.QArith.Qabs.
@@ -1561,7 +1560,7 @@ Hint Resolve qtimePosIR : ROQCOQ.
 Lemma ThetaAtEV1_2 :
      (|{theta ic} mt1 - optimalTurnAngle|) ≤ 
           Q2R (rotspeed * (timeErr + reacTime))
-            + (Q2R (motorTurnOmegaPrec ω) * Ev01TimeGapUB).
+            + (Q2R (motorTurnOmegaPrec w) * Ev01TimeGapUB).
 Proof.
   intros. pose proof ThetaAtEV1 as Hom.
   Local Opaque Qabs.Qabs Q2R.
@@ -1583,7 +1582,7 @@ Qed.
  *)
 
 Lemma ThetaAtEV1_3 :
-  let omPrec : Q :=  (eeew 0%Q ω) in 
+  let omPrec : Q :=  (eeew 0%Q w) in 
  |{theta ic} mt1 - optimalTurnAngle| ≤ 
    Q2R(rotspeed * (timeErr + reacTime) +
     omPrec * timeErr)
@@ -1604,7 +1603,7 @@ Proof.
   unfold Ev01TimeGapUB.
   fold E2EDelVar.
   unfold eeew, motorTurnOmegaPrec.
-  remember (θ (motorPrec {| rad := 0%Q; θ := ω |}) ) as ew.
+  remember (θ (motorPrec {| rad := 0%Q; θ := w |}) ) as ew.
   unfold cast, Cart_CR_IR.
   unfold rotDuration, CanonicalNotations.norm,
   NormSpace_instance_0.
@@ -1639,7 +1638,7 @@ Qed.
 Local Transparent Q2R.
 
 Lemma OmegaAtEv1 :
-    AbsSmall (Q2R (rotspeed + motorTurnOmegaPrec ω)) ({omega ic} mt1).
+    AbsSmall (Q2R (rotspeed + motorTurnOmegaPrec w)) ({omega ic} mt1).
 Proof.
   pose proof correctVel0to1 as H0c.
   simpl in H0c.
@@ -1651,7 +1650,7 @@ Proof.
   destruct (Qlt_le_dec mt1 qtrans) as [Hd | Hd].
 - clear H0crl.
   pose proof (λ t p, (betweenLAbs _ _ _ _ 
-        (qtimePosIR (motorTurnOmegaPrec ω)) (H0crr t p)))
+        (qtimePosIR (motorTurnOmegaPrec w)) (H0crr t p)))
      as Hqt. clear H0crr.
   specialize (Hqt mt1).
   DestImp Hqt; [|split; [apply MotorEventsNthTimeIncSn |lra]].
@@ -1674,7 +1673,7 @@ Proof.
   unfold cg_minus in Hadd.
   apply AbsIR_imp_AbsSmall in Hadd.
   ring_simplify in Hadd.
-  fold (ω) in Hadd.
+  fold (w) in Hadd.
   unfold Q2R in Hadd.
   autorewrite with QSimpl in Hadd.
   exact Hadd.
@@ -1718,8 +1717,8 @@ Local Opaque Q2R.
 
 Definition θErrTurn : IR :=
 Q2R(rotspeed * (timeErr + 2* reacTime) +
-    (eeew 0%Q ω) * (timeErr + reacTime))
-    + Q2R ((eeew 0%Q ω) / rotspeed)%Q * ('(|polarTheta target|)).
+    (eeew 0%Q w) * (timeErr + reacTime))
+    + Q2R ((eeew 0%Q w) / rotspeed)%Q * ('(|polarTheta target|)).
 
 Lemma ThetaAtEV2 :
  (|{theta ic} mt2 - optimalTurnAngle|) ≤ θErrTurn.
@@ -1770,7 +1769,7 @@ Proof.
   apply eq_imp_leEq. unfold Q2R.
   autorewrite with InjQDown.
   unfold motorTurnOmegaPrec, eeew.
-  remember (θ (motorPrec {| rad := 0%Q; θ := ω |})) as ew.
+  remember (θ (motorPrec {| rad := 0%Q; θ := w |})) as ew.
   simpl.
   unfold rotDuration, CanonicalNotations.norm,
   NormSpace_instance_0.
@@ -2196,7 +2195,7 @@ Proof.
 Qed.
 
 Definition transErrRot
-:= (rad (motorPrec {| rad := 0 ; θ := ω |})).
+:= (rad (motorPrec {| rad := 0 ; θ := w |})).
 
 
 Hint Resolve MotorEventsNthTimeIncSn : ICR.
@@ -2283,7 +2282,7 @@ Proof.
   apply proj1 in H01.
   Local Opaque Q2R.
   simpl in H01.
-  fold ω transErrRot in H01.
+  fold w transErrRot in H01.
   eapply changesToDerivSameDeriv in H01; eauto with ICR;
     [|apply MotorEventsNthTimeIncSn | apply TransVelPosAtEV0; unfold le, Le_instance_QTime; reflexivity].
   autorewrite with CoRN in H01.
@@ -2690,7 +2689,7 @@ Proof.
 Qed.
 
 Lemma transErrRotEq :
-  (eeev 0 ω) = transErrRot.
+  (eeev 0 w) = transErrRot.
 reflexivity.
 Qed.
 
@@ -2700,7 +2699,7 @@ reflexivity.
 Qed.
 
 
-Definition ErrY': IR :=  '(eeev 0 ω) * (QT2R reacTime + Ev01TimeGapUB)
+Definition ErrY': IR :=  '(eeev 0 w) * (QT2R reacTime + Ev01TimeGapUB)
 + (Sin (θErrTrans + θErrTurn)) * ('(|target |) + Ev23TimeGapUB * '(eeev speed 0) + (Q2R speed) * timeErr).
 
 Lemma Ev3Y' : AbsIR ({Y rotOrigininPos} mt3)  ≤ ErrY'.
