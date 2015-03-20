@@ -227,7 +227,7 @@ let (lastVel, lastTime) := lastVelAndTime evs uptoTime in
 correctVelDuring lastVel lastTime uptoTime robot.
 
 
-Definition BaseMotors  : Device iCreate :=
+Definition HwAgent  : Device iCreate :=
 λ (robot: iCreate) (evs : nat -> option Event) ,
   (∀ t: QTime, corrSinceLastVel evs t robot)
   ∧ ∀ n:nat, isDeqEvtOp (evs n).
@@ -241,7 +241,7 @@ Definition eeev  a b : Q  :=
 Definition eeew  a b : Q :=
  (θ (motorPrec {|rad:= a; θ:= b|})).
 
-Definition BaseMotorsP (ic: iCreate) (evs : nat -> option Event): Prop :=
+Definition HwAgentP (ic: iCreate) (evs : nat -> option Event): Prop :=
 onlyRecvEvts evs ∧ ∀ t: QTime,
   let (lastCmd, tm ) := lastVelAndTime evs t in 
   let a : Q := rad (lastCmd) in
@@ -252,9 +252,9 @@ onlyRecvEvts evs ∧ ∀ t: QTime,
             ≤ {transVel ic} t' ≤ Max ({transVel ic} tm) (a+ eeev a b)))
     ∧ (∀ t' : QTime, (tr ≤ t' ≤ t) → |{transVel ic} t' - a | ≤ Q2R (eeev a b)).
 
-Lemma BaseMotorsPCorr1 :
+Lemma HwAgentPCorr1 :
   ∀ icr evs,
-  BaseMotors icr evs ->  BaseMotorsP icr evs.
+  HwAgent icr evs ->  HwAgentP icr evs.
 Proof.
   intros ? ? H.
   destruct H as [Hr H].
@@ -326,7 +326,7 @@ Definition externalCmdSemantics {Phys : Type}
 
 Definition locNode (rl : RosLoc) : NodeSemantics :=
 match rl with
-| MOVABLEBASE => DeviceSemantics (λ ts,  ts) BaseMotors
+| MOVABLEBASE => DeviceSemantics (λ ts,  ts) HwAgent
 | SWNODE => SwSemantics ControllerNode
 | EXTERNALCMD  => externalCmdSemantics
 end.
@@ -1060,7 +1060,7 @@ Lemma correctVelTill0:
 Proof.
   intros. pose proof (corrNodes eo MOVABLEBASE) as Hc.
   simpl in Hc.
-  unfold DeviceSemantics, BaseMotors in Hc.
+  unfold DeviceSemantics, HwAgent in Hc.
   apply proj1 in Hc.
 
   unfold MotorEventsNthTime, MotorEventsNth in t0.
@@ -1170,7 +1170,7 @@ Lemma correctVel0to1:
 Proof.
   intros. pose proof (corrNodes eo MOVABLEBASE) as Hc.
   simpl in Hc.
-  unfold DeviceSemantics, BaseMotors in Hc.
+  unfold DeviceSemantics, HwAgent in Hc.
   apply proj1 in Hc.
   unfold mt0, mt1.
   unfold MotorEventsNthTime, MotorEventsNth.
@@ -1688,7 +1688,7 @@ Lemma correctVel1to2:
 Proof.
   intros. pose proof (corrNodes eo MOVABLEBASE) as Hc.
   simpl in Hc.
-  unfold DeviceSemantics, BaseMotors in Hc.
+  unfold DeviceSemantics, HwAgent in Hc.
   apply proj1 in Hc.
 
   unfold MotorEventsNthTime, MotorEventsNth in t1, t2.
@@ -1900,7 +1900,7 @@ Lemma correctVel2to3:
 Proof.
   intros. pose proof (corrNodes eo MOVABLEBASE) as Hc.
   simpl in Hc.
-  unfold DeviceSemantics, BaseMotors in Hc.
+  unfold DeviceSemantics, HwAgent in Hc.
   apply proj1 in Hc.
 
   unfold MotorEventsNthTime, MotorEventsNth in t1, t2.
