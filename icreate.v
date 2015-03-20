@@ -2118,17 +2118,17 @@ Definition rotOrigininPos : Cart2D TContR:=
   rotateOriginTowardsF (' target) nztp (position ic).
 
 
-Definition YDerivRot : TContR :=
+Definition Y'Deriv : TContR :=
 (transVel ic) * (FSin (theta ic - FConst optimalTurnAngle)).
 
-Definition XDerivRot : TContR :=
+Definition X'Deriv : TContR :=
 (transVel ic) * (FCos (theta ic - FConst optimalTurnAngle)).
 
 Lemma DerivRotOriginTowardsTargetPos : 
-  (isDerivativeOf XDerivRot (X rotOrigininPos)
-   × isDerivativeOf YDerivRot (Y rotOrigininPos)).
+  (isDerivativeOf X'Deriv (X rotOrigininPos)
+   × isDerivativeOf Y'Deriv (Y rotOrigininPos)).
 Proof.
-  unfold YDerivRot, XDerivRot.
+  unfold Y'Deriv, X'Deriv.
   apply DerivativerotateOriginTowards2; eauto with ICR.
 Qed.
 
@@ -2139,11 +2139,11 @@ Hint Unfold Mult_instance_TContR Plus_instance_TContR
   Negate_instance_TContR : TContR.
 
 Lemma YDerivAtTime : ∀ (t: Time),
-  {YDerivRot} t 
+  {Y'Deriv} t 
   = {transVel ic} t[*]Sin ({theta ic} t[-]optimalTurnAngle).
 Proof.
   intros ?.
-  unfold YDerivRot.
+  unfold Y'Deriv.
   unfoldMC.
   autounfold with TContR.
   autorewrite with IContRApDown.
@@ -2151,11 +2151,11 @@ Proof.
 Qed.
 
 Lemma XDerivAtTime : ∀ (t: Time),
-  {XDerivRot} t 
+  {X'Deriv} t 
   = {transVel ic} t[*]Cos ({theta ic} t[-]optimalTurnAngle).
 Proof.
   intros ?.
-  unfold XDerivRot.
+  unfold X'Deriv.
   unfoldMC.
   autounfold with TContR.
   autorewrite with IContRApDown.
@@ -2201,7 +2201,7 @@ Definition transErrRot
 Hint Resolve MotorEventsNthTimeIncSn : ICR.
 
 Definition rotDerivAtTime (t : Time) : Cart2D IR:=
-  {|X:= {XDerivRot} t; Y:= {YDerivRot} t|}.
+  {|X:= {X'Deriv} t; Y:= {Y'Deriv} t|}.
 
  
 Lemma RotXYDerivLeSpeed : ∀ (t : Time) (ub : IR),
@@ -2558,11 +2558,11 @@ Lemma YDerivEv2To3 : ∀ (t:QTime),
   let t3 : QTime := MotorEventsNthTime 3 (decAuto (3<4)%nat I) in
   let t2 : QTime := MotorEventsNthTime 2 (decAuto (2<4)%nat I) in
   t2 ≤ t ≤ t3 
-  → AbsIR ({YDerivRot} t) 
+  → AbsIR ({Y'Deriv} t) 
       ≤   (Sin (θErrTrans + θErrTurn)) * (speed + transErrTrans)%Q.
 Proof.
   intros ? ? ? Hb.
-  unfold YDerivRot.
+  unfold Y'Deriv.
   autounfold with IRMC TContRMC.
   fold (theta ic[-](ConstTContR optimalTurnAngle)).
   rewrite YDerivAtTime.
@@ -2585,7 +2585,7 @@ Qed.
 (** trivial simplification *)
 Lemma YDerivEv2To3_1 : ∀ (t:QTime), 
   mt2 ≤ t ≤ mt3 
-  → AbsIR ({YDerivRot} t [-] [0]) 
+  → AbsIR ({Y'Deriv} t [-] [0]) 
       ≤   (Sin (θErrTrans + θErrTurn)) * (speed + transErrTrans)%Q.
 Proof.
   intros.
@@ -2740,10 +2740,10 @@ Lemma XDerivEv2To3UBAux : ∀ (t:QTime),
   let t3 : QTime := MotorEventsNthTime 3 (decAuto (3<4)%nat I) in
   let t2 : QTime := MotorEventsNthTime 2 (decAuto (2<4)%nat I) in
   t2 ≤ t ≤ t3 
-  → AbsIR ({XDerivRot} t) ≤ (speed + transErrTrans)%Q.
+  → AbsIR ({X'Deriv} t) ≤ (speed + transErrTrans)%Q.
 Proof.
   intros ? ? ? Hb.
-  unfold XDerivRot.
+  unfold X'Deriv.
   autounfold with IRMC TContRMC.
   fold (theta ic[-](ConstTContR optimalTurnAngle)).
   rewrite XDerivAtTime.
@@ -2761,7 +2761,7 @@ Lemma XDerivEv2To3UB : ∀ (t:QTime),
   let t3 : QTime := MotorEventsNthTime 3 (decAuto (3<4)%nat I) in
   let t2 : QTime := MotorEventsNthTime 2 (decAuto (2<4)%nat I) in
   t2 ≤ t ≤ t3 
-  → ({XDerivRot} t) ≤ (speed + transErrTrans)%Q.
+  → ({X'Deriv} t) ≤ (speed + transErrTrans)%Q.
 Proof.
   intros ? ? ? Hb.
   eapply leEq_transitive;[| apply (XDerivEv2To3UBAux t); assumption].
@@ -2850,10 +2850,10 @@ Admitted.
 Require Export Coq.QArith.Qminmax.
 Lemma XDerivLBEv2To3 : 
   ∃ qtrans : Q, (mt2 <= qtrans <= mt2 + reacTime)%Q ∧
-  (∀ t:QTime, (mt2 <= t <= qtrans)%Q →  0 ≤ ({XDerivRot} t))
+  (∀ t:QTime, (mt2 <= t <= qtrans)%Q →  0 ≤ ({X'Deriv} t))
   ∧ (∀ t:QTime, qtrans ≤ t ≤ mt3 →
         (Cos (θErrTrans + θErrTurn)) * (speed - transErrTrans)%Q 
-          [<=] (({XDerivRot} t))).
+          [<=] (({X'Deriv} t))).
 Proof.
   pose proof SpeedLbEv2To3 as Hs.
   fold mt2 mt3 in Hs.
@@ -2866,7 +2866,7 @@ Proof.
     (apply Q.min_glb_iff;
     split; try lra; apply MotorEventsNthTimeIncSn).
   split;[split;try lra|].
-  unfold XDerivRot.
+  unfold X'Deriv.
   autounfold with IRMC TContRMC.
   unfold Le_instance_QTime, stdlib_rationals.Q_0.
   fold (theta ic[-](ConstTContR optimalTurnAngle)).
