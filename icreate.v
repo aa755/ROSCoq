@@ -185,7 +185,7 @@ Definition velocityMessages (t : QTime) :=
   (filterPayloadsUptoTime VELOCITY (localEvts MOVABLEBASE) t).
 
 
-Definition lastVelAndTime
+Definition latestVelPayloadAndTime
   (evs : nat -> option Event) (t : QTime) : ((Polar2D Q) × QTime) :=
   lastPayloadAndTime VELOCITY evs t initialVel.
 
@@ -223,7 +223,7 @@ Definition corrSinceLastVel
   (evs : nat -> option Event)
   (uptoTime : QTime)
   (robot: iCreate) :=
-let (lastVel, lastTime) := lastVelAndTime evs uptoTime in
+let (lastVel, lastTime) := latestVelPayloadAndTime evs uptoTime in
 correctVelDuring lastVel lastTime uptoTime robot.
 
 
@@ -241,9 +241,10 @@ Definition eeev  a b : Q  :=
 Definition eeew  a b : Q :=
  (θ (motorPrec {|rad:= a; θ:= b|})).
 
+(** partial simplified definition shown in the paper : *)
 Definition HwAgentP (ic: iCreate) (evs : nat -> option Event): Prop :=
 onlyRecvEvts evs ∧ ∀ t: QTime,
-  let (lastCmd, tm ) := lastVelAndTime evs t in 
+  let (lastCmd, tm ) := latestVelPayloadAndTime evs t in 
   let a : Q := rad (lastCmd) in
   let b : Q := θ (lastCmd) in
   ∃ tr : QTime, (tm ≤ tr ≤ tm + reacTime)
@@ -262,7 +263,7 @@ Proof.
   intros t.
   specialize (Hr t).
   unfold corrSinceLastVel in Hr.
-  destruct (lastVelAndTime evs t) as [lc lt].
+  destruct (latestVelPayloadAndTime evs t) as [lc lt].
   apply proj1 in Hr.
   destruct Hr as [qtrans Hr].
   exists qtrans.
@@ -1070,7 +1071,7 @@ Proof.
   Local Opaque getPayloadAndEv.
   simpl in H0m.
   unfold corrSinceLastVel in Hc.
-  unfold lastVelAndTime, lastPayloadAndTime, filterPayloadsUptoTime in Hc.
+  unfold latestVelPayloadAndTime, lastPayloadAndTime, filterPayloadsUptoTime in Hc.
   specialize (Hc (eTime evStartTurn)).
   repnd.
   rewrite numPrevEvtsEtime in Hc;[|assumption].
@@ -1181,7 +1182,7 @@ Proof.
   autounfold with π₁ in H1m.
   simpl in H1m.
   unfold corrSinceLastVel in Hc.
-  unfold lastVelAndTime, lastPayloadAndTime, filterPayloadsUptoTime in Hc.
+  unfold latestVelPayloadAndTime, lastPayloadAndTime, filterPayloadsUptoTime in Hc.
   specialize (Hc (eTime evStopTurn)). simpl in Hc.
   repnd.
   rewrite numPrevEvtsEtime in Hc;[|assumption].
@@ -1701,7 +1702,7 @@ Proof.
   autounfold with π₁ in H1m.
   simpl in H1m.
   unfold corrSinceLastVel in Hc.
-  unfold lastVelAndTime, lastPayloadAndTime, filterPayloadsUptoTime in Hc.
+  unfold latestVelPayloadAndTime, lastPayloadAndTime, filterPayloadsUptoTime in Hc.
   specialize (Hc (eTime evStopTurn)). simpl in Hc.
   repnd.
   rewrite numPrevEvtsEtime in Hc;[|assumption].
@@ -1913,7 +1914,7 @@ Proof.
   autounfold with π₁ in H1m.
   simpl in H1m.
   unfold corrSinceLastVel in Hc.
-  unfold lastVelAndTime, lastPayloadAndTime, filterPayloadsUptoTime in Hc.
+  unfold latestVelPayloadAndTime, lastPayloadAndTime, filterPayloadsUptoTime in Hc.
   specialize (Hc (eTime evStopTurn)). simpl in Hc.
   repnd.
   rewrite numPrevEvtsEtime in Hc;[|assumption].
