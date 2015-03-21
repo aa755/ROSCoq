@@ -2969,7 +2969,6 @@ Proof.
   rewrite (λ a b, proj2 (Q.min_r_iff a b)); try lra.
 Qed.
 
-(*
 Lemma XChangeLBEv2To3_2 :
   (Cos (θErrTrans + θErrTurn) 
       * (speed - transErrTrans)%Q 
@@ -2982,6 +2981,7 @@ Proof.
   apply mult_resp_leEq_lft.
 - assert (mt3-mt2-reacTime <=(mt3 - qtrans))%Q as Hle by lra.
   apply (inj_Q_leEq IR) in Hle.
+  eapply leEq_transitive;[| apply inj_Q_leEq; apply Q.le_max_r].
   eapply leEq_transitive;[|apply Hle].
   rewrite inj_Q_minus.
   unfoldMC.
@@ -2993,7 +2993,6 @@ Proof.
 - apply mult_resp_nonneg; eauto 1 with ICR;[].
   apply injQ_nonneg. simpl. assumption.
 Qed.
-*)
 
 Lemma Liveness :
   ∃ (ts : QTime), ∀ (t : QTime), 
