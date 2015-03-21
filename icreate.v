@@ -2994,10 +2994,6 @@ Proof.
   apply injQ_nonneg. simpl. assumption.
 Qed.
 
-Lemma Liveness :
-  ∃ (ts : QTime), ∀ (t : QTime), 
-      ts < t → (|(posAtTime t) - targetR|) ≤ cast Q IR acceptableDist.
-Abort.
 
 End iCREATECPS.
 End RobotProgam.

@@ -231,3 +231,57 @@ assert T as Heq by reflexivity; rewrite Heq; clear Heq.
 
 Ltac ReplaceH T H :=
 assert T as Heq by reflexivity; rewrite Heq in H; clear Heq.
+
+Fixpoint search (n: nat) (f : nat → bool) : option nat :=
+match n with
+| O =>  None
+| S n' => if (f n') 
+            then Some n' 
+            else search n' f
+end.
+
+Lemma searchSome : ∀ (f : nat → bool) (n m: nat) ,
+  search n f = Some m → f m = true ∧ m < n .
+Proof.
+  induction n.
+- intros ? Heq. simpl in Heq. inversion Heq.
+- intros ? Heq. simpl in Heq.
+  remember (f n) as fn.
+  destruct fn.
+  + inversion Heq. clear Heq.
+    subst. auto.
+  + apply IHn in Heq. split; try tauto.
+    omega.
+Qed.
+
+Lemma searchNone : ∀ (n: nat) (f : nat → bool),
+  search n f = None → ∀ m, m < n-> f m = false.
+Proof.
+  induction n; intros ? Heq; simpl in Heq.
+- intros. omega.
+- remember (f n) as fn.
+  destruct fn.
+  + inversion Heq.
+  + intros ? Hlt.
+    assert (m = n ∨ m < n) as Hd by omega.
+    destruct Hd.
+    * subst. auto.
+    * auto.
+Qed.
+
+Lemma searchMax : ∀ (f : nat → bool) (b m c: nat) ,
+  f c = true
+  → c < b
+  → search b f = Some m 
+  → c <= m.
+Proof.
+  induction b; intros ? ? Heq Hlt Hs; simpl in Hs.
+- inversion Hlt.
+- remember (f b) as fn.
+  destruct fn.
+  + inversion Hs. clear Hs.
+    subst. omega.
+  + apply IHb; auto.
+    assert (c = b ∨ c < b) as Hd by omega.
+    destruct Hd; try congruence.
+Qed.

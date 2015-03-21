@@ -73,6 +73,9 @@ Class EventType (Event: Type)
     /\ (eLoc e1 = eLoc e2 
         -> minGap <= (Qabs ((eTime e1) - (eTime e2))))%Q;
 
+  (** remove this and change the type of [minGap] to [Qpos] *)
+  minGapPos : (0 < minGap)%Q;
+
   (** While this definitely a sensible property, is it needed anywhere? *)
   uniqueSendInfo :
     ∀ (si : SendEvtInfo) ev1 ev2,
@@ -112,15 +115,140 @@ Context
 Definition eTimeOp := 
 option_map eTime.
 
-(** would fail if [QTime] is changed to [Time].
-    This should be definable, thanks to [minGap].
-    if the returned value is is [n], the indices of prev events are less than
-    [n]. see [numPrevEvtsCorrect]
- *)
-Definition numPrevEvts : (nat -> option Event) -> QTime -> nat.
-Admitted.
+Definition locEvtIndexRW :=
+(λ c a b p, proj1 (locEvtIndex a b c) p).
+
+(** would fail if [QTime] is changed to [Time]. *)
+Definition searchBound  (t:  QTime) : nat :=
+  Z.to_nat (Qround.Qceiling (t/minGap)).
+
+Definition nthEvtBefore  (evs : nat -> option Event)
+  (t:  QTime) (n:nat) : bool :=
+match evs n with
+| Some ev => toBool (Qlt_le_dec (eTime ev) t)
+| None => false
+end.
+  
+Definition numPrevEvts 
+  (evs : nat -> option Event) (t:  QTime) : nat :=
+match (search (searchBound t) (nthEvtBefore evs t)) with
+| Some n => S n
+| None => 0%nat
+end.
 
 Close Scope Q_scope.
+
+Lemma searchBoundSpec:
+  forall  loc  ev (qt : QTime), 
+  eLoc ev = loc
+  → (eTime ev < qt)%Q 
+  → eLocIndex ev < (searchBound qt).
+Proof.
+  intros ? ? .
+  remember (eLocIndex ev) as n.
+  generalize dependent ev.
+  induction n; intros ? ? ? Heq Hlt.
+- unfold searchBound.
+  destruct (eTime ev) as [? p].
+  simpl in Hlt.
+  apply QTimeD in p.
+  assert (0<qt)%Q by lra.
+  apply Q.Qlt_lt_of_nat_inject_Z.
+  pose proof (minGapPos).
+  apply Qlt_shift_div_l; auto.
+  ring_simplify. lra.
+
+- unfold searchBound.
+  apply Q.Qlt_lt_of_nat_inject_Z.
+  pose proof (minGapPos).
+  apply Qlt_shift_div_l; auto.
+  symmetry in Heqn.
+  pose proof (localIndexDense loc (S n) ev n) as Hd.
+  DestImp Hd; [| auto].
+  DestImp Hd; [| auto].
+  destruct Hd as [evp Hd].
+  repnd.
+  symmetry in Hdr.
+  pose proof (eventSpacing evp ev) as Hsp.
+  repnd.
+  DestImp Hspr;[| congruence].
+  pose proof (timeIndexConsistent evp ev) as Hti.
+  apply proj1 in Hti.
+  rewrite Heqn in Hti.
+  rewrite <- Hdr in Hti.
+  DestImp Hti;[|auto].
+  rewrite Q.Qabs_Qminus, Qabs_pos in Hspr;[| lra].
+  assert (0<=(qt-minGap))%Q as Hgt by lra.
+  apply mkQTimeSnd in Hgt.
+  apply IHn with (qt:=mkQTime (qt-minGap) Hgt) in Hdr; auto;
+    [| simpl; lra].
+  unfold searchBound in Hdr.
+  simpl in Hdr. clear Hgt.
+  apply Q.Qlt_lt_of_nat_inject_Z in Hdr.
+  apply (Qmult_lt_r _ _ _ H) in Hdr.
+  field_simplify in Hdr;[| lra].
+  simpl in Hdr.
+  rewrite  Q.Qdiv_1_r in Hdr.
+  rewrite  Q.Qdiv_1_r in Hdr.
+  assert (((-1 # 1) * minGap + qt) == qt - minGap)%Q 
+    as Heqq by ring.
+  rewrite Heqq in Hdr.
+  clear Heqq.
+  rewrite Q.S_Qplus.
+  lra.
+Qed.
+
+  
+
+Lemma numPrevEvtsSpec:
+  forall loc qt,
+    forall ev: Event , eLoc ev = loc
+    -> ((eLocIndex ev < numPrevEvts (localEvts loc) qt)%nat 
+          <-> (eTime ev < qt)%Q).
+Proof.
+  intros ? ? ? Heq.
+  unfold numPrevEvts.
+  remember (search (searchBound qt) (nthEvtBefore (localEvts loc) qt))
+    as sop. symmetry in Heqsop.
+  destruct sop;
+  split; intros Hlt; [| | omega |].
+- apply searchSome in Heqsop.
+  repnd.
+  unfold nthEvtBefore in Heqsopl.
+  remember (localEvts loc n) as evnop.
+  destruct evnop as [evn|]; [| discriminate].
+  destruct (Qlt_le_dec (eTime evn) qt); try discriminate;[].
+  clear Heqsopl.
+  assert (eLocIndex ev < n \/ eLocIndex ev = n) as Hd by omega.
+  symmetry in Heqevnop.
+  apply locEvtIndex in Heqevnop.
+  repnd.
+  Dor Hd.
+  + clear Hlt.
+    assert (eTime ev < eTime evn)%Q ;[| lra].
+    apply timeIndexConsistent; auto.
+    congruence.
+  + assert (ev=evn);[| subst; congruence].
+    apply indexDistinct; congruence.
+
+- apply searchMax with (c:= eLocIndex ev) in Heqsop;
+  [omega| | eapply searchBoundSpec; eauto; fail].
+  unfold nthEvtBefore.
+  rewrite locEvtIndexRW with (c:= ev);
+    [| split; auto].
+  destruct (Qlt_le_dec (eTime ev) qt); auto; lra.
+
+- unfold nthEvtBefore in Heqsop.
+  pose proof Hlt as Hltb.
+  eapply searchBoundSpec in Hlt; eauto.
+  apply searchNone with (m:=eLocIndex ev) in Heqsop; auto.
+  rewrite locEvtIndexRW with (c:= ev)in Heqsop;
+    [| split; auto].
+  destruct (Qlt_le_dec (eTime ev) qt);
+  simpl in Heqsop; try discriminate.
+  lra.
+Qed.
+
 
 Lemma evSpacIndex :  forall (ev1 ev2: Event),
     eLoc ev1 = eLoc ev2
@@ -133,14 +261,6 @@ Proof.
   rewrite Q.Qabs_Qminus in Ht.
   rewrite Qabs.Qabs_pos in Ht; lra.
 Qed.
-
-(** this is the spec of the above function *)
-Lemma numPrevEvtsSpec:
-  forall loc qt,
-    forall ev: Event , eLoc ev = loc
-    -> ((eLocIndex ev < numPrevEvts (localEvts loc) qt)%nat 
-          <-> (eTime ev < qt)%Q).
-Admitted.
 
 Lemma numPrevEvtsEtime:
   forall (ev: Event) loc ,
@@ -600,8 +720,6 @@ Proof.
   discriminate.
 Qed.
 
-Definition locEvtIndexRW :=
-(λ c a b p, proj1 (locEvtIndex a b c) p).
 
   
 Lemma filterPayloadsIndexComp : forall tp loc (n:nat) pl ev,
