@@ -17,64 +17,41 @@ Welcome to the online reference for our ITP2015 submission
 This page guides the reader to key parts of our development:
 <ul>
   <li> 
-    <a href="coqdoc/ROSCOQ.core.html"> core.v </a> : defintion of 
+    <a href="coqdoc/ROSCOQ.core.html"> core.v </a> : defintion of time (<a href="coqdoc/ROSCOQ.core.html#Time">Time</a>,  <a href="coqdoc/ROSCOQ.core.html#QTime">QTime</a>),
+ continuous functions over time (<a href="coqdoc/ROSCOQ.core.html#TContR">TContR</a>),
+ derivatives w.r.t. time (<a href="coqdoc/ROSCOQ.core.html#isDerivativeOf">isDerivativeOf</a> 
+and many lemmas about bounds on functions based on bounds on their derivatives at rational values of time (e.g. ).
+ </li>
+
+<li>
+    <a href="coqdoc/ROSCOQ.CartCR.html">CartCR.v</a> : conversion between cartesian and polar coordinates, proofs of correctness of the conversion
   </li>
 
-  <li>  Definition of Variables
-    <a href="html/doc/GVariables.html"> GVariables.v </a>
+  <li>
+    <a href="coqdoc/ROSCOQ.MsgHandler.html">MsgHandler.v</a> : definiton of a message handler with state, lemmas characterizing its state and output after a handling a finite sequence of mesages
   </li>
 
-  <li>  Definition of CFGV
-    <a href="html/doc/CFGV.html"> CFGV.v </a>
+  <li>  <a href="coqdoc/ROSCOQ.roscore.html">roscore.v</a> : definition of topics, messages and software agents
   </li>
 
-  <li>  Complete CFGV specification of the example language in the paper.
-    <a href="html/doc/LetrecEx.html"> LetrecEx.v </a>
+<li>  <a href="coqdoc/ROSCOQ.ROSCyberPhysicalSystem.html">ROSCyberPhysicalSystem.v</a> : definition of events, causal ordering, semantics of agents, derivation of semantics of a software agent from its Coq program (<a href="coqdoc/ROSCOQ.ROSCyberPhysicalSystem.html#SwSemantics">SwSemantics</a>), definition and correctness proofs of utility functions which find latest payload on a topic</li>
+
+<li>
+    <a href="coqdoc/ROSCOQ.core.icreate.html">MsgHandler.v</a> : specialization of the above to scpecify the iCreate CPS discussed in the paper. It incudes a defintion of its physical model, specification of its behaviour, and Coq program in the running example of the paper. After specification, bounds are derived on how close the robot will be to the position it is asked to be at. Main lemmas are: 
   </li>
 
-  <li>  Definition of Term, Pattern, free variables, binding variables e.t.c.
-    <a href="html/doc/Term.html"> Term.v </a>
+<li>  <a href="Listener.java">.java</a> : the shim used to run the above Coq program on an icreate robot
   </li>
 
-  <li>  Definition of Swapping operations, freshness and equivariance
-    <a href="html/doc/Swap.html"> Swap.v </a>
-  </li>
-
-  <li>  Definition of Alpha Equality
-    <a href="html/doc/AlphaEquality.html"> AlphaEquality.v </a>
-  </li>
-
-  <li>  Proofs about Swapping operations
-    <a href="html/doc/SwapProps.html"> SwapProps.v </a>
-  </li>
-
-  <li>  Decidability of  about Alpha equality
-    <a href="html/doc/AlphaDecider.html"> AlphaDecider.v </a>
-  </li>
-
-  <li>  Other Proofs about Alpha equality
-    <a href="html/doc/AlphaEqProps.html"> AlphaEqProps.v </a>
-  </li>
-
-  <li>  Definition and Proofs about alpha renaming
-    <a href="html/doc/AlphaRen.html"> AlphaRen.v </a>
-  </li>
-
-  <li>  Definition and Proofs about tSubstAux
-    <a href="html/doc/SubstAux.html"> SubstAux.v </a>
-  </li>
-
-
-  <li>  Definition and Proofs about substitution
-    <a href="html/doc/SSubst.html"> SSubst.v </a>
-  </li>
 
 </ul>
-<h3>Updates</h3>
+<h3>Coming Up</h3>
 
 <ul>
-  <li> 05/17/2014: We now have a <a href="http://nuprl.cs.cornell.edu:4987/CFGV">web-interface</a> which can be used to
-                lookup our Coq definitions by name. </li>
+  <li> Instructions to download and compile the sources with the latest version of Coq and CoRN.</li>
+
+<li> A VM with ROSCoq its ROS shim preinstalled, so that one can easily run Coq programs on their iRobot roomba or create robots</li>
+
 </ul>
 
 
