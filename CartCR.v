@@ -32,41 +32,6 @@ Definition Cart2Polar (cart :Cart2D Q) : Polar2D CR :=
   ; θ := polarTheta cart |}.
 
 
-(**
-  Require Export CoRN.util.Extract.
-
-  Time Eval vm_compute in answer 10 ((4*(polarTheta {|X:=1; Y:=1|}))).
-  = 31415926535%Z
-     : Z
-  Finished transaction in 0. secs (0.u,0.s)
-
-  Time Eval vm_compute in answer 10 ((4*(polarTheta {|X:=1; Y:=1|}))).
-  = 31415926535%Z
-     = (-31415926536)%Z
-     : Z
-  Finished transaction in 0. secs (0.0160000000005u,0.s)
-
-  Time Eval vm_compute in answer 10 ((4*(polarTheta {|X:=1; Y:=1|}))).
-  = 31415926535%Z
-     = (-31415926536)%Z
-     : Z
-  Finished transaction in 0. secs (0.0160000000005u,0.s)
-
-  Time Eval vm_compute in answer 10 
-    (((polarTheta {|X:=-1; Y:=-1|})*(cast Q CR (4#5)))).
-  
-   = 31415926535%Z
-     : Z
-  Finished transaction in 0. secs (0.0150000000003u,0.s)
-
-  Time Eval vm_compute in answer 10 
-      (((polarTheta {|X:=-1; Y:=1|})*(cast Q CR (4#3)))).
-     = 31415926535%Z
-     : Z
-  Finished transaction in 0. secs (0.0160000000005u,0.s)    
-*)
-
-
 Definition Polar2Cart (pol : Polar2D CR) : Cart2D CR :=
   {|X := (rad pol) * (cos (θ pol)) 
   ; Y := (rad pol) * (sin (θ pol)) |}.

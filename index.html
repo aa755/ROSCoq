@@ -5,6 +5,7 @@
 <meta http-equiv="expires" content="0" />
 <meta http-equiv="expires" content="Tue, 01 Jan 1980 1:00:00 GMT" />
 <meta http-equiv="pragma" content="no-cache" />
+<title> ROSCoq </title>
 </head>
 
 <body>
@@ -15,6 +16,7 @@ Welcome to the online reference for our ITP2015 submission
 <br>
 
 This page guides the reader to key parts of our development:
+ Physical Aspects :
 <ul>
   <li> 
     <a href="coqdoc/ROSCOQ.core.html"> core.v </a> : defintion of time (<a href="coqdoc/ROSCOQ.core.html#Time">Time</a>,  <a href="coqdoc/ROSCOQ.core.html#QTime">QTime</a>),
@@ -23,10 +25,22 @@ This page guides the reader to key parts of our development:
 and many lemmas about bounds on functions based on bounds on their derivatives at rational values of time (e.g. ).
  </li>
 
-<li>
-    <a href="coqdoc/ROSCOQ.CartCR.html">CartCR.v</a> : conversion between cartesian and polar coordinates, proofs of correctness of the conversion
+  <li>
+    <a href="coqdoc/ROSCOQ.CartCR.html">CartCR.v</a> : conversion between cartesian and polar coordinates, proofs of correctness of the conversions
   </li>
 
+  <li>
+    <a href="coqdoc/ROSCOQ.CartIR.html">CartIR.v</a> : 
+      definition of coordinates after that the axes are rotated such that the new X axis 
+      is in the direction of a given point 
+      (<a href="coqdoc/ROSCOQ.CartIR.html#rotateOriginTowardsF">rotateOriginTowardsF</a>).
+      <a href="coqdoc/ROSCOQ.CartIR.html#DerivativerotateOriginTowards2">DerivativerotateOriginTowards2</a> characterizes
+      the derivative of the new coordinates in terms of the derivatives of the old coordinates
+  </li>
+</ul>
+
+ Cyber Aspects :
+<ul>
   <li>
     <a href="coqdoc/ROSCOQ.MsgHandler.html">MsgHandler.v</a> : definiton of a message handler with state, lemmas characterizing its state and output after a handling a finite sequence of mesages
   </li>
@@ -34,23 +48,40 @@ and many lemmas about bounds on functions based on bounds on their derivatives a
   <li>  <a href="coqdoc/ROSCOQ.roscore.html">roscore.v</a> : definition of topics, messages and software agents
   </li>
 
-<li>  <a href="coqdoc/ROSCOQ.ROSCyberPhysicalSystem.html">ROSCyberPhysicalSystem.v</a> : definition of events, causal ordering, semantics of agents, derivation of semantics of a software agent from its Coq program (<a href="coqdoc/ROSCOQ.ROSCyberPhysicalSystem.html#SwSemantics">SwSemantics</a>), definition and correctness proofs of utility functions which find latest payload on a topic</li>
+</ul>
+  Cyber-physical Aspects :
+<ul>
+<li>  <a href="coqdoc/ROSCOQ.ROSCyberPhysicalSystem.html">ROSCyberPhysicalSystem.v</a> : 
+      definition of events, causal ordering, semantics of agents, derivation of semantics of a software agent from its 
+      Coq program (<a href="coqdoc/ROSCOQ.ROSCyberPhysicalSystem.html#SwSemantics">SwSemantics</a>), 
+      definition and correctness proofs of utility functions which find latest payload on a topic</li>
 
 <li>
-    <a href="coqdoc/ROSCOQ.core.icreate.html">MsgHandler.v</a> : specialization of the above to scpecify the iCreate CPS discussed in the paper. It incudes a defintion of its physical model, specification of its behaviour, and Coq program in the running example of the paper. After specification, bounds are derived on how close the robot will be to the position it is asked to be at. Main lemmas are: 
+    <a href="coqdoc/ROSCOQ.icreate.html">icreate.v</a> : specialization of the above to specify the iCreate CPS 
+      discussed in the paper. It incudes a definition of its physical model, 
+      specification of the behavior of the robot, 
+      and Coq program in the running example of the paper. 
+      After specification, bounds are derived on how close the robot will be to the position it is asked to be at. 
+      Main lemmas are: 
+      <a href="coqdoc/ROSCOQicreate.html#ThetaEv2To3P">ThetaEv2To3P</a>,
+      <a href="coqdoc/ROSCOQicreate.html#Ev3Y'">Ev3Y'</a>,
+      <a href="coqdoc/ROSCOQicreate.html#Ev3X'DiffUb">Ev3X'DiffUb</a>,
+      and <a href="coqdoc/ROSCOQicreate.html#Ev3X'DiffLb">Ev3X'DiffLb</a>
+      
   </li>
 
-<li>  <a href="Listener.java">.java</a> : the shim used to run the above Coq program on an icreate robot
+<li>  <a href="Listener.java">ROSJava shim</a> : the shim used to run a specialization 
+        (<a href=" coqdoc/ROSCOQ.icreateConcrete.html#robotProgramInstance">robotProgramInstance</a>) of the above Coq program.
   </li>
-
-
 </ul>
 <h3>Coming Up</h3>
 
 <ul>
-  <li> Instructions to download and compile the sources with the latest version of Coq and CoRN.</li>
+  <li> Instructions to compile the sources with the latest version of Coq and CoRN. </li>
 
-<li> A VM with ROSCoq its ROS shim preinstalled, so that one can easily run Coq programs on their iRobot roomba or create robots</li>
+  <li> A VM with ROSCoq its ROSJava shim preinstalled, so that one can easily run Coq programs on their 
+      iRobot <a href="http://www.irobot.com/For-the-Home/Vacuum-Cleaning/Roomba.aspx"> Roomba</a> 
+      or <a href="http://www.irobot.com/About-iRobot/STEM/Create-2.aspx"> Create</a>.
 
 </ul>
 
