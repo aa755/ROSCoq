@@ -5,29 +5,34 @@ Definition rotSpeedRadPerSec : Qpos := QposMake 1 2.
 
 Definition speedMetresPerSec : Qpos := QposMake 1 10.
 
-Definition anglePrecRadPerSec : Qpos := QposMake 1 100.
+Definition  delResSecInv :  positive := (1000)%positive.
 
-Definition R2QPrec : Qpos := QposMake 1 10000.
+Definition delEpsSec : Qpos := QposMake 1 10000.
 
 Definition initDelayLin : Qpos := QposMake 1 1.
 
 
-Definition robotProgramInstance distSec :  PureProcWDelay TARGETPOS VELOCITY :=
+Definition robotProgramInstance delayLinSec :  PureProcWDelay TARGETPOS VELOCITY :=
   robotPureProgam 
           rotSpeedRadPerSec 
           speedMetresPerSec
-          distSec
-          R2QPrec
-          1000.
+          delayLinSec
+          delEpsSec
+          delResSecInv.
 
-Definition SwProcessInstance : Process Message (list Message).
-  apply Build_Process with (State := Q).
-  exact initDelayLin.
-  intros ins inm.
-  split.
-  - exact (ins * 2).
-  - exact ((delayedLift2Mesg (robotProgramInstance (QabsQpos ins))) inm).
-Defined.
+(** To ensure that the Java shim maintains the state correctly,
+   we make this process whose state is non-trivial and
+   stores the delay between the "stop-turning" and
+   the "start-moving" message.
+   At each update, this value is doubled *)
+
+Definition SwProcessInstance : Process Message (list Message):=
+{|
+State := Q;
+curState := initDelayLin;
+handler := λ (ins : Q) (inm : Message),
+           (ins * 2,
+           delayedLift2Mesg (robotProgramInstance (QabsQpos ins)) inm) |}.
 
 Definition target1Metres : Cart2D Q 
   := {|X:= - Qmake 1 1 ; Y:=   Qmake 1 1|}.
@@ -65,13 +70,6 @@ Definition outMsgs1 : list Message.
 Defined.
 *)
 
-(*
-Definition milliSeconds (q : Q) : Z :=
-Zdiv ((Qnum q) * 1000) (Qden q).
-
-Definition milliSecondsQ (q : Q) : Q :=
-(milliSeconds q)# 1000.
-*)
 
 Definition nthMsgPayload (lm : list Message) 
   (tp : Topic) (n:nat) : option (topicType tp) :=
@@ -96,11 +94,4 @@ Definition QNumOp  : option Q -> option Z :=
 Definition QDenOp  : option Q -> option positive :=
   option_map Qden.
 
-(*
-Definition approxTime (lm: list (Q ** Polar2D Q)) : list (Z ** Polar2D Q) := 
-map (λ p, ((microSeconds (fst p)), snd p)) lm.
 
-Lemma trial1 : approxTime (robotProgramInstance target1Metres) ≡ [].
-vm_compute.
-Abort.
-*)
