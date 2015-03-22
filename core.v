@@ -1569,24 +1569,3 @@ Proof.
   intros. rewrite square_minus. rewrite <- one_plus_one.
   unfold cg_minus. ring.
 Qed.
-
-(*
-
-Definition ChangesToIntBnd {atTime uptoTime reacTime : QTime}
-  (p: atTime + reacTime < uptoTime) : TIntgBnds.
-Admitted.
-
-
-Lemma changesToIntegral :  ∀ (F': TContR)
-  (atTime uptoTime reacTime : QTime) (oldVal newVal : IR)
-  ( eps : QTime)
-  (p : atTime + reacTime < uptoTime),
-  changesTo F' atTime uptoTime newVal reacTime eps
-  → {F'} atTime [=] oldVal 
-  → let eps1 := (AbsIR ({F'} atTime[-]newVal)) in
-     AbsIR((Cintegral (ChangesToIntBnd p) F') [-]newVal[*](uptoTime - atTime))
-          [<=] eps1[*](QT2R reacTime) [+]  eps*(uptoTime - atTime).
-Proof.
-Abort.
-
-*)

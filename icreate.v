@@ -1622,18 +1622,6 @@ Proof.
   ring.
 Qed.
 
-(*
-Lemma MotorEventsNthTimeReacLe:
-  ∀ (n1 n2 : nat) p1 p2,
-  (n1 < n2)%nat
-   -> (MotorEventsNthTime n1 p1 + reacTime
-      <= MotorEventsNthTime n2 p2)%Q.
-Proof.
-  intros. apply Qlt_le_weak.
-  apply MotorEventsNthTimeReac.
-  assumption.
-Qed.
-*)
 
 Local Transparent Q2R.
 
@@ -2657,6 +2645,28 @@ Proof.
 Qed.
 
 
+Lemma Dist23RW: Ev23TimeGapUB * (speed + transErrTrans)%Q 
+[=] (('(|target |)) 
+          + Ev23TimeGapUB * QT2R transErrTrans
+          + Q2R speed * timeErr).
+Proof.
+  unfold Ev23TimeGapUB, transDuration.
+  unfoldMC. autounfold with IRMC.
+  unfold QT2R, Q2R.
+  rewrite inj_Q_plus.
+  ring_simplify.
+  unfold cast, Cart_CR_IR.
+  rewrite CR_mult_asIR.
+  rewrite CRasIRInj.
+  rewrite mult_commut_unfolded, <- mult_assoc_unfolded.
+  rewrite mult_assoc_unfolded.
+  rewrite qpCancel.
+  ring_simplify.
+  autorewrite with InjQDown.
+  apply plus_resp_eq.
+  reflexivity.
+Qed.
+
 Lemma YChangeEv2To3_3 :
   AbsIR ({Y rotOrigininPos} mt3 [-] {Y rotOrigininPos} mt2) 
       ≤ (Sin (θErrTrans + θErrTurn) * 
@@ -2670,23 +2680,13 @@ Proof.
   eapply leEq_transitive;[apply Hyd|].
   clear Hyd.
   apply eqImpliesLeEq.
-  unfold Ev23TimeGapUB, transDuration.
   unfoldMC. autounfold with IRMC.
   rewrite mult_commut_unfolded, <- mult_assoc_unfolded.
   apply mult_wdr.
-  unfold QT2R, Q2R.
-  rewrite inj_Q_plus.
-  ring_simplify.
-  unfold cast, Cart_CR_IR.
-  rewrite CR_mult_asIR.
-  rewrite CRasIRInj.
-  rewrite mult_assoc_unfolded.
-  rewrite qpCancel.
-  ring_simplify.
-  autorewrite with InjQDown.
-  apply plus_resp_eq.
-  reflexivity.
+  rewrite <- Dist23RW.
+  unfoldMC. autounfold with IRMC. ring.
 Qed.
+
 
 Lemma transErrRotEq :
   (eeev 0 w) = transErrRot.
@@ -2784,32 +2784,72 @@ Proof.
 Qed.
 
 Lemma XChangeUBEv2To3_2 :
-  let t3 : QTime := MotorEventsNthTime 3 (decAuto (3<4)%nat I) in
-  let t2 : QTime := MotorEventsNthTime 2 (decAuto (2<4)%nat I) in
-   ({X rotOrigininPos} t3 [-] {X rotOrigininPos} t2) 
+   ({X rotOrigininPos} mt3 [-] {X rotOrigininPos} mt2) 
       ≤  (Ev23TimeGapUB * (speed + transErrTrans)%Q).
 Proof.
   intros.
   pose proof (XChangeUBEv2To3) as Hyd.
   cbv zeta in Hyd.
   eapply leEq_transitive;[apply Hyd|].
-  fold t2 t3. clear Hyd.
+  fold mt2 mt3. clear Hyd.
   unfold Q2R. rewrite inj_Q_mult.
   apply mult_resp_leEq_rht;[apply MotorEv23Gap4; fail|].
   eauto 2 with CoRN ROSCOQ.
 Qed.
 
+
+Definition X'DiffUB: IR :=  '(eeev 0 w) * (QT2R reacTime + Ev01TimeGapUB)
++ Ev23TimeGapUB * '(eeev speed 0) + (Q2R speed) * timeErr.
+
+Definition idealX' :IR := '(|target |).
+
+
+Lemma Ev3X'DiffUb : {X rotOrigininPos} mt3  ≤ idealX' + X'DiffUB.
+Proof.
+  pose proof XChangeUBEv2To3_2 as Ha.
+  rewrite Dist23RW in Ha.
+  pose proof PosRotAxisAtEV2 as Hb.
+  apply proj1 in Hb.
+  unfold XYAbs in Hb.
+  Local Opaque rotOrigininPos.
+  simpl in Hb.
+  apply AbsIR_imp_AbsSmall in Hb.
+  apply proj2 in Hb.
+  pose proof (plus_resp_leEq_both _ _ _ _ _ Ha Hb) as Hadd.
+  clear Ha Hb.
+  autounfold with IRMC in Hadd.
+  Local Opaque Q2R.
+  simpl in Hadd.
+  unfold cg_minus in Hadd. ring_simplify in Hadd.
+  eapply leEq_transitive;[apply Hadd|].
+  apply eqImpliesLeEq.
+  unfold idealX', X'DiffUB.
+  clear. autounfold with IRMC.
+  rewrite transErrTransEq.
+  rewrite transErrRotEq.
+  unfold cast.
+  unfold Cast_instace_Q_IR.
+  Local Transparent Q2R QT2R.
+  unfold QT2R. unfold Q2R.
+  autorewrite with QSimpl.
+  ring_simplify.
+  autorewrite with QSimpl.
+  unfold Q2R.
+  simpl.
+  autorewrite with QSimpl.
+  simpl.
+  ring.
+Qed.
+
+
 Lemma SpeedLbEv2To3 :
-  let t3 : QTime := MotorEventsNthTime 3 (decAuto (3<4)%nat I) in
-  let t2 : QTime := MotorEventsNthTime 2 (decAuto (2<4)%nat I) in
-  ∃ qtrans : QTime, (t2 <= qtrans <= t2 + reacTime)%Q ∧
-  (∀ t:QTime, t2 ≤ t ≤ qtrans →  0 ≤ ({transVel ic} t))
-  ∧ (∀ t:QTime, qtrans ≤ t ≤ t3 →
+  ∃ qtrans : QTime, (mt2 <= qtrans <= mt2 + reacTime)%Q ∧
+  (∀ t:QTime, mt2 ≤ t ≤ qtrans →  0 ≤ ({transVel ic} t))
+  ∧ (∀ t:QTime, qtrans ≤ t ≤ mt3 →
         Q2R (speed - transErrTrans)%Q [<=] ({transVel ic} t)).
 Proof.
-  intros ? ?.
   pose proof correctVel2to3 as Hc.
-  fold t2 t3 in Hc.
+  fold mt2 mt3 in Hc.
   cbv zeta in Hc.
   apply proj1 in Hc.
   simpl in Hc.
@@ -2822,7 +2862,6 @@ Proof.
 - apply Hcrr in Hb.
   unfold between in Hb.
   apply proj1 in Hb.
-  unfold t2 in Hb.
   rewrite transVelAtEv2 in Hb.
   rewrite leEq_imp_Min_is_lft in Hb;[assumption|].
   autorewrite with QSimpl. apply inj_Q_leEq.
@@ -2838,14 +2877,6 @@ Proof.
   simpl.
   lra.
 Qed.
-
-Lemma ThetaEv2To2Reac :
-  ∀ (t : QTime),  mt2 ≤ t ≤ mt2+reacTime
-      → AbsIR ({theta ic} t[-]optimalTurnAngle)
-        ≤ θErrTrans + θErrTurn.
-Proof.
-  intros ? Hb. 
-Abort.
 
 Require Export Coq.QArith.Qminmax.
 Lemma XDerivLBEv2To3 : 
@@ -2994,6 +3025,63 @@ Proof.
   apply injQ_nonneg. simpl. assumption.
 Qed.
 
+Lemma XChangeLBEv2To3_3 :
+  (Cos (θErrTrans + θErrTurn)) 
+      * (idealX' - Ev23TimeGapLB*(QT2Q transErrTrans)
+          + (transErrTrans* reacTime - speed*reacTime -timeErr*speed)%Q) 
+  ≤  ({X rotOrigininPos} mt3 [-] {X rotOrigininPos} mt2).
+Proof.
+  pose proof (XChangeLBEv2To3_2) as Hyd.
+  cbv zeta in Hyd.
+  eapply leEq_transitive;[|apply Hyd].
+  clear Hyd.
+  apply eqImpliesLeEq.
+  unfoldMC. autounfold with IRMC.
+  rewrite  <- mult_assoc_unfolded.
+  apply mult_wdr.
+  unfold Ev23TimeGapLB, transDuration.
+  unfoldMC. autounfold with IRMC.
+  unfold QT2R, Q2R.
+  rewrite inj_Q_minus.
+  rewrite inj_Q_minus.
+  rewrite inj_Q_minus.
+  ring_simplify.
+  unfold cast, Cart_CR_IR.
+  rewrite CR_mult_asIR.
+  rewrite CRasIRInj.
+  rewrite mult_commut_unfolded, <- mult_assoc_unfolded.
+  rewrite mult_assoc_unfolded.
+  rewrite ring_distr1.
+  autorewrite with QSimpl.
+  simpl.
+  assert (/ speed * speed == 1)%Q as Heq
+    by (field; destruct speed; simpl; lra).
+  rewrite Heq.
+  clear Heq.
+  unfold idealX'. unfold cg_minus.
+  ring_simplify.
+  autorewrite with InjQDown.
+  unfold cast, Cart_CR_IR.
+  unfold cg_minus. 
+  ring_simplify.
+  unfold cg_minus. 
+  simpl.  unfold cg_minus. simpl. 
+  ring_simplify.
+  unfold cg_minus. 
+  simpl.  unfold cg_minus. simpl. 
+  ring_simplify. 
+  unfold Q2R, QT2R. simpl.
+Abort.
+
+(*
+Definition X'DiffLB: IR :=  '(eeev 0 w) * (QT2R reacTime + Ev01TimeGapUB)
++ Ev23TimeGapUB * '(eeev speed 0) + (Q2R speed) * timeErr.
+
+Definition idealX' :IR := '(|target |).
+
+
+Lemma Ev3X'DiffUb : {X rotOrigininPos} mt3  ≤ idealX' + X'DiffUB.
+*)
 
 End iCREATECPS.
 End RobotProgam.

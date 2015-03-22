@@ -12,8 +12,8 @@ Definition toPart (f : (CR --> CR)) : PartIR.
   apply Build_PartFunct with (pfdom := (realline)) 
     (pfpfun := fun ir pp => CRasIR (f (IRasCR ir))).
   - apply iprop_wd.
-  - intros ? ? ? ?. admit.
-Defined.
+  - intros ? ? ? ?. 
+Abort.
 
 End ContFAlgebra.
 
