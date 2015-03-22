@@ -3058,30 +3058,65 @@ Proof.
     by (field; destruct speed; simpl; lra).
   rewrite Heq.
   clear Heq.
-  unfold idealX'. unfold cg_minus.
-  ring_simplify.
-  autorewrite with InjQDown.
+  unfold idealX'.
   unfold cast, Cart_CR_IR.
-  unfold cg_minus. 
-  ring_simplify.
-  unfold cg_minus. 
-  simpl.  unfold cg_minus. simpl. 
-  ring_simplify.
-  unfold cg_minus. 
-  simpl.  unfold cg_minus. simpl. 
-  ring_simplify. 
-  unfold Q2R, QT2R. simpl.
-Abort.
+  unfold CanonicalNotations.norm.
+  unfold CR.
+  unfold Complete.
+  simpl.
+  remember  (CRasIR
+    (NormSpace_instance_Cart2D Q (RegularFunction Q_as_MetricSpace) target))
+    as crt.
+  clear Heqcrt.
+  unfold cg_minus.
+  autorewrite with InjQDown.
+  simpl. ring.
+Qed.
 
-(*
 Definition X'DiffLB: IR :=  '(eeev 0 w) * (QT2R reacTime + Ev01TimeGapUB)
-+ Ev23TimeGapUB * '(eeev speed 0) + (Q2R speed) * timeErr.
++ idealX' * (1 - Cos (θErrTrans + θErrTurn))
++ (Cos (θErrTrans + θErrTurn)) 
+      * (Ev23TimeGapLB*(eeev speed 0)
+          + (speed*reacTime + timeErr*speed -(eeev speed 0)* reacTime)%Q).
 
-Definition idealX' :IR := '(|target |).
 
-
-Lemma Ev3X'DiffUb : {X rotOrigininPos} mt3  ≤ idealX' + X'DiffUB.
-*)
+Lemma Ev3X'DiffLb : idealX' - X'DiffLB ≤ {X rotOrigininPos} mt3.
+Proof.
+  pose proof XChangeLBEv2To3_3 as Ha.
+  pose proof PosRotAxisAtEV2 as Hb.
+  apply proj1 in Hb.
+  unfold XYAbs in Hb.
+  Local Opaque rotOrigininPos.
+  simpl in Hb.
+  apply AbsIR_imp_AbsSmall in Hb.
+  apply proj1 in Hb.
+  pose proof (plus_resp_leEq_both _ _ _ _ _ Ha Hb) as Hadd.
+  clear Ha Hb.
+  autounfold with IRMC in Hadd.
+  Local Opaque Q2R.
+  simpl in Hadd.
+  unfold cg_minus in Hadd. ring_simplify in Hadd.
+  eapply leEq_transitive;[|apply Hadd].
+  apply eqImpliesLeEq.
+  unfold  X'DiffLB, idealX'.
+  clear. autounfold with IRMC.
+  unfold One_instance_IR.
+  rewrite transErrTransEq.
+  rewrite transErrRotEq.
+  unfold cast, Cart_CR_IR, Cast_instace_Q_IR.
+  Local Transparent Q2R QT2R.
+  unfold QT2R. unfold Q2R.
+  unfold cg_minus.
+  remember (CRasIR (|target |)) as crt.
+  clear Heqcrt.
+  autounfold with IRMC.
+  autorewrite with InjQDown.
+  remember (Cos (θErrTrans[+]θErrTurn)) as cc.
+  clear Heqcc. 
+  unfold cg_minus.
+  ring_simplify.
+  reflexivity.
+Qed.
 
 End iCREATECPS.
 End RobotProgam.
