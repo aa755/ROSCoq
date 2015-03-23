@@ -205,16 +205,26 @@ Definition SwProcess (speed : Q)
   mkPureProcess (liftToMesg (SwControllerProgram speed)).
 
 Definition digiControllerTiming  : 
-  QTime :=  (mkQTime 1 I).
+  QTime :=  (mkQTime (1#2)%Q I).
  
 Definition ControllerNode (speed : Q): RosSwNode :=
-  Build_RosSwNode (SwProcess speed) (digiControllerTiming, 1%Qpos).
+  Build_RosSwNode (SwProcess speed) (digiControllerTiming, (QposMake 1 2)).
 
 Lemma onlyNeededForOldProofs:
-  ∀ q pt ta le nd ns si,
-     possibleDeqSendOncePair2 (procOutMsgs (ControllerNode q) le nd) 
-                              pt ta  le nd ns si
-     → possibleDeqSendOncePair (ControllerNode q) le nd ns.
+  ∀ sp nd ns si,
+     possibleDeqSendOncePair2 (procOutMsgs (ControllerNode sp) 
+        (localEvts SWCONTROLLER) nd) 
+         (procTime (ControllerNode sp))
+        (timingAcc (ControllerNode sp)) (localEvts SWCONTROLLER) nd ns si
+  -> {es : Event | {ed : Event | isDeqEvt ed × isSendEvt es
+          × (nd < ns)
+              × (eTime ed < eTime es < eTime ed + 1)%Q
+        ×
+        localEvts SWCONTROLLER nd = Some ed 
+        × localEvts SWCONTROLLER ns = Some es ×
+         {dmp : bool|  fst (eMesg ed) = ((mkMesg PSENSOR dmp))
+                  ∧ (mkImmMesg MOTOR ((SwControllerProgram sp) dmp)) = (eMesg es) }}}.
+Proof.
 Admitted.
 
 
@@ -397,6 +407,7 @@ Qed.
 
 Close Scope Q_scope.
 
+
 Lemma DeqSendOncePair : forall ns nd sp,
   possibleDeqSendOncePair (ControllerNode sp) (localEvts SWCONTROLLER) nd ns
   -> {es : Event | {ed : Event | isDeqEvt ed × isSendEvt es
@@ -421,7 +432,37 @@ Proof.
   TrimAndRHS e. rewrite e in Hvr.
   simpl in Hvr. 
   specialize (s Hvr). clear Hvr. trivial.
+Abort.
+
+(*
+Lemma DeqSendOncePair2 : forall ns nd sp,
+  possibleDeqSendOncePair2 (ControllerNode sp) 
+    (localEvts SWCONTROLLER) nd ns
+
+  -> {es : Event | {ed : Event | isDeqEvt ed × isSendEvt es
+          × (nd < ns)
+              × (eTime ed < eTime es < eTime ed + 1)%Q
+        ×
+        localEvts SWCONTROLLER nd = Some ed 
+        × localEvts SWCONTROLLER ns = Some es ×
+         {dmp : bool|  fst (eMesg ed) = ((mkMesg PSENSOR dmp))
+                  ∧ (mkImmMesg MOTOR ((SwControllerProgram sp) dmp)) = (eMesg es) }}}.
+Proof.
+  intros ? ? ? Hnc.
+  apply PureProcDeqSendOncePair in Hnc.
+  simpl in Hnc.
+  destruct Hnc as [es Hnc].
+  destruct Hnc as [ed Hnc].
+  exists es. exists ed.  simpl.
+  exrepd. 
+  pose proof (noSpamRecv eo _ a) as Hvr.
+  dands; trivial.
+  rewrite <- locEvtIndex in e.
+  TrimAndRHS e. rewrite e in Hvr.
+  simpl in Hvr. 
+  specialize (s Hvr). clear Hvr. trivial.
 Qed.
+*)
 
 Lemma swControllerMessages : 
   forall es : Event,
@@ -447,8 +488,11 @@ Proof.
   simpl in Hnc.
   specialize (Hnc Hsend). destruct Hnc as [mDeq  Hnc].
   destruct Hnc as [si Hnc].
+  unfold procTime, digiControllerTiming,
+  timingAcc, compose in Hnc. simpl in Hnc.
+  unfold digiControllerTiming in Hnc.
+  simpl in Hnc.
   apply onlyNeededForOldProofs in Hnc.
-  apply DeqSendOncePair in Hnc.
   simpl in Hnc. exrepd. 
   rewrite  e0 in Hiff. inversion Hiff as [Heq]. clear Hiff.
   subst. unfold mkImmMesg. unfold mkMesg in H2.
@@ -896,7 +940,6 @@ Proof.
     destruct Hnc as [m Hnc].
     destruct Hnc as [si Hnc].
     apply onlyNeededForOldProofs in Hnc.
-    apply DeqSendOncePair in Hnc.
     simpl in Hnc. 
     destruct Hnc as [es0 Hnc].
     destruct Hnc as [ed Hnc].
@@ -1081,7 +1124,6 @@ Proof.
     destruct Hnc as [m Hnc].
     destruct Hnc as [si Hnc].
     apply onlyNeededForOldProofs in Hnc.
-    apply DeqSendOncePair in Hnc.
     simpl in Hnc. 
     destruct Hnc as [es0 Hnc].
     destruct Hnc as [ed Hnc].
@@ -2152,7 +2194,6 @@ Close Scope nat_scope.
     rewrite <- Hmeq.
     simpl. omega.
   apply onlyNeededForOldProofs in Hnc.
-  apply DeqSendOncePair in Hnc.
   simpl in Hnc. 
   destruct Hnc as [es0 Hnc].
   destruct Hnc as [ed Hnc].
@@ -2403,7 +2444,6 @@ Close Scope nat_scope.
     rewrite <- Hmeq.
     simpl. omega.
   apply onlyNeededForOldProofs in Hnc.
-  apply DeqSendOncePair in Hnc.
   simpl in Hnc. 
   destruct Hnc as [es0 Hnc].
   destruct Hnc as [ed Hnc].
