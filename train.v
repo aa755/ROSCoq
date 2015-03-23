@@ -99,7 +99,7 @@ Definition ProxPossibleTimeEvPair
   (t: QTime) (ev: Event) 
   :=
    (t < (eTime ev) < (t + maxDelay))%Q
-  /\ (eMesg ev) = (mkImmMesg PSENSOR side)::nil.
+  /\ (eMesg ev) = (mkImmMesg PSENSOR side).
 
 (** [side] is just an identifier *)
 Definition ProximitySensor (alertDist : Q) (maxDelay: QTime) (side : bool)
@@ -135,6 +135,9 @@ Notation "a <== b <== c" := ((a [<=] b) /\ (b [<=] c))
   (at level 201,left associativity).
 *)
 
+Definition simpleBetween (b a c eps : IR) 
+  := ((Min a c  [<=] b) /\ (b [<=] Max a c)).
+
 (** This can use [core.changsTo] *)
 Definition correctVelDuring
   (lastVel : Q) 
@@ -146,7 +149,7 @@ Definition correctVelDuring
   lastTime <= qt <= (lastTime + reactionTime)
   /\ ((forall t : QTime, (qt <= t <= uptoTime -> (velAtTime t) [=] lastVel)))
   /\ (forall t : QTime, (lastTime <= t <= qt)  
-          -> (core.between (velAtTime t) (velAtTime lastTime) lastVel)))%Q.
+          -> (simpleBetween (velAtTime t) (velAtTime lastTime) lastVel 0)))%Q.
   
 Close Scope Q_scope.
 
@@ -316,7 +319,7 @@ Instance rllllfjkfhsdakfsdakh : @RosLocType Train Topic Event  RosLoc _.
   apply Build_RosLocType.
   - exact locNode.
   - exact locTopics.
-  - exact (fun srs dest => Some (mkQTime 1 I)).
+  - exact (fun srs dest del => (del <  1)%Q ).
 Defined.
 
 
@@ -398,13 +401,12 @@ Lemma DeqSendOncePair : forall ns nd sp,
   possibleDeqSendOncePair (ControllerNode sp) (localEvts SWCONTROLLER) nd ns
   -> {es : Event | {ed : Event | isDeqEvt ed × isSendEvt es
           × (nd < ns)
-            × (∀ n : nat, (nd < n <  ns) → isEnqEvtOp (localEvts SWCONTROLLER n))
               × (eTime ed < eTime es < eTime ed + digiControllerTiming)%Q
         ×
         localEvts SWCONTROLLER nd = Some ed 
         × localEvts SWCONTROLLER ns = Some es ×
-         {dmp : bool|  map fst (eMesg ed) = ((mkMesg PSENSOR dmp)::nil)
-                  ∧ (mkImmMesg MOTOR ((SwControllerProgram sp) dmp))::nil = (eMesg es) }}}.
+         {dmp : bool|  fst (eMesg ed) = ((mkMesg PSENSOR dmp))
+                  ∧ (mkImmMesg MOTOR ((SwControllerProgram sp) dmp)) = (eMesg es) }}}.
 Proof.
   intros ? ? ? Hnc.
   apply PureProcDeqSendOncePair in Hnc.
@@ -425,8 +427,8 @@ Lemma swControllerMessages :
   forall es : Event,
   SWCONTROLLER = eLoc es
   -> isSendEvt es
-  -> {(eMesg es) = (mkImmMesg MOTOR speed)::nil}
-      + {(eMesg es) = (mkImmMesg MOTOR (-speed))%Q::nil}.
+  -> {(eMesg es) = (mkImmMesg MOTOR speed)}
+      + {(eMesg es) = (mkImmMesg MOTOR (-speed))%Q}.
 Proof.
   intros es Hsw Hsend.
   pose proof (locEvtIndex 
@@ -450,14 +452,10 @@ Proof.
   simpl in Hnc. exrepd. 
   rewrite  e0 in Hiff. inversion Hiff as [Heq]. clear Hiff.
   subst. unfold mkImmMesg. unfold mkMesg in H2.
-  destruct (eMesg es) as [|hm mtl]; [|destruct mtl as [nil |ll];[|destruct ll]];
-     inverts H2.
-  destruct dmp;[right | left];
-  reflexivity.
+  destruct dmp;[right | left]; symmetry; apply H2.
 Qed.
 
 
-(** this is a correct proof; only temporarily wrong *)
 Lemma velMessages:
   forall n : nat,
      match getVelOEv (motorEvents n) with
@@ -494,14 +492,15 @@ Proof.
   unfold validRecvMesg in Hrecvrl.
   simpl in Hrecvrl.
   rewrite <- Hem in Hrecvrl.
-  specialize (Hrecvrl _ (or_introl eq_refl)).
-  rewrite  RemoveOrFalse in Hrecvrl.
+  rewrite RemoveOrFalse in Hrecvrl.
   unfold validSendMesg in Hrecvrrl.
+  unfold mtopic in Hrecvrrl.
   simpl. simpl. simpl. simpl in Hrecvrrl.
   rewrite Hrecvl in Hrecvrrl.
   remember (eLoc es) as sloc.
   rewrite <- Hem in Hrecvrrl.
-  specialize (Hrecvrrl _ (or_introl eq_refl)).
+  unfold mtopic in Hrecvrl.
+  simpl in Hrecvrl.
   rewrite <- Hrecvrl in Hrecvrrl.
   (** Only [SWCONTROLLER] sends on that topic *)
   destruct sloc; simpl in Hrecvrrl;
@@ -514,7 +513,7 @@ Proof.
   apply swControllerMessages in Hsend;
     [| trivial].
   destruct Hsend as [Hsend | Hsend];
-  apply (f_equal (map π₁)) in Hsend;
+  apply (f_equal (fst)) in Hsend;
   simpl in Hsend;
   rewrite Hrecvl in Hsend;
   rewrite <- Hem in Hsend;
@@ -549,16 +548,16 @@ Proof.
   destruct XX as [m XX].
   repnd. rewrite <- XXl in Hsendlrl.
   simpl in  XXl.
-  apply (f_equal (map fst)) in XXl.
+  apply (f_equal ( fst)) in XXl.
   rewrite <- Hsendll in XXl. simpl in Hsendlrrl.
-  specialize (Hsendlrl _ (or_introl eq_refl)).
   rewrite Hl in Hsendlrl.
   simpl in Hsendlrl.
   rewrite RemoveOrFalse in Hsendlrl.
   unfold validSendMesg in Hsendlrrl.
+  unfold mtopic in Hsendlrrl.
   rewrite <- XXl in Hsendlrrl.
-  specialize (Hsendlrrl _ (or_introl eq_refl)).
-  simpl in Hsendlrrl. rewrite <- Hsendlrl in Hsendlrrl.
+  unfold mtopic in Hsendlrl.
+  simpl in Hsendlrrl,Hsendlrl. rewrite <- Hsendlrl in Hsendlrrl.
   destruct (eLoc Es); simpl in Hsendlrrl;
     try contradiction;
     inversion Hsendlrrl; 
@@ -583,15 +582,15 @@ Proof.
   destruct XX as [m XX].
   repnd. rewrite <- XXl in Hsendlrl.
   simpl in  XXl.
-  apply (f_equal (map fst)) in XXl.
+  apply (f_equal ( fst)) in XXl.
   rewrite <- Hsendll in XXl. simpl in Hsendlrrl.
-  specialize (Hsendlrl _ (or_introl eq_refl)).
   rewrite Hl in Hsendlrl.
   simpl in Hsendlrl.
   rewrite RemoveOrFalse in Hsendlrl.
   unfold validSendMesg in Hsendlrrl.
+  unfold mtopic in Hsendlrrl, Hsendlrl.
   rewrite <- XXl in Hsendlrrl.
-  specialize (Hsendlrrl _ (or_introl eq_refl)).
+  simpl in Hsendlrl, Hsendlrrl.
   simpl in Hsendlrrl. rewrite <- Hsendlrl in Hsendlrrl.
   destruct (eLoc Es); simpl in Hsendlrrl;
     try contradiction;
@@ -809,8 +808,8 @@ Proof.
   trivial.
 Qed.
 
-Definition posVelMeg : list Message :=
-  (mkImmMesg MOTOR speed)::nil.
+Definition posVelMeg : Message :=
+  (mkImmMesg MOTOR speed).
 
 Open Scope Z_scope.
 
@@ -818,24 +817,28 @@ Definition MotorRecievesPositivVelAtLHS (ev : Event)  :=
 match (eLoc  ev) with
 | BASEMOTOR => 
             isDeqEvt ev
-              -> map fst (eMesg ev) = map fst posVelMeg
+              -> fst (eMesg ev) = fst posVelMeg
               -> (centerPosAtTime tstate (eTime ev)) [<=]  -78
 | SWCONTROLLER => 
             match eKind ev with
             | sendEvt _ => 
-                map fst (eMesg ev) = map fst posVelMeg
+                fst (eMesg ev) = fst posVelMeg
                 -> (centerPosAtTime tstate (eTime ev)) [<=] -79
-            | deqEvt _ => 
-                map fst (eMesg ev) = (mkMesg PSENSOR false)::nil
+            | deqEvt => 
+                fst (eMesg ev) = (mkMesg PSENSOR false)
                 -> (centerPosAtTime tstate (eTime ev)) [<=] -80
-            | _ => True
             end
 | _ => True
 end.
 
+Lemma QShiftMinus: ∀ a b c, (a - b < c -> a  <  b + c)%Q.
+Proof.
+  intros. lra.
+Qed.
+
+
 Ltac SensorMsgInvert Hmd :=
-    (apply (f_equal (hd (mkMesg PSENSOR false))) in Hmd;
-    simpl in Hmd;
+    (simpl in Hmd;
     let T:= constr:(f_equal (getPayloadR PSENSOR)) in apply T in Hmd;
     simpl in Hmd;
     apply (f_equal (fun op => opExtract op false)) in Hmd;
@@ -873,16 +876,13 @@ Proof.
   parallelForall Hsendrl. clear x.
   remember (eTime ev) as evt. clear Heqevt.
   remember (eTime Es) as est. clear Heqest.
+  Local Opaque Q2R.
   simpl in Hsendrl.
-  clear dependent Event.
-  clear  reactionTimeGap
-    transitionValues velAccuracy boundary alertDist
-    safeDist maxDelay hwidth reactionTime
-    minGap. repnd. clear Hsendlrrrl.
-  eapply centerPosUB2; eauto.
+  apply QShiftMinus in Hsendlrrr.
+  eapply centerPosUB2; try split; eauto.
 
 - rename ev into es. remember (eKind es) as eks.
-  destruct eks; [|auto|].
+  destruct eks; [|auto].
   + symmetry in Heqeks.
     pose proof (corrNodes 
                 eo 
@@ -910,7 +910,6 @@ Proof.
     inversion H5 as [Heqs].  clear H5.
     symmetry in Heqs. subst es0. rename H0 into H7.
     rewrite <- H7. intro Heq. clear H7.
-    apply (f_equal (hd (mkMesg PSENSOR false))) in Heq.
     simpl in Heq. 
     let T:= constr:(f_equal (getPayloadR MOTOR)) in 
     apply T in Heq. rename Heq into Heqq.
@@ -925,7 +924,7 @@ Proof.
     destruct (eKind ed); inversion a.
     rename H into H6.
     specialize (Hind H6). clear H6.
-    unfold inBetween in i0.
+    unfold inBetween in i.
     clear Heqeks Heqevloc eo reactionTimeGap transitionValues velAccuracy boundary 
       alertDist safeDist maxDelay hwidth reactionTime.
     eapply centerPosUB2; eauto.
@@ -943,6 +942,7 @@ Proof.
     rewrite Heqevloc in Hsendlrrr.
     rewrite side0 in Hsendlrrr. simpl in Hsendlrrr.
     rewrite <- Hsendll. intros Hmd.
+    apply QShiftMinus in Hsendlrrr.
     eapply centerPosUB2; eauto.
     clear Hsendlrrr.
     pose proof (corrNodes 
@@ -992,6 +992,7 @@ Close Scope nat_scope.
     apply shift_leEq_plus in Hncl.
     eapply leEq_transitive; eauto. clear dependent cpt.
     rewrite <- inj_Q_Zero.
+    Local Transparent Q2R.
     unfold Q2R, Z2R.
     rewrite <- inj_Q_minus.
     rewrite <- inj_Q_plus.
@@ -1004,8 +1005,8 @@ Qed.
 
 Close Scope Z_scope.
 
-Definition negVelMeg : list Message :=
-  (mkImmMesg MOTOR (-speed))::nil.
+Definition negVelMeg :  Message :=
+  (mkImmMesg MOTOR (-speed)).
 
 Open Scope Z_scope.
 
@@ -1013,17 +1014,16 @@ Definition MotorRecievesNegVelAtRHS (ev : Event)  :=
 match (eLoc  ev) with
 | BASEMOTOR => 
             isDeqEvt ev
-              -> map fst (eMesg ev) = map fst negVelMeg
+              -> fst (eMesg ev) = fst negVelMeg
               -> 78 [<=]  (centerPosAtTime tstate (eTime ev))
 | SWCONTROLLER => 
             match eKind ev with
             | sendEvt _ => 
-                 map fst  (eMesg ev) =  map fst negVelMeg
+                fst  (eMesg ev) =  fst negVelMeg
                 -> 79 [<=] (centerPosAtTime tstate (eTime ev))
-            | deqEvt _ => 
-                map fst (eMesg ev) = (mkMesg PSENSOR true)::nil
+            | deqEvt => 
+                fst (eMesg ev) = (mkMesg PSENSOR true)
                 -> 80 [<=] (centerPosAtTime tstate (eTime ev))
-            | _ => True
             end
 | _ => True
 end.
@@ -1061,16 +1061,13 @@ Proof.
   parallelForall Hsendrl. clear x.
   remember (eTime ev) as evt. clear Heqevt.
   remember (eTime Es) as est. clear Heqest.
+  Local Opaque Q2R.
   simpl in Hsendrl.
-  clear dependent Event.
-  clear  reactionTimeGap
-    transitionValues velAccuracy boundary alertDist
-    safeDist maxDelay hwidth reactionTime
-    minGap. repnd. clear Hsendlrrrl.
-  eapply centerPosLB2; eauto.
+  apply QShiftMinus in Hsendlrrr.
+  eapply centerPosLB2; try split; eauto.
 
 - rename ev into es. remember (eKind es) as eks.
-  destruct eks; [|auto|].
+  destruct eks; [|auto].
   + symmetry in Heqeks.
     pose proof (corrNodes 
                 eo 
@@ -1098,7 +1095,6 @@ Proof.
     inversion H5 as [Heqs].  clear H5.
     symmetry in Heqs. subst es0. rename H0 into H7.
     rewrite <- H7. intro Heq. clear H7.
-    apply (f_equal (hd (mkMesg PSENSOR false))) in Heq.
         let T:= constr:(f_equal (getPayloadR MOTOR)) in 
     apply T in Heq. rename Heq into Heqq.
     simpl in Heqq. inversion Heqq as [Heq]. clear Heqq.
@@ -1112,7 +1108,7 @@ Proof.
     destruct (eKind ed); inversion a.
     rename H into H6.
     specialize (Hind H6). clear H6.
-    unfold inBetween in i0.
+    unfold inBetween in i.
     clear Heqeks Heqevloc eo reactionTimeGap transitionValues velAccuracy boundary 
       alertDist safeDist maxDelay hwidth reactionTime.
     eapply centerPosLB2; eauto.
@@ -1130,6 +1126,7 @@ Proof.
     rewrite Heqevloc in Hsendlrrr.
     rewrite side0 in Hsendlrrr. simpl in Hsendlrrr.
     rewrite <- Hsendll. intros Hmd.
+    apply QShiftMinus in Hsendlrrr.
     eapply centerPosLB2; eauto.
     clear Hsendlrrr.
     pose proof (corrNodes 
@@ -1178,6 +1175,7 @@ Close Scope nat_scope.
     apply minusSwapLe in Hncl.
     eapply leEq_transitive; eauto. clear dependent cpt.
     unfold Z2R. unfold inject_Z.
+    Local Transparent Q2R.
     unfold Q2R, Z2R.
     rewrite <- inj_Q_plus.
     rewrite <- inj_Q_minus.
@@ -1346,7 +1344,6 @@ Close Scope nat_scope.
     eapply latestEvtStr; eauto.
     intros ? Hp. simpl. repnd.
     rewrite Hprl. dands; auto.
-    reflexivity.
 
   + unfold hd in Hm. (** last message was of negative vel *)
     destruct hlm as [hq ht].
@@ -1462,7 +1459,6 @@ Close Scope nat_scope.
     eapply latestEvtStr; eauto.
     intros ? Hp. simpl. repnd.
     rewrite Hprl. dands; auto.
-    reflexivity.
 
   + unfold hd in Hm. (** last message was of negative vel *)
     destruct hlm as [hq ht].
@@ -1527,16 +1523,16 @@ Proof.
   pose proof (deqSingleMessage _ Hr) as XX.
   destruct XX as [m XX].
   repnd. rewrite <- XXl in Hsendlrl.
-  apply (f_equal (map fst)) in XXl.
+  apply (f_equal ( fst)) in XXl.
   rewrite <- Hsendll in XXl. simpl in Hsendlrrl.
-  simpl in Hsendlrrl, XXl. rewrite <- XXl in Hsendlrrl.
-  specialize (Hsendlrl _ (or_introl eq_refl)).
-  specialize (Hsendlrrl _ (or_introl eq_refl)).
+  simpl in Hsendlrrl, XXl. 
+  unfold mtopic in Hsendlrrl. simpl in Hsendlrrl.
+  rewrite <- XXl in Hsendlrrl.
   rewrite Hl in Hsendlrrl.
   simpl in Hsendlrrl.
   rewrite RemoveOrFalse in Hsendlrrl.
   unfold validSendMesg in Hsendlrrl.
-  simpl in Hsendlrrl.
+  simpl in Hsendlrrl. unfold validRecvMesg, mtopic in Hsendlrl.
   simpl in Hsendlrl. rewrite <- Hsendlrrl in Hsendlrl.
   destruct (eLoc Er); simpl in Hsendlrl;
     try rewrite RemoveOrFalse in Hsendlrl;
@@ -1561,16 +1557,16 @@ Proof.
   pose proof (deqSingleMessage _ Hr) as XX.
   destruct XX as [m XX].
   repnd. rewrite <- XXl in Hsendlrl.
-  apply (f_equal (map fst)) in XXl.
+  apply (f_equal ( fst)) in XXl.
   rewrite <- Hsendll in XXl. simpl in Hsendlrrl.
-  simpl in Hsendlrrl, XXl. rewrite <- XXl in Hsendlrrl.
-  specialize (Hsendlrl _ (or_introl eq_refl)).
-  specialize (Hsendlrrl _ (or_introl eq_refl)).
+  simpl in Hsendlrrl, XXl. 
+  unfold mtopic in Hsendlrrl. simpl in Hsendlrrl.
+  rewrite <- XXl in Hsendlrrl.
   rewrite Hl in Hsendlrrl.
   simpl in Hsendlrrl.
   rewrite RemoveOrFalse in Hsendlrrl.
   unfold validSendMesg in Hsendlrrl.
-  simpl in Hsendlrrl.
+  simpl in Hsendlrrl. unfold validRecvMesg, mtopic in Hsendlrl.
   simpl in Hsendlrl. rewrite <- Hsendlrrl in Hsendlrl.
   destruct (eLoc Er); simpl in Hsendlrl;
     try rewrite RemoveOrFalse in Hsendlrl;
@@ -1901,6 +1897,7 @@ Proof.
     rewrite Hmrl; [| split]; auto;[|]; apply leEq_reflexive.
   + unfold core.between in Hmrr.
     specialize (Hmrr _ (conj Hlt Hdec)).
+    unfold simpleBetween in Hmrr.
     repnd.
     trivial. unfold speed in Hmrrr.
     unfold Q2R, Z2R , inject_Z in Hmrrr, Hv.
@@ -1985,6 +1982,7 @@ Proof.
      apply leEq_reflexive.
   + unfold core.between in Hmrr.
     specialize (Hmrr _ (conj Hlt Hdec)).
+    unfold simpleBetween in Hmrr.
     repnd.
     trivial. unfold speed in Hmrrr.
     unfold Q2R, Z2R , inject_Z in Hmrrr, Hv.
@@ -2129,8 +2127,9 @@ Close Scope nat_scope.
 
   assert ((eTime Eswr) < tivt + (2 # 1))%Q  as Htubb by lra.
   clear Htub. rename Htubb into Htub.
+  pose proof (globalCausal _ _ _ Hrecrl) as Hubb.
   assert (tivt < (eTime Eswr))%Q  as Htlb by lra.
-  clear Hreclr Hrecll Hncrrr Hncrl Hrecrl Hnclr Hncll Htppt
+  clear Hubb Hrecl Hncrrr Hncrl Hrecrl Hnclr Hncll Htppt
       Hncrrll Esens.
 
   (** lets process the message on the s/w node *)
@@ -2143,7 +2142,15 @@ Close Scope nat_scope.
   rewrite (proj1 Hxx) in Hnc;[| split; auto; fail].
   simpl  in Hnc.
   specialize (Hnc Hrecrr (0%nat)).
-  destruct Hnc as [m Hnc ];[admit|].
+  destruct Hnc as [m Hnc ]. 
+    unfold procOutMsgs.
+    apply proj1 in Hxx.
+    rewrite Hxx; auto.
+    simpl. unfold SwProcess. rewrite getNewProcLPure. simpl.
+    unfold getDeqOutput2, getOutput. simpl.
+    unfold liftToMesg, getPayload.
+    rewrite <- Hmeq.
+    simpl. omega.
   apply onlyNeededForOldProofs in Hnc.
   apply DeqSendOncePair in Hnc.
   simpl in Hnc. 
@@ -2167,7 +2174,7 @@ Close Scope nat_scope.
   clear Htlb. rename Htlbb into Htlb.
   rename e0 into Hss.
   apply locEvtIndex in Hss.
-  clear H0 H i l Hrecrr Hxx Hsw a Eswr.
+  clear H0 H l Hrecrr Hxx Hsw a Eswr.
 
   rename a0 into HmotSend.
 
@@ -2191,6 +2198,7 @@ Close Scope nat_scope.
   rewrite <- QT2T_Q2R in Httpp.
   apply leEq_inj_Q in Httpp.
   simpl in Httpp.
+  pose proof (globalCausal _ _ _ Hmrecrl) as Hubb.
   assert (eTime evMp < eTime Emr)%Q as Hql by lra.
   assert ((eTime Emr) < t)%Q as Hlt by lra.
   assert (Qtadd (eTime Emr) (mkQTime 1 I)< tivt + (5 # 1))%Q  
@@ -2209,8 +2217,7 @@ Close Scope nat_scope.
   unfold isRecvEvt, isDeqEvt in Hmrecrr.
   destruct (eKind Emr); inversion Hmrecrr; [].
   simpl in Hv, Hmeq. 
-  simpl in Hv.
-  let T := (eval simpl in (moveMapInsideFst MOTOR)) in rewrite T in Hv.
+  simpl in Hv. unfold getPayload in Hv.
   simpl in Hv. rewrite <- Hmeq in Hv.
   clear Hql.
   specialize (fun tl => Hv tl (conj Hlt (conj eq_refl HmotR))).
@@ -2371,8 +2378,9 @@ Close Scope nat_scope.
 
   assert ((eTime Eswr) < tivt + (2 # 1))%Q  as Htubb by lra.
   clear Htub. rename Htubb into Htub.
+  pose proof (globalCausal _ _ _ Hrecrl) as Hubb.
   assert (tivt < (eTime Eswr))%Q  as Htlb by lra.
-  clear Hreclr Hrecll Hncrrr Hncrl Hrecrl Hnclr Hncll Htppt
+  clear Hubb Hrecl Hncrrr Hncrl Hrecrl Hnclr Hncll Htppt
       Hncrrll Esens.
 
   (** lets process the message on the s/w node *)
@@ -2384,8 +2392,16 @@ Close Scope nat_scope.
   pose proof (locEvtIndex SWCONTROLLER (eLocIndex Eswr) Eswr) as Hxx.
   rewrite (proj1 Hxx) in Hnc;[| split; auto; fail].
   simpl  in Hnc.
-  specialize (Hnc Hrecrr (1%nat)).
-  destruct Hnc as [m Hnc];[admit|].
+  specialize (Hnc Hrecrr (0%nat)).
+  destruct Hnc as [m Hnc ]. 
+    unfold procOutMsgs.
+    apply proj1 in Hxx.
+    rewrite Hxx; auto.
+    simpl. unfold SwProcess. rewrite getNewProcLPure. simpl.
+    unfold getDeqOutput2, getOutput. simpl.
+    unfold liftToMesg, getPayload.
+    rewrite <- Hmeq.
+    simpl. omega.
   apply onlyNeededForOldProofs in Hnc.
   apply DeqSendOncePair in Hnc.
   simpl in Hnc. 
@@ -2409,7 +2425,7 @@ Close Scope nat_scope.
   clear Htlb. rename Htlbb into Htlb.
   rename e0 into Hss.
   apply locEvtIndex in Hss.
-  clear H0 H i a l Hrecrr Hxx Hsw Eswr.
+  clear H0 H a l Hrecrr Hxx Hsw Eswr.
 
   rename a0 into HmotSend.
 
@@ -2433,6 +2449,7 @@ Close Scope nat_scope.
   rewrite <- QT2T_Q2R in Httpp.
   apply leEq_inj_Q in Httpp.
   simpl in Httpp.
+  pose proof (globalCausal _ _ _ Hmrecrl) as Hubb.
   assert (eTime evMp < eTime Emr)%Q as Hql by lra.
   assert ((eTime Emr) < t)%Q as Hlt by lra.
   assert (Qtadd (eTime Emr) (mkQTime 1 I)< tivt + (5 # 1))%Q  
@@ -2451,9 +2468,9 @@ Close Scope nat_scope.
   unfold priorMotorMesg, getRecdPayload, deqMesg in Hv.
   unfold isRecvEvt, isDeqEvt in Hmrecrr.
   destruct (eKind Emr); inversion Hmrecrr; [].
-  simpl in Hv, Hmeq. 
-  let T := (eval simpl in (moveMapInsideFst MOTOR)) in rewrite T in Hv.
-  simpl in Hv. simpl in Hmeq. rewrite <- Hmeq in Hv.
+  simpl in Hv, Hmeq. unfold getPayload in Hv.
+  simpl in Hv. simpl in Hmeq. 
+  rewrite <- Hmeq in Hv.
   simpl in Hv.
   clear Hql.
   specialize (fun tl => Hv tl (conj Hlt (conj eq_refl HmotR))).

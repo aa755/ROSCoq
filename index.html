@@ -59,8 +59,13 @@ and many lemmas about bounds on functions based on bounds on their derivatives a
       Coq program (<a href="coqdoc/ROSCOQ.ROSCyberPhysicalSystem.html#SwSemantics">SwSemantics</a>), 
       definition and correctness proofs of utility functions which find latest payload on a topic</li>
 
+</ul>
+  Applications of the framework :
+<ul>
 <li>
-    <a href="coqdoc/ROSCOQ.icreate.html">icreate.v</a> : specialization of the above to specify the iCreate CPS 
+    <a href="coqdoc/ROSCOQ.icreate.html">icreate.v</a> : instantiation
+      of the above abstract definition of a CPS 
+      to specify the iCreate CPS 
       discussed in the paper. It incudes a definition of its physical model, 
       specification of the behavior of the robot, 
       and Coq program in the running example of the paper. 
@@ -70,12 +75,15 @@ and many lemmas about bounds on functions based on bounds on their derivatives a
       <a href="coqdoc/ROSCOQicreate.html#Ev3Y'">Ev3Y'</a>,
       <a href="coqdoc/ROSCOQicreate.html#Ev3X'DiffUb">Ev3X'DiffUb</a>,
       and <a href="coqdoc/ROSCOQicreate.html#Ev3X'DiffLb">Ev3X'DiffLb</a>
+      <br>
+      We used a  <a href="Listener.java">ROSJava shim</a> : to run a specialization 
+        (<a href=" coqdoc/ROSCOQ.icreateConcrete.html#robotProgramInstance">robotProgramInstance</a>) of
+          the above Coq program on actual robots.
+  </li>
       
+  <li>
   </li>
 
-<li>  <a href="Listener.java">ROSJava shim</a> : the shim used to run a specialization 
-        (<a href=" coqdoc/ROSCOQ.icreateConcrete.html#robotProgramInstance">robotProgramInstance</a>) of the above Coq program.
-  </li>
 </ul>
 <h3>Coming Up</h3>
 

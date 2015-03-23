@@ -1309,6 +1309,8 @@ Proof.
   simpl in Hnc, Hsub.
   destruct Hsub.
   simpl. simpl in Hnc. 
+  unfold mkPureProcess, mkPureHandler, getOutput in Hnc.
+  simpl in Hnc.
   unfold mtopic. unfold mtopic in Hnc. simpl. 
   simpl in Hnc. split;[reflexivity|].
   destruct (eqdec dmt dmt) as [Heq| Hneq];
@@ -1316,9 +1318,9 @@ Proof.
   inversion Hnc.
   simpl.
   pose proof (@UIPReflDeq RosTopic _ _ Heq) as Heqr.
-  (* rewrite Heqr.
-  simpl. reflexivity. *)
-Abort.
+  rewrite Heqr.
+  simpl. reflexivity.
+Qed.
 
 Lemma isDeqEvtImplies : forall ev,
   isDeqEvt ev -> eKind ev = deqEvt.
