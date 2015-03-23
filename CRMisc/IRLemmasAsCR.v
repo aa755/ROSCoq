@@ -846,6 +846,7 @@ Proof.
 Qed.
 
 
+(** use autounfold with QMC instead *)
 Ltac unfoldMC :=
   unfold pow, stdlib_rationals.Q_Npow, plus,
   one, zero, stdlib_rationals.Q_1, stdlib_rationals.Q_plus,
@@ -859,6 +860,17 @@ Ltac unfoldMC :=
   lt, stdlib_rationals.Q_lt,
   canonical_names.negate, stdlib_rationals.Q_opp.
 
+Hint Unfold pow stdlib_rationals.Q_Npow plus
+  one zero stdlib_rationals.Q_1 stdlib_rationals.Q_plus
+  stdlib_binary_naturals.N_plus
+  stdlib_binary_naturals.N_1
+  equiv stdlib_rationals.Q_eq mult
+  stdlib_rationals.Q_mult dec_recip
+  stdlib_rationals.Q_recip
+  zero stdlib_rationals.Q_0
+  le stdlib_rationals.Q_le
+  lt stdlib_rationals.Q_lt
+  canonical_names.negate stdlib_rationals.Q_opp  : QMC.
 
 
 Lemma QSumOfSqr0Implies : ∀ x y,
@@ -1316,7 +1328,7 @@ Qed.
 (** a good example of proof by computation *)
 Lemma  PiHalfLt :    (½ * π) < π.
 Proof. 
-  intros. unfold lt, CRlt. exists 10.
+  intros. unfold lt, CRlt. exists 1%nat.
   simpl. vm_compute. reflexivity.
 Qed.
 
@@ -1687,27 +1699,3 @@ Proof.
   reflexivity.
 Qed.
 
-(*
-Require Import ARtrans.
-Require Import ARbigD.
-Definition timeApproxMillis (r : CR) : Z.
-pose proof (approximate (cast CR ARbigD r)) 
-  (Qpos2QposInf (QposMake 1 1000)) as ar.
-*)
-
-(*
-Notation "¼" := (QposMake xH (xO (xO xH))).
-Notation  "2" := (QposMake (xO xH) xH).
-Require Export CoRN.util.Extract.
-Eval vm_compute in (answer 2 (√(cos ½))).
-Eval vm_compute in (answer 2 (exp (cos (sin (arctan π))))).
-
-Lemma demo :  
-√(cos ½) < exp (cos (sin (arctan (π)))).
-Proof.
-  unfold lt, CRlt, CR_epsilon_sign_dec. unfold cast, stdlib_binary_integers.inject_nat_Z.
-     exists 1%nat.  vm_compute. 
-  (* the price we pay is P or not P. actuall it is not a price. robotics*)
-  reflexivity.
-Qed.
-*)

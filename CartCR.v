@@ -131,6 +131,24 @@ Proof.
   nia.
 Qed.
 
+Lemma  Qle_shift_div_l_neg:
+   ∀ a b, a <= 0  → b < 0 → (0 <= Qdiv a  b).
+Proof.
+  intros. 
+  unfold Qle, Qinv.
+  simpl. ring_simplify.
+  destruct a, b.
+  unfold Qlt in H0.
+  unfold Qle in H.
+  simpl in H, H0.
+  simpl.
+  ring_simplify in H.
+  ring_simplify in H0.
+  unfold Qinv. simpl.
+  destruct Qnum0; simpl; try omega.
+  nia.
+  nia.
+Qed.
 
 Close Scope Q_scope.
 
@@ -235,8 +253,28 @@ Proof.
       apply Qle_shift_div_l; try lra.
 Qed.
 
-(** broke after making the angle more optimal s
-    
+Lemma Cart2PolarRadRange : forall (c :Cart2D Q),
+  0  ≤ rad (Cart2Polar c).
+Proof.
+  intros c.
+  unfold Cart2Polar. unfold CanonicalNotations.norm, NormSpace_instance_Cart2D.
+  simpl. rewrite <- CRsqrt_Qsqrt. apply CRsqrt_nonneg.
+  destruct c.
+  simpl.
+  apply CRle_Qle. unfoldMC. apply Q.Qplus_nonneg;apply Qpower.Qsqr_nonneg.
+Qed.
+
+Lemma addRangeLe : ∀ a t b v : CR, 
+  (a - v) ≤ t  ≤ (b - v) → a ≤ t + v ≤ b.
+Proof.
+  intros ? ? ? ? Hb.
+  repnd.
+  split.
+- apply shift_leEq_plus. assumption.
+- apply shift_plus_leEq. assumption.
+Qed.
+
+
 Lemma Cart2PolarAngleRange : forall (c :Cart2D Q),
   -π  ≤ θ (Cart2Polar c) ≤ π.
 Proof.
@@ -251,38 +289,42 @@ Proof.
   rewrite <- CRopp_Qopp.
   rewrite  multNegShiftOut.
   rewrite <- CRle_opp.
-  assert (π = π * 1) by ring.
+  apply CRweakenLt.
+  exists 1%nat.
+  vm_compute.
+  reflexivity.
 
-
- reflexivity.
 - destruct (CRarctan_range ('(Y/X)%Q)) as [Hl Hr].
-  destruct (decide (X < 0)); rewrite <- arctan_Qarctan.
-  + apply (CRLtAddRHS π) in Hr.
-    apply (CRLtAddRHS π) in Hl.
-    apply CRweakenLt in Hr.
-    assert (½ * π + π = (½+1)%CR*π) as Heq by CRRing.
-    rewrite Heq in Hr. clear Heq.
-    assert ((½ + 1) = 3*½)%Q as Heq by reflexivity.
-    rewrite <- Heq. clear Heq.
-    split;[apply CRweakenLt|].
-    * eapply (orders.strict_po_trans); [| apply Hl].
-      exists 1%nat. vm_compute. reflexivity.
-    * eapply CRle_trans; [apply Hr|]. rewrite <- CRplus_Qplus.
-      reflexivity.
-  + apply CRweakenRange. split; [trivial|].
-    eapply (orders.strict_po_trans); eauto.
-    exists 1%nat. vm_compute. reflexivity.
-Qed.
-*)
+  rewrite arctan_Qarctan in Hl.
+  rewrite arctan_Qarctan in Hr.
+  destruct (decide (X < 0)) as [l|l].
+  + apply addRangeLe.
+    autounfold with QMC in l.
+    unfold QSign, CanonicalNotations.norm,
+      NormSpace_instance_0.
+    destruct (decide (Y < 0)) as [Hdy | Hdy];
+      autounfold with QMC in Hdy.
+    * split; [
+        | apply CRweakenLt;
+          eapply (orders.strict_po_trans); eauto;
+          exists 1%nat; vm_compute; reflexivity].
+      prepareForCRRing.
+      rewrite CRplus_opp.
+      apply rational_arctan_nonneg.
+      autounfold  with QMC.
+      apply Qle_shift_div_l_neg; try lra.
+    
+    * split; [
+          apply CRweakenLt;
+          eapply (orders.strict_po_trans); eauto;
+          exists 1%nat; vm_compute; reflexivity| ].
+      prepareForCRRing.
+      rewrite CRplus_opp.
+      apply rational_arctan_nonpos.
+      autounfold  with QMC.
+      apply Qle_shift_div_r_neg; try lra.
 
-Lemma Cart2PolarRadRange : forall (c :Cart2D Q),
-  0  ≤ rad (Cart2Polar c).
-Proof.
-  intros c.
-  unfold Cart2Polar. unfold CanonicalNotations.norm, NormSpace_instance_Cart2D.
-  simpl. rewrite <- CRsqrt_Qsqrt. apply CRsqrt_nonneg.
-  destruct c.
-  simpl.
-  apply CRle_Qle. unfoldMC. apply Q.Qplus_nonneg;apply Qpower.Qsqr_nonneg.
+  + apply CRweakenRange. split;
+    eapply (orders.strict_po_trans); eauto;
+    exists 1%nat; vm_compute; reflexivity.
 Qed.
-
