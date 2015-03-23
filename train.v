@@ -208,7 +208,75 @@ Definition digiControllerTiming  :
   QTime :=  (mkQTime (1#2)%Q I).
  
 Definition ControllerNode (speed : Q): RosSwNode :=
-  Build_RosSwNode (SwProcess speed) (digiControllerTiming, (QposMake 1 2)).
+  Build_RosSwNode (SwProcess speed) (digiControllerTiming, (QposMake 1 3)).
+
+Require Import Psatz.
+
+Lemma onlyNeededForOldProofsAux:
+  ∀ sp nd ns si,
+     possibleDeqSendOncePair2 (procOutMsgs (ControllerNode sp) 
+        (localEvts SWCONTROLLER) nd) 
+         (procTime (ControllerNode sp))
+        (timingAcc (ControllerNode sp)) (localEvts SWCONTROLLER) nd ns si
+  -> {es : Event | {ed : Event | isDeqEvt ed × isSendEvt es
+          × (nd < ns)
+              × (eTime es < eTime ed + 1)%Q
+        ×
+        localEvts SWCONTROLLER nd = Some ed 
+        × localEvts SWCONTROLLER ns = Some es ×
+         {dmp : bool|  fst (eMesg ed) = ((mkMesg PSENSOR dmp))
+                  ∧ (mkImmMesg MOTOR ((SwControllerProgram sp) dmp)) = (eMesg es) }}}.
+Proof.
+  intros ? ? ? ? Hp.
+  unfold possibleDeqSendOncePair2 in Hp.
+  unfold procOutMsgs in Hp.
+  simpl in Hp. unfold SwProcess in Hp. 
+  rewrite getNewProcLPure in Hp.
+  destruct (localEvts SWCONTROLLER nd) as [evd|];[| tauto].
+  destruct (localEvts SWCONTROLLER ns) as [evs|];[| tauto].
+  unfold isDeqEvt, isSendEvt.
+  exists evs. exists evd.
+  destruct (eKind evd); try tauto.
+  destruct (eKind evs); try tauto.
+  split; auto.
+  split; auto.
+  repnd.
+  split;[omega|].
+  unfold getDeqOutput2, getOutput, liftToMesg in Hprrr, Hprrl.
+  simpl in Hprrr, Hprrl.
+  remember (getPayload PSENSOR (eMesg evd)) as evdp.
+  destruct evdp
+      as [dmp|];[| rewrite nth_error_nil in Hprrl; discriminate].
+  destruct si; simpl in Hprrl
+    ;[| rewrite nth_error_nil in Hprrl; discriminate].
+  rewrite <-Hprl in Hprrr.
+  unfold mkImmMesg, minDelayForIndex in Hprrr.
+  unfold compose, fold_right in Hprrr.
+  simpl in Hprrr.
+  apply proj1 in Hprrr.
+  simpl in Hprrr.
+  unfold inject_Z in Hprrr.
+  split; [lra|].
+  split; auto.
+  split; auto.
+  exists dmp.
+  unfold value in Hprrl.
+  inverts Hprrl.
+  split; auto.
+  apply MsgEta; auto.
+Qed.
+
+Ltac repnd2 :=
+  repeat match goal with
+           | [ H : _ /\ _ |- _ ] =>
+            let lname := fresh H "l" in 
+            let rname := fresh H "r" in 
+              destruct H as [lname rname]
+           | [ H : _ × _ |- _ ] =>
+            let lname := fresh H "l" in 
+            let rname := fresh H "r" in 
+              destruct H as [lname rname]
+         end.
 
 Lemma onlyNeededForOldProofs:
   ∀ sp nd ns si,
@@ -225,8 +293,20 @@ Lemma onlyNeededForOldProofs:
          {dmp : bool|  fst (eMesg ed) = ((mkMesg PSENSOR dmp))
                   ∧ (mkImmMesg MOTOR ((SwControllerProgram sp) dmp)) = (eMesg es) }}}.
 Proof.
-Admitted.
-
+  intros ? ? ? ? Hp.
+  apply onlyNeededForOldProofsAux in Hp.
+  destruct Hp as [es Hp].
+  destruct Hp as [ed Hp].
+  exists es.
+  exists ed.
+  repnd2.
+  dands; try assumption;[].
+  apply timeIndexConsistent.
+  apply locEvtIndex in Hprrrrrl.
+  apply locEvtIndex in Hprrrrl.
+  repnd.
+  congruence.
+Qed.
 
 
 Lemma VelPosUB :forall (tst : Train)
@@ -646,9 +726,8 @@ Qed.
 
 (** Ideally, device specs should imply a bound like this.
     For a fine grained analysis, this might be less useful *)
-Lemma velPos : forall (t : Time), 
+Variable velPos : forall (t : Time), 
   Q2R (-speed) [<=] ({velX tstate} t) /\ ({velX tstate} t) [<=] speed.
-Admitted.
 
 
 Lemma centerPosChange : forall (ta tb : Time),
@@ -679,7 +758,6 @@ Require Import CoRN.tactics.CornTac.
 Require Import CoRN.algebra.CRing_as_Ring.
 
 Add Ring RisaRing: (CRing_Ring ℝ).
-Require Import Psatz.
 Require Import Setoid.
 
 Open Scope Q_scope.
@@ -836,20 +914,21 @@ Proof.
 Qed.
 *)
 
-  
-Lemma concreteValues : hwidth =  2 
+Definition ConcreteValues : Prop :=
+hwidth =  2 
                       /\ boundary =  100 
                       /\ alertDist =   16
                       /\ (maxDelay = mkQTime 1 I)
                       /\ (reactionTime = 1)
                       /\ (initialVel = 0)
                       /\ (initialPos = 0).
-Admitted.
+
+  
+Variable concreteValues : ConcreteValues.
 
 Lemma reactionTime1 : reactionTime = 1.
 Proof.
-  pose proof concreteValues. repnd.
-  trivial.
+  unfold ConcreteValues in concreteValues. tauto.
 Qed.
 
 Definition posVelMeg : Message :=
@@ -968,7 +1047,7 @@ Proof.
     rename H into H6.
     specialize (Hind H6). clear H6.
     unfold inBetween in i.
-    clear Heqeks Heqevloc eo reactionTimeGap transitionValues velAccuracy boundary 
+    clear concreteValues Heqeks Heqevloc eo reactionTimeGap transitionValues velAccuracy boundary 
       alertDist safeDist maxDelay hwidth reactionTime.
     eapply centerPosUB2; eauto.
 
@@ -1028,7 +1107,7 @@ Close Scope nat_scope.
     remember ({posX tstate} t) as cpt.
     clear dependent t.
     clear dependent Event.
-    clear tstate reactionTimeGap 
+    clear concreteValues velPos tstate reactionTimeGap 
         maxDelay transitionValues velAccuracy boundary safeDist 
         hwidth  reactionTime  alertDist minGap.
     apply shift_leEq_plus in Hncl.
@@ -1151,7 +1230,7 @@ Proof.
     rename H into H6.
     specialize (Hind H6). clear H6.
     unfold inBetween in i.
-    clear Heqeks Heqevloc eo reactionTimeGap transitionValues velAccuracy boundary 
+    clear concreteValues Heqeks Heqevloc eo reactionTimeGap transitionValues velAccuracy boundary 
       alertDist safeDist maxDelay hwidth reactionTime.
     eapply centerPosLB2; eauto.
 
@@ -1209,7 +1288,7 @@ Close Scope nat_scope.
     remember ({posX tstate} t) as cpt.
     clear dependent t.
     clear dependent Event.
-    clear tstate reactionTimeGap 
+    clear concreteValues velPos tstate reactionTimeGap 
         maxDelay transitionValues velAccuracy boundary safeDist 
         hwidth  reactionTime  alertDist minGap.
     rewrite CAbGroups.minus_plus in Hncl.
