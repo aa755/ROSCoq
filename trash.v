@@ -306,8 +306,6 @@ Process (topicType inT) (list (topicType outT)).
 Definition SSimpleSwProc (inT outT : RosTopic) : Type :=
 Process (topicType inT) (topicType outT).
 
-Add LoadPath "../../../nuprl/coq".
-Require Import UsefulTypes.
 
 CoFixpoint makeSuperSimple {inT outT : RosTopic}
   (sswp : SSimpleSwProc inT outT) : SimpleSwProc inT outT.

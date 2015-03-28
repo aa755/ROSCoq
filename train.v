@@ -1,4 +1,3 @@
-(* Add LoadPath "../../../nuprl/coq". *)
 Require Export Coq.Program.Tactics.
 Require Export LibTactics.
 
@@ -2634,8 +2633,5 @@ Qed.
 
 
 
-(* Add LoadPath "../../../nuprl/coq".
-Require Import UsefulTypes.
-Close Scope NupCoqScope. *)
 
 End TrainProofs.

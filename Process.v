@@ -91,6 +91,3 @@ Definition getLastOutputL  {In Out : Type}
     | last :: rest => getLastOutput p rest last
     end.
 
-
-Add LoadPath "../../../ssrcorn" as CoRN.
-Add LoadPath "../../../ssrcorn/math-classes/src" as MathClasses.
