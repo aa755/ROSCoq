@@ -5,6 +5,7 @@ mkdir dist/coq/CRMisc
 mkdir dist/coq/IRMisc
 cp *.v dist/coq/
 cp SConstruct.dist dist/coq/SConstruct
+cp installDependencies.sh dist/
 cp -r site_scons/ dist/coq/
 cp -r shim dist/
 cp  IRMisc/*.v dist/coq/IRMisc/
