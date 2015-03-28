@@ -4,12 +4,11 @@ mkdir dist/coq
 mkdir dist/coq/CRMisc
 mkdir dist/coq/IRMisc
 cp *.v dist/coq/
-cp SConstruct dist/coq/
-cp site_scons/ dist/coq/
+cp SConstruct.dist dist/coq/SConstruct
 cp -r site_scons/ dist/coq/
-cp -r shim dist/coq/
-cp -r IRMisc/*.v dist/coq/IRMisc/
-cp -r CRMisc/*.v dist/coq/CRMisc/
+cp -r shim dist/
+cp  IRMisc/*.v dist/coq/IRMisc/
+cp  CRMisc/*.v dist/coq/CRMisc/
 rm dist/coq/AngleMS.v 
 rm dist/coq/trash.v 
 rm dist/coq/CartAR.v 
