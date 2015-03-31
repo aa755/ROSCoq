@@ -538,7 +538,7 @@ Definition Cintegral
     (f : IContR) : IR :=
   integral _ _ _ _ (IContRCont_I f (scs_prf _ _ lr)).
 
-Instance Cintegral_wd : Proper 
+Global Instance Cintegral_wd : Proper 
     ((@st_eq (Build_SubCSetoid (ProdCSetoid RInIntvl RInIntvl) (fun p => fst p [<=] snd p)))
       ==> (@st_eq IContR) 
       ==> (@st_eq IR)) (Cintegral).
@@ -570,7 +570,7 @@ Definition inBounds (ib : IntgBnds) (x : IR) : Prop :=
 Definition IContREqInIntvl (ib : IntgBnds) (f g : IContR) :=
 (∀ x : RInIntvl, inBounds ib x -> {f} x [=] {g} x).
 
-Instance Cintegral_wd2 (ib : IntgBnds) : 
+Global Instance Cintegral_wd2 (ib : IntgBnds) : 
     Proper 
       ((IContREqInIntvl ib) ==> (@st_eq IR)) 
       (Cintegral ib).
@@ -774,6 +774,18 @@ Lemma TContRExt : forall (f : IContR) a b,
   a [=] b -> {f} a [=] {f} b.
 Proof.
   intro f. apply  csf_fun_wd.
+Qed.
+
+
+Global Instance IContR_proper :
+  Proper ((@st_eq IContR)
+      ==> (@st_eq (RI_R))) (getF).
+Proof.
+  intros ? ? Heq. unfold getF.
+  destruct x, y.
+  simpl.
+  simpl in Heq.
+  exact Heq.
 Qed.
 
 Definition mkIntBnd {a b : RInIntvl} 
