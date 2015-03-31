@@ -744,6 +744,32 @@ Proof.
   apply TContRDerivativePlus; apply DerivativeSqr; assumption.
 Qed.
 
+Lemma isDerivativeUnique:
+  ∀ (F F1' F2' : IContR),
+  isIDerivativeOf F1' F
+  → isIDerivativeOf F2' F
+  → F1' [=]  F2'.
+Proof.
+  intros ? ? ? H1d H2d.
+  unfold isIDerivativeOf in H1d, H2d.
+  eapply Derivative_unique in H1d; eauto.
+  destruct F1'.
+  destruct F2'.
+  simpl.
+  intros x.
+  simpl in H1d.
+  unfold Feq in H1d.
+  apply snd in H1d.
+  apply snd in H1d.
+  rewrite extToPart3.
+  rewrite extToPart3.
+  symmetry.
+  apply H1d.
+  destruct x.
+  simpl.
+  assumption.
+Qed.
+
 Lemma TContRExt : forall (f : IContR) a b,
   a [=] b -> {f} a [=] {f} b.
 Proof.
