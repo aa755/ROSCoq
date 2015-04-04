@@ -12,7 +12,7 @@ Definition delEpsSec : Qpos := QposMake 1 10000.
 Definition initDelayLin : Qpos := QposMake 1 1.
 
 
-Definition robotProgramInstance delayLinSec :  PureProcWDelay TARGETPOS VELOCITY :=
+Definition robotProgramInstance (delayLinSec : Qpos) :  PureProcWDelay TARGETPOS VELOCITY :=
   robotPureProgam 
           rotSpeedRadPerSec 
           speedMetresPerSec
@@ -24,7 +24,7 @@ Definition robotProgramInstance delayLinSec :  PureProcWDelay TARGETPOS VELOCITY
    we make this process whose state is non-trivial and
    stores the delay between the "stop-turning" and
    the "start-moving" message.
-   At each update, this value is doubled *)
+   At each update, this value is doubled. *)
 
 Definition SwProcessInstance : Process Message (list Message):=
 {|
