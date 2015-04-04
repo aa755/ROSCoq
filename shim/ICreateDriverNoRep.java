@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.github.rosjava.rosjava_catkin_package_a.my_pub_sub_tutorial;
+package com.github.rosjava.roscoqshim.my_pub_sub_tutorial;
 //package com.github.rosjava_catkin_package_a.my_pub_sub_tutorial;
 
 import geometry_msgs.Vector3;
