@@ -44,7 +44,7 @@ import org.ros.node.topic.Subscriber;
 /**
  * A simple {@link Subscriber} {@link NodeMain}.
  */
-public class Listener extends AbstractNodeMain 
+public class ROSCoqShim extends AbstractNodeMain 
         implements MessageListener<std_msgs.String>{
 
   @Override
@@ -126,7 +126,7 @@ public class Listener extends AbstractNodeMain
           } 
           inpCtr=inpCtr+1;
       } catch (IOException | InterruptedException ex) {
-          Logger.getLogger(Listener.class.getName()).log(Level.SEVERE, null, ex);
+          Logger.getLogger(ROSCoqShim.class.getName()).log(Level.SEVERE, null, ex);
       }
 
     }
@@ -259,7 +259,7 @@ public class Listener extends AbstractNodeMain
 
       
       } catch (IOException | InterruptedException ex) {
-          Logger.getLogger(Listener.class.getName()).log(Level.SEVERE, null, ex);
+          Logger.getLogger(ROSCoqShim.class.getName()).log(Level.SEVERE, null, ex);
       }
       
           Subscriber<std_msgs.String> subscriber 

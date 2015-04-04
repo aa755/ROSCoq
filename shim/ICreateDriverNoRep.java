@@ -29,7 +29,7 @@ import org.ros.node.topic.Subscriber;
 /**
  * A simple {@link Publisher} {@link NodeMain}.
  */
-public class Talker extends AbstractNodeMain {
+public class ICreateDriverNoRep extends AbstractNodeMain {
 
     @Override
     public GraphName getDefaultNodeName() {
