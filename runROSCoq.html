@@ -11,113 +11,52 @@
 <body>
 
   <h3>
-Instructions for running the Coq program on an iCreate robot
+    Instructions for running the <a href="coqdoc/ROSCOQ.icreateConcrete.html#SwProcessInstance">Coq program</a> on an iCreate robot
   </h3>
   <p>
-  Our development is known to compile with Coq versions 8.4pl2 and 8.4pl3.
-  It depends on an earlier (January 2015) version of the 
-  <a href="http://corn.cs.ru.nl/">CoRN</a> library, 
-  which in turn depends on the <a href="https://coq.inria.fr/cocorico/MathClasses">MathClasses</a> library.
-  Like CoRN, we use the <a href="http://www.scons.org/">SCons</a> 
-  build tool to compile our Coq files in a correct order.
-  <a href="http://git-scm.com/">Git</a> is required to download the right
-  version of CoRN from <a href="https://github.com/c-corn/corn">github</a>.
-  </p>
   
-  The best way to compile our coq development is to install
-  Ubuntu 14.04 (in a <a href="https://www.virtualbox.org/">virtual machine</a> 
-  if you don't want to change the main OS of your computer).
-  The following steps have been tested on a fresh install of 
-  <a href="http://www.ubuntu.com/download/desktop/contribute/?version=14.04.2&architecture=amd64">Ubuntu 14.04.2 LTS</a>:
   <ol> 
-    <li>Install Coq version 8.4pl3, SCons and git
-      by the following command:
-      <br>
-      <br>
-      <code> abhishek@abhishek-desktop:~$ sudo apt-get install scons coq git</code>
-      <br>
-      <br>
+    <li> Follow the steps 1-2 listed for <a href="installROS.html#test"> testing the ROS and robot setup</a>
     </li>
     <li>
-      Download our sources from <a href="dist.zip">here</a>.
-      Extract it to a place of your choice. This step can also be done
-      via command line using as follows:
+      In another terminal, start our shim. In the process
+      of installing the <a href="installROSJava.html"> ROSJava and the Shim</a>,
+      our script should have created the script <code>~/rosjava/runShim.sh</code>
+      The first line of this script set the options for <code>coqtop</code>.
+      The second line indicates the Coq .v file containing the message handler.
+      You should not need to change these environment variables
+      if you followed the 
+        installation instructions exactly. Run this script:
       <br>
       <br>
-      <code> abhishek@abhishek-desktop:~$ wget www.cs.cornell.edu/~aa755/ROSCoq/dist.zip</code>
+      <code> abhishek@abhishek-desktop:~$ cd rosjava</code>
       <br>
-      <code> abhishek@abhishek-desktop:~$ unzip dist.zip</code>
+      <code> abhishek@abhishek-desktop:~$ bash runShim.sh</code>
       <br>
       <br>
-      
+      Wait for 10-20 seconds while Coq finishes loading all files.
     </li>
-    <li>
-      We have included a script <code>installDependencies.sh</code>
-      which creates a new subdirectory <code>dependencies</code>,
-      clones CoRN's github repository and checks out
-      the version known to work for ROSCoq. Finally, it compiles CoRN.
-      This might take several hours. If you have several free cores
-      on your computer (say 4), replace  <code>scons</code> in
-      <code>installDependencies.sh</code> by 
-      <code>scons -j4</code>, so that upto 4 Coq files can be
-      compiled in parallel. This step of editing  <code>installDependencies.sh</code>
-      is optional. After that, run
-      the script as follows:
+    <li> Similarly, Start the hardware agent in a new terminal: 
       <br>
       <br>
-      <code> abhishek@abhishek-desktop:~$ cd dist</code>
+      <code> abhishek@abhishek-desktop:~$ cd rosjava</code>
       <br>
-      <code> abhishek@abhishek-desktop:~/dist$ bash -x  installDependencies.sh</code>
+      <code> abhishek@abhishek-desktop:~$ bash runDriver.sh</code>
       <br>
       <br>
     </li>
-   <li> Finally, compile our Coq development by entering the <code>dist/coq/</code> 
-      and running scons :
+
+      <li> Finally, start the external agent in another terminal
       <br>
       <br>
-      <code> abhishek@abhishek-desktop:~/dist$ cd coq</code>
+      <code> abhishek@abhishek-desktop:~$ cd rosjava</code>
       <br>
-      <code> abhishek@abhishek-desktop:~/dist/coq$ scons</code>
-      <br>
-      <br>
-      Again, feel free to replace <code>scons</code> in the above by 
-      <code>scons -j4</code> for parallelism.
-      Our Coq development is in  <code>dist/coq/</code>.
-      To interactively examine these files,
-      use the script <code>dist/coq/coqidescript.sh</code>.
-      Instead of opening <code>coqide</code> directly,
-      using this script ensures that the Coq loadpaths are
-      set correctly. Here is an example usage:
-      <br>
-      <br>
-      <code> abhishek@abhishek-desktop:~/dist/coq$ bash coqidescript.sh icreate.v</code>
+      <code> abhishek@abhishek-desktop:~$ bash runExternalAgent.sh</code>
       <br>
       <br>
     </li>
-  </ol>
-    If you run into any issues, please anonymously send an email to 
-    <a href="mailto:aa755@cornell.edu">Abhishek Anand</a>
 
-<h3>
-Instructions for installing ROS, ROSJava  and the drivers for iRobot create.
-</h3>
-  <ol>
-    <li> <a href="installROS.html">Install ROS Indigo and test your Robot</a> </li>    
-    <li> <a href="installROSJava.html">Install ROSJava and compile the ROSCoq Shim</a> </li>    
-    <li> <a href="runROSCoq.html">Run the Coq program on your robot</a> </li>    
   </ol>
-
-<h3>
-Directly using our Virtual Machine
-</h3>
-We have created a VirtualBox VM
-with Coq, ROSCoq's Coq development, ROS, 
-ROSJava and the ROSCoq shim preinstalled.
-If you plan to use this VM, skip all the above instructions
-and follow the ones below:
-  <ol>
-  </ol>
-
 <!--so that one can easily run Coq programs on their 
       iRobot <a href="http://www.irobot.com/For-the-Home/Vacuum-Cleaning/Roomba.aspx"> Roomba</a> 
       or <a href="http://www.irobot.com/About-iRobot/STEM/Create-2.aspx"> Create</a>

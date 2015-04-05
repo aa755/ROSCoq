@@ -1,0 +1,68 @@
+<html>
+<head>
+<meta http-equiv="cache-control" content="max-age=0" />
+<meta http-equiv="cache-control" content="no-cache" />
+<meta http-equiv="expires" content="0" />
+<meta http-equiv="expires" content="Tue, 01 Jan 1980 1:00:00 GMT" />
+<meta http-equiv="pragma" content="no-cache" />
+<title> ROSCoq VM Installation </title>
+</head>
+
+<body>
+
+  
+<p>
+We have created a VirtualBox VM
+with Coq, ROSCoq's Coq development, ROS, 
+ROSJava and the ROSCoq shim preinstalled.
+It has been created
+by following the above instructions on a fresh install of 
+<a href="http://www.ubuntu.com/download/desktop/contribute/?version=14.04.2&architecture=amd64">Ubuntu 14.04.2 LTS</a>
+</p>
+However, you might encounter USB hardware issues while using this VM.
+The key issue is that the iCreate robot will (obviously) be 
+physically connected to a USB port of the host of the VM and needs to somehow
+be passed through to the Guest (VM).
+There are known issues in USB pass through mechanisms of VirtualBox.
+<br>
+We had success with an Ubuntu (14.04) host, but not a Windows (8.1) host
+with only USB 3.0 ports.
+Try plugging your iCreate to a USB 2.0 port on the host.
+Also, the image has been created and tested with VirtualBox version 4.3.26.
+It might be a good idea to use the same or higher version of VirtualBox.
+
+<br>
+If you plan to use this VM image, you can skip all the above instructions
+and follow the ones below:
+
+  <ol>
+    <li>Install <a href="https://www.virtualbox.org/">VirtualBox</a>.  </li>
+    <li>Download the VM Image (coming soon). We are trying to find out how to distribute the VM image
+      which is <em>3.1GB</em> in size. </li>
+    <li>Import this .ova file in VirtualBox by clicking at File | Import Appliance. 
+         In this process, VirtualBox will let you change the RAM and number of CPU's 
+          allocated to the VM. It is recommended that you change these values
+          if they are respectively greater than what is available in your host machine.
+    </li>
+    <li>Set up USB pass through : Go to USB settings of the imported VM and check "Enable USB 2.0 (EHCI) Controller". 
+        On a linux host, there is an additional step of adding your account to the 
+        <code>vboxusers</code> group :
+        <br>
+        <br>
+        <code> abhishek@abhishek-desktop:~$ sudo usermod -G vboxusers -a $USER</code>
+        <br>
+        <br>
+    </li>
+    <li>
+        Start the Virtual Machine. Login with password "abcd".
+    </li>
+    <li>Connect the iCreate to the computer (host of the VM) and click on Devices | USB Devices | FTDI ... 
+        to get the iCreate device passed through to the guest (VM). After this, 
+         <code>ls /dev/ttyUSB*</code> on the guest should return  <code>/dev/ttyUSB0</code>.
+    </li>
+  </ol>
+
+
+
+</body>
+</html>
