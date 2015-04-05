@@ -1,0 +1,105 @@
+<html>
+<head>
+<meta http-equiv="cache-control" content="max-age=0" />
+<meta http-equiv="cache-control" content="no-cache" />
+<meta http-equiv="expires" content="0" />
+<meta http-equiv="expires" content="Tue, 01 Jan 1980 1:00:00 GMT" />
+<meta http-equiv="pragma" content="no-cache" />
+<title> ROS Installation</title>
+</head>
+
+<body>
+
+  <h3>
+    Instructions for installing <a href="http://wiki.ros.org/indigo"> 
+      ROS Indigo  </a> and the ROS drivers for iRobot
+      <a href="http://www.irobot.com/About-iRobot/STEM/Create-2.aspx"> Create</a>
+  </h3>
+  <ol> 
+    <li> Download our <a href="rosInstall.sh">script</a>.
+        This script can be used to install ROS and iRobot Create drivers.
+      <br>
+      <br>
+      <code> abhishek@abhishek-desktop:~$ wget www.cs.cornell.edu/~aa755/ROSCoq/rosInstall.sh</code>
+      <br>
+      <br>
+      It assumes that the iCreate device is commected to the computer
+      at the port <code>/dev/ttyUSB0</code> . On your machine, it might be 
+      <code>/dev/ttyUSB1</code> or <code>/dev/ttyUSB2</code> ...
+      (especially if you have multiple USB devices connected).
+      One way to find out is to see the difference between the output
+      of <code>ls /dev/ttyUSB*</code> before and after connecting
+      the iRobot Create via USB.
+      If needed, replace the two occurrences of <code>/dev/ttyUSB0</code>
+      in the downloaded script.
+    </li>
+    <li>
+      Now run the script. The script uses <code>apt-get</code> 
+      will prompt for permission to
+      download packages. Make sure the robot is connected
+      before executing the script, because it sets the appropriate
+      permissions for the USB device.
+      <br>
+      <br>
+      <code> abhishek@abhishek-desktop:~$ bash -x rosInstall.sh</code>
+      <br>
+      <br>
+      
+    </li>
+  </ol>
+
+  <h3>
+    <a name="test">Testing the Robot setup</a>
+  </h3>
+  After the above and before installing the Shim, it is important
+  to check that the robot, its drivers and ROS are working properly.
+  This is a 3 step process
+  <ol>
+    <li> Start <a href="http://wiki.ros.org/roscore">roscore</a> as follows:
+      <br>
+      <br>
+      <code> abhishek@abhishek-desktop:~$ source ~/.bashrc</code>
+      <code> abhishek@abhishek-desktop:~$ roscore</code>
+      <br>
+      <br>
+        Wait a few seconds so that the output settles down.
+    </li>
+    
+    <li> In a <em>new terminal</em>, start the ROS driver (node) representing the
+        icreate robot:
+      <br>
+      <br>
+      <code> abhishek@abhishek-desktop:~$ roslaunch turtlebot_bringup minimal.launch</code>
+      <br>
+      <br>
+        Wait a few seconds so that the output settles down.
+    </li>
+    
+    <li> In a <em>new terminal</em>, send a message to the above node
+         to move forward at 0.1 metres per second.
+      <br>
+      <br>
+      <code> abhishek@abhishek-desktop:~$ rostopic pub -1 /cmd_vel_mux/input/navi geometry_msgs/Twist '[0.1, 0, 0]' '[0, 0, 0]'</code>
+      <br>
+      <br>
+        The robot will move only for a fraction of a second. 
+        In contrast to the 
+          <a href="http://pharos.ece.utexas.edu/wiki/index.php/Writing_A_Simple_Node_that_Moves_the_iRobot_Create_Robot#Talking_on_Topic_cmd_vel">old drivers</a>
+          where the robot keeps following the last command indefinately, 
+          the new drivers stops the robot 
+          if no new message was received within 100 milliseconds.
+          So we have written our own driver which provides the old interface
+          by repeatedly sending the last message at 10 Hz to the new driver.
+          While running our Coq programs, we will use that driver instead,
+            because our axiomatization is currently based on the old driver.
+    </li>
+
+  </ol>
+  
+<!--so that one can easily run Coq programs on their 
+      iRobot <a href="http://www.irobot.com/For-the-Home/Vacuum-Cleaning/Roomba.aspx"> Roomba</a> 
+      or <a href="http://www.irobot.com/About-iRobot/STEM/Create-2.aspx"> Create</a>
+-->
+
+</body>
+</html>
