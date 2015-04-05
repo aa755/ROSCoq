@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014 gunjan.
+ * Copyright (C) 2014 Cornell University.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -214,7 +214,20 @@ public class ROSCoqShim extends AbstractNodeMain
     PrintWriter input;
     BufferedReader result;
   
-  ROSPublisher spub;
+   static String getCoqtopOptions()
+   {
+       String ret= System.getenv("ROSCOQ_COQTOPOPTIONS");
+       System.out.println("Coqtop options:" + ret);
+       return ret;
+   }
+   static String getCoqFileName()
+   {
+       String ret= System.getenv("ROSCOQ_COQMESSAGEHANDLER");
+       System.out.println("Coq mesage handler:" + ret);
+       return ret;
+   }
+
+   ROSPublisher spub;
   @Override
   public void onStart(ConnectedNode connectedNode) {
       try {
@@ -224,22 +237,26 @@ public class ROSCoqShim extends AbstractNodeMain
           commandParts.add(command);
           //commandParts.add("-ideslave");
           
-          String initOptions = "-R . ROSCOQ -R ../../../ssrcorn/math-classes/src MathClasses -R ../../../ssrcorn CoRN";
+//          String initOptions = "-R . ROSCOQ -R ../../../ssrcorn/math-classes/src MathClasses -R ../../../ssrcorn CoRN";
+          String initOptions=getCoqtopOptions();
           String[] initOpParts = initOptions.split(" ");
           
           commandParts.addAll(Arrays.asList(initOpParts));
-          JOptionPane.showMessageDialog(null, commandParts);
+          //JOptionPane.showMessageDialog(null, commandParts);
+          System.out.println(""+commandParts);
           ProcessBuilder pb = new ProcessBuilder(commandParts);
-          Process process = pb.directory(new File("/home/gunjan/"
-                  + "padhaiWC/coq/ROSCOQ")).start();
-          
+          File coqMsgHandlerFile=new File(getCoqFileName());
+          String coqFileDirectory=coqMsgHandlerFile.getParent();
+          Process process = pb.directory(new File(coqFileDirectory)).start();
+          String coqFileName=coqMsgHandlerFile.getName();
+          System.out.println("Path and Filename:" + coqFileDirectory+","+coqFileName);
           input = new PrintWriter(new OutputStreamWriter(process.getOutputStream()), true);
           result = new BufferedReader(new InputStreamReader(process.getInputStream()));
           String defInitState ="Definition StateType : Type.\n" +
                 "  let t := eval vm_compute in (State SwProcessInstance) in exact t.\n" +
                 "Defined.\n" +
                 "Definition state0 := curState SwProcessInstance.\n";
-          input.print("Require Export icreateConcrete.\n");
+          input.print("Require Export "+coqFileName+".\n");
           input.flush();
           result.readLine();
           spub=new ROSPublisher(connectedNode);

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014 gunjan.
+ * Copyright (C) 2014 Cornell University.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -33,7 +33,7 @@ public class ICreateDriverNoRep extends AbstractNodeMain {
 
     @Override
     public GraphName getDefaultNodeName() {
-        return GraphName.of("rosjava/talker");
+        return GraphName.of("rosjava/ROSCoq/icreateDriverNoLoop");
     }
 
     class RoboCancellableLoop extends CancellableLoop 
