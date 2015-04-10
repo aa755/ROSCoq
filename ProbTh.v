@@ -1,6 +1,18 @@
 Require Export CartCR.
 Require Export CartIR.
 
+
+Class StrongLess (A : Type ):= strongLess : A -> A -> Type.
+
+Notation " a ≪ b" := (strongLess a b) (at level 100).
+
+
+Instance StrongLess_instance_IR : StrongLess IR 
+    := (@cof_less IR).
+
+Instance StrongLess_instance_CR : StrongLess CR 
+    := (CRltT).
+
 Class CommutativeRing `{Ring A} :=  
   comm_ring_mult : Commutative (@mult A _).
 
@@ -35,22 +47,39 @@ Class StrongSetoidRing `{BooleanAlgebra A} `{Apart A} := {
     to be A5 *)
 
 Section MeasureProps.
-Context `{StrongSetoidRing A} (μ : A -> CR).
+Context `{StrongSetoidRing A} (μ : A -> IR).
 
 Definition MeasurePropM1 := ∀ x y,
   μ (x \p/ y) = μ x + μ y - μ (x /p\ y).
 
 Definition MeasurePropM2 := ∀ x,
-  0 < (μ x) ->  apart x 0 .
+  0 ≪ (μ x) →  apart x 0 .
 
 Definition MeasurePropM23 := ∀ x,
   0 < (μ x) <->  apart x 0 .
 
-Class Measure := {
+Class MeasureAlgebra := {
   mpm1 : MeasurePropM1;
-  mpm2 : MeasurePropM2
+  mpm2 : MeasurePropM23
 }.
 
+Class ProbabilityAlgebra := {
+  meaurepropm1 : MeasurePropM1;
+  meaurepropm23 : MeasurePropM23;
+  probWholeSpace1 : μ 1 = 1
+}.
 
 End MeasureProps.
+
+(** Lemma 1.4*)
+
+
+Section Metric.
+
+Class ProbabilityAlgebra := {
+  meaurepropm1 : MeasurePropM1;
+  meaurepropm23 : MeasurePropM23;
+  probWholeSpace1 : μ 1 = 1
+}.
+
 
