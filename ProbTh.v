@@ -102,30 +102,19 @@ Definition distance : CSetoid_bin_fun A A IR :=
 
 Definition ProbAlgebraMSP : CPsMetricSpace.
   eapply Build_CPsMetricSpace with (cms_crr:=A) 
-    (cms_d := distance).
-- (* intros ? ? Hpq ? ? xeq ? ? yeq.
-  unfold PABall, distance.
-  rewrite xeq, yeq.
-  unfold QposEq in Hpq.
-  rewrite Hpq.
-  tauto.
-- constructor.
-  + intros ? ?.
-    unfold PABall, distance.
-    unfold AbsSmall.
-    split.
-    eapply leEq_transitive;[| apply mpm0].
-    
-
-  + intros ? ? ?. unfold PABall, distance.
-    rewrite RingPlusCommutative.
-    tauto.
-  + (*triangle *) intros. admit.
-  + (*smaller ball *) intros. admit.
-  + (** 0 ball *) admit.
+    (cms_d := distance). split.
+- unfold com. intros ? ?. unfold distance.
+  simpl. apply csf_wd.
+  apply cag_commutes_unfolded.
+- unfold nneg.
+  simpl.
+  intros ? ?. apply mpm0.
+- unfold pos_imp_ap.
+  simpl. intros  ? ? Hgt.
+  apply mpm2 in Hgt.
+  admit.
+- unfold tri_ineq. admit.
 Qed.
-*)
-Abort.
 
 End MetricSpace.
 End BoolRing.
