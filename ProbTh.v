@@ -43,8 +43,8 @@ Variable A : CRing.
 
 Require Export CRRing2MCRing.
 
-Class BooleanAlgebra :=
-  boolean_mult : ∀ x:A, x[*]x[=]x.
+Require Export MCmisc.BooleanAlgebra.
+
 
 Notation "a /p\ b " := (a [*] b) (at level 100).
 Notation "a \p/ b " := (a [+] b [+] a[*]b) (at level 100).
@@ -76,6 +76,7 @@ Definition MeasurePropM23
 
 Class MeasureAlgebra  (μ : CSetoid_fun A  IR) 
   := {
+  mpmboolean :>  BooleanAlgebra A;
   mpm0 : ∀ x,  0 ≤ μ x;
   mpm1 : MeasurePropM1 μ;
   mpm2 : MeasurePropM23 μ
@@ -112,8 +113,13 @@ Definition ProbAlgebraMSP : CPsMetricSpace.
 - unfold pos_imp_ap.
   simpl. intros  ? ? Hgt.
   apply mpm2 in Hgt.
-  admit.
-- unfold tri_ineq. admit.
+  apply plus_cancel_ap_rht with (z:= y).
+  eapply ap_wdr_unfolded;[apply Hgt|].
+  symmetry.
+  apply BooleanAlgebraXplusX.
+- unfold tri_ineq. intros ? ? ?.
+  simpl. admit.
+  
 Qed.
 
 End MetricSpace.
