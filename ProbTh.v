@@ -102,6 +102,11 @@ Add Ring  stdlib_ring_theorylds :
 Definition distance : CSetoid_bin_fun A A IR :=
   compose_CSetoid_un_bin_fun ℝ A A csg_op μ.
 
+Lemma measureMonotone : ∀ a b,
+  a ⊆ b -> μ a ≤ μ b.
+Proof.
+  intros ? ? Hs.
+  unfold setSubset in Hs.
 Definition ProbAlgebraMSP : CPsMetricSpace.
   eapply Build_CPsMetricSpace with (cms_crr:=A) 
     (cms_d := distance). split.
