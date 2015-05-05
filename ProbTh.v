@@ -46,14 +46,6 @@ Require Export CRRing2MCRing.
 Require Export MCmisc.BooleanAlgebra.
 
 
-Notation "a /p\ b " := (a [*] b) (at level 100).
-Notation "a \p/ b " := (a [+] b [+] a[*]b) (at level 100).
-
-(** just le in the paper *)
-Notation "x ⊑ y " := (x = x /p\ y) (at level 100).
-Notation "b \ x " := (b + b * x) (at level 100).
-
-Notation "x ᶜ  " := (1 \ x) (at level 100).
 
 
 (** make sure that A4 and A5 are provable. 
@@ -62,7 +54,7 @@ Notation "x ᶜ  " := (1 \ x) (at level 100).
 
 Definition MeasurePropM1 
      (μ : A -> IR) : Prop := 
-  ∀ x y, μ (x \p/ y) = μ x + μ y - μ (x /p\ y).
+  ∀ x y, μ (x ∪ y) = μ x + μ y - μ (x ∩ y).
 
 Notation "a ≷ b" := (cs_ap a b) (at level 100).
 
@@ -95,8 +87,17 @@ Require Export CoRN.metrics.CMetricSpaces.
     based on Lemma 1.4 *)
 
 
+Lemma MeasurePropM1RW :
+  ∀ x y, μ (x ∪ y) + μ (x ∩ y) = μ x [+] μ y .
+Proof.
+  intros ? ?.
+  rewrite mpm1.
+  admit.
+Qed.
 
-
+Add Ring RisaRing: (CRing_Ring IR).
+Add Ring  stdlib_ring_theorylds : 
+  (rings.stdlib_ring_theory A).
 
 Definition distance : CSetoid_bin_fun A A IR :=
   compose_CSetoid_un_bin_fun ℝ A A csg_op μ.
@@ -118,8 +119,18 @@ Definition ProbAlgebraMSP : CPsMetricSpace.
   symmetry.
   apply BooleanAlgebraXplusX.
 - unfold tri_ineq. intros ? ? ?.
-  simpl. admit.
-  
+  simpl. simpl.
+  assert (x + (y + y) + z = (x + y) + (y + z)) as Hr by ring.
+  rewrite BooleanAlgebraXplusX in Hr.
+Hint Unfold Plus_instance_TContR Plus_instance_TContR 
+Zero_instance_TContR: IRMC.
+  autounfold with IRMC in Hr.
+(* Add Ring RisaRing1: (CRing_Ring A). *)
+  rewrite  cm_rht_unit_unfolded in Hr.
+  rewrite Hr.
+  (** is μ monotone? if so use paperEq 1*)
+  admit.
+
 Qed.
 
 End MetricSpace.
