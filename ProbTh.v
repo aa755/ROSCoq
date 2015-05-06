@@ -95,18 +95,71 @@ Proof.
   admit.
 Qed.
 
-Add Ring RisaRing: (CRing_Ring IR).
 Add Ring  stdlib_ring_theorylds : 
   (rings.stdlib_ring_theory A).
 
 Definition distance : CSetoid_bin_fun A A IR :=
   compose_CSetoid_un_bin_fun ℝ A A csg_op μ.
 
-Lemma measureMonotone : ∀ a b,
-  a ⊆ b -> μ a ≤ μ b.
+Hint Unfold Plus_instance_TContR Mult_instance_TContR 
+Zero_instance_TContR Negate_instance_TContR: IRMC.
+
+Lemma subsetUnionMeasure : ∀ a b: A,
+  a ⊆ b →  (a ∪ b) = b.
 Proof.
   intros ? ? Hs.
   unfold setSubset in Hs.
+  unfold setUnion, BooleanAlgUnion.
+  rewrite <- Hs.
+  assert (a + b + a= b + (a + a)) as Hr by ring.
+  rewrite Hr. clear Hr.
+  rewrite BooleanAlgebraXplusX.
+  ring.
+Qed.
+
+Lemma plusAssocUnfolded `{SemiRing R}:
+  ∀ (a b c : R), a + b + c = a + (b + c).
+Proof.
+  intros. rewrite (plus_assoc a b c).
+  reflexivity.
+Qed.
+
+(** For a proof in classical measure theory,
+    See page 11 of undergrad Prob. Th. course notebook*)
+
+Lemma measureMonotone : ∀ a b : A,
+  a ⊆ b → μ a ≤ μ b.
+Proof.
+  intros ? ? Hs.
+  unfold setSubset in Hs.
+  assert (b = a ∪ (b*(b+a))) as Hu.
+  - unfold setUnion, BooleanAlgUnion.
+    ring_simplify.
+    rewrite boolean_mult.
+    rewrite <- (mult_assoc b a a).
+    rewrite boolean_mult.
+    assert (b * a + b + b * a + b * a + a =
+             a +  b + b * a + (b * a + b * a)) as Hr by ring.
+    rewrite BooleanAlgebraXplusX in Hr.
+    rewrite Hr.
+    autounfold with IRMC.
+    rewrite cm_rht_unit_unfolded.
+    clear Hr. rewrite mult_commutes.
+    assert (a[+]b[+]a[*]b = a ∪ b) as Hr by reflexivity.
+    rewrite Hr.
+    rewrite subsetUnionMeasure.
+    reflexivity. exact Hs.
+  - rewrite Hu.
+    rewrite mpm1.
+    unfold setIntersection, BooleanAlgIntersection.
+    assert (a * (b * (b + a)) = a + a).
+    unfold equiv.
+    ring_simplify.
+
+
+
+Abort.
+
 Definition ProbAlgebraMSP : CPsMetricSpace.
   eapply Build_CPsMetricSpace with (cms_crr:=A) 
     (cms_d := distance). split.
@@ -127,8 +180,6 @@ Definition ProbAlgebraMSP : CPsMetricSpace.
   simpl. simpl.
   assert (x + (y + y) + z = (x + y) + (y + z)) as Hr by ring.
   rewrite BooleanAlgebraXplusX in Hr.
-Hint Unfold Plus_instance_TContR Plus_instance_TContR 
-Zero_instance_TContR: IRMC.
   autounfold with IRMC in Hr.
 (* Add Ring RisaRing1: (CRing_Ring A). *)
   rewrite  cm_rht_unit_unfolded in Hr.
