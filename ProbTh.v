@@ -120,14 +120,16 @@ Require Export CoRN.metrics.CMetricSpaces.
 (** The goal is to create an instance of [CMetricSpace]
     based on Lemma 1.4 *)
 
+Add Ring  stdlib_ring_theoryldsIR : 
+  (rings.stdlib_ring_theory IR).
 
 Lemma MeasurePropM1RW :
-  ∀ x y, μ (x ∪ y) + μ (x ∩ y) = μ x [+] μ y .
+  ∀ x y, μ (x ∪ y) + μ (x ∩ y) = μ x + μ y .
 Proof.
   intros ? ?.
   rewrite mpm1.
-  admit.
-Abort.
+  ring.
+Qed.
 
 Add Ring  stdlib_ring_theorylds : 
   (rings.stdlib_ring_theory A).
@@ -223,9 +225,14 @@ Definition ProbAlgebraMSP : CPsMetricSpace.
 (* Add Ring RisaRing1: (CRing_Ring A). *)
   rewrite  cm_rht_unit_unfolded in Hr.
   rewrite Hr.
-  (** is μ monotone? if so use paperEq 1*)
-  admit.
-
+  pose proof  MeasurePropM1RW as Ht.
+  unfold plus, Plus_instance_TContR in Ht.
+  rewrite <- Ht. clear Ht.
+  rewrite  <- cm_rht_unit_unfolded.
+  apply plus_resp_leEq_both;
+    [| apply mpm0].
+  apply measureMonotone.
+  apply paperEq1.
 Qed.
 
 End MetricSpace.
