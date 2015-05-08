@@ -74,6 +74,19 @@ Proof.
   ring.
 Qed.
 
+Lemma subsetUnionMeasure : ∀ a b: R,
+  a ⊆ b →  (a ∪ b) = b.
+Proof.
+  intros ? ? Hs.
+  unfold setSubset in Hs.
+  unfold setUnion, BooleanAlgUnion.
+  rewrite <- Hs.
+  assert (a + b + a= b + (a + a)) as Hr by ring.
+  rewrite Hr. clear Hr.
+  rewrite BooleanAlgebraXplusX.
+  ring.
+Qed.
+
 Require Export MathClasses.orders.rings.
 End BooleanAlgebraProps.
 

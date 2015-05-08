@@ -138,18 +138,6 @@ Definition distance : CSetoid_bin_fun A A IR :=
 Hint Unfold Plus_instance_TContR Mult_instance_TContR 
 Zero_instance_TContR Negate_instance_TContR: IRMC.
 
-Lemma subsetUnionMeasure : ∀ a b: A,
-  a ⊆ b →  (a ∪ b) = b.
-Proof.
-  intros ? ? Hs.
-  unfold setSubset in Hs.
-  unfold setUnion, BooleanAlgUnion.
-  rewrite <- Hs.
-  assert (a + b + a= b + (a + a)) as Hr by ring.
-  rewrite Hr. clear Hr.
-  rewrite BooleanAlgebraXplusX.
-  ring.
-Qed.
 
 Lemma plusAssocUnfolded `{SemiRing R}:
   ∀ (a b c : R), a + b + c = a + (b + c).
