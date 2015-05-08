@@ -62,6 +62,9 @@ Definition MeasurePropM2
      (μ : A -> IR) : Type := 
 ∀ x,   (0 <ᵀ (μ x)) →  (x ≷ 0).
 
+Definition MeasureNonZero 
+     (μ : A -> IR) : Prop := ∀ x,  0 ≤ μ x.
+
 Definition MeasurePropM23 
      (μ : A -> IR) : Type:=  
   ∀ x,  (0 <ᵀ(μ x)) ⇔  (x ≷ 0).
@@ -69,15 +72,46 @@ Definition MeasurePropM23
 Class MeasureAlgebra  (μ : CSetoid_fun A  IR) 
   := {
   mpmboolean :>  BooleanAlgebra A;
-  mpm0 : ∀ x,  0 ≤ μ x;
+  mpm0 : MeasureNonZero μ;
   mpm1 : MeasurePropM1 μ;
   mpm2 : MeasurePropM23 μ
 }.
 
+Lemma MeasurePropM23Implies2 : ∀ (μ : A → IR) ,
+  MeasurePropM23 μ
+  → MeasurePropM2 μ.
+Proof.
+  unfold MeasurePropM23, MeasurePropM2.
+  intros ? X x.
+  destruct (X x).
+  assumption.
+Qed.
+
+Hint Resolve mpm0 mpm1 mpm2 MeasurePropM23Implies2: Alg.
+
+
+
+Lemma MeasurePropM2Implies : ∀ (μ : A → IR) ,
+  MeasurePropM2 μ
+  → MeasureNonZero μ
+  → μ 0 = 0.
+Proof.
+  intros μ Hm Hp.
+  unfold MeasurePropM2 in Hp.
+  apply not_ap_imp_eq.
+  intro Hc.
+  apply ap_imp_less in Hc.
+  specialize (Hp 0).
+  destruct Hc as [Hc|Hc];
+    [ apply leEq_def in Hp;contradiction|].
+  apply Hm in Hc.
+  apply ap_irreflexive in Hc.
+  contradiction.
+Qed.
+
 
 Class ProbabilityAlgebra `{H: MeasureAlgebra μ}
  :=  probWholeSpace1 : μ 1 = 1.
-
 
 Section MetricSpace.
 Context `{ProbabilityAlgebra μ}.
@@ -93,7 +127,7 @@ Proof.
   intros ? ?.
   rewrite mpm1.
   admit.
-Qed.
+Abort.
 
 Add Ring  stdlib_ring_theorylds : 
   (rings.stdlib_ring_theory A).
@@ -152,13 +186,18 @@ Proof.
   - rewrite Hu.
     rewrite mpm1.
     unfold setIntersection, BooleanAlgIntersection.
-    assert (a * (b * (b + a)) = a + a).
-    unfold equiv.
-    ring_simplify.
-
-
-
-Abort.
+    assert (a * (b * (b + a)) = a * (b * b) + a * a * b) 
+      as Hr by ring; rewrite Hr; clear Hr.
+    rewrite boolean_mult.
+    rewrite boolean_mult.
+    rewrite BooleanAlgebraXplusX.
+    rewrite  MeasurePropM2Implies; auto with Alg.
+    unfold negate.
+    rewrite minus_0_r.
+    autounfold with IRMC.
+    apply addNNegLeEq.
+    apply mpm0.
+Qed.
 
 Definition ProbAlgebraMSP : CPsMetricSpace.
   eapply Build_CPsMetricSpace with (cms_crr:=A) 

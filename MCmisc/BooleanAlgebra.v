@@ -74,5 +74,17 @@ Proof.
   ring.
 Qed.
 
-
+Require Export MathClasses.orders.rings.
 End BooleanAlgebraProps.
+
+(*
+Lemma BooleanAlgebraXplusXHint : ∀ (R : Type) (Ae : Equiv R) (Aplus : Plus R) (Amult : Mult R)
+(Azero : Zero R) (Aone : One R) (Anegate : Negate R) 
+(H0 : Ring R)
+(H : BooleanAlgebra R)  (x : R), x + x = 0.
+Proof.
+  intros. apply BooleanAlgebraXplusX.
+Qed.
+
+Hint Rewrite BooleanAlgebraXplusXHint.
+*)
