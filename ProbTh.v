@@ -16,8 +16,6 @@ Proof.
   apply H.
 Qed.
 
-
-
 Class StrongLess (A : Type ):= strongLess : A -> A -> Type.
 
 Notation " a <ᵀ b" := (strongLess a b) (at level 100).
@@ -201,7 +199,7 @@ Proof.
     apply mpm0.
 Qed.
 
-Definition ProbAlgebraMSP : CPsMetricSpace.
+Definition ProbAlgebraPsMSP : CPsMetricSpace.
   eapply Build_CPsMetricSpace with (cms_crr:=A) 
     (cms_d := distance). split.
 - unfold com. intros ? ?. unfold distance.
@@ -233,7 +231,18 @@ Definition ProbAlgebraMSP : CPsMetricSpace.
     [| apply mpm0].
   apply measureMonotone.
   apply paperEq1.
-Qed.
+Defined.
 
+Definition ProbAlgebraMSP : CMetricSpace.
+  eapply Build_CMetricSpace with (scms_crr:=ProbAlgebraPsMSP).
+  unfold apdiag_imp_grzero.
+  simpl.
+  intros ? ? Hap.
+  apply mpm2.
+  apply op_rht_resp_ap with (z:=y) in Hap.
+  eapply ap_wdr_unfolded in Hap;[exact Hap|].
+  apply BooleanAlgebraXplusX.
+Defined. 
+  
 End MetricSpace.
 End BoolRing.
