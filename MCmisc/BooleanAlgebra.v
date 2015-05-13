@@ -88,6 +88,7 @@ Proof.
   ring.
 Qed.
 
+(*
 Global Instance subsetPO :  orders.PartialOrder setSubset.
   constructor.
 - destruct H. destruct ring_group. destruct abgroup_group.
@@ -95,12 +96,39 @@ Global Instance subsetPO :  orders.PartialOrder setSubset.
   destruct monoid_semigroup.
   exact sg_setoid.
 Abort.
+*)
 
 Lemma paperEq2 : ∀ (x y u v : R),
   x*y + u*v ⊆ (x + u) ∪ (y + v).
 Proof.
   intros ? ? ? ?.
-Abort.
+  unfold setSubset.
+  unfold setUnion, BooleanAlgUnion.
+  unfold setIntersection, BooleanAlgIntersection.
+  ring_simplify.
+  ring_simplify.
+  rewrite BooleanAlgebraXplusX.
+  ring_simplify.
+  repeat (rewrite boolean_mult).
+  setoid_rewrite  <- (mult_assoc u v v).
+  setoid_rewrite  <- (mult_assoc x y y).
+  repeat (rewrite boolean_mult).
+  ring_simplify.
+  rewrite BooleanAlgebraXplusX.
+  ring_simplify.
+  setoid_rewrite  <- (mult_assoc (x*u)).
+  repeat (rewrite boolean_mult).
+  ring_simplify.
+  rewrite BooleanAlgebraXplusX.
+  ring_simplify.
+  fold (plus).
+  fold (one).
+  ring_simplify.
+  rewrite plus_0_r.
+  rewrite mult_1_r.
+  rewrite mult_1_r.
+  reflexivity.
+Qed.
 
 (* Require Export MathClasses.orders.rings. *)
 End BooleanAlgebraProps.

@@ -235,9 +235,9 @@ Notation "a -ᵈ b" := (cms_d a b) (at level 90).
 Definition uniformlyCont {X Y Z : CPsMetricSpace}
   (f : CSetoid_bin_fun X Y Z) : Type :=
 ∀ (eps : Q), {δx : Q | { δy :Q | ∀ (x1 x2 : X) (y1 y2 : Y),
-      ((x1 -ᵈ x2) <ᵀ δx)
-      → ((y1 -ᵈ y2) <ᵀ δy)
-      → ((f x1 y1 -ᵈ f x2 y2) <ᵀ eps) } }.
+      ((x1 -ᵈ x2) ≤ δx)
+      → ((y1 -ᵈ y2) ≤ δy)
+      → ((f x1 y1 -ᵈ f x2 y2) ≤ eps) } }.
 
 
 Definition MSplus : CSetoid_bin_op ProbAlgebraMSP.
@@ -250,7 +250,24 @@ Defined.
 
 Theorem paper1_4_ii_a : uniformlyCont MSplus.
 Proof.
-  intros f.
+  intros eps.
+  unfold MSplus.
+  simpl.
+  exists eps.
+  exists 0%Q.
+  intros ? ? ? ? Hx Hy.
+  pose proof (plus_resp_leEq_both _ _ _ _ _ Hx Hy) as Hadd.
+  clear Hx Hy.
+  rewrite <- inj_Q_plus in Hadd.
+  rewrite Qplus_0_r in Hadd.
+  eapply leEq_transitive;[|apply Hadd].
+  clear Hadd.
+  apply measureMonotone.
+
+
+ in Hadd.
+
+  eapply 
 Abort.
   
 
