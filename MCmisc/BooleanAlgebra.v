@@ -2,7 +2,8 @@ Require Export MathClasses.theory.rings.
 Require Export MathClasses.interfaces.abstract_algebra.
 Require Import Ring.
 Require Export MathClasses.interfaces.canonical_names.
-
+Require Export MathClasses.interfaces.orders.
+Require Export MathClasses.orders.rings.
 Class BooleanAlgebra (A:Type) `{Ring A} :=
   boolean_mult : ∀ x:A, x*x=x.
 
@@ -87,7 +88,21 @@ Proof.
   ring.
 Qed.
 
-Require Export MathClasses.orders.rings.
+Global Instance subsetPO :  orders.PartialOrder setSubset.
+  constructor.
+- destruct H. destruct ring_group. destruct abgroup_group.
+  destruct group_monoid.
+  destruct monoid_semigroup.
+  exact sg_setoid.
+Abort.
+
+Lemma paperEq2 : ∀ (x y u v : R),
+  x*y + u*v ⊆ (x + u) ∪ (y + v).
+Proof.
+  intros ? ? ? ?.
+Abort.
+
+(* Require Export MathClasses.orders.rings. *)
 End BooleanAlgebraProps.
 
 (*

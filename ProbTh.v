@@ -18,7 +18,7 @@ Qed.
 
 Class StrongLess (A : Type ):= strongLess : A -> A -> Type.
 
-Notation " a <ᵀ b" := (strongLess a b) (at level 100).
+Notation " a <ᵀ b" := (strongLess a b) (at level 110).
 
 
 Instance StrongLess_instance_IR : StrongLess IR 
@@ -42,8 +42,6 @@ Variable A : CRing.
 Require Export CRRing2MCRing.
 
 Require Export MCmisc.BooleanAlgebra.
-
-
 
 
 (** make sure that A4 and A5 are provable. 
@@ -86,8 +84,6 @@ Proof.
 Qed.
 
 Hint Resolve mpm0 mpm1 mpm2 MeasurePropM23Implies2: Alg.
-
-
 
 Lemma MeasurePropM2Implies : ∀ (μ : A → IR) ,
   MeasurePropM2 μ
@@ -221,6 +217,7 @@ Definition ProbAlgebraPsMSP : CPsMetricSpace.
   apply paperEq1.
 Defined.
 
+(** also lemma 1.4.i in the paper *)
 Definition ProbAlgebraMSP : CMetricSpace.
   eapply Build_CMetricSpace with (scms_crr:=ProbAlgebraPsMSP).
   unfold apdiag_imp_grzero.
@@ -231,6 +228,32 @@ Definition ProbAlgebraMSP : CMetricSpace.
   eapply ap_wdr_unfolded in Hap;[exact Hap|].
   apply BooleanAlgebraXplusX.
 Defined. 
+
+Notation "a -ᵈ b" := (cms_d a b) (at level 90).
+
+(** similar to CoRN.metrics.ContFunctions.uni_continuous *)
+Definition uniformlyCont {X Y Z : CPsMetricSpace}
+  (f : CSetoid_bin_fun X Y Z) : Type :=
+∀ (eps : Q), {δx : Q | { δy :Q | ∀ (x1 x2 : X) (y1 y2 : Y),
+      ((x1 -ᵈ x2) <ᵀ δx)
+      → ((y1 -ᵈ y2) <ᵀ δy)
+      → ((f x1 y1 -ᵈ f x2 y2) <ᵀ eps) } }.
+
+
+Definition MSplus : CSetoid_bin_op ProbAlgebraMSP.
+  apply csg_op.
+Defined.
+
+Definition MSmult : CSetoid_bin_op ProbAlgebraMSP.
+  apply cr_mult.
+Defined.
+
+Theorem paper1_4_ii_a : uniformlyCont MSplus.
+Proof.
+  intros f.
+Abort.
+  
+
   
 End MetricSpace.
 End BoolRing.
