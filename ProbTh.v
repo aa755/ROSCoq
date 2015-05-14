@@ -242,11 +242,10 @@ Notation "a -ᵈ b" := (cms_d a b) (at level 90).
 
 Definition uniformlyCont {X Y Z : CPsMetricSpace}
   (f : CSetoid_bin_fun X Y Z) : Type :=
-{mc : Qpos → Qposinf * Qposinf |
-    ∀ (eps : Qpos) (x1 x2 : X) (y1 y2 : Y),
+∀ (eps : Qpos), {δx : Qpos | { δy :Qpos | ∀ (x1 x2 : X) (y1 y2 : Y),
       ((x1 -ᵈ x2) ≤ δx)
       → ((y1 -ᵈ y2) ≤ δy)
-      → ((f x1 y1 -ᵈ f x2 y2) ≤ eps) }.
+      → ((f x1 y1 -ᵈ f x2 y2) ≤ eps) } }.
 
 
 Definition MSplus : CSetoid_bin_op ProbAlgebraMSP.
@@ -257,18 +256,41 @@ Definition MSmult : CSetoid_bin_op ProbAlgebraMSP.
   apply cr_mult.
 Defined.
 
+Definition qposHalf : Qpos := QposMake 1 2.
+
+Lemma qposHalfPlus : ∀ (eps : Qpos),
+  QposEq  (eps * qposHalf + eps * qposHalf)  eps.
+Proof.
+  intros eps.
+  destruct eps.
+  unfold QposEq.
+  simpl.
+  ring.
+Qed.
+
+
+Lemma qposHalfPlusQeq : ∀ (eps : Qpos),
+  Qeq  (eps * qposHalf + eps * qposHalf)  eps.
+Proof.
+  apply qposHalfPlus.
+Qed.
+
+Require Export ROSCOQ.IRMisc.CoRNMisc.
 Theorem paper1_4_ii_a : uniformlyCont MSplus.
 Proof.
   intros eps.
   unfold MSplus.
   simpl.
-  exists eps.
-  exists 0%Q.
+  exists (eps * qposHalf) .
+  exists (eps * qposHalf) .
   intros ? ? ? ? Hx Hy.
   pose proof (plus_resp_leEq_both _ _ _ _ _ Hx Hy) as Hadd.
   clear Hx Hy.
   rewrite <- inj_Q_plus in Hadd.
-  rewrite Qplus_0_r in Hadd.
+  pose proof (qposHalfPlusQeq eps).
+  apply (inj_Q_wd IR) in H1.
+  rewrite H1 in Hadd.
+  clear H1.
   eapply leEq_transitive;[|apply Hadd].
   clear Hadd.
   apply measurePlusPropAux.
