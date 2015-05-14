@@ -276,7 +276,7 @@ Proof.
 Qed.
 
 Require Export ROSCOQ.IRMisc.CoRNMisc.
-Theorem paper1_4_ii_a : uniformlyCont MSplus.
+Theorem paper1_4_ii_a_aux : uniformlyCont MSplus.
 Proof.
   intros eps.
   unfold MSplus.
@@ -297,7 +297,7 @@ Proof.
 Qed.
   
 
-Theorem paper1_4_ii_b : uniformlyCont MSmult.
+Theorem paper1_4_ii_b_aux : uniformlyCont MSmult.
 Proof.
   intros eps.
   unfold MSmult.
@@ -323,6 +323,18 @@ Proof.
   apply measureMonotone.
   apply paperEq2.
 Qed.
+
+Require Export OldMetricAsNew.
+
+(* now we get access to the completion operation.
+    metric2/ seems to be more developed
+    than metrics/
+    for efficiency, it might be better to shortcuit
+   the proof of new metric space by getting
+   rid of the old metric space altogether
+   also, the codomain of μ can be AR or CR *)
+Definition ProbAlgebraMSPNew : MetricSpace :=
+  fromOldMetricTheory ProbAlgebraMSP.
 
   
 End MetricSpace.
