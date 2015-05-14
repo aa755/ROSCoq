@@ -183,6 +183,19 @@ Proof.
     apply mpm0.
 Qed.
 
+Lemma measurePlusPropAux : ∀ x1 x2 y1 y2, 
+  μ (x1+ y1 + (x2 + y2)) ≤ μ (x1 + x2) + μ (y1 + y2).
+Proof.
+  intros.
+  rewrite <-  MeasurePropM1RW.
+  rewrite  <- cm_rht_unit_unfolded.
+  apply plus_resp_leEq_both;
+    [| apply mpm0].
+  apply measureMonotone.
+  apply paperEq1.
+Qed.
+
+
 Definition ProbAlgebraPsMSP : CPsMetricSpace.
   eapply Build_CPsMetricSpace with (cms_crr:=A) 
     (cms_d := distance). split.
@@ -207,14 +220,7 @@ Definition ProbAlgebraPsMSP : CPsMetricSpace.
 (* Add Ring RisaRing1: (CRing_Ring A). *)
   rewrite  cm_rht_unit_unfolded in Hr.
   rewrite Hr.
-  pose proof  MeasurePropM1RW as Ht.
-  unfold plus, Plus_instance_TContR in Ht.
-  rewrite <- Ht. clear Ht.
-  rewrite  <- cm_rht_unit_unfolded.
-  apply plus_resp_leEq_both;
-    [| apply mpm0].
-  apply measureMonotone.
-  apply paperEq1.
+  apply measurePlusPropAux.
 Defined.
 
 (** also lemma 1.4.i in the paper *)
@@ -262,13 +268,8 @@ Proof.
   rewrite Qplus_0_r in Hadd.
   eapply leEq_transitive;[|apply Hadd].
   clear Hadd.
-  apply measureMonotone.
-
-
- in Hadd.
-
-  eapply 
-Abort.
+  apply measurePlusPropAux.
+Qed.
   
 
   
