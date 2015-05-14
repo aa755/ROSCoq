@@ -46,7 +46,7 @@ Proof.
 Qed.
 
 Section OldNew.
-  Variable (R : CPsMetricSpace).
+  Variable (R : CMetricSpace).
  (** Our goal is to create an instance of metric2.MetricSpace,
     the new theory fo metric spaces *)
 
@@ -98,11 +98,27 @@ Definition fromOldMetricTheory :MetricSpace.
     destruct e.
     simpl in *.
     lra.
-  + intros. (* this subgoal could be a generally useful lemma*)
+  + intros.
     apply d_zero_imp_eq.
+    assert ([0] [<=] a[-d]b) as Hnz by 
+      (apply ax_d_nneg; apply cms_proof).
+    remember (a[-d]b) as dab. clear dependent a.
+    clear dependent  b. symmetry.
+    (* this subgoal could be a generally useful lemma*)
+    rewrite <- inj_Q_Zero.
+    rewrite <- inj_Q_Zero in Hnz.
     apply not_ap_imp_eq.
     intros Hc.
-    
-    apply ap_imp_less in Hc.
-    
+    eapply leEq_not_eq in Hnz; eauto.
+    clear Hc. rename Hnz into Hc.
+    apply Q_dense_in_CReals' in Hc.
+    destruct Hc as [qb Hc].
+    apply less_inj_Q in Hc.
+    simpl in Hc.
+    simpl in qb.
+    assert (0 < qb)%Q as qbp by (lra).
+    specialize (H (mkQpos qbp)).
+    apply leEq_def in H; auto.
 Qed.
+
+End OldNew.
