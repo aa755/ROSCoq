@@ -237,13 +237,16 @@ Defined.
 
 Notation "a -ᵈ b" := (cms_d a b) (at level 90).
 
-(** similar to CoRN.metrics.ContFunctions.uni_continuous *)
+(** similar to 
+    CoRN.metric2.UniformContinuity.UniformlyContinuousFunction *)
+
 Definition uniformlyCont {X Y Z : CPsMetricSpace}
   (f : CSetoid_bin_fun X Y Z) : Type :=
-∀ (eps : Q), {δx : Q | { δy :Q | ∀ (x1 x2 : X) (y1 y2 : Y),
+{mc : Qpos → Qposinf * Qposinf |
+    ∀ (eps : Qpos) (x1 x2 : X) (y1 y2 : Y),
       ((x1 -ᵈ x2) ≤ δx)
       → ((y1 -ᵈ y2) ≤ δy)
-      → ((f x1 y1 -ᵈ f x2 y2) ≤ eps) } }.
+      → ((f x1 y1 -ᵈ f x2 y2) ≤ eps) }.
 
 
 Definition MSplus : CSetoid_bin_op ProbAlgebraMSP.
