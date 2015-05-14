@@ -297,6 +297,33 @@ Proof.
 Qed.
   
 
+Theorem paper1_4_ii_b : uniformlyCont MSmult.
+Proof.
+  intros eps.
+  unfold MSmult.
+  simpl.
+  exists (eps * qposHalf) .
+  exists (eps * qposHalf) .
+  intros ? ? ? ? Hx Hy.
+  pose proof (plus_resp_leEq_both _ _ _ _ _ Hx Hy) as Hadd.
+  clear Hx Hy.
+  rewrite <- inj_Q_plus in Hadd.
+  pose proof (qposHalfPlusQeq eps).
+  apply (inj_Q_wd IR) in H1.
+  rewrite H1 in Hadd.
+  clear H1.
+  eapply leEq_transitive;[|apply Hadd].
+  clear Hadd.
+  pose proof  MeasurePropM1RW as Hh.
+  unfold plus, Plus_instance_TContR in Hh.
+  rewrite <- Hh. clear Hh.
+  rewrite  <- cm_rht_unit_unfolded.
+  apply plus_resp_leEq_both;
+    [| apply mpm0].
+  apply measureMonotone.
+  apply paperEq2.
+Qed.
+
   
 End MetricSpace.
 End BoolRing.
