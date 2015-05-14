@@ -27,31 +27,57 @@ Require Export CoRN.metrics.Prod_Sub.
 
 Require Export Coq.Unicode.Utf8.
 
+Lemma QposIRPosQ0 : ∀ (qp : Qpos), 
+  inj_Q IR [0] [<] inj_Q IR (QposAsQ qp).
+Proof.
+  intros.
+  destruct qp.
+  apply inj_Q_less.
+  simpl.
+  auto.
+Qed.
 
+Lemma QposIRPos : ∀ (qp : Qpos), 
+  [0] [<] inj_Q IR (QposAsQ qp).
+Proof.
+  intros.
+  eapply less_wdl;[apply QposIRPosQ0|].
+  apply inj_Q_Zero.
+Qed.
 
 Section OldNew.
-  Variable (R : CMetricSpace).
+  Variable (R : CPsMetricSpace).
  (** Our goal is to create an instance of metric2.MetricSpace,
     the new theory fo metric spaces *)
 
 Definition fromOldMetricTheory :MetricSpace.
-  destruct R.
-  destruct scms_crr.
-  destruct cms_crr.
-  simpl in ax_d_apdiag_imp_grzero, cms_proof,cms_d .
-  apply Build_MetricSpace with (msp_is_setoid := cs_crr)
-    (ball := λ (eps : Qpos) a b, (cms_d a b) [<=] inj_Q IR (QposAsQ eps) ).
+  apply Build_MetricSpace with (msp_is_setoid := R)
+    (ball := λ (eps : Qpos) a b, (a[-d] b) [<=] inj_Q IR (QposAsQ eps)).
 - intros. rewrite H0,H1.
   apply (inj_Q_wd IR) in H.
   rewrite H. reflexivity.
-- destruct cms_proof.
-  constructor; simpl; auto.
+- constructor.
   + unfold Reflexive. intros.
-    unfold pos_imp_ap in ax_d_pos_imp_ap.
-    simpl in ax_d_pos_imp_ap.
-    
-  
-
-
-
-
+    apply leEq_def.
+    intros Hc.
+    eapply less_transitive_unfolded in Hc;
+      [| apply QposIRPos].
+    apply ax_d_pos_imp_ap in Hc;[| apply cms_proof].
+    eauto 2 with *.
+    apply ap_irreflexive_unfolded in Hc.
+    assumption.
+  + unfold Symmetric. intros.
+    rewrite ax_d_com;[| apply cms_proof].
+    assumption.
+  + intros. rewrite Q_Qpos_plus.
+    rewrite inj_Q_plus.
+    pose proof (plus_resp_leEq_both _ _ _ _ _ H H0) as Hadd.
+    clear H H0.
+    eapply leEq_transitive;[| apply Hadd].
+    apply ax_d_tri_ineq.
+    apply cms_proof.
+  + intros.
+    setoid_rewrite Q_Qpos_plus in H.
+    setoid_rewrite inj_Q_plus in H.
+    (** see the proof of CR being a metric space *)
+  + intros.
