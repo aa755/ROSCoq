@@ -50,6 +50,8 @@ Section OldNew.
  (** Our goal is to create an instance of metric2.MetricSpace,
     the new theory fo metric spaces *)
 
+Require Export Psatz.
+
 Definition fromOldMetricTheory :MetricSpace.
   apply Build_MetricSpace with (msp_is_setoid := R)
     (ball := λ (eps : Qpos) a b, (a[-d] b) [<=] inj_Q IR (QposAsQ eps)).
@@ -77,7 +79,30 @@ Definition fromOldMetricTheory :MetricSpace.
     apply ax_d_tri_ineq.
     apply cms_proof.
   + intros.
-    setoid_rewrite Q_Qpos_plus in H.
-    setoid_rewrite inj_Q_plus in H.
-    (** see the proof of CR being a metric space *)
-  + intros.
+    apply leEq_def.
+    intros Hc.
+    pose proof Hc as Hcb.
+    apply Q_dense_in_CReals' in Hc.
+    destruct Hc as [qb Hc].
+    apply less_inj_Q in Hc.
+    simpl in Hc.
+    simpl in qb.
+    assert (0 < qb - e)%Q as qbp by (destruct e; simpl; simpl in Hc;lra).
+    specialize (H (mkQpos qbp)).
+    pose proof (less_leEq_trans _ _ _ _ c H) as Hcc.
+    revert Hcc Hc.
+    clear.
+    intros Hcc Hc.
+    apply less_inj_Q in Hcc.
+    simpl in Hcc.
+    destruct e.
+    simpl in *.
+    lra.
+  + intros. (* this subgoal could be a generally useful lemma*)
+    apply d_zero_imp_eq.
+    apply not_ap_imp_eq.
+    intros Hc.
+    
+    apply ap_imp_less in Hc.
+    
+Qed.
