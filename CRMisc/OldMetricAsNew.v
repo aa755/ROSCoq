@@ -98,3 +98,31 @@ Definition fromOldMetricTheory :MetricSpace.
 Qed.
 
 End OldNew.
+
+Require Export CoRN.metric2.UniformContinuity.
+Require Export CoRN.metric2.StepFunction.
+Require Export CoRN.metric2.Limit.
+Require Export CoRN.metric2.Hausdorff.
+Require Export CoRN.metric2.StepFunctionMonad.
+Require Export CoRN.metric2.Classification.
+Require Export CoRN.metric2.CompleteProduct.
+Require Export CoRN.metric2.Prelength.
+Require Export CoRN.metric2.UCFnMonoid.
+Require Export CoRN.metric2.Complete.
+Require Export CoRN.metric2.ProductMetric.
+Require Export CoRN.metric2.Metric.
+Require Export CoRN.metric2.MetricMorphisms.
+Require Export CoRN.metric2.StepFunctionSetoid.
+Require Export CoRN.metric2.DistanceMetricSpace.
+Require Export CoRN.metric2.FinEnum.
+Require Export CoRN.metric2.Compact.
+Require Export CoRN.metric2.Graph.
+Require Export CoRN.metric2.CompletePointFree.
+Require Export CoRN.model.metric2.IntegrableFunction.
+Require Export CoRN.model.metric2.CRmetric.
+Require Export CoRN.model.metric2.LinfMetricMonad.
+Require Export CoRN.model.metric2.LinfDistMonad.
+Require Export CoRN.model.metric2.LinfMetric.
+Require Export CoRN.model.metric2.L1metric.
+Require Export CoRN.model.metric2.Qmetric.
+Require Export CoRN.model.metric2.BoundedFunction.

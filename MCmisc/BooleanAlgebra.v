@@ -53,6 +53,14 @@ Proof.
   ring.
 Qed.
 
+Lemma BooleanAlgebra1Max : ∀ (x : R), x ⊆ 1.
+Proof.
+  intros x.
+  unfold setSubset.
+  unfold setIntersection, BooleanAlgIntersection.
+  ring.
+Qed.
+
 Lemma paperEq1 : ∀ (x y u v : R),
   (x + y) + (u + v) ⊆ (x + u) ∪ (y + v).
 Proof.

@@ -103,12 +103,14 @@ Proof.
   contradiction.
 Qed.
 
+Class CMeasure (T : CSetoid) := μ : CSetoid_fun T ℝ.
 
-Class ProbabilityAlgebra `{H: MeasureAlgebra μ}
+Class ProbabilityAlgebra `{CMeasure A}
+  `{MeasureAlgebra μ}
  :=  probWholeSpace1 : μ 1 = 1.
 
 Section MetricSpace.
-Context `{ProbabilityAlgebra μ}.
+Context `{ProbabilityAlgebra}.
 Require Export CoRN.metrics.CMetricSpaces.
 
 (** The goal is to create an instance of [CMetricSpace]
@@ -288,9 +290,9 @@ Proof.
   clear Hx Hy.
   rewrite <- inj_Q_plus in Hadd.
   pose proof (qposHalfPlusQeq eps).
-  apply (inj_Q_wd IR) in H1.
-  rewrite H1 in Hadd.
-  clear H1.
+  apply (inj_Q_wd IR) in H2.
+  rewrite H2 in Hadd.
+  clear H2.
   eapply leEq_transitive;[|apply Hadd].
   clear Hadd.
   apply measurePlusPropAux.
@@ -309,9 +311,9 @@ Proof.
   clear Hx Hy.
   rewrite <- inj_Q_plus in Hadd.
   pose proof (qposHalfPlusQeq eps).
-  apply (inj_Q_wd IR) in H1.
-  rewrite H1 in Hadd.
-  clear H1.
+  apply (inj_Q_wd IR) in H2.
+  rewrite H2 in Hadd.
+  clear H2.
   eapply leEq_transitive;[|apply Hadd].
   clear Hadd.
   pose proof  MeasurePropM1RW as Hh.
@@ -337,5 +339,18 @@ Definition ProbAlgebraMSPNew : MetricSpace :=
   fromOldMetricTheory ProbAlgebraMSP.
 
   
+Require Export CoRN.metric2.Compact.
+
+Definition MetricallyCompete : CProp := 
+  CompleteSubset ProbAlgebraMSPNew (λ x, True).
+
 End MetricSpace.
 End BoolRing.
+
+(*An (isometric) embedding f between measure rings (A, µ) and (B, ν) is a ring
+homomorphism which is measure preserving, i.e. *)
+
+Definition IsometricProbEmbedding
+  {A B : CRing} `{CMeasure A} `{CMeasure B} : Type.
+Abort.
+
