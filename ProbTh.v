@@ -335,14 +335,35 @@ Require Export OldMetricAsNew.
    the proof of new metric space by getting
    rid of the old metric space altogether
    also, the codomain of μ can be AR or CR *)
-Definition ProbAlgebraMSPNew : MetricSpace :=
+Definition AMS : MetricSpace :=
   fromOldMetricTheory ProbAlgebraMSP.
 
+Require Export CoRN.metric2.Complete.
+
+Open Scope uc_scope.
+
+Definition PlusSlow_uc : (AMS --> AMS --> AMS).
+Admitted.
   
 Require Export CoRN.metric2.Compact.
 
-Definition MetricallyCompete : CProp := 
-  CompleteSubset ProbAlgebraMSPNew (λ x, True).
+Definition MetricallyComplete : CProp := 
+  CompleteSubset AMS (λ x, True).
+
+Definition AMSC : MetricSpace := Complete AMS.
+
+Definition PlusSlowUC : (AMSC --> AMSC --> AMSC) :=
+   Cmap2_slow PlusSlow_uc.
+
+(** general definition of a completion of a 
+    metric ring? generalize the development of CR
+      (e.g. [CRPlus_uc])
+    Make it fast by assuming [PrelengthSpace]
+      and then using [Cmap] instead of [Cmap2_slow].
+    Do we need more axioms to prove that [AMS]
+    is a prelengthspace?
+*)
+
 
 End MetricSpace.
 End BoolRing.
@@ -350,7 +371,17 @@ End BoolRing.
 (*An (isometric) embedding f between measure rings (A, µ) and (B, ν) is a ring
 homomorphism which is measure preserving, i.e. *)
 
-Definition IsometricProbEmbedding
-  {A B : CRing} `{CMeasure A} `{CMeasure B} : Type.
-Abort.
+Require Export CoRN.algebra.CRing_Homomorphisms.
+Definition MeasurePreserving
+  {A B : CSetoid} `{CMeasure A} `{CMeasure B}
+  (f : A -> B) :=
+  ∀ x,  μ (f x) = μ x.
+
+Record IsometricProbEmbedding
+  (A B : CRing) `{CMeasure A} `{CMeasure B} 
+    :=  mkIsometricProbEmbedding 
+{
+  fIsoProbEmb :> RingHom A B;
+  fMeassurePres : MeasurePreserving fIsoProbEmb
+}.
 
