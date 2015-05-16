@@ -342,6 +342,50 @@ Require Export CoRN.metric2.Complete.
 
 Open Scope uc_scope.
 
+(* need to redeclare the ring over AMS
+Lemma Atranslate_uc_prf (a:AMS) : is_UniformlyContinuousFunction 
+    (fun b:AMS => (a [+] b)) Qpos2QposInf.
+Proof.
+ intros e b0 b1 H.
+ simpl in *.
+ unfold Qball in *.
+ stepr (b0-b1).
+  assumption.
+ simpl; ring.
+Qed.
+
+Definition Qtranslate_uc (a:AMS) : AMS --> AMS :=
+Build_UniformlyContinuousFunction (Qtranslate_uc_prf a).
+
+Definition translate (a:Q) : CR --> CR := Cmap QPrelengthSpace (Qtranslate_uc a).
+
+Lemma translate_ident : forall x:CR, (translate 0 x==x)%CR.
+Proof.
+ intros x.
+ unfold translate.
+ assert (H:st_eq (Qtranslate_uc 0) (uc_id _)).
+  intros a.
+  simpl.
+  ring.
+ simpl.
+ rewrite -> H.
+ rewrite -> Cmap_fun_correct.
+ apply: MonadLaw1.
+Qed.
+
+(** Lifting translate yields binary addition over CR. *)
+Lemma Qplus_uc_prf :  is_UniformlyContinuousFunction Qtranslate_uc Qpos2QposInf.
+Proof.
+ intros e a0 a1 H b.
+ simpl in *.
+ repeat rewrite -> (fun x => Qplus_comm x b).
+ apply Qtranslate_uc_prf.
+ assumption.
+Qed.
+
+Definition Qplus_uc : Q_as_MetricSpace --> Q_as_MetricSpace --> Q_as_MetricSpace :=
+Build_UniformlyContinuousFunction Qplus_uc_prf.
+*)
 Definition PlusSlow_uc : (AMS --> AMS --> AMS).
 Admitted.
   
