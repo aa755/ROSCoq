@@ -1569,3 +1569,6 @@ Proof.
   intros. rewrite square_minus. rewrite <- one_plus_one.
   unfold cg_minus. ring.
 Qed.
+
+
+Notation "Z⁺" := positive.

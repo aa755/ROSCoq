@@ -35,13 +35,6 @@ Definition initialVel : (Polar2D Q) := {|rad:=0; θ:=0|}.
 
 Require Export CartIR.
 
-Open Scope Qpos_scope.
-
-(* MOVE!! *)
-Notation "Z⁺" := positive.
-Definition simpleApproximateErr (res : Z⁺) (eps : Qpos) : Qpos :=
-  ((eps + (QposMake 1 (2)))/ res).
-Close Scope Qpos_scope.
 
 Notation FConst := ConstTContR.
 Notation FSin:= CFSine.
@@ -77,7 +70,6 @@ Record iCreate : Type := {
     point in robot's direction. Then add 90 in cartesian <-> polar conversion. *)
 
 
-Notation tapprox := simpleApproximate.
 Section RobotProgam.
 Variables  rotspeed speed delay delEps : Qpos.
 Variable delRes : Z⁺.

@@ -1699,3 +1699,9 @@ Proof.
   reflexivity.
 Qed.
 
+Open Scope Qpos_scope.
+Definition simpleApproximateErr (res : positive) (eps : Qpos) : Qpos :=
+  ((eps + (QposMake 1 (2)))/ res).
+Close Scope Qpos_scope.
+
+Notation tapprox := simpleApproximate.
