@@ -1,5 +1,5 @@
 
-Require Export icreate.
+Require Export iCreateMoveToLoc.
 
 Definition rotSpeedRadPerSec : Qpos := QposMake 1 2.
 
