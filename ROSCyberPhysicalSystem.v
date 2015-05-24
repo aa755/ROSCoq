@@ -1149,6 +1149,8 @@ Definition PossibleSendRecvPair
 
 Require Import Coq.Relations.Relation_Definitions.
 
+Arguments well_founded {A} P.
+ 
 Record PossibleEventOrder  := {
     causedBy : Event -> Event -> Prop;
 
@@ -1192,7 +1194,7 @@ Record PossibleEventOrder  := {
       
     (* the stuff below can probably be
       derived from the stuff above *)
-    causalWf : well_founded _ causedBy
+    causalWf : well_founded  causedBy
 
 }.
 
