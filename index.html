@@ -55,21 +55,28 @@ and many lemmas about bounds on functions based on bounds on their derivatives a
 </ul>
   Cyber-physical Aspects :
 <ul>
-<li>  <a href="coqdoc/ROSCOQ.ROSCyberPhysicalSystem.html">ROSCyberPhysicalSystem.v</a> : 
+    <li>  
+        <a href="coqdoc/ROSCOQ.ROSCyberPhysicalSystem.html">ROSCyberPhysicalSystem.v</a> : 
       definition of events, causal ordering, semantics of agents, derivation of semantics of a software agent from its 
       Coq program (<a href="coqdoc/ROSCOQ.ROSCyberPhysicalSystem.html#SwSemantics">SwSemantics</a>), 
-      definition and correctness proofs of utility functions which find latest payload on a topic</li>
+      definition and correctness proofs of utility functions which find latest payload on a topic
+    </li>
+
+    <li>
+        <a href="coqdoc/ROSCOQ.robots.icreate.html">robots/icreate.v</a> : specification of an increate robot. 
+        It incudes the definition of its <a href="coqdoc/ROSCOQ.robots.icreate.html#iCreate">physical model</a>,
+        and the specification of the behavior of its behaviour as a <a href="coqdoc/ROSCOQ.robots.icreate.html#HwAgent">hardware agent</a>.
+    </li>
 
 </ul>
   Applications of the framework :
 <ul>
 <li>
-    <a href="coqdoc/ROSCOQ.icreate.html">icreate.v</a> : instantiation
+    <a href="coqdoc/ROSCOQ.examples.iCreateMoveToLoc.html">examples/iCreateMoveToLoc.v</a> : instantiation
       of the above abstract definition of a CPS 
-      to specify the iCreate CPS 
-      discussed in the paper. It incudes a definition of its physical model, 
-      specification of the behavior of the robot, 
-      and Coq program in the running example of the paper. 
+      to specify running example of paper.
+      It incudes the <a href="coqdoc/ROSCOQ.examples.iCreateMoveToLoc.html#robotPureProgam">Coq program</a> run
+      by the software agent and a specification of the <a href="coqdoc/ROSCOQ.examples.iCreateMoveToLoc.html#externalCmdSemantics">external agent</a>.
       After specification, bounds are derived on how close the robot will be to the position it is asked to be at. 
       Main lemmas are: 
       <a href="coqdoc/ROSCOQ.icreate.html#ThetaEv2To3P">ThetaEv2To3P</a>,
