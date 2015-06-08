@@ -19,3 +19,6 @@ rm dist/coq/Process.v
 rm dist/coq/Everything.v 
 rm dist/coq/CRMisc/ContField.v
 rm dist/coq/CRMisc/PointWiseRing.v
+rm dist/coq/JB.v
+rm dist/coq/ProbTh.v
+zip -r dist.zip dist

@@ -42,6 +42,6 @@ ParseDepends('deps')
 #env.CoqDoc(env.Dir('coqdoc'), vs, COQDOCFLAGS='-utf8 --toc --latex --interpolate --no-lib-name --coqlib http://coq.inria.fr/library')
 
 
-# enable the 2 lines below to enabble coqdoc generation (using scons coqdoc).  dont forget to then patch the generated HTML to disable caching. run patchNoCache.sh in the generated coqdoc/ directory. also see updateDoc.sh
-#env.CoqDoc(env.Dir('coqdoc'), vs+mc_vs, COQDOCFLAGS='-utf8 --toc --interpolate --no-lib-name --coqlib http://coq.inria.fr/library')
-#mc_vs, mc_vos, mc_globs = env.SConscript(dirs='../../../ssrcorn')
+# enable the 2 lines below to enable coqdoc generation (using scons coqdoc).  dont forget to then patch the generated HTML to disable caching. run patchNoCache.sh in the generated coqdoc/ directory. also see updateDoc.sh
+mc_vs, mc_vos, mc_globs = env.SConscript(dirs='../../../ssrcorn')
+env.CoqDoc(env.Dir('coqdoc'), vs+mc_vs, COQDOCFLAGS='-utf8 --toc --interpolate --no-lib-name --coqlib http://coq.inria.fr/library')
