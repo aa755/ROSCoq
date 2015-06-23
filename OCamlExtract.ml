@@ -5539,3 +5539,43 @@ let test =
 
 
 (* scons: done building targets. *)
+
+(*How to run:
+Abhishek@abhishek-vaio /cygdrive/c/Users/Abhishek/Desktop/PhDWork/coq/ROSCOQ
+$ ocamlc -c OcamlExtract.ml
+File "OcamlExtract.ml", line 5538, characters 35-66:
+Warning 20: this argument will not be used by the function.
+
+Abhishek@abhishek-vaio /cygdrive/c/Users/Abhishek/Desktop/PhDWork/coq/ROSCOQ
+$ ocaml
+        OCaml version 4.02.1
+
+# #load "OcamlExtract.cmo";;
+# open OcamlExtract;;
+# test;;
+- : OcamlExtract.z =
+Zpos (XO (XI (XI (XI (XI (XO (XO (XI (XO (XI (XO XH)))))))))))
+# exit 1;;
+
+*)
+
+(*
+Extraction renamed xO to XO , ... and so on, because constructor names
+are supposed to start with CAPS in OCaml
+
+*)
+
+(* Then in Coq;
+
+  Require Export Coq.PArith.BinPos.
+
+Print xO.
+
+Definition test :=
+(xO (xI (xI (xI (xI (xO (xO (xI (xO (xI (xO xH))))))))))).
+
+Eval vm_compute in test.
+
+     = 2718%positive
+     : positive
+*)
