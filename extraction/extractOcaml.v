@@ -13,4 +13,6 @@ Definition test := answer 3 (exp (1))%CR.
 
 Eval vm_compute in test. (** immediately produces the correct answer (2718) *)
 
-Recursive Extraction test.
+
+Require Import ExtrOcamlZBigInt.
+Extraction "OCamlExtract.ml" test.
