@@ -1,14 +1,36 @@
-{-# OPTIONS_GHC -cpp -fglasgow-exts #-}
+{-# OPTIONS_GHC -cpp -XMagicHash #-}
 {- For Hugs, use the option -F"cpp -P -traditional" -}
 
 module RoboExtract where
 
 import qualified Prelude
+
+
+#ifdef __GLASGOW_HASKELL__
 import qualified GHC.Base
+import qualified GHC.Prim
+#else
+-- HUGS
+import qualified IOExts
+#endif
 
 
+#ifdef __GLASGOW_HASKELL__
 unsafeCoerce :: a -> b
 unsafeCoerce = GHC.Base.unsafeCoerce#
+#else
+-- HUGS
+unsafeCoerce :: a -> b
+unsafeCoerce = IOExts.unsafeCoerce
+#endif
+
+
+#ifdef __GLASGOW_HASKELL__
+type Any = GHC.Prim.Any
+#else
+-- HUGS
+type Any = ()
+#endif
 
 __ :: any
 __ = Prelude.error "Logical or arity value used"
@@ -1201,637 +1223,173 @@ testbit0 a n =
 to_nat0 :: N -> Nat
 to_nat0 a =
   case a of {
-   N0 ->
-    O;
-   Npos p ->
-    to_nat
-      p}
+   N0 -> O;
+   Npos p -> to_nat p}
 
-of_nat0 :: Nat
-           ->
-           N
+of_nat0 :: Nat -> N
 of_nat0 n =
   case n of {
-   O ->
-    N0;
-   S n' ->
-    Npos
-    (of_succ_nat
-      n')}
+   O -> N0;
+   S n' -> Npos (of_succ_nat n')}
 
-iter0 :: N
-         ->
-         (a1
-         ->
-         a1)
-         ->
-         a1
-         ->
-         a1
+iter0 :: N -> (a1 -> a1) -> a1 -> a1
 iter0 n f x0 =
   case n of {
-   N0 ->
-    x0;
-   Npos p ->
-    iter
-      p
-      f
-      x0}
+   N0 -> x0;
+   Npos p -> iter p f x0}
 
-eq_dec0 :: N
-           ->
-           N
-           ->
-           Prelude.Bool
+eq_dec0 :: N -> N -> Prelude.Bool
 eq_dec0 n m =
-  n_rec
-    (\m0 ->
+  n_rec (\m0 ->
     case m0 of {
-     N0 ->
-      Prelude.True;
-     Npos p ->
-      Prelude.False})
-    (\p m0 ->
+     N0 -> Prelude.True;
+     Npos p -> Prelude.False}) (\p m0 ->
     case m0 of {
-     N0 ->
-      Prelude.False;
+     N0 -> Prelude.False;
      Npos p0 ->
-      sumbool_rec
-        (\_ ->
-        eq_rec_r
-          p0
-          Prelude.True
-          p)
-        (\_ ->
-        Prelude.False)
-        (eq_dec
-          p
-          p0)})
-    n
-    m
+      sumbool_rec (\_ -> eq_rec_r p0 Prelude.True p) (\_ -> Prelude.False)
+        (eq_dec p p0)}) n m
 
-discr :: N
-         ->
-         Prelude.Maybe
-         Positive
+discr :: N -> Prelude.Maybe Positive
 discr n =
   case n of {
-   N0 ->
-    Prelude.Nothing;
-   Npos p ->
-    Prelude.Just
-    p}
+   N0 -> Prelude.Nothing;
+   Npos p -> Prelude.Just p}
 
-binary_rect :: a1
-               ->
-               (N
-               ->
-               a1
-               ->
-               a1)
-               ->
-               (N
-               ->
-               a1
-               ->
-               a1)
-               ->
-               N
-               ->
-               a1
+binary_rect :: a1 -> (N -> a1 -> a1) -> (N -> a1 -> a1) -> N -> a1
 binary_rect f0 f2 fS2 n =
-  let {
-   f2' = \p ->
-    f2
-      (Npos
-      p)}
-  in
-  let {
-   fS2' = \p ->
-    fS2
-      (Npos
-      p)}
-  in
+  let {f2' = \p -> f2 (Npos p)} in
+  let {fS2' = \p -> fS2 (Npos p)} in
   case n of {
-   N0 ->
-    f0;
-   Npos p ->
-    positive_rect
-      fS2'
-      f2'
-      (fS2
-        N0
-        f0)
-      p}
+   N0 -> f0;
+   Npos p -> positive_rect fS2' f2' (fS2 N0 f0) p}
 
-binary_rec :: a1
-              ->
-              (N
-              ->
-              a1
-              ->
-              a1)
-              ->
-              (N
-              ->
-              a1
-              ->
-              a1)
-              ->
-              N
-              ->
-              a1
+binary_rec :: a1 -> (N -> a1 -> a1) -> (N -> a1 -> a1) -> N -> a1
 binary_rec =
   binary_rect
 
-peano_rect0 :: a1
-               ->
-               (N
-               ->
-               a1
-               ->
-               a1)
-               ->
-               N
-               ->
-               a1
+peano_rect0 :: a1 -> (N -> a1 -> a1) -> N -> a1
 peano_rect0 f0 f n =
-  let {
-   f' = \p ->
-    f
-      (Npos
-      p)}
-  in
+  let {f' = \p -> f (Npos p)} in
   case n of {
-   N0 ->
-    f0;
-   Npos p ->
-    peano_rect
-      (f
-        N0
-        f0)
-      f'
-      p}
+   N0 -> f0;
+   Npos p -> peano_rect (f N0 f0) f' p}
 
-peano_rec0 :: a1
-              ->
-              (N
-              ->
-              a1
-              ->
-              a1)
-              ->
-              N
-              ->
-              a1
+peano_rec0 :: a1 -> (N -> a1 -> a1) -> N -> a1
 peano_rec0 =
   peano_rect0
 
-leb_spec1 :: N
-             ->
-             N
-             ->
-             Reflect
+leb_spec1 :: N -> N -> Reflect
 leb_spec1 x0 y0 =
-  iff_reflect
-    (leb0
-      x0
-      y0)
+  iff_reflect (leb0 x0 y0)
 
-ltb_spec1 :: N
-             ->
-             N
-             ->
-             Reflect
+ltb_spec1 :: N -> N -> Reflect
 ltb_spec1 x0 y0 =
-  iff_reflect
-    (ltb0
-      x0
-      y0)
+  iff_reflect (ltb0 x0 y0)
 
-recursion :: a1
-             ->
-             (N
-             ->
-             a1
-             ->
-             a1)
-             ->
-             N
-             ->
-             a1
+recursion :: a1 -> (N -> a1 -> a1) -> N -> a1
 recursion =
   peano_rect0
 
-sqrt_up :: N
-           ->
-           N
+sqrt_up :: N -> N
 sqrt_up a =
-  case compare0
-         N0
-         a of {
-   Lt ->
-    succ0
-      (sqrt0
-        (pred0
-          a));
-   _ ->
-    N0}
+  case compare0 N0 a of {
+   Lt -> succ0 (sqrt0 (pred0 a));
+   _ -> N0}
 
-log2_up :: N
-           ->
-           N
+log2_up :: N -> N
 log2_up a =
-  case compare0
-         (Npos
-         XH)
-         a of {
-   Lt ->
-    succ0
-      (log2
-        (pred0
-          a));
-   _ ->
-    N0}
+  case compare0 (Npos XH) a of {
+   Lt -> succ0 (log2 (pred0 a));
+   _ -> N0}
 
-lcm :: N
-       ->
-       N
-       ->
-       N
+lcm :: N -> N -> N
 lcm a b =
-  mul0
-    a
-    (div
-      b
-      (gcd0
-        a
-        b))
+  mul0 a (div b (gcd0 a b))
 
-eqb_spec0 :: N
-             ->
-             N
-             ->
-             Reflect
+eqb_spec0 :: N -> N -> Reflect
 eqb_spec0 x0 y0 =
-  iff_reflect
-    (eqb0
-      x0
-      y0)
+  iff_reflect (eqb0 x0 y0)
 
-b2n :: Prelude.Bool
-       ->
-       N
+b2n :: Prelude.Bool -> N
 b2n b =
   case b of {
-   Prelude.True ->
-    Npos
-    XH;
-   Prelude.False ->
-    N0}
+   Prelude.True -> Npos XH;
+   Prelude.False -> N0}
 
-setbit :: N
-          ->
-          N
-          ->
-          N
+setbit :: N -> N -> N
 setbit a n =
-  lor0
-    a
-    (shiftl0
-      (Npos
-      XH)
-      n)
+  lor0 a (shiftl0 (Npos XH) n)
 
-clearbit :: N
-            ->
-            N
-            ->
-            N
+clearbit :: N -> N -> N
 clearbit a n =
-  ldiff0
-    a
-    (shiftl0
-      (Npos
-      XH)
-      n)
+  ldiff0 a (shiftl0 (Npos XH) n)
 
-ones :: N
-        ->
-        N
+ones :: N -> N
 ones n =
-  pred0
-    (shiftl0
-      (Npos
-      XH)
-      n)
+  pred0 (shiftl0 (Npos XH) n)
 
-lnot :: N
-        ->
-        N
-        ->
-        N
+lnot :: N -> N -> N
 lnot a n =
-  lxor0
-    a
-    (ones
-      n)
+  lxor0 a (ones n)
 
-max_case_strong1 :: N
-                    ->
-                    N
-                    ->
-                    (N
-                    ->
-                    N
-                    ->
-                    ()
-                    ->
-                    a1
-                    ->
-                    a1)
-                    ->
-                    (()
-                    ->
-                    a1)
-                    ->
-                    (()
-                    ->
-                    a1)
-                    ->
-                    a1
+max_case_strong1 :: N -> N -> (N -> N -> () -> a1 -> a1) -> (() -> a1) -> (()
+                    -> a1) -> a1
 max_case_strong1 n m compat hl hr =
-  let {
-   c = compSpec2Type
-         n
-         m
-         (compare0
-           n
-           m)}
-  in
+  let {c = compSpec2Type n m (compare0 n m)} in
   case c of {
-   CompGtT ->
-    compat
-      n
-      (max0
-        n
-        m)
-      __
-      (hl
-        __);
-   _ ->
-    compat
-      m
-      (max0
-        n
-        m)
-      __
-      (hr
-        __)}
+   CompGtT -> compat n (max0 n m) __ (hl __);
+   _ -> compat m (max0 n m) __ (hr __)}
 
-max_case1 :: N
-             ->
-             N
-             ->
-             (N
-             ->
-             N
-             ->
-             ()
-             ->
-             a1
-             ->
-             a1)
-             ->
-             a1
-             ->
-             a1
-             ->
-             a1
+max_case1 :: N -> N -> (N -> N -> () -> a1 -> a1) -> a1 -> a1 -> a1
 max_case1 n m x0 x1 x2 =
-  max_case_strong1
-    n
-    m
-    x0
-    (\_ ->
-    x1)
-    (\_ ->
-    x2)
+  max_case_strong1 n m x0 (\_ -> x1) (\_ -> x2)
 
-max_dec1 :: N
-            ->
-            N
-            ->
-            Prelude.Bool
+max_dec1 :: N -> N -> Prelude.Bool
 max_dec1 n m =
-  max_case1
-    n
-    m
-    (\x0 y0 _ h0 ->
-    h0)
-    Prelude.True
-    Prelude.False
+  max_case1 n m (\x0 y0 _ h0 -> h0) Prelude.True Prelude.False
 
-min_case_strong1 :: N
-                    ->
-                    N
-                    ->
-                    (N
-                    ->
-                    N
-                    ->
-                    ()
-                    ->
-                    a1
-                    ->
-                    a1)
-                    ->
-                    (()
-                    ->
-                    a1)
-                    ->
-                    (()
-                    ->
-                    a1)
-                    ->
-                    a1
+min_case_strong1 :: N -> N -> (N -> N -> () -> a1 -> a1) -> (() -> a1) -> (()
+                    -> a1) -> a1
 min_case_strong1 n m compat hl hr =
-  let {
-   c = compSpec2Type
-         n
-         m
-         (compare0
-           n
-           m)}
-  in
+  let {c = compSpec2Type n m (compare0 n m)} in
   case c of {
-   CompGtT ->
-    compat
-      m
-      (min0
-        n
-        m)
-      __
-      (hr
-        __);
-   _ ->
-    compat
-      n
-      (min0
-        n
-        m)
-      __
-      (hl
-        __)}
+   CompGtT -> compat m (min0 n m) __ (hr __);
+   _ -> compat n (min0 n m) __ (hl __)}
 
-min_case1 :: N
-             ->
-             N
-             ->
-             (N
-             ->
-             N
-             ->
-             ()
-             ->
-             a1
-             ->
-             a1)
-             ->
-             a1
-             ->
-             a1
-             ->
-             a1
+min_case1 :: N -> N -> (N -> N -> () -> a1 -> a1) -> a1 -> a1 -> a1
 min_case1 n m x0 x1 x2 =
-  min_case_strong1
-    n
-    m
-    x0
-    (\_ ->
-    x1)
-    (\_ ->
-    x2)
+  min_case_strong1 n m x0 (\_ -> x1) (\_ -> x2)
 
-min_dec1 :: N
-            ->
-            N
-            ->
-            Prelude.Bool
+min_dec1 :: N -> N -> Prelude.Bool
 min_dec1 n m =
-  min_case1
-    n
-    m
-    (\x0 y0 _ h0 ->
-    h0)
-    Prelude.True
-    Prelude.False
+  min_case1 n m (\x0 y0 _ h0 -> h0) Prelude.True Prelude.False
 
-max_case_strong2 :: N
-                    ->
-                    N
-                    ->
-                    (()
-                    ->
-                    a1)
-                    ->
-                    (()
-                    ->
-                    a1)
-                    ->
-                    a1
+max_case_strong2 :: N -> N -> (() -> a1) -> (() -> a1) -> a1
 max_case_strong2 n m x0 x1 =
-  max_case_strong1
-    n
-    m
-    (\x2 y0 _ x3 ->
-    eq_rect
-      __
-      x3
-      __)
-    x0
-    x1
+  max_case_strong1 n m (\x2 y0 _ x3 -> eq_rect __ x3 __) x0 x1
 
-max_case2 :: N
-             ->
-             N
-             ->
-             a1
-             ->
-             a1
-             ->
-             a1
+max_case2 :: N -> N -> a1 -> a1 -> a1
 max_case2 n m x0 x1 =
-  max_case_strong2
-    n
-    m
-    (\_ ->
-    x0)
-    (\_ ->
-    x1)
+  max_case_strong2 n m (\_ -> x0) (\_ -> x1)
 
-max_dec2 :: N
-            ->
-            N
-            ->
-            Prelude.Bool
+max_dec2 :: N -> N -> Prelude.Bool
 max_dec2 =
   max_dec1
 
-min_case_strong2 :: N
-                    ->
-                    N
-                    ->
-                    (()
-                    ->
-                    a1)
-                    ->
-                    (()
-                    ->
-                    a1)
-                    ->
-                    a1
+min_case_strong2 :: N -> N -> (() -> a1) -> (() -> a1) -> a1
 min_case_strong2 n m x0 x1 =
-  min_case_strong1
-    n
-    m
-    (\x2 y0 _ x3 ->
-    eq_rect
-      __
-      x3
-      __)
-    x0
-    x1
+  min_case_strong1 n m (\x2 y0 _ x3 -> eq_rect __ x3 __) x0 x1
 
-min_case2 :: N
-             ->
-             N
-             ->
-             a1
-             ->
-             a1
-             ->
-             a1
+min_case2 :: N -> N -> a1 -> a1 -> a1
 min_case2 n m x0 x1 =
-  min_case_strong2
-    n
-    m
-    (\_ ->
-    x0)
-    (\_ ->
-    x1)
+  min_case_strong2 n m (\_ -> x0) (\_ -> x1)
 
-min_dec2 :: N
-            ->
-            N
-            ->
-            Prelude.Bool
+min_dec2 :: N -> N -> Prelude.Bool
 min_dec2 =
   min_dec1
 
-type T1
-  =
-  Z
+type T1 = Z
 
 zero0 :: Z
 zero0 =
@@ -1839,2808 +1397,1003 @@ zero0 =
 
 one0 :: Z
 one0 =
-  Zpos
-    XH
+  Zpos XH
 
 two0 :: Z
 two0 =
-  Zpos
-    (XO
-    XH)
+  Zpos (XO XH)
 
-double0 :: Z
-           ->
-           Z
+double0 :: Z -> Z
 double0 x0 =
   case x0 of {
-   Z0 ->
-    Z0;
-   Zpos p ->
-    Zpos
-    (XO
-    p);
-   Zneg p ->
-    Zneg
-    (XO
-    p)}
+   Z0 -> Z0;
+   Zpos p -> Zpos (XO p);
+   Zneg p -> Zneg (XO p)}
 
-succ_double0 :: Z
-                ->
-                Z
+succ_double0 :: Z -> Z
 succ_double0 x0 =
   case x0 of {
-   Z0 ->
-    Zpos
-    XH;
-   Zpos p ->
-    Zpos
-    (XI
-    p);
-   Zneg p ->
-    Zneg
-    (pred_double
-      p)}
+   Z0 -> Zpos XH;
+   Zpos p -> Zpos (XI p);
+   Zneg p -> Zneg (pred_double p)}
 
-pred_double0 :: Z
-                ->
-                Z
+pred_double0 :: Z -> Z
 pred_double0 x0 =
   case x0 of {
-   Z0 ->
-    Zneg
-    XH;
-   Zpos p ->
-    Zpos
-    (pred_double
-      p);
-   Zneg p ->
-    Zneg
-    (XI
-    p)}
+   Z0 -> Zneg XH;
+   Zpos p -> Zpos (pred_double p);
+   Zneg p -> Zneg (XI p)}
 
-pos_sub :: Positive
-           ->
-           Positive
-           ->
-           Z
+pos_sub :: Positive -> Positive -> Z
 pos_sub x0 y0 =
   case x0 of {
    XI p ->
     case y0 of {
-     XI q ->
-      double0
-        (pos_sub
-          p
-          q);
-     XO q ->
-      succ_double0
-        (pos_sub
-          p
-          q);
-     XH ->
-      Zpos
-      (XO
-      p)};
+     XI q -> double0 (pos_sub p q);
+     XO q -> succ_double0 (pos_sub p q);
+     XH -> Zpos (XO p)};
    XO p ->
     case y0 of {
-     XI q ->
-      pred_double0
-        (pos_sub
-          p
-          q);
-     XO q ->
-      double0
-        (pos_sub
-          p
-          q);
-     XH ->
-      Zpos
-      (pred_double
-        p)};
+     XI q -> pred_double0 (pos_sub p q);
+     XO q -> double0 (pos_sub p q);
+     XH -> Zpos (pred_double p)};
    XH ->
     case y0 of {
-     XI q ->
-      Zneg
-      (XO
-      q);
-     XO q ->
-      Zneg
-      (pred_double
-        q);
-     XH ->
-      Z0}}
+     XI q -> Zneg (XO q);
+     XO q -> Zneg (pred_double q);
+     XH -> Z0}}
 
-add1 :: Z
-        ->
-        Z
-        ->
-        Z
+add1 :: Z -> Z -> Z
 add1 x0 y0 =
   case x0 of {
-   Z0 ->
-    y0;
+   Z0 -> y0;
    Zpos x' ->
     case y0 of {
-     Z0 ->
-      x0;
-     Zpos y' ->
-      Zpos
-      (add
-        x'
-        y');
-     Zneg y' ->
-      pos_sub
-        x'
-        y'};
+     Z0 -> x0;
+     Zpos y' -> Zpos (add x' y');
+     Zneg y' -> pos_sub x' y'};
    Zneg x' ->
     case y0 of {
-     Z0 ->
-      x0;
-     Zpos y' ->
-      pos_sub
-        y'
-        x';
-     Zneg y' ->
-      Zneg
-      (add
-        x'
-        y')}}
+     Z0 -> x0;
+     Zpos y' -> pos_sub y' x';
+     Zneg y' -> Zneg (add x' y')}}
 
-opp :: Z
-       ->
-       Z
+opp :: Z -> Z
 opp x0 =
   case x0 of {
-   Z0 ->
-    Z0;
-   Zpos x1 ->
-    Zneg
-    x1;
-   Zneg x1 ->
-    Zpos
-    x1}
+   Z0 -> Z0;
+   Zpos x1 -> Zneg x1;
+   Zneg x1 -> Zpos x1}
 
-succ1 :: Z
-         ->
-         Z
+succ1 :: Z -> Z
 succ1 x0 =
-  add1
-    x0
-    (Zpos
-    XH)
+  add1 x0 (Zpos XH)
 
-pred1 :: Z
-         ->
-         Z
+pred1 :: Z -> Z
 pred1 x0 =
-  add1
-    x0
-    (Zneg
-    XH)
+  add1 x0 (Zneg XH)
 
-sub1 :: Z
-        ->
-        Z
-        ->
-        Z
+sub1 :: Z -> Z -> Z
 sub1 m n =
-  add1
-    m
-    (opp
-      n)
+  add1 m (opp n)
 
-mul1 :: Z
-        ->
-        Z
-        ->
-        Z
+mul1 :: Z -> Z -> Z
 mul1 x0 y0 =
   case x0 of {
-   Z0 ->
-    Z0;
+   Z0 -> Z0;
    Zpos x' ->
     case y0 of {
-     Z0 ->
-      Z0;
-     Zpos y' ->
-      Zpos
-      (mul
-        x'
-        y');
-     Zneg y' ->
-      Zneg
-      (mul
-        x'
-        y')};
+     Z0 -> Z0;
+     Zpos y' -> Zpos (mul x' y');
+     Zneg y' -> Zneg (mul x' y')};
    Zneg x' ->
     case y0 of {
-     Z0 ->
-      Z0;
-     Zpos y' ->
-      Zneg
-      (mul
-        x'
-        y');
-     Zneg y' ->
-      Zpos
-      (mul
-        x'
-        y')}}
+     Z0 -> Z0;
+     Zpos y' -> Zneg (mul x' y');
+     Zneg y' -> Zpos (mul x' y')}}
 
-pow_pos :: Z
-           ->
-           Positive
-           ->
-           Z
+pow_pos :: Z -> Positive -> Z
 pow_pos z n =
-  iter
-    n
-    (mul1
-      z)
-    (Zpos
-    XH)
+  iter n (mul1 z) (Zpos XH)
 
-pow1 :: Z
-        ->
-        Z
-        ->
-        Z
+pow1 :: Z -> Z -> Z
 pow1 x0 y0 =
   case y0 of {
-   Z0 ->
-    Zpos
-    XH;
-   Zpos p ->
-    pow_pos
-      x0
-      p;
-   Zneg p ->
-    Z0}
+   Z0 -> Zpos XH;
+   Zpos p -> pow_pos x0 p;
+   Zneg p -> Z0}
 
-square1 :: Z
-           ->
-           Z
+square1 :: Z -> Z
 square1 x0 =
   case x0 of {
-   Z0 ->
-    Z0;
-   Zpos p ->
-    Zpos
-    (square
-      p);
-   Zneg p ->
-    Zpos
-    (square
-      p)}
+   Z0 -> Z0;
+   Zpos p -> Zpos (square p);
+   Zneg p -> Zpos (square p)}
 
-compare1 :: Z
-            ->
-            Z
-            ->
-            Comparison
+compare1 :: Z -> Z -> Comparison
 compare1 x0 y0 =
   case x0 of {
    Z0 ->
     case y0 of {
-     Z0 ->
-      Eq;
-     Zpos y' ->
-      Lt;
-     Zneg y' ->
-      Gt};
+     Z0 -> Eq;
+     Zpos y' -> Lt;
+     Zneg y' -> Gt};
    Zpos x' ->
     case y0 of {
-     Zpos y' ->
-      compare
-        x'
-        y';
-     _ ->
-      Gt};
+     Zpos y' -> compare x' y';
+     _ -> Gt};
    Zneg x' ->
     case y0 of {
-     Zneg y' ->
-      compOpp
-        (compare
-          x'
-          y');
-     _ ->
-      Lt}}
+     Zneg y' -> compOpp (compare x' y');
+     _ -> Lt}}
 
-sgn :: Z
-       ->
-       Z
+sgn :: Z -> Z
 sgn z =
   case z of {
-   Z0 ->
-    Z0;
-   Zpos p ->
-    Zpos
-    XH;
-   Zneg p ->
-    Zneg
-    XH}
+   Z0 -> Z0;
+   Zpos p -> Zpos XH;
+   Zneg p -> Zneg XH}
 
-leb1 :: Z
-        ->
-        Z
-        ->
-        Prelude.Bool
+leb1 :: Z -> Z -> Prelude.Bool
 leb1 x0 y0 =
-  case compare1
-         x0
-         y0 of {
-   Gt ->
-    Prelude.False;
-   _ ->
-    Prelude.True}
+  case compare1 x0 y0 of {
+   Gt -> Prelude.False;
+   _ -> Prelude.True}
 
-ltb1 :: Z
-        ->
-        Z
-        ->
-        Prelude.Bool
+ltb1 :: Z -> Z -> Prelude.Bool
 ltb1 x0 y0 =
-  case compare1
-         x0
-         y0 of {
-   Lt ->
-    Prelude.True;
-   _ ->
-    Prelude.False}
+  case compare1 x0 y0 of {
+   Lt -> Prelude.True;
+   _ -> Prelude.False}
 
-geb :: Z
-       ->
-       Z
-       ->
-       Prelude.Bool
+geb :: Z -> Z -> Prelude.Bool
 geb x0 y0 =
-  case compare1
-         x0
-         y0 of {
-   Lt ->
-    Prelude.False;
-   _ ->
-    Prelude.True}
+  case compare1 x0 y0 of {
+   Lt -> Prelude.False;
+   _ -> Prelude.True}
 
-gtb :: Z
-       ->
-       Z
-       ->
-       Prelude.Bool
+gtb :: Z -> Z -> Prelude.Bool
 gtb x0 y0 =
-  case compare1
-         x0
-         y0 of {
-   Gt ->
-    Prelude.True;
-   _ ->
-    Prelude.False}
+  case compare1 x0 y0 of {
+   Gt -> Prelude.True;
+   _ -> Prelude.False}
 
-eqb1 :: Z
-        ->
-        Z
-        ->
-        Prelude.Bool
+eqb1 :: Z -> Z -> Prelude.Bool
 eqb1 x0 y0 =
   case x0 of {
    Z0 ->
     case y0 of {
-     Z0 ->
-      Prelude.True;
-     _ ->
-      Prelude.False};
+     Z0 -> Prelude.True;
+     _ -> Prelude.False};
    Zpos p ->
     case y0 of {
-     Zpos q ->
-      eqb
-        p
-        q;
-     _ ->
-      Prelude.False};
+     Zpos q -> eqb p q;
+     _ -> Prelude.False};
    Zneg p ->
     case y0 of {
-     Zneg q ->
-      eqb
-        p
-        q;
-     _ ->
-      Prelude.False}}
+     Zneg q -> eqb p q;
+     _ -> Prelude.False}}
 
-max1 :: Z
-        ->
-        Z
-        ->
-        Z
+max1 :: Z -> Z -> Z
 max1 n m =
-  case compare1
-         n
-         m of {
-   Lt ->
-    m;
-   _ ->
-    n}
+  case compare1 n m of {
+   Lt -> m;
+   _ -> n}
 
-min1 :: Z
-        ->
-        Z
-        ->
-        Z
+min1 :: Z -> Z -> Z
 min1 n m =
-  case compare1
-         n
-         m of {
-   Gt ->
-    m;
-   _ ->
-    n}
+  case compare1 n m of {
+   Gt -> m;
+   _ -> n}
 
-abs :: Z
-       ->
-       Z
+abs :: Z -> Z
 abs z =
   case z of {
-   Zneg p ->
-    Zpos
-    p;
-   x0 ->
-    x0}
+   Zneg p -> Zpos p;
+   x0 -> x0}
 
-abs_nat :: Z
-           ->
-           Nat
+abs_nat :: Z -> Nat
 abs_nat z =
   case z of {
-   Z0 ->
-    O;
-   Zpos p ->
-    to_nat
-      p;
-   Zneg p ->
-    to_nat
-      p}
+   Z0 -> O;
+   Zpos p -> to_nat p;
+   Zneg p -> to_nat p}
 
-abs_N :: Z
-         ->
-         N
+abs_N :: Z -> N
 abs_N z =
   case z of {
-   Z0 ->
-    N0;
-   Zpos p ->
-    Npos
-    p;
-   Zneg p ->
-    Npos
-    p}
+   Z0 -> N0;
+   Zpos p -> Npos p;
+   Zneg p -> Npos p}
 
-to_nat1 :: Z
-           ->
-           Nat
+to_nat1 :: Z -> Nat
 to_nat1 z =
   case z of {
-   Zpos p ->
-    to_nat
-      p;
-   _ ->
-    O}
+   Zpos p -> to_nat p;
+   _ -> O}
 
-to_N :: Z
-        ->
-        N
+to_N :: Z -> N
 to_N z =
   case z of {
-   Zpos p ->
-    Npos
-    p;
-   _ ->
-    N0}
+   Zpos p -> Npos p;
+   _ -> N0}
 
-of_nat1 :: Nat
-           ->
-           Z
+of_nat1 :: Nat -> Z
 of_nat1 n =
   case n of {
-   O ->
-    Z0;
-   S n0 ->
-    Zpos
-    (of_succ_nat
-      n0)}
+   O -> Z0;
+   S n0 -> Zpos (of_succ_nat n0)}
 
-of_N :: N
-        ->
-        Z
+of_N :: N -> Z
 of_N n =
   case n of {
-   N0 ->
-    Z0;
-   Npos p ->
-    Zpos
-    p}
+   N0 -> Z0;
+   Npos p -> Zpos p}
 
-to_pos :: Z
-          ->
-          Positive
+to_pos :: Z -> Positive
 to_pos z =
   case z of {
-   Zpos p ->
-    p;
-   _ ->
-    XH}
+   Zpos p -> p;
+   _ -> XH}
 
-iter1 :: Z
-         ->
-         (a1
-         ->
-         a1)
-         ->
-         a1
-         ->
-         a1
+iter1 :: Z -> (a1 -> a1) -> a1 -> a1
 iter1 n f x0 =
   case n of {
-   Zpos p ->
-    iter
-      p
-      f
-      x0;
-   _ ->
-    x0}
+   Zpos p -> iter p f x0;
+   _ -> x0}
 
-pos_div_eucl0 :: Positive
-                 ->
-                 Z
-                 ->
-                 (,)
-                 Z
-                 Z
+pos_div_eucl0 :: Positive -> Z -> (,) Z Z
 pos_div_eucl0 a b =
   case a of {
    XI a' ->
-    case pos_div_eucl0
-           a'
-           b of {
-     (,) q
-      r ->
-      let {
-       r' = add1
-              (mul1
-                (Zpos
-                (XO
-                XH))
-                r)
-              (Zpos
-              XH)}
-      in
-      case ltb1
-             r'
-             b of {
-       Prelude.True ->
-        (,)
-        (mul1
-          (Zpos
-          (XO
-          XH))
-          q)
-        r';
-       Prelude.False ->
-        (,)
-        (add1
-          (mul1
-            (Zpos
-            (XO
-            XH))
-            q)
-          (Zpos
-          XH))
-        (sub1
-          r'
-          b)}};
+    case pos_div_eucl0 a' b of {
+     (,) q r ->
+      let {r' = add1 (mul1 (Zpos (XO XH)) r) (Zpos XH)} in
+      case ltb1 r' b of {
+       Prelude.True -> (,) (mul1 (Zpos (XO XH)) q) r';
+       Prelude.False -> (,) (add1 (mul1 (Zpos (XO XH)) q) (Zpos XH))
+        (sub1 r' b)}};
    XO a' ->
-    case pos_div_eucl0
-           a'
-           b of {
-     (,) q
-      r ->
-      let {
-       r' = mul1
-              (Zpos
-              (XO
-              XH))
-              r}
-      in
-      case ltb1
-             r'
-             b of {
-       Prelude.True ->
-        (,)
-        (mul1
-          (Zpos
-          (XO
-          XH))
-          q)
-        r';
-       Prelude.False ->
-        (,)
-        (add1
-          (mul1
-            (Zpos
-            (XO
-            XH))
-            q)
-          (Zpos
-          XH))
-        (sub1
-          r'
-          b)}};
+    case pos_div_eucl0 a' b of {
+     (,) q r ->
+      let {r' = mul1 (Zpos (XO XH)) r} in
+      case ltb1 r' b of {
+       Prelude.True -> (,) (mul1 (Zpos (XO XH)) q) r';
+       Prelude.False -> (,) (add1 (mul1 (Zpos (XO XH)) q) (Zpos XH))
+        (sub1 r' b)}};
    XH ->
-    case leb1
-           (Zpos
-           (XO
-           XH))
-           b of {
-     Prelude.True ->
-      (,)
-      Z0
-      (Zpos
-      XH);
-     Prelude.False ->
-      (,)
-      (Zpos
-      XH)
-      Z0}}
+    case leb1 (Zpos (XO XH)) b of {
+     Prelude.True -> (,) Z0 (Zpos XH);
+     Prelude.False -> (,) (Zpos XH) Z0}}
 
-div_eucl0 :: Z
-             ->
-             Z
-             ->
-             (,)
-             Z
-             Z
+div_eucl0 :: Z -> Z -> (,) Z Z
 div_eucl0 a b =
   case a of {
-   Z0 ->
-    (,)
-    Z0
-    Z0;
+   Z0 -> (,) Z0 Z0;
    Zpos a' ->
     case b of {
-     Z0 ->
-      (,)
-      Z0
-      Z0;
-     Zpos p ->
-      pos_div_eucl0
-        a'
-        b;
+     Z0 -> (,) Z0 Z0;
+     Zpos p -> pos_div_eucl0 a' b;
      Zneg b' ->
-      case pos_div_eucl0
-             a'
-             (Zpos
-             b') of {
-       (,) q
-        r ->
+      case pos_div_eucl0 a' (Zpos b') of {
+       (,) q r ->
         case r of {
-         Z0 ->
-          (,)
-          (opp
-            q)
-          Z0;
-         _ ->
-          (,)
-          (opp
-            (add1
-              q
-              (Zpos
-              XH)))
-          (add1
-            b
-            r)}}};
+         Z0 -> (,) (opp q) Z0;
+         _ -> (,) (opp (add1 q (Zpos XH))) (add1 b r)}}};
    Zneg a' ->
     case b of {
-     Z0 ->
-      (,)
-      Z0
-      Z0;
+     Z0 -> (,) Z0 Z0;
      Zpos p ->
-      case pos_div_eucl0
-             a'
-             b of {
-       (,) q
-        r ->
+      case pos_div_eucl0 a' b of {
+       (,) q r ->
         case r of {
-         Z0 ->
-          (,)
-          (opp
-            q)
-          Z0;
-         _ ->
-          (,)
-          (opp
-            (add1
-              q
-              (Zpos
-              XH)))
-          (sub1
-            b
-            r)}};
+         Z0 -> (,) (opp q) Z0;
+         _ -> (,) (opp (add1 q (Zpos XH))) (sub1 b r)}};
      Zneg b' ->
-      case pos_div_eucl0
-             a'
-             (Zpos
-             b') of {
-       (,) q
-        r ->
-        (,)
-        q
-        (opp
-          r)}}}
+      case pos_div_eucl0 a' (Zpos b') of {
+       (,) q r -> (,) q (opp r)}}}
 
-div1 :: Z
-        ->
-        Z
-        ->
-        Z
+div1 :: Z -> Z -> Z
 div1 a b =
-  case div_eucl0
-         a
-         b of {
-   (,) q
-    x0 ->
-    q}
+  case div_eucl0 a b of {
+   (,) q x0 -> q}
 
-modulo0 :: Z
-           ->
-           Z
-           ->
-           Z
+modulo0 :: Z -> Z -> Z
 modulo0 a b =
-  case div_eucl0
-         a
-         b of {
-   (,) x0
-    r ->
-    r}
+  case div_eucl0 a b of {
+   (,) x0 r -> r}
 
-quotrem :: Z
-           ->
-           Z
-           ->
-           (,)
-           Z
-           Z
+quotrem :: Z -> Z -> (,) Z Z
 quotrem a b =
   case a of {
-   Z0 ->
-    (,)
-    Z0
-    Z0;
+   Z0 -> (,) Z0 Z0;
    Zpos a0 ->
     case b of {
-     Z0 ->
-      (,)
-      Z0
-      a;
+     Z0 -> (,) Z0 a;
      Zpos b0 ->
-      case pos_div_eucl
-             a0
-             (Npos
-             b0) of {
-       (,) q
-        r ->
-        (,)
-        (of_N
-          q)
-        (of_N
-          r)};
+      case pos_div_eucl a0 (Npos b0) of {
+       (,) q r -> (,) (of_N q) (of_N r)};
      Zneg b0 ->
-      case pos_div_eucl
-             a0
-             (Npos
-             b0) of {
-       (,) q
-        r ->
-        (,)
-        (opp
-          (of_N
-            q))
-        (of_N
-          r)}};
+      case pos_div_eucl a0 (Npos b0) of {
+       (,) q r -> (,) (opp (of_N q)) (of_N r)}};
    Zneg a0 ->
     case b of {
-     Z0 ->
-      (,)
-      Z0
-      a;
+     Z0 -> (,) Z0 a;
      Zpos b0 ->
-      case pos_div_eucl
-             a0
-             (Npos
-             b0) of {
-       (,) q
-        r ->
-        (,)
-        (opp
-          (of_N
-            q))
-        (opp
-          (of_N
-            r))};
+      case pos_div_eucl a0 (Npos b0) of {
+       (,) q r -> (,) (opp (of_N q)) (opp (of_N r))};
      Zneg b0 ->
-      case pos_div_eucl
-             a0
-             (Npos
-             b0) of {
-       (,) q
-        r ->
-        (,)
-        (of_N
-          q)
-        (opp
-          (of_N
-            r))}}}
+      case pos_div_eucl a0 (Npos b0) of {
+       (,) q r -> (,) (of_N q) (opp (of_N r))}}}
 
-quot :: Z
-        ->
-        Z
-        ->
-        Z
+quot :: Z -> Z -> Z
 quot a b =
-  fst
-    (quotrem
-      a
-      b)
+  fst (quotrem a b)
 
-rem :: Z
-       ->
-       Z
-       ->
-       Z
+rem :: Z -> Z -> Z
 rem a b =
-  snd
-    (quotrem
-      a
-      b)
+  snd (quotrem a b)
 
-even0 :: Z
-         ->
-         Prelude.Bool
+even0 :: Z -> Prelude.Bool
 even0 z =
   case z of {
-   Z0 ->
-    Prelude.True;
+   Z0 -> Prelude.True;
    Zpos p ->
     case p of {
-     XO p0 ->
-      Prelude.True;
-     _ ->
-      Prelude.False};
+     XO p0 -> Prelude.True;
+     _ -> Prelude.False};
    Zneg p ->
     case p of {
-     XO p0 ->
-      Prelude.True;
-     _ ->
-      Prelude.False}}
+     XO p0 -> Prelude.True;
+     _ -> Prelude.False}}
 
-odd0 :: Z
-        ->
-        Prelude.Bool
+odd0 :: Z -> Prelude.Bool
 odd0 z =
   case z of {
-   Z0 ->
-    Prelude.False;
+   Z0 -> Prelude.False;
    Zpos p ->
     case p of {
-     XO p0 ->
-      Prelude.False;
-     _ ->
-      Prelude.True};
+     XO p0 -> Prelude.False;
+     _ -> Prelude.True};
    Zneg p ->
     case p of {
-     XO p0 ->
-      Prelude.False;
-     _ ->
-      Prelude.True}}
+     XO p0 -> Prelude.False;
+     _ -> Prelude.True}}
 
-div3 :: Z
-        ->
-        Z
+div3 :: Z -> Z
 div3 z =
   case z of {
-   Z0 ->
-    Z0;
+   Z0 -> Z0;
    Zpos p ->
     case p of {
-     XH ->
-      Z0;
-     _ ->
-      Zpos
-      (div2
-        p)};
-   Zneg p ->
-    Zneg
-    (div2_up
-      p)}
+     XH -> Z0;
+     _ -> Zpos (div2 p)};
+   Zneg p -> Zneg (div2_up p)}
 
-quot2 :: Z
-         ->
-         Z
+quot2 :: Z -> Z
 quot2 z =
   case z of {
-   Z0 ->
-    Z0;
+   Z0 -> Z0;
    Zpos p ->
     case p of {
-     XH ->
-      Z0;
-     _ ->
-      Zpos
-      (div2
-        p)};
+     XH -> Z0;
+     _ -> Zpos (div2 p)};
    Zneg p ->
     case p of {
-     XH ->
-      Z0;
-     _ ->
-      Zneg
-      (div2
-        p)}}
+     XH -> Z0;
+     _ -> Zneg (div2 p)}}
 
-log0 :: Z
-        ->
-        Z
+log0 :: Z -> Z
 log0 z =
   case z of {
    Zpos p0 ->
     case p0 of {
-     XI p ->
-      Zpos
-      (size
-        p);
-     XO p ->
-      Zpos
-      (size
-        p);
-     XH ->
-      Z0};
-   _ ->
-    Z0}
+     XI p -> Zpos (size p);
+     XO p -> Zpos (size p);
+     XH -> Z0};
+   _ -> Z0}
 
-sqrtrem1 :: Z
-            ->
-            (,)
-            Z
-            Z
+sqrtrem1 :: Z -> (,) Z Z
 sqrtrem1 n =
   case n of {
    Zpos p ->
-    case sqrtrem
-           p of {
-     (,) s
-      m ->
+    case sqrtrem p of {
+     (,) s m ->
       case m of {
-       IsPos r ->
-        (,)
-        (Zpos
-        s)
-        (Zpos
-        r);
-       _ ->
-        (,)
-        (Zpos
-        s)
-        Z0}};
-   _ ->
-    (,)
-    Z0
-    Z0}
+       IsPos r -> (,) (Zpos s) (Zpos r);
+       _ -> (,) (Zpos s) Z0}};
+   _ -> (,) Z0 Z0}
 
-sqrt1 :: Z
-         ->
-         Z
+sqrt1 :: Z -> Z
 sqrt1 n =
   case n of {
-   Zpos p ->
-    Zpos
-    (sqrt
-      p);
-   _ ->
-    Z0}
+   Zpos p -> Zpos (sqrt p);
+   _ -> Z0}
 
-gcd1 :: Z
-        ->
-        Z
-        ->
-        Z
+gcd1 :: Z -> Z -> Z
 gcd1 a b =
   case a of {
-   Z0 ->
-    abs
-      b;
+   Z0 -> abs b;
    Zpos a0 ->
     case b of {
-     Z0 ->
-      abs
-        a;
-     Zpos b0 ->
-      Zpos
-      (gcd
-        a0
-        b0);
-     Zneg b0 ->
-      Zpos
-      (gcd
-        a0
-        b0)};
+     Z0 -> abs a;
+     Zpos b0 -> Zpos (gcd a0 b0);
+     Zneg b0 -> Zpos (gcd a0 b0)};
    Zneg a0 ->
     case b of {
-     Z0 ->
-      abs
-        a;
-     Zpos b0 ->
-      Zpos
-      (gcd
-        a0
-        b0);
-     Zneg b0 ->
-      Zpos
-      (gcd
-        a0
-        b0)}}
+     Z0 -> abs a;
+     Zpos b0 -> Zpos (gcd a0 b0);
+     Zneg b0 -> Zpos (gcd a0 b0)}}
 
-ggcd1 :: Z
-         ->
-         Z
-         ->
-         (,)
-         Z
-         ((,)
-         Z
-         Z)
+ggcd1 :: Z -> Z -> (,) Z ((,) Z Z)
 ggcd1 a b =
   case a of {
-   Z0 ->
-    (,)
-    (abs
-      b)
-    ((,)
-    Z0
-    (sgn
-      b));
+   Z0 -> (,) (abs b) ((,) Z0 (sgn b));
    Zpos a0 ->
     case b of {
-     Z0 ->
-      (,)
-      (abs
-        a)
-      ((,)
-      (sgn
-        a)
-      Z0);
+     Z0 -> (,) (abs a) ((,) (sgn a) Z0);
      Zpos b0 ->
-      case ggcd
-             a0
-             b0 of {
-       (,) g
-        p ->
+      case ggcd a0 b0 of {
+       (,) g p ->
         case p of {
-         (,) aa
-          bb ->
-          (,)
-          (Zpos
-          g)
-          ((,)
-          (Zpos
-          aa)
-          (Zpos
-          bb))}};
+         (,) aa bb -> (,) (Zpos g) ((,) (Zpos aa) (Zpos bb))}};
      Zneg b0 ->
-      case ggcd
-             a0
-             b0 of {
-       (,) g
-        p ->
+      case ggcd a0 b0 of {
+       (,) g p ->
         case p of {
-         (,) aa
-          bb ->
-          (,)
-          (Zpos
-          g)
-          ((,)
-          (Zpos
-          aa)
-          (Zneg
-          bb))}}};
+         (,) aa bb -> (,) (Zpos g) ((,) (Zpos aa) (Zneg bb))}}};
    Zneg a0 ->
     case b of {
-     Z0 ->
-      (,)
-      (abs
-        a)
-      ((,)
-      (sgn
-        a)
-      Z0);
+     Z0 -> (,) (abs a) ((,) (sgn a) Z0);
      Zpos b0 ->
-      case ggcd
-             a0
-             b0 of {
-       (,) g
-        p ->
+      case ggcd a0 b0 of {
+       (,) g p ->
         case p of {
-         (,) aa
-          bb ->
-          (,)
-          (Zpos
-          g)
-          ((,)
-          (Zneg
-          aa)
-          (Zpos
-          bb))}};
+         (,) aa bb -> (,) (Zpos g) ((,) (Zneg aa) (Zpos bb))}};
      Zneg b0 ->
-      case ggcd
-             a0
-             b0 of {
-       (,) g
-        p ->
+      case ggcd a0 b0 of {
+       (,) g p ->
         case p of {
-         (,) aa
-          bb ->
-          (,)
-          (Zpos
-          g)
-          ((,)
-          (Zneg
-          aa)
-          (Zneg
-          bb))}}}}
+         (,) aa bb -> (,) (Zpos g) ((,) (Zneg aa) (Zneg bb))}}}}
 
-testbit1 :: Z
-            ->
-            Z
-            ->
-            Prelude.Bool
+testbit1 :: Z -> Z -> Prelude.Bool
 testbit1 a n =
   case n of {
-   Z0 ->
-    odd0
-      a;
+   Z0 -> odd0 a;
    Zpos p ->
     case a of {
-     Z0 ->
-      Prelude.False;
-     Zpos a0 ->
-      testbit
-        a0
-        (Npos
-        p);
-     Zneg a0 ->
-      Prelude.not
-        (testbit0
-          (pred_N
-            a0)
-          (Npos
-          p))};
-   Zneg p ->
-    Prelude.False}
+     Z0 -> Prelude.False;
+     Zpos a0 -> testbit a0 (Npos p);
+     Zneg a0 -> Prelude.not (testbit0 (pred_N a0) (Npos p))};
+   Zneg p -> Prelude.False}
 
-shiftl1 :: Z
-           ->
-           Z
-           ->
-           Z
+shiftl1 :: Z -> Z -> Z
 shiftl1 a n =
   case n of {
-   Z0 ->
-    a;
-   Zpos p ->
-    iter
-      p
-      (mul1
-        (Zpos
-        (XO
-        XH)))
-      a;
-   Zneg p ->
-    iter
-      p
-      div3
-      a}
+   Z0 -> a;
+   Zpos p -> iter p (mul1 (Zpos (XO XH))) a;
+   Zneg p -> iter p div3 a}
 
-shiftr1 :: Z
-           ->
-           Z
-           ->
-           Z
+shiftr1 :: Z -> Z -> Z
 shiftr1 a n =
-  shiftl1
-    a
-    (opp
-      n)
+  shiftl1 a (opp n)
 
-lor1 :: Z
-        ->
-        Z
-        ->
-        Z
+lor1 :: Z -> Z -> Z
 lor1 a b =
   case a of {
-   Z0 ->
-    b;
+   Z0 -> b;
    Zpos a0 ->
     case b of {
-     Z0 ->
-      a;
-     Zpos b0 ->
-      Zpos
-      (lor
-        a0
-        b0);
-     Zneg b0 ->
-      Zneg
-      (succ_pos
-        (ldiff0
-          (pred_N
-            b0)
-          (Npos
-          a0)))};
+     Z0 -> a;
+     Zpos b0 -> Zpos (lor a0 b0);
+     Zneg b0 -> Zneg (succ_pos (ldiff0 (pred_N b0) (Npos a0)))};
    Zneg a0 ->
     case b of {
-     Z0 ->
-      a;
-     Zpos b0 ->
-      Zneg
-      (succ_pos
-        (ldiff0
-          (pred_N
-            a0)
-          (Npos
-          b0)));
-     Zneg b0 ->
-      Zneg
-      (succ_pos
-        (land0
-          (pred_N
-            a0)
-          (pred_N
-            b0)))}}
+     Z0 -> a;
+     Zpos b0 -> Zneg (succ_pos (ldiff0 (pred_N a0) (Npos b0)));
+     Zneg b0 -> Zneg (succ_pos (land0 (pred_N a0) (pred_N b0)))}}
 
-land1 :: Z
-         ->
-         Z
-         ->
-         Z
+land1 :: Z -> Z -> Z
 land1 a b =
   case a of {
-   Z0 ->
-    Z0;
+   Z0 -> Z0;
    Zpos a0 ->
     case b of {
-     Z0 ->
-      Z0;
-     Zpos b0 ->
-      of_N
-        (land
-          a0
-          b0);
-     Zneg b0 ->
-      of_N
-        (ldiff0
-          (Npos
-          a0)
-          (pred_N
-            b0))};
+     Z0 -> Z0;
+     Zpos b0 -> of_N (land a0 b0);
+     Zneg b0 -> of_N (ldiff0 (Npos a0) (pred_N b0))};
    Zneg a0 ->
     case b of {
-     Z0 ->
-      Z0;
-     Zpos b0 ->
-      of_N
-        (ldiff0
-          (Npos
-          b0)
-          (pred_N
-            a0));
-     Zneg b0 ->
-      Zneg
-      (succ_pos
-        (lor0
-          (pred_N
-            a0)
-          (pred_N
-            b0)))}}
+     Z0 -> Z0;
+     Zpos b0 -> of_N (ldiff0 (Npos b0) (pred_N a0));
+     Zneg b0 -> Zneg (succ_pos (lor0 (pred_N a0) (pred_N b0)))}}
 
-ldiff1 :: Z
-          ->
-          Z
-          ->
-          Z
+ldiff1 :: Z -> Z -> Z
 ldiff1 a b =
   case a of {
-   Z0 ->
-    Z0;
+   Z0 -> Z0;
    Zpos a0 ->
     case b of {
-     Z0 ->
-      a;
-     Zpos b0 ->
-      of_N
-        (ldiff
-          a0
-          b0);
-     Zneg b0 ->
-      of_N
-        (land0
-          (Npos
-          a0)
-          (pred_N
-            b0))};
+     Z0 -> a;
+     Zpos b0 -> of_N (ldiff a0 b0);
+     Zneg b0 -> of_N (land0 (Npos a0) (pred_N b0))};
    Zneg a0 ->
     case b of {
-     Z0 ->
-      a;
-     Zpos b0 ->
-      Zneg
-      (succ_pos
-        (lor0
-          (pred_N
-            a0)
-          (Npos
-          b0)));
-     Zneg b0 ->
-      of_N
-        (ldiff0
-          (pred_N
-            b0)
-          (pred_N
-            a0))}}
+     Z0 -> a;
+     Zpos b0 -> Zneg (succ_pos (lor0 (pred_N a0) (Npos b0)));
+     Zneg b0 -> of_N (ldiff0 (pred_N b0) (pred_N a0))}}
 
-lxor1 :: Z
-         ->
-         Z
-         ->
-         Z
+lxor1 :: Z -> Z -> Z
 lxor1 a b =
   case a of {
-   Z0 ->
-    b;
+   Z0 -> b;
    Zpos a0 ->
     case b of {
-     Z0 ->
-      a;
-     Zpos b0 ->
-      of_N
-        (lxor
-          a0
-          b0);
-     Zneg b0 ->
-      Zneg
-      (succ_pos
-        (lxor0
-          (Npos
-          a0)
-          (pred_N
-            b0)))};
+     Z0 -> a;
+     Zpos b0 -> of_N (lxor a0 b0);
+     Zneg b0 -> Zneg (succ_pos (lxor0 (Npos a0) (pred_N b0)))};
    Zneg a0 ->
     case b of {
-     Z0 ->
-      a;
-     Zpos b0 ->
-      Zneg
-      (succ_pos
-        (lxor0
-          (pred_N
-            a0)
-          (Npos
-          b0)));
-     Zneg b0 ->
-      of_N
-        (lxor0
-          (pred_N
-            a0)
-          (pred_N
-            b0))}}
+     Z0 -> a;
+     Zpos b0 -> Zneg (succ_pos (lxor0 (pred_N a0) (Npos b0)));
+     Zneg b0 -> of_N (lxor0 (pred_N a0) (pred_N b0))}}
 
-eq_dec1 :: Z
-           ->
-           Z
-           ->
-           Prelude.Bool
+eq_dec1 :: Z -> Z -> Prelude.Bool
 eq_dec1 x0 y0 =
-  z_rec
-    (\y1 ->
+  z_rec (\y1 ->
     case y1 of {
-     Z0 ->
-      Prelude.True;
-     _ ->
-      Prelude.False})
-    (\p y1 ->
+     Z0 -> Prelude.True;
+     _ -> Prelude.False}) (\p y1 ->
     case y1 of {
      Zpos p0 ->
-      sumbool_rec
-        (\_ ->
-        eq_rec_r
-          p0
-          Prelude.True
-          p)
-        (\_ ->
-        Prelude.False)
-        (eq_dec
-          p
-          p0);
-     _ ->
-      Prelude.False})
-    (\p y1 ->
+      sumbool_rec (\_ -> eq_rec_r p0 Prelude.True p) (\_ -> Prelude.False)
+        (eq_dec p p0);
+     _ -> Prelude.False}) (\p y1 ->
     case y1 of {
      Zneg p0 ->
-      sumbool_rec
-        (\_ ->
-        eq_rec_r
-          p0
-          Prelude.True
-          p)
-        (\_ ->
-        Prelude.False)
-        (eq_dec
-          p
-          p0);
-     _ ->
-      Prelude.False})
-    x0
-    y0
+      sumbool_rec (\_ -> eq_rec_r p0 Prelude.True p) (\_ -> Prelude.False)
+        (eq_dec p p0);
+     _ -> Prelude.False}) x0 y0
 
-leb_spec2 :: Z
-             ->
-             Z
-             ->
-             Reflect
+leb_spec2 :: Z -> Z -> Reflect
 leb_spec2 x0 y0 =
-  iff_reflect
-    (leb1
-      x0
-      y0)
+  iff_reflect (leb1 x0 y0)
 
-ltb_spec2 :: Z
-             ->
-             Z
-             ->
-             Reflect
+ltb_spec2 :: Z -> Z -> Reflect
 ltb_spec2 x0 y0 =
-  iff_reflect
-    (ltb1
-      x0
-      y0)
+  iff_reflect (ltb1 x0 y0)
 
-sqrt_up0 :: Z
-            ->
-            Z
+sqrt_up0 :: Z -> Z
 sqrt_up0 a =
-  case compare1
-         Z0
-         a of {
-   Lt ->
-    succ1
-      (sqrt1
-        (pred1
-          a));
-   _ ->
-    Z0}
+  case compare1 Z0 a of {
+   Lt -> succ1 (sqrt1 (pred1 a));
+   _ -> Z0}
 
-log2_up0 :: Z
-            ->
-            Z
+log2_up0 :: Z -> Z
 log2_up0 a =
-  case compare1
-         (Zpos
-         XH)
-         a of {
-   Lt ->
-    succ1
-      (log0
-        (pred1
-          a));
-   _ ->
-    Z0}
+  case compare1 (Zpos XH) a of {
+   Lt -> succ1 (log0 (pred1 a));
+   _ -> Z0}
 
-div4 :: Z
-        ->
-        Z
-        ->
-        Z
+div4 :: Z -> Z -> Z
 div4 =
   quot
 
-modulo1 :: Z
-           ->
-           Z
-           ->
-           Z
+modulo1 :: Z -> Z -> Z
 modulo1 =
   rem
 
-lcm0 :: Z
-        ->
-        Z
-        ->
-        Z
+lcm0 :: Z -> Z -> Z
 lcm0 a b =
-  abs
-    (mul1
-      a
-      (div1
-        b
-        (gcd1
-          a
-          b)))
+  abs (mul1 a (div1 b (gcd1 a b)))
 
-eqb_spec1 :: Z
-             ->
-             Z
-             ->
-             Reflect
+eqb_spec1 :: Z -> Z -> Reflect
 eqb_spec1 x0 y0 =
-  iff_reflect
-    (eqb1
-      x0
-      y0)
+  iff_reflect (eqb1 x0 y0)
 
-b2z :: Prelude.Bool
-       ->
-       Z
+b2z :: Prelude.Bool -> Z
 b2z b =
   case b of {
-   Prelude.True ->
-    Zpos
-    XH;
-   Prelude.False ->
-    Z0}
+   Prelude.True -> Zpos XH;
+   Prelude.False -> Z0}
 
-setbit0 :: Z
-           ->
-           Z
-           ->
-           Z
+setbit0 :: Z -> Z -> Z
 setbit0 a n =
-  lor1
-    a
-    (shiftl1
-      (Zpos
-      XH)
-      n)
+  lor1 a (shiftl1 (Zpos XH) n)
 
-clearbit0 :: Z
-             ->
-             Z
-             ->
-             Z
+clearbit0 :: Z -> Z -> Z
 clearbit0 a n =
-  ldiff1
-    a
-    (shiftl1
-      (Zpos
-      XH)
-      n)
+  ldiff1 a (shiftl1 (Zpos XH) n)
 
-lnot0 :: Z
-         ->
-         Z
+lnot0 :: Z -> Z
 lnot0 a =
-  pred1
-    (opp
-      a)
+  pred1 (opp a)
 
-ones0 :: Z
-         ->
-         Z
+ones0 :: Z -> Z
 ones0 n =
-  pred1
-    (shiftl1
-      (Zpos
-      XH)
-      n)
+  pred1 (shiftl1 (Zpos XH) n)
 
-max_case_strong3 :: Z
-                    ->
-                    Z
-                    ->
-                    (Z
-                    ->
-                    Z
-                    ->
-                    ()
-                    ->
-                    a1
-                    ->
-                    a1)
-                    ->
-                    (()
-                    ->
-                    a1)
-                    ->
-                    (()
-                    ->
-                    a1)
-                    ->
-                    a1
+max_case_strong3 :: Z -> Z -> (Z -> Z -> () -> a1 -> a1) -> (() -> a1) -> (()
+                    -> a1) -> a1
 max_case_strong3 n m compat hl hr =
-  let {
-   c = compSpec2Type
-         n
-         m
-         (compare1
-           n
-           m)}
-  in
+  let {c = compSpec2Type n m (compare1 n m)} in
   case c of {
-   CompGtT ->
-    compat
-      n
-      (max1
-        n
-        m)
-      __
-      (hl
-        __);
-   _ ->
-    compat
-      m
-      (max1
-        n
-        m)
-      __
-      (hr
-        __)}
+   CompGtT -> compat n (max1 n m) __ (hl __);
+   _ -> compat m (max1 n m) __ (hr __)}
 
-max_case3 :: Z
-             ->
-             Z
-             ->
-             (Z
-             ->
-             Z
-             ->
-             ()
-             ->
-             a1
-             ->
-             a1)
-             ->
-             a1
-             ->
-             a1
-             ->
-             a1
+max_case3 :: Z -> Z -> (Z -> Z -> () -> a1 -> a1) -> a1 -> a1 -> a1
 max_case3 n m x0 x1 x2 =
-  max_case_strong3
-    n
-    m
-    x0
-    (\_ ->
-    x1)
-    (\_ ->
-    x2)
+  max_case_strong3 n m x0 (\_ -> x1) (\_ -> x2)
 
-max_dec3 :: Z
-            ->
-            Z
-            ->
-            Prelude.Bool
+max_dec3 :: Z -> Z -> Prelude.Bool
 max_dec3 n m =
-  max_case3
-    n
-    m
-    (\x0 y0 _ h0 ->
-    h0)
-    Prelude.True
-    Prelude.False
+  max_case3 n m (\x0 y0 _ h0 -> h0) Prelude.True Prelude.False
 
-min_case_strong3 :: Z
-                    ->
-                    Z
-                    ->
-                    (Z
-                    ->
-                    Z
-                    ->
-                    ()
-                    ->
-                    a1
-                    ->
-                    a1)
-                    ->
-                    (()
-                    ->
-                    a1)
-                    ->
-                    (()
-                    ->
-                    a1)
-                    ->
-                    a1
+min_case_strong3 :: Z -> Z -> (Z -> Z -> () -> a1 -> a1) -> (() -> a1) -> (()
+                    -> a1) -> a1
 min_case_strong3 n m compat hl hr =
-  let {
-   c = compSpec2Type
-         n
-         m
-         (compare1
-           n
-           m)}
-  in
+  let {c = compSpec2Type n m (compare1 n m)} in
   case c of {
-   CompGtT ->
-    compat
-      m
-      (min1
-        n
-        m)
-      __
-      (hr
-        __);
-   _ ->
-    compat
-      n
-      (min1
-        n
-        m)
-      __
-      (hl
-        __)}
+   CompGtT -> compat m (min1 n m) __ (hr __);
+   _ -> compat n (min1 n m) __ (hl __)}
 
-min_case3 :: Z
-             ->
-             Z
-             ->
-             (Z
-             ->
-             Z
-             ->
-             ()
-             ->
-             a1
-             ->
-             a1)
-             ->
-             a1
-             ->
-             a1
-             ->
-             a1
+min_case3 :: Z -> Z -> (Z -> Z -> () -> a1 -> a1) -> a1 -> a1 -> a1
 min_case3 n m x0 x1 x2 =
-  min_case_strong3
-    n
-    m
-    x0
-    (\_ ->
-    x1)
-    (\_ ->
-    x2)
+  min_case_strong3 n m x0 (\_ -> x1) (\_ -> x2)
 
-min_dec3 :: Z
-            ->
-            Z
-            ->
-            Prelude.Bool
+min_dec3 :: Z -> Z -> Prelude.Bool
 min_dec3 n m =
-  min_case3
-    n
-    m
-    (\x0 y0 _ h0 ->
-    h0)
-    Prelude.True
-    Prelude.False
+  min_case3 n m (\x0 y0 _ h0 -> h0) Prelude.True Prelude.False
 
-max_case_strong4 :: Z
-                    ->
-                    Z
-                    ->
-                    (()
-                    ->
-                    a1)
-                    ->
-                    (()
-                    ->
-                    a1)
-                    ->
-                    a1
+max_case_strong4 :: Z -> Z -> (() -> a1) -> (() -> a1) -> a1
 max_case_strong4 n m x0 x1 =
-  max_case_strong3
-    n
-    m
-    (\x2 y0 _ x3 ->
-    eq_rect
-      __
-      x3
-      __)
-    x0
-    x1
+  max_case_strong3 n m (\x2 y0 _ x3 -> eq_rect __ x3 __) x0 x1
 
-max_case4 :: Z
-             ->
-             Z
-             ->
-             a1
-             ->
-             a1
-             ->
-             a1
+max_case4 :: Z -> Z -> a1 -> a1 -> a1
 max_case4 n m x0 x1 =
-  max_case_strong4
-    n
-    m
-    (\_ ->
-    x0)
-    (\_ ->
-    x1)
+  max_case_strong4 n m (\_ -> x0) (\_ -> x1)
 
-max_dec4 :: Z
-            ->
-            Z
-            ->
-            Prelude.Bool
+max_dec4 :: Z -> Z -> Prelude.Bool
 max_dec4 =
   max_dec3
 
-min_case_strong4 :: Z
-                    ->
-                    Z
-                    ->
-                    (()
-                    ->
-                    a1)
-                    ->
-                    (()
-                    ->
-                    a1)
-                    ->
-                    a1
+min_case_strong4 :: Z -> Z -> (() -> a1) -> (() -> a1) -> a1
 min_case_strong4 n m x0 x1 =
-  min_case_strong3
-    n
-    m
-    (\x2 y0 _ x3 ->
-    eq_rect
-      __
-      x3
-      __)
-    x0
-    x1
+  min_case_strong3 n m (\x2 y0 _ x3 -> eq_rect __ x3 __) x0 x1
 
-min_case4 :: Z
-             ->
-             Z
-             ->
-             a1
-             ->
-             a1
-             ->
-             a1
+min_case4 :: Z -> Z -> a1 -> a1 -> a1
 min_case4 n m x0 x1 =
-  min_case_strong4
-    n
-    m
-    (\_ ->
-    x0)
-    (\_ ->
-    x1)
+  min_case_strong4 n m (\_ -> x0) (\_ -> x1)
 
-min_dec4 :: Z
-            ->
-            Z
-            ->
-            Prelude.Bool
+min_dec4 :: Z -> Z -> Prelude.Bool
 min_dec4 =
   min_dec3
 
-z_lt_dec :: Z
-            ->
-            Z
-            ->
-            Prelude.Bool
+z_lt_dec :: Z -> Z -> Prelude.Bool
 z_lt_dec x0 y0 =
-  case compare1
-         x0
-         y0 of {
-   Lt ->
-    Prelude.True;
-   _ ->
-    Prelude.False}
+  case compare1 x0 y0 of {
+   Lt -> Prelude.True;
+   _ -> Prelude.False}
 
-z_lt_ge_dec :: Z
-               ->
-               Z
-               ->
-               Prelude.Bool
+z_lt_ge_dec :: Z -> Z -> Prelude.Bool
 z_lt_ge_dec x0 y0 =
-  z_lt_dec
-    x0
-    y0
+  z_lt_dec x0 y0
 
-z_lt_le_dec :: Z
-               ->
-               Z
-               ->
-               Prelude.Bool
+z_lt_le_dec :: Z -> Z -> Prelude.Bool
 z_lt_le_dec x0 y0 =
-  sumbool_rec
-    (\_ ->
-    Prelude.True)
-    (\_ ->
-    Prelude.False)
-    (z_lt_ge_dec
-      x0
-      y0)
+  sumbool_rec (\_ -> Prelude.True) (\_ -> Prelude.False) (z_lt_ge_dec x0 y0)
 
-pow_pos0 :: (a1
-            ->
-            a1
-            ->
-            a1)
-            ->
-            a1
-            ->
-            Positive
-            ->
-            a1
+pow_pos0 :: (a1 -> a1 -> a1) -> a1 -> Positive -> a1
 pow_pos0 rmul x0 i =
   case i of {
-   XI i0 ->
-    let {
-     p = pow_pos0
-           rmul
-           x0
-           i0}
-    in
-    rmul
-      x0
-      (rmul
-        p
-        p);
-   XO i0 ->
-    let {
-     p = pow_pos0
-           rmul
-           x0
-           i0}
-    in
-    rmul
-      p
-      p;
-   XH ->
-    x0}
+   XI i0 -> let {p = pow_pos0 rmul x0 i0} in rmul x0 (rmul p p);
+   XO i0 -> let {p = pow_pos0 rmul x0 i0} in rmul p p;
+   XH -> x0}
 
-type DecEq
-  t =
-  t
-  ->
-  t
-  ->
-  Prelude.Bool
+type DecEq t =
+  t -> t -> Prelude.Bool
   -- singleton inductive, whose constructor was Build_DecEq
   
-eqdec :: (DecEq
-         a1)
-         ->
-         a1
-         ->
-         a1
-         ->
-         Prelude.Bool
+eqdec :: (DecEq a1) -> a1 -> a1 -> Prelude.Bool
 eqdec decEq =
   decEq
 
-type Csymmetric
-  a r =
-  a
-  ->
-  a
-  ->
-  r
-  ->
-  r
+type Csymmetric a r = a -> a -> r -> r
 
 data Stream a =
-   Cons a (Stream
-          a)
+   Cons a (Stream a)
 
-hd :: (Stream
-      a1)
-      ->
-      a1
+hd :: (Stream a1) -> a1
 hd x0 =
   case x0 of {
-   Cons a
-    s ->
-    a}
+   Cons a s -> a}
 
-tl :: (Stream
-      a1)
-      ->
-      Stream
-      a1
+tl :: (Stream a1) -> Stream a1
 tl x0 =
   case x0 of {
-   Cons a
-    s ->
-    s}
+   Cons a s -> s}
 
-map0 :: (a1
-        ->
-        a2)
-        ->
-        (Stream
-        a1)
-        ->
-        Stream
-        a2
+map0 :: (a1 -> a2) -> (Stream a1) -> Stream a2
 map0 f s =
-  Cons
-    (f
-      (hd
-        s))
-    (map0
-      f
-      (tl
-        s))
+  Cons (f (hd s)) (map0 f (tl s))
 
-zipWith :: (a1
-           ->
-           a2
-           ->
-           a3)
-           ->
-           (Stream
-           a1)
-           ->
-           (Stream
-           a2)
-           ->
-           Stream
-           a3
+zipWith :: (a1 -> a2 -> a3) -> (Stream a1) -> (Stream a2) -> Stream a3
 zipWith f a b =
-  Cons
-    (f
-      (hd
-        a)
-      (hd
-        b))
-    (zipWith
-      f
-      (tl
-        a)
-      (tl
-        b))
+  Cons (f (hd a) (hd b)) (zipWith f (tl a) (tl b))
 
-type Cast
-  a b =
-  a
-  ->
-  b
+type Cast a b = a -> b
 
-cast :: (Cast
-        a1
-        a2)
-        ->
-        a1
-        ->
-        a2
+cast :: (Cast a1 a2) -> a1 -> a2
 cast cast0 =
   cast0
 
-type Plus
-  a =
-  a
-  ->
-  a
-  ->
-  a
+type Plus a = a -> a -> a
 
-plus0 :: (Plus
-         a1)
-         ->
-         a1
-         ->
-         a1
-         ->
-         a1
+plus0 :: (Plus a1) -> a1 -> a1 -> a1
 plus0 plus1 =
   plus1
 
-type Mult
-  a =
-  a
-  ->
-  a
-  ->
-  a
+type Mult a = a -> a -> a
 
-mult :: (Mult
-        a1)
-        ->
-        a1
-        ->
-        a1
-        ->
-        a1
+mult :: (Mult a1) -> a1 -> a1 -> a1
 mult mult0 =
   mult0
 
-type One
-  a =
-  a
+type One a = a
 
-one1 :: (One
-        a1)
-        ->
-        a1
+one1 :: (One a1) -> a1
 one1 one2 =
   one2
 
-type Zero
-  a =
-  a
+type Zero a = a
 
-zero1 :: (Zero
-         a1)
-         ->
-         a1
+zero1 :: (Zero a1) -> a1
 zero1 zero2 =
   zero2
 
-type Negate
-  a =
-  a
-  ->
-  a
+type Negate a = a -> a
 
-negate :: (Negate
-          a1)
-          ->
-          a1
-          ->
-          a1
+negate :: (Negate a1) -> a1 -> a1
 negate negate0 =
   negate0
 
-type NonNeg
-  r =
-  r
+type NonNeg r = r
 
-type Decision
-  =
-  Prelude.Bool
+type Decision = Prelude.Bool
 
-decide :: Decision
-          ->
-          Prelude.Bool
+decide :: Decision -> Prelude.Bool
 decide decision =
   decision
 
-decide_rel :: (a1
-              ->
-              a2
-              ->
-              Decision)
-              ->
-              a1
-              ->
-              a2
-              ->
-              Decision
+decide_rel :: (a1 -> a2 -> Decision) -> a1 -> a2 -> Decision
 decide_rel dec x0 y0 =
-  dec
-    x0
-    y0
+  dec x0 y0
 
 data RSetoid =
    Build_RSetoid
 
-type St_car
-  =
-  ()
+type St_car = Any
 
-type Cotransitive
-  a r =
-  a
-  ->
-  a
-  ->
-  r
-  ->
-  a
-  ->
-  Prelude.Either
-  r
-  r
+type Cotransitive a r = a -> a -> r -> a -> Prelude.Either r r
 
 data Is_CSetoid a ap =
-   Build_is_CSetoid (Csymmetric
-                    a
-                    ap) (Cotransitive
-                        a
-                        ap)
+   Build_is_CSetoid (Csymmetric a ap) (Cotransitive a ap)
 
 data CSetoid =
-   MakeCSetoid RSetoid (Is_CSetoid
-                       St_car
-                       ())
+   MakeCSetoid RSetoid (Is_CSetoid St_car Any)
 
-cs_crr :: CSetoid
-          ->
-          RSetoid
+cs_crr :: CSetoid -> RSetoid
 cs_crr c =
   case c of {
-   MakeCSetoid cs_crr0
-    cs_proof ->
-    cs_crr0}
+   MakeCSetoid cs_crr0 cs_proof -> cs_crr0}
 
-type Cs_ap
-  =
-  ()
+type Cs_ap = Any
 
-build_CSetoid :: (Is_CSetoid
-                 a1
-                 a2)
-                 ->
-                 CSetoid
+build_CSetoid :: (Is_CSetoid a1 a2) -> CSetoid
 build_CSetoid p =
-  MakeCSetoid
-    Build_RSetoid
-    (unsafeCoerce
-      p)
+  MakeCSetoid Build_RSetoid (unsafeCoerce p)
 
-type Bin_fun_strext
-  =
-  St_car
-  ->
-  St_car
-  ->
-  St_car
-  ->
-  St_car
-  ->
-  Cs_ap
-  ->
-  Prelude.Either
-  Cs_ap
-  Cs_ap
+type Bin_fun_strext =
+  St_car -> St_car -> St_car -> St_car -> Cs_ap -> Prelude.Either Cs_ap Cs_ap
 
 data CSetoid_bin_fun =
-   Build_CSetoid_bin_fun (St_car
-                         ->
-                         St_car
-                         ->
-                         St_car) Bin_fun_strext
+   Build_CSetoid_bin_fun (St_car -> St_car -> St_car) Bin_fun_strext
 
-csbf_fun :: CSetoid
-            ->
-            CSetoid
-            ->
-            CSetoid
-            ->
-            CSetoid_bin_fun
-            ->
-            St_car
-            ->
-            St_car
-            ->
-            St_car
+csbf_fun :: CSetoid -> CSetoid -> CSetoid -> CSetoid_bin_fun -> St_car ->
+            St_car -> St_car
 csbf_fun s1 s2 s3 c =
   case c of {
-   Build_CSetoid_bin_fun csbf_fun0
-    csbf_strext ->
-    csbf_fun0}
+   Build_CSetoid_bin_fun csbf_fun0 csbf_strext -> csbf_fun0}
 
-type CSetoid_bin_op
-  =
-  CSetoid_bin_fun
+type CSetoid_bin_op = CSetoid_bin_fun
 
 data CSemiGroup =
    Build_CSemiGroup CSetoid CSetoid_bin_op
 
-csg_crr :: CSemiGroup
-           ->
-           CSetoid
+csg_crr :: CSemiGroup -> CSetoid
 csg_crr c =
   case c of {
-   Build_CSemiGroup csg_crr0
-    csg_op0 ->
-    csg_crr0}
+   Build_CSemiGroup csg_crr0 csg_op0 -> csg_crr0}
 
-csg_op :: CSemiGroup
-          ->
-          CSetoid_bin_op
+csg_op :: CSemiGroup -> CSetoid_bin_op
 csg_op c =
   case c of {
-   Build_CSemiGroup csg_crr0
-    csg_op0 ->
-    csg_op0}
+   Build_CSemiGroup csg_crr0 csg_op0 -> csg_op0}
 
-type SqrtFun
-  a b =
-  a
-  ->
-  b
+type SqrtFun a b = a -> b
 
-sqrtFun :: (SqrtFun
-           a1
-           a2)
-           ->
-           a1
-           ->
-           a2
+sqrtFun :: (SqrtFun a1 a2) -> a1 -> a2
 sqrtFun sqrtFun0 =
   sqrtFun0
 
-type RealNumberPi
-  r =
-  r
+type RealNumberPi r = r
 
-__U03c0_ :: (RealNumberPi
-            a1)
-            ->
-            a1
+__U03c0_ :: (RealNumberPi a1) -> a1
 __U03c0_ realNumberPi =
   realNumberPi
 
-type HalfNum
-  r =
-  r
+type HalfNum r = r
 
-half_num :: (HalfNum
-            a1)
-            ->
-            a1
+half_num :: (HalfNum a1) -> a1
 half_num halfNum =
   halfNum
 
-type NormSpace
-  a b =
-  a
-  ->
-  b
+type NormSpace a b = a -> b
 
-norm :: (NormSpace
-        a1
-        a2)
-        ->
-        a1
-        ->
-        a2
+norm :: (NormSpace a1 a2) -> a1 -> a2
 norm normSpace =
   normSpace
 
 data Cart2D t =
    MkCart2D t t
 
-x :: (Cart2D
-     a1)
-     ->
-     a1
+x :: (Cart2D a1) -> a1
 x c =
   case c of {
-   MkCart2D x0
-    y0 ->
-    x0}
+   MkCart2D x0 y0 -> x0}
 
-y :: (Cart2D
-     a1)
-     ->
-     a1
+y :: (Cart2D a1) -> a1
 y c =
   case c of {
-   MkCart2D x0
-    y0 ->
-    y0}
+   MkCart2D x0 y0 -> y0}
 
 data Polar2D t =
    MkPolar2D t t
 
-rad :: (Polar2D
-       a1)
-       ->
-       a1
+rad :: (Polar2D a1) -> a1
 rad p =
   case p of {
-   MkPolar2D rad0
-    __U03b8_0 ->
-    rad0}
+   MkPolar2D rad0 __U03b8_0 -> rad0}
 
-__U03b8_ :: (Polar2D
-            a1)
-            ->
-            a1
+__U03b8_ :: (Polar2D a1) -> a1
 __U03b8_ p =
   case p of {
-   MkPolar2D rad0
-    __U03b8_0 ->
-    __U03b8_0}
+   MkPolar2D rad0 __U03b8_0 -> __U03b8_0}
 
-normSpace_instance_Cart2D :: (SqrtFun
-                             a1
-                             a2)
-                             ->
-                             (Plus
-                             a1)
-                             ->
-                             (Mult
-                             a1)
-                             ->
-                             NormSpace
-                             (Cart2D
-                             a1)
-                             a2
+normSpace_instance_Cart2D :: (SqrtFun a1 a2) -> (Plus a1) -> (Mult a1) ->
+                             NormSpace (Cart2D a1) a2
 normSpace_instance_Cart2D h h0 h1 cart =
-  sqrtFun
-    h
-    (plus0
-      h0
-      (mult
-        h1
-        (x
-          cart)
-        (x
-          cart))
-      (mult
-        h1
-        (y
-          cart)
-        (y
-          cart)))
+  sqrtFun h
+    (plus0 h0 (mult h1 (x cart) (x cart)) (mult h1 (y cart) (y cart)))
 
 data Q =
    Qmake Z Positive
 
-qnum :: Q
-        ->
-        Z
+qnum :: Q -> Z
 qnum q =
   case q of {
-   Qmake qnum0
-    qden0 ->
-    qnum0}
+   Qmake qnum0 qden0 -> qnum0}
 
-qden :: Q
-        ->
-        Positive
+qden :: Q -> Positive
 qden q =
   case q of {
-   Qmake qnum0
-    qden0 ->
-    qden0}
+   Qmake qnum0 qden0 -> qden0}
 
-inject_Z :: Z
-            ->
-            Q
+inject_Z :: Z -> Q
 inject_Z x0 =
-  Qmake
-    x0
-    XH
+  Qmake x0 XH
 
-qcompare :: Q
-            ->
-            Q
-            ->
-            Comparison
+qcompare :: Q -> Q -> Comparison
 qcompare p q =
-  compare1
-    (mul1
-      (qnum
-        p)
-      (Zpos
-      (qden
-        q)))
-    (mul1
-      (qnum
-        q)
-      (Zpos
-      (qden
-        p)))
+  compare1 (mul1 (qnum p) (Zpos (qden q))) (mul1 (qnum q) (Zpos (qden p)))
 
-qeq_dec :: Q
-           ->
-           Q
-           ->
-           Prelude.Bool
+qeq_dec :: Q -> Q -> Prelude.Bool
 qeq_dec x0 y0 =
-  eq_dec1
-    (mul1
-      (qnum
-        x0)
-      (Zpos
-      (qden
-        y0)))
-    (mul1
-      (qnum
-        y0)
-      (Zpos
-      (qden
-        x0)))
+  eq_dec1 (mul1 (qnum x0) (Zpos (qden y0))) (mul1 (qnum y0) (Zpos (qden x0)))
 
-qplus :: Q
-         ->
-         Q
-         ->
-         Q
+qplus :: Q -> Q -> Q
 qplus x0 y0 =
   Qmake
-    (add1
-      (mul1
-        (qnum
-          x0)
-        (Zpos
-        (qden
-          y0)))
-      (mul1
-        (qnum
-          y0)
-        (Zpos
-        (qden
-          x0))))
-    (mul
-      (qden
-        x0)
-      (qden
-        y0))
+    (add1 (mul1 (qnum x0) (Zpos (qden y0)))
+      (mul1 (qnum y0) (Zpos (qden x0)))) (mul (qden x0) (qden y0))
 
-qmult :: Q
-         ->
-         Q
-         ->
-         Q
+qmult :: Q -> Q -> Q
 qmult x0 y0 =
-  Qmake
-    (mul1
-      (qnum
-        x0)
-      (qnum
-        y0))
-    (mul
-      (qden
-        x0)
-      (qden
-        y0))
+  Qmake (mul1 (qnum x0) (qnum y0)) (mul (qden x0) (qden y0))
 
-qopp :: Q
-        ->
-        Q
+qopp :: Q -> Q
 qopp x0 =
-  Qmake
-    (opp
-      (qnum
-        x0))
-    (qden
-      x0)
+  Qmake (opp (qnum x0)) (qden x0)
 
-qminus :: Q
-          ->
-          Q
-          ->
-          Q
+qminus :: Q -> Q -> Q
 qminus x0 y0 =
-  qplus
-    x0
-    (qopp
-      y0)
+  qplus x0 (qopp y0)
 
-qinv :: Q
-        ->
-        Q
+qinv :: Q -> Q
 qinv x0 =
-  case qnum
-         x0 of {
-   Z0 ->
-    Qmake
-    Z0
-    XH;
-   Zpos p ->
-    Qmake
-    (Zpos
-    (qden
-      x0))
-    p;
-   Zneg p ->
-    Qmake
-    (Zneg
-    (qden
-      x0))
-    p}
+  case qnum x0 of {
+   Z0 -> Qmake Z0 XH;
+   Zpos p -> Qmake (Zpos (qden x0)) p;
+   Zneg p -> Qmake (Zneg (qden x0)) p}
 
-qdiv :: Q
-        ->
-        Q
-        ->
-        Q
+qdiv :: Q -> Q -> Q
 qdiv x0 y0 =
-  qmult
-    x0
-    (qinv
-      y0)
+  qmult x0 (qinv y0)
 
-qlt_le_dec :: Q
-              ->
-              Q
-              ->
-              Prelude.Bool
+qlt_le_dec :: Q -> Q -> Prelude.Bool
 qlt_le_dec x0 y0 =
-  z_lt_le_dec
-    (mul1
-      (qnum
-        x0)
-      (Zpos
-      (qden
-        y0)))
-    (mul1
-      (qnum
-        y0)
-      (Zpos
-      (qden
-        x0)))
+  z_lt_le_dec (mul1 (qnum x0) (Zpos (qden y0)))
+    (mul1 (qnum y0) (Zpos (qden x0)))
 
-qpower_positive :: Q
-                   ->
-                   Positive
-                   ->
-                   Q
+qpower_positive :: Q -> Positive -> Q
 qpower_positive q p =
-  pow_pos0
-    qmult
-    q
-    p
+  pow_pos0 qmult q p
 
-qpower :: Q
-          ->
-          Z
-          ->
-          Q
+qpower :: Q -> Z -> Q
 qpower q z =
   case z of {
-   Z0 ->
-    Qmake
-    (Zpos
-    XH)
-    XH;
-   Zpos p ->
-    qpower_positive
-      q
-      p;
-   Zneg p ->
-    qinv
-      (qpower_positive
-        q
-        p)}
+   Z0 -> Qmake (Zpos XH) XH;
+   Zpos p -> qpower_positive q p;
+   Zneg p -> qinv (qpower_positive q p)}
 
-qred :: Q
-        ->
-        Q
+qred :: Q -> Q
 qred q =
   case q of {
-   Qmake q1
-    q2 ->
-    case snd
-           (ggcd1
-             q1
-             (Zpos
-             q2)) of {
-     (,) r1
-      r2 ->
-      Qmake
-      r1
-      (to_pos
-        r2)}}
+   Qmake q1 q2 ->
+    case snd (ggcd1 q1 (Zpos q2)) of {
+     (,) r1 r2 -> Qmake r1 (to_pos r2)}}
 
-qminus' :: Q
-           ->
-           Q
-           ->
-           Q
+qminus' :: Q -> Q -> Q
 qminus' x0 y0 =
-  qred
-    (qminus
-      x0
-      y0)
+  qred (qminus x0 y0)
 
-qabs :: Q
-        ->
-        Q
+qabs :: Q -> Q
 qabs x0 =
   case x0 of {
-   Qmake n
-    d ->
-    Qmake
-    (abs
-      n)
-    d}
+   Qmake n d -> Qmake (abs n) d}
 
-qfloor :: Q
-          ->
-          Z
+qfloor :: Q -> Z
 qfloor x0 =
   case x0 of {
-   Qmake n
-    d ->
-    div1
-      n
-      (Zpos
-      d)}
+   Qmake n d -> div1 n (Zpos d)}
 
-ap_Q_cotransitive0 :: Q
-                      ->
-                      Q
-                      ->
-                      Q
-                      ->
-                      Prelude.Either
-                      ()
-                      ()
+ap_Q_cotransitive0 :: Q -> Q -> Q -> Prelude.Either () ()
 ap_Q_cotransitive0 x0 y0 z =
-  case qeq_dec
-         x0
-         z of {
-   Prelude.True ->
-    Prelude.Right
-    __;
-   Prelude.False ->
-    Prelude.Left
-    __}
+  case qeq_dec x0 z of {
+   Prelude.True -> Prelude.Right __;
+   Prelude.False -> Prelude.Left __}
 
-qplus_strext0 :: Q
-                 ->
-                 Q
-                 ->
-                 Q
-                 ->
-                 Q
-                 ->
-                 Prelude.Either
-                 ()
-                 ()
+qplus_strext0 :: Q -> Q -> Q -> Q -> Prelude.Either () ()
 qplus_strext0 x1 x2 y1 y2 =
-  case qeq_dec
-         x1
-         x2 of {
-   Prelude.True ->
-    Prelude.Right
-    __;
-   Prelude.False ->
-    Prelude.Left
-    __}
+  case qeq_dec x1 x2 of {
+   Prelude.True -> Prelude.Right __;
+   Prelude.False -> Prelude.Left __}
 
-ap_Q_cotransitive1 :: Q
-                      ->
-                      Q
-                      ->
-                      Q
-                      ->
-                      Prelude.Either
-                      ()
-                      ()
+ap_Q_cotransitive1 :: Q -> Q -> Q -> Prelude.Either () ()
 ap_Q_cotransitive1 x0 y0 z =
-  ap_Q_cotransitive0
-    x0
-    y0
-    z
+  ap_Q_cotransitive0 x0 y0 z
 
-ap_Q_is_apartness :: Is_CSetoid
-                     Q
-                     ()
+ap_Q_is_apartness :: Is_CSetoid Q ()
 ap_Q_is_apartness =
-  Build_is_CSetoid
-    __
-    (\x0 x1 _ ->
-    ap_Q_cotransitive1
-      x0
-      x1)
+  Build_is_CSetoid __ (\x0 x1 _ -> ap_Q_cotransitive1 x0 x1)
 
 q_as_CSetoid :: CSetoid
 q_as_CSetoid =
-  build_CSetoid
-    ap_Q_is_apartness
+  build_CSetoid ap_Q_is_apartness
 
 q_is_Setoid :: RSetoid
 q_is_Setoid =
-  cs_crr
-    q_as_CSetoid
+  cs_crr q_as_CSetoid
 
 qplus_strext1 :: St_car -> St_car -> St_car -> St_car -> Prelude.Either 
                  Cs_ap Cs_ap
@@ -4660,7 +2413,7 @@ q_as_CSemiGroup =
 type MsgHandlerType s i o = s -> i -> (,) s o
 
 data Process in0 out =
-   Build_Process () (MsgHandlerType () in0 out)
+   Build_Process Any (MsgHandlerType Any in0 out)
 
 type Qpos = Q
 
@@ -4700,7 +2453,7 @@ qabsQpos x0 =
 data RosTopicType rT =
    Build_RosTopicType
 
-type TopicType rT = ()
+type TopicType rT = Any
 
 type Header =
   Q
@@ -5506,14 +3259,3 @@ map3 f inp =
     case xy of {
      (,) x0 y0 -> (,) ((,) (f x0) (f y0)) (f z)}}
 
-{-the code below was manually written, not extracted from Coq-}
-pos2Int :: Positive -> Prelude.Integer
-pos2Int XH = 1
-pos2Int (XO p) = (Prelude.+) (pos2Int p)  (pos2Int p)
-pos2Int (XI p) = (Prelude.+) (pos2Int p)  ((Prelude.+) (pos2Int p) 1)
- 
- 
-toInt :: Z -> Prelude.Integer
-toInt Z0 = 0
-toInt (Zpos p) = pos2Int p
-toInt (Zneg p) = (Prelude.negate) (pos2Int p)
