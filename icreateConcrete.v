@@ -114,6 +114,7 @@ Definition QDenOp  : option Q -> option positive :=
   option_map Qden.
 
 
+
 (* Require Import ExtrOcamlBigIntConv. *)
 
 (*
@@ -131,11 +132,28 @@ Definition robotOutput : list (Q ** Polar2D Q) :=
     (robotProgramInstance 
     initDelayLin target1Metres).
 
-(* Extraction Language Haskell. *)
+Definition projNums  (inp : (Q ** Polar2D Q))
+  : Z ** Z ** Z :=
+  let (del,pos) := inp in
+  (Qnum del, Qnum (rad pos), Qnum (θ pos)).
+
+
+Definition robotOutputInts : list (Z ** Z ** Z) :=
+    map  projNums robotOutput.
+
+Definition map3 {A B: Type} (f:A -> B) 
+  (inp: A ** A ** A) : B ** B ** B :=
+  let (xy,z)  := inp in
+  let (x,y) := xy in
+  ((f x, f y), f z).
+
+ 
+Extraction Language Haskell. 
+Require Import ExtrHaskellBasic.
 
 Extraction 
-  (* "extraction/roboExtract.hs" *)
-  "extraction/roboExtract.ml" 
+  "extraction/roboExtract.hs"
+  (* "extraction/roboExtract.ml" *)
  (* mkInpMsgFromBig *)
   robotProgramInstance 
   SwProcessInstance
@@ -144,4 +162,4 @@ Extraction
           speedMetresPerSec
           initDelayLin
           delEpsSec
-          delResSecInv robotOutput.
+          delResSecInv robotOutputInts map3.
