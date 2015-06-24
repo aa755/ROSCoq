@@ -114,8 +114,9 @@ Definition QDenOp  : option Q -> option positive :=
   option_map Qden.
 
 
-Require Import ExtrOcamlBigIntConv.
+(* Require Import ExtrOcamlBigIntConv. *)
 
+(*
 Definition QFromBigInts (num den: bigint) : Q :=
   Qmake (z_of_bigint num) (pos_of_bigint den).
 
@@ -124,16 +125,23 @@ Definition QFromBigInt (num : bigint) : Q :=
 
 Definition mkInpMsgFromBig (x y : bigint) : Message 
   := mkTargetMsg {|X:= QFromBigInt x; Y:= QFromBigInt y|}.
+*)
 
-Extraction "roboExtract.ml" mkInpMsgFromBig 
-  robotProgramInstance initDelayLin target1Metres
+Definition robotOutput : list (Q ** Polar2D Q) :=
+    (robotProgramInstance 
+    initDelayLin target1Metres).
+
+(* Extraction Language Haskell. *)
+
+Extraction 
+  (* "extraction/roboExtract.hs" *)
+  "extraction/roboExtract.ml" 
+ (* mkInpMsgFromBig *)
+  robotProgramInstance 
+  SwProcessInstance
+  initDelayLin target1Metres
   rotSpeedRadPerSec 
           speedMetresPerSec
           initDelayLin
           delEpsSec
-          delResSecInv.
-Definition robotOutput : list (Q ** Polar2D Q).
-let t:= (eval vm_compute in (robotProgramInstance 
-    initDelayLin target1Metres)) in
-exact t.
-Defined.
+          delResSecInv robotOutput.

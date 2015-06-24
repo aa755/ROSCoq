@@ -15,6 +15,10 @@ type nat =
 | O
 | S of nat
 
+type 'a option =
+| Some of 'a
+| None
+
 type ('a, 'b) sum =
 | Inl of 'a
 | Inr of 'b
@@ -110,6 +114,12 @@ let iff_reflect = function
 
 let compose g f x0 =
   g (f x0)
+
+(** val map : ('a1 -> 'a2) -> 'a1 list -> 'a2 list **)
+
+let rec map f = function
+| Nil -> Nil
+| Cons (a, t0) -> Cons ((f a), (map f t0))
 
 type positive =
 | XI of positive
@@ -1192,17 +1202,27 @@ module Coq_Pos =
   | N0 -> p
   | Npos n1 -> iter n1 div2 p
   
-  (** val testbit_nat : positive -> nat -> bool **)
+  (** val testbit_nat :
+      positive
+      ->
+      nat
+      ->
+      bool **)
   
   let rec testbit_nat p n0 =
     match p with
     | XI p0 ->
       (match n0 with
-       | O -> True
-       | S n' -> testbit_nat p0 n')
+       | O ->
+         True
+       | S n' ->
+         testbit_nat
+           p0
+           n')
     | XO p0 ->
       (match n0 with
-       | O -> False
+       | O ->
+         False
        | S n' ->
          testbit_nat
            p0
@@ -4300,51 +4320,16 @@ module Z =
               ((opp
                  q0),
               Z0)
-          | _ ->
-            Pair
-              ((opp
-                 (add
-                   q0
-                   (Zpos
-                   XH))),
-              (sub
-                b
-                r)))
+          | _ -> Pair ((opp (add q0 (Zpos XH))), (sub b r)))
        | Zneg b' ->
-         let Pair (q0,
-                   r) =
-           pos_div_eucl
-             a'
-             (Zpos
-             b')
-         in
-         Pair
-         (q0,
-         (opp
-           r)))
+         let Pair (q0, r) = pos_div_eucl a' (Zpos b') in Pair (q0, (opp r)))
   
-  (** val div :
-      z
-      ->
-      z
-      ->
-      z **)
+  (** val div : z -> z -> z **)
   
   let div a b =
-    let Pair (q0,
-              x0) =
-      div_eucl
-        a
-        b
-    in
-    q0
+    let Pair (q0, x0) = div_eucl a b in q0
   
-  (** val modulo :
-      z
-      ->
-      z
-      ->
-      z **)
+  (** val modulo : z -> z -> z **)
   
   let modulo a b =
     let Pair (x0, r) = div_eucl a b in r
@@ -4826,6 +4811,11 @@ type 't decEq =
   't -> 't -> sumbool
   (* singleton inductive, whose constructor was Build_DecEq *)
 
+(** val eqdec : 'a1 decEq -> 'a1 -> 'a1 -> sumbool **)
+
+let eqdec decEq0 =
+  decEq0
+
 type ('a, 'r) csymmetric = 'a -> 'a -> 'r -> 'r
 
 type 'a stream = 'a __stream Lazy.t
@@ -4842,10 +4832,10 @@ let hd x0 =
 let tl x0 =
   let Cons0 (a, s) = Lazy.force x0 in s
 
-(** val map : ('a1 -> 'a2) -> 'a1 stream -> 'a2 stream **)
+(** val map0 : ('a1 -> 'a2) -> 'a1 stream -> 'a2 stream **)
 
-let rec map f s =
-  lazy (Cons0 ((f (hd s)), (map f (tl s))))
+let rec map0 f s =
+  lazy (Cons0 ((f (hd s)), (map0 f (tl s))))
 
 (** val zipWith :
     ('a1 -> 'a2 -> 'a3) -> 'a1 stream -> 'a2 stream -> 'a3 stream **)
@@ -5160,6 +5150,11 @@ let qplus_is_bin_fun =
 let q_as_CSemiGroup =
   { csg_crr = q_as_CSetoid; csg_op = qplus_is_bin_fun }
 
+type ('s, 'i, 'o) msgHandlerType = 's -> 'i -> ('s, 'o) prod
+
+type ('in0, 'out) process = { curState : __;
+                              handler : (__, 'in0, 'out) msgHandlerType }
+
 type qpos = q
 
 (** val qposMake : positive -> positive -> qpos **)
@@ -5177,6 +5172,11 @@ let qposAsQ e =
 let mkQpos a =
   a
 
+(** val qpos_one : qpos **)
+
+let qpos_one =
+  { qnum = (Zpos XH); qden = XH }
+
 (** val qpos_mult : qpos -> qpos -> qpos **)
 
 let qpos_mult x0 y0 =
@@ -5186,6 +5186,15 @@ let qpos_mult x0 y0 =
 
 let qpos_inv x0 =
   qinv (qposAsQ x0)
+
+(** val qabsQpos : q -> qpos **)
+
+let qabsQpos x0 =
+  let { qnum = qnum0; qden = ad } = x0 in
+  (match qnum0 with
+   | Z0 -> qpos_one
+   | Zpos an -> qposMake an ad
+   | Zneg an -> qposMake an ad)
 
 type 'rT rosTopicType =
 | Build_RosTopicType
@@ -5198,19 +5207,46 @@ type header =
 
 type 'rosTopic message = (('rosTopic, 'rosTopic topicType) sigT, header) prod
 
-(** val defHdr : header **)
+(** val transport : 'a1 -> 'a1 -> 'a2 -> 'a2 **)
 
-let defHdr =
-  { qnum = Z0; qden = XH }
+let transport a b pa =
+  pa
 
-(** val mkImmMesg :
-    'a1 decEq -> 'a1 rosTopicType -> 'a1 -> 'a1 topicType -> 'a1 message **)
+(** val getPayloadR :
+    'a1 decEq -> 'a1 rosTopicType -> 'a1 -> ('a1, 'a1 topicType) sigT -> 'a1
+    topicType option **)
 
-let mkImmMesg deq h outTopic payload =
-  Pair ((ExistT (outTopic, payload)), defHdr)
+let getPayloadR deq h topic0 = function
+| ExistT (tp, pl) ->
+  (match eqdec deq tp topic0 with
+   | Left -> Some (transport tp topic0 pl)
+   | Right -> None)
+
+(** val getPayload :
+    'a1 decEq -> 'a1 rosTopicType -> 'a1 -> 'a1 message -> 'a1 topicType
+    option **)
+
+let getPayload deq h topic0 m =
+  getPayloadR deq h topic0 (fst m)
+
+(** val mkDelayedMesg :
+    'a1 decEq -> 'a1 rosTopicType -> 'a1 -> q -> 'a1 topicType -> 'a1 message **)
+
+let mkDelayedMesg deq h outTopic delay payload =
+  Pair ((ExistT (outTopic, payload)), delay)
 
 type 'rosTopic pureProcWDelay =
   'rosTopic topicType -> (q, 'rosTopic topicType) prod list
+
+(** val delayedLift2Mesg :
+    'a1 decEq -> 'a1 rosTopicType -> 'a1 -> 'a1 -> 'a1 pureProcWDelay -> 'a1
+    message -> 'a1 message list **)
+
+let delayedLift2Mesg deq h inTopic outTopic f inpMesg =
+  match getPayload deq h inTopic inpMesg with
+  | Some tmesg ->
+    map (fun p -> mkDelayedMesg deq h outTopic (fst p) (snd p)) (f tmesg)
+  | None -> Nil
 
 module Default = 
  struct 
@@ -5502,56 +5538,121 @@ let decision_instance_0 =
 let inject_Z_Q =
   inject_Z
 
-(** val decision_instance_1 : q -> q -> decision **)
+(** val decision_instance_1 :
+    q
+    ->
+    q
+    ->
+    decision **)
 
 let decision_instance_1 y0 x0 =
-  let filtered_var = qlt_le_dec x0 y0 in
+  let filtered_var =
+    qlt_le_dec
+      x0
+      y0
+  in
   (match filtered_var with
-   | Left -> Right
-   | Right -> Left)
+   | Left ->
+     Right
+   | Right ->
+     Left)
 
-(** val cR : metricSpace **)
+(** val cR :
+    metricSpace **)
 
 let cR =
-  complete q_as_MetricSpace
+  complete
+    q_as_MetricSpace
 
-(** val inject_Q_CR : (q, st_car) cast **)
+(** val inject_Q_CR :
+    (q,
+    st_car)
+    cast **)
 
 let inject_Q_CR =
-  Obj.magic (Obj.magic (cunit q_as_MetricSpace)).ucFun
+  Obj.magic
+    (Obj.magic
+      (cunit
+        q_as_MetricSpace)).ucFun
 
-(** val qtranslate_uc : st_car -> st_car **)
+(** val qtranslate_uc :
+    st_car
+    ->
+    st_car **)
 
 let qtranslate_uc a =
-  Obj.magic { ucFun = (fun b -> q_as_CSemiGroup.csg_op.csbf_fun a b); mu =
-    (fun x0 -> Qpos2QposInf x0) }
+  Obj.magic
+    { ucFun =
+    (fun b ->
+    q_as_CSemiGroup.csg_op.csbf_fun
+      a
+      b);
+    mu =
+    (fun x0 ->
+    Qpos2QposInf
+    x0) }
 
-(** val qplus_uc : st_car **)
+(** val qplus_uc :
+    st_car **)
 
 let qplus_uc =
-  Obj.magic { ucFun = qtranslate_uc; mu = (fun x0 -> Qpos2QposInf x0) }
+  Obj.magic
+    { ucFun =
+    qtranslate_uc;
+    mu =
+    (fun x0 ->
+    Qpos2QposInf
+    x0) }
 
-(** val cRplus_uc : st_car **)
+(** val cRplus_uc :
+    st_car **)
 
 let cRplus_uc =
-  cmap2 q_as_MetricSpace q_as_MetricSpace q_as_MetricSpace qplus_uc
+  cmap2
+    q_as_MetricSpace
+    q_as_MetricSpace
+    q_as_MetricSpace
+    qplus_uc
 
-(** val cRplus : st_car plus0 **)
+(** val cRplus :
+    st_car
+    plus0 **)
 
 let cRplus =
-  ucFun2 cR cR cR cRplus_uc
+  ucFun2
+    cR
+    cR
+    cR
+    cRplus_uc
 
-(** val qopp_uc : st_car **)
+(** val qopp_uc :
+    st_car **)
 
 let qopp_uc =
-  Obj.magic { ucFun = (Obj.magic qopp); mu = (fun x0 -> Qpos2QposInf x0) }
+  Obj.magic
+    { ucFun =
+    (Obj.magic
+      qopp);
+    mu =
+    (fun x0 ->
+    Qpos2QposInf
+    x0) }
 
-(** val cRopp : st_car negate **)
+(** val cRopp :
+    st_car
+    negate **)
 
 let cRopp =
-  (Obj.magic (cmap q_as_MetricSpace q_as_MetricSpace qopp_uc)).ucFun
+  (Obj.magic
+    (cmap
+      q_as_MetricSpace
+      q_as_MetricSpace
+      qopp_uc)).ucFun
 
-(** val qboundBelow_uc : st_car -> st_car **)
+(** val qboundBelow_uc :
+    st_car
+    ->
+    st_car **)
 
 let qboundBelow_uc a =
   Obj.magic
@@ -6268,7 +6369,7 @@ let ppositives =
     stream **)
 
 let qrecip_positives =
-  map
+  map0
     (fun x0 ->
     { qnum =
     (Zpos
@@ -7021,87 +7122,6 @@ let ldskflskdalfkTopic_eq_dec =
 let ttttt =
   Build_RosTopicType
 
-(** val mkTargetMsg :
-    q
-    cart2D
-    ->
-    topic
-    message **)
-
-let mkTargetMsg q0 =
-  mkImmMesg
-    ldskflskdalfkTopic_eq_dec
-    ttttt
-    TARGETPOS
-    (Obj.magic
-      q0)
-
-(** val bigint_poslike_rec :
-    ('a1
-    ->
-    'a1)
-    ->
-    ('a1
-    ->
-    'a1)
-    ->
-    'a1
-    ->
-    Big.big_int
-    ->
-    'a1 **)
-
-let bigint_poslike_rec = Big.positive_rec
-
-(** val pos_of_bigint :
-    Big.big_int
-    ->
-    positive **)
-
-let pos_of_bigint =
-  bigint_poslike_rec
-    (fun x0 ->
-    XI
-    x0)
-    (fun x0 ->
-    XO
-    x0)
-    XH
-
-(** val bigint_zlike_case :
-    'a1
-    ->
-    (Big.big_int
-    ->
-    'a1)
-    ->
-    (Big.big_int
-    ->
-    'a1)
-    ->
-    Big.big_int
-    ->
-    'a1 **)
-
-let bigint_zlike_case = Big.z_rec
-
-(** val z_of_bigint :
-    Big.big_int
-    ->
-    z **)
-
-let z_of_bigint =
-  bigint_zlike_case
-    Z0
-    (fun i ->
-    Zpos
-    (pos_of_bigint
-      i))
-    (fun i ->
-    Zneg
-    (pos_of_bigint
-      i))
-
 (** val rotSpeedRadPerSec :
     qpos **)
 
@@ -7181,18 +7201,54 @@ let robotProgramInstance delayLinSec =
       delEpsSec
       delResSecInv)
 
+(** val swProcessInstance :
+    (topic
+    message,
+    topic
+    message
+    list)
+    process **)
+
+let swProcessInstance =
+  { curState =
+    (Obj.magic
+      (qposAsQ
+        initDelayLin));
+    handler =
+    (fun ins inm ->
+    Pair
+    ((Obj.magic
+       (qmult
+         (Obj.magic
+           ins)
+         (plus1
+           q_plus
+           (one1
+             q_1)
+           (one1
+             q_1)))),
+    (delayedLift2Mesg
+      ldskflskdalfkTopic_eq_dec
+      ttttt
+      TARGETPOS
+      VELOCITY
+      (robotProgramInstance
+        (qabsQpos
+          (Obj.magic
+            ins)))
+      inm))) }
+
 (** val target1Metres :
     q
     cart2D **)
 
 let target1Metres =
   { x =
-    (qopp
-      { qnum =
-      (Zpos
-      XH);
-      qden =
-      XH });
+    { qnum =
+    (Zpos
+    XH);
+    qden =
+    XH };
     y =
     { qnum =
     (Zpos
@@ -7200,32 +7256,17 @@ let target1Metres =
     qden =
     XH } }
 
-(** val qFromBigInt :
-    Big.big_int
-    ->
-    q **)
+(** val robotOutput :
+    (q,
+    q
+    polar2D)
+    prod
+    list **)
 
-let qFromBigInt num =
-  { qnum =
-    (z_of_bigint
-      num);
-    qden =
-    XH }
-
-(** val mkInpMsgFromBig :
-    Big.big_int
-    ->
-    Big.big_int
-    ->
-    topic
-    message **)
-
-let mkInpMsgFromBig x0 y0 =
-  mkTargetMsg
-    { x =
-    (qFromBigInt
-      (big_int_of_int 1));
-    y =
-    (qFromBigInt
-      y0) }
+let robotOutput =
+  Obj.magic
+    (robotProgramInstance
+      initDelayLin
+      (Obj.magic
+        target1Metres))
 
