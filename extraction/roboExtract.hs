@@ -1,7 +1,7 @@
 {-# OPTIONS_GHC -cpp -XMagicHash #-}
 {- For Hugs, use the option -F"cpp -P -traditional" -}
 
-module RoboExtract where
+module Main where
 
 import qualified Prelude
 
@@ -2373,7 +2373,7 @@ ap_Q_cotransitive0 x0 y0 z =
    Prelude.True -> Prelude.Right __;
    Prelude.False -> Prelude.Left __}
 
-qplus_strext0 :: Q -> Q -> Q -> Q -> Prelude.Either () ()
+qplus_strext0 :: Q -> Q -> Q -> Q -> Prelude.Either Any Any
 qplus_strext0 x1 x2 y1 y2 =
   case qeq_dec x1 x2 of {
    Prelude.True -> Prelude.Right __;
@@ -3259,3 +3259,16 @@ map3 f inp =
     case xy of {
      (,) x0 y0 -> (,) ((,) (f x0) (f y0)) (f z)}}
 
+{-the code below was manually written, not extracted from Coq-}
+pos2Int :: Positive -> Prelude.Integer
+pos2Int XH = 1
+pos2Int (XO p) = (Prelude.+) (pos2Int p)  (pos2Int p)
+pos2Int (XI p) = (Prelude.+) (pos2Int p)  ((Prelude.+) (pos2Int p) 1)
+ 
+ 
+toInt :: Z -> Prelude.Integer
+toInt Z0 = 0
+toInt (Zpos p) = pos2Int p
+toInt (Zneg p) = (Prelude.negate) (pos2Int p)
+
+main = Prelude.print (Main.map (map3 toInt) robotOutputInts)
