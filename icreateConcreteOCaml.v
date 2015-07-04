@@ -148,7 +148,7 @@ Definition map3 {A B: Type} (f:A -> B)
   ((f x, f y), f z).
 
  
-Extraction Language OCaml. 
+Extraction Language Ocaml. 
 (* Require Import ExtrHaskellBasic. *)
 
 Extraction 
