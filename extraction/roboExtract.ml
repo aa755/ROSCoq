@@ -1202,469 +1202,176 @@ module Coq_Pos =
   | N0 -> p
   | Npos n1 -> iter n1 div2 p
   
-  (** val testbit_nat :
-      positive
-      ->
-      nat
-      ->
-      bool **)
+  (** val testbit_nat : positive -> nat -> bool **)
   
   let rec testbit_nat p n0 =
     match p with
     | XI p0 ->
       (match n0 with
-       | O ->
-         True
-       | S n' ->
-         testbit_nat
-           p0
-           n')
+       | O -> True
+       | S n' -> testbit_nat p0 n')
     | XO p0 ->
       (match n0 with
-       | O ->
-         False
-       | S n' ->
-         testbit_nat
-           p0
-           n')
+       | O -> False
+       | S n' -> testbit_nat p0 n')
     | XH ->
       (match n0 with
-       | O ->
-         True
-       | S n1 ->
-         False)
+       | O -> True
+       | S n1 -> False)
   
-  (** val testbit :
-      positive
-      ->
-      n
-      ->
-      bool **)
+  (** val testbit : positive -> n -> bool **)
   
   let rec testbit p n0 =
     match p with
     | XI p0 ->
       (match n0 with
-       | N0 ->
-         True
-       | Npos n1 ->
-         testbit
-           p0
-           (pred_N
-             n1))
+       | N0 -> True
+       | Npos n1 -> testbit p0 (pred_N n1))
     | XO p0 ->
       (match n0 with
-       | N0 ->
-         False
-       | Npos n1 ->
-         testbit
-           p0
-           (pred_N
-             n1))
+       | N0 -> False
+       | Npos n1 -> testbit p0 (pred_N n1))
     | XH ->
       (match n0 with
-       | N0 ->
-         True
-       | Npos p0 ->
-         False)
+       | N0 -> True
+       | Npos p0 -> False)
   
-  (** val iter_op :
-      ('a1
-      ->
-      'a1
-      ->
-      'a1)
-      ->
-      positive
-      ->
-      'a1
-      ->
-      'a1 **)
+  (** val iter_op : ('a1 -> 'a1 -> 'a1) -> positive -> 'a1 -> 'a1 **)
   
   let rec iter_op op p a =
     match p with
-    | XI p0 ->
-      op
-        a
-        (iter_op
-          op
-          p0
-          (op
-            a
-            a))
-    | XO p0 ->
-      iter_op
-        op
-        p0
-        (op
-          a
-          a)
-    | XH ->
-      a
+    | XI p0 -> op a (iter_op op p0 (op a a))
+    | XO p0 -> iter_op op p0 (op a a)
+    | XH -> a
   
-  (** val to_nat :
-      positive
-      ->
-      nat **)
+  (** val to_nat : positive -> nat **)
   
   let to_nat x0 =
-    iter_op
-      plus
-      x0
-      (S
-      O)
+    iter_op plus x0 (S O)
   
-  (** val of_nat :
-      nat
-      ->
-      positive **)
+  (** val of_nat : nat -> positive **)
   
   let rec of_nat = function
-  | O ->
-    XH
+  | O -> XH
   | S x0 ->
     (match x0 with
-     | O ->
-       XH
-     | S n1 ->
-       succ
-         (of_nat
-           x0))
+     | O -> XH
+     | S n1 -> succ (of_nat x0))
   
-  (** val of_succ_nat :
-      nat
-      ->
-      positive **)
+  (** val of_succ_nat : nat -> positive **)
   
   let rec of_succ_nat = function
-  | O ->
-    XH
-  | S x0 ->
-    succ
-      (of_succ_nat
-        x0)
+  | O -> XH
+  | S x0 -> succ (of_succ_nat x0)
   
-  (** val eq_dec :
-      positive
-      ->
-      positive
-      ->
-      sumbool **)
+  (** val eq_dec : positive -> positive -> sumbool **)
   
   let rec eq_dec p y0 =
     match p with
     | XI p0 ->
       (match y0 with
-       | XI p1 ->
-         eq_dec
-           p0
-           p1
-       | _ ->
-         Right)
+       | XI p1 -> eq_dec p0 p1
+       | _ -> Right)
     | XO p0 ->
       (match y0 with
-       | XO p1 ->
-         eq_dec
-           p0
-           p1
-       | _ ->
-         Right)
+       | XO p1 -> eq_dec p0 p1
+       | _ -> Right)
     | XH ->
       (match y0 with
-       | XH ->
-         Left
-       | _ ->
-         Right)
+       | XH -> Left
+       | _ -> Right)
   
-  (** val peano_rect :
-      'a1
-      ->
-      (positive
-      ->
-      'a1
-      ->
-      'a1)
-      ->
-      positive
-      ->
-      'a1 **)
+  (** val peano_rect : 'a1 -> (positive -> 'a1 -> 'a1) -> positive -> 'a1 **)
   
   let rec peano_rect a f p =
     let f2 =
-      peano_rect
-        (f
-          XH
-          a)
-        (fun p0 x0 ->
-        f
-          (succ
-            (XO
-            p0))
-          (f
-            (XO
-            p0)
-            x0))
+      peano_rect (f XH a) (fun p0 x0 -> f (succ (XO p0)) (f (XO p0) x0))
     in
     (match p with
-     | XI q0 ->
-       f
-         (XO
-         q0)
-         (f2
-           q0)
-     | XO q0 ->
-       f2
-         q0
-     | XH ->
-       a)
+     | XI q0 -> f (XO q0) (f2 q0)
+     | XO q0 -> f2 q0
+     | XH -> a)
   
-  (** val peano_rec :
-      'a1
-      ->
-      (positive
-      ->
-      'a1
-      ->
-      'a1)
-      ->
-      positive
-      ->
-      'a1 **)
+  (** val peano_rec : 'a1 -> (positive -> 'a1 -> 'a1) -> positive -> 'a1 **)
   
   let peano_rec =
     peano_rect
   
   type coq_PeanoView =
   | PeanoOne
-  | PeanoSucc of positive
-     * coq_PeanoView
+  | PeanoSucc of positive * coq_PeanoView
   
   (** val coq_PeanoView_rect :
-      'a1
-      ->
-      (positive
-      ->
-      coq_PeanoView
-      ->
-      'a1
-      ->
-      'a1)
-      ->
-      positive
-      ->
-      coq_PeanoView
-      ->
-      'a1 **)
+      'a1 -> (positive -> coq_PeanoView -> 'a1 -> 'a1) -> positive ->
+      coq_PeanoView -> 'a1 **)
   
   let rec coq_PeanoView_rect f f0 p = function
-  | PeanoOne ->
-    f
-  | PeanoSucc (p1,
-               p2) ->
-    f0
-      p1
-      p2
-      (coq_PeanoView_rect
-        f
-        f0
-        p1
-        p2)
+  | PeanoOne -> f
+  | PeanoSucc (p1, p2) -> f0 p1 p2 (coq_PeanoView_rect f f0 p1 p2)
   
   (** val coq_PeanoView_rec :
-      'a1
-      ->
-      (positive
-      ->
-      coq_PeanoView
-      ->
-      'a1
-      ->
-      'a1)
-      ->
-      positive
-      ->
-      coq_PeanoView
-      ->
-      'a1 **)
+      'a1 -> (positive -> coq_PeanoView -> 'a1 -> 'a1) -> positive ->
+      coq_PeanoView -> 'a1 **)
   
   let rec coq_PeanoView_rec f f0 p = function
-  | PeanoOne ->
-    f
-  | PeanoSucc (p1,
-               p2) ->
-    f0
-      p1
-      p2
-      (coq_PeanoView_rec
-        f
-        f0
-        p1
-        p2)
+  | PeanoOne -> f
+  | PeanoSucc (p1, p2) -> f0 p1 p2 (coq_PeanoView_rec f f0 p1 p2)
   
-  (** val peanoView_xO :
-      positive
-      ->
-      coq_PeanoView
-      ->
-      coq_PeanoView **)
+  (** val peanoView_xO : positive -> coq_PeanoView -> coq_PeanoView **)
   
   let rec peanoView_xO p = function
-  | PeanoOne ->
-    PeanoSucc
-      (XH,
-      PeanoOne)
-  | PeanoSucc (p0,
-               q1) ->
-    PeanoSucc
-      ((succ
-         (XO
-         p0)),
-      (PeanoSucc
-      ((XO
-      p0),
-      (peanoView_xO
-        p0
-        q1))))
+  | PeanoOne -> PeanoSucc (XH, PeanoOne)
+  | PeanoSucc (p0, q1) ->
+    PeanoSucc ((succ (XO p0)), (PeanoSucc ((XO p0), (peanoView_xO p0 q1))))
   
-  (** val peanoView_xI :
-      positive
-      ->
-      coq_PeanoView
-      ->
-      coq_PeanoView **)
+  (** val peanoView_xI : positive -> coq_PeanoView -> coq_PeanoView **)
   
   let rec peanoView_xI p = function
-  | PeanoOne ->
-    PeanoSucc
-      ((succ
-         XH),
-      (PeanoSucc
-      (XH,
-      PeanoOne)))
-  | PeanoSucc (p0,
-               q1) ->
-    PeanoSucc
-      ((succ
-         (XI
-         p0)),
-      (PeanoSucc
-      ((XI
-      p0),
-      (peanoView_xI
-        p0
-        q1))))
+  | PeanoOne -> PeanoSucc ((succ XH), (PeanoSucc (XH, PeanoOne)))
+  | PeanoSucc (p0, q1) ->
+    PeanoSucc ((succ (XI p0)), (PeanoSucc ((XI p0), (peanoView_xI p0 q1))))
   
-  (** val peanoView :
-      positive
-      ->
-      coq_PeanoView **)
+  (** val peanoView : positive -> coq_PeanoView **)
   
   let rec peanoView = function
-  | XI p0 ->
-    peanoView_xI
-      p0
-      (peanoView
-        p0)
-  | XO p0 ->
-    peanoView_xO
-      p0
-      (peanoView
-        p0)
-  | XH ->
-    PeanoOne
+  | XI p0 -> peanoView_xI p0 (peanoView p0)
+  | XO p0 -> peanoView_xO p0 (peanoView p0)
+  | XH -> PeanoOne
   
   (** val coq_PeanoView_iter :
-      'a1
-      ->
-      (positive
-      ->
-      'a1
-      ->
-      'a1)
-      ->
-      positive
-      ->
-      coq_PeanoView
-      ->
-      'a1 **)
+      'a1 -> (positive -> 'a1 -> 'a1) -> positive -> coq_PeanoView -> 'a1 **)
   
   let rec coq_PeanoView_iter a f p = function
-  | PeanoOne ->
-    a
-  | PeanoSucc (p0,
-               q1) ->
-    f
-      p0
-      (coq_PeanoView_iter
-        a
-        f
-        p0
-        q1)
+  | PeanoOne -> a
+  | PeanoSucc (p0, q1) -> f p0 (coq_PeanoView_iter a f p0 q1)
   
-  (** val eqb_spec :
-      positive
-      ->
-      positive
-      ->
-      reflect **)
+  (** val eqb_spec : positive -> positive -> reflect **)
   
   let eqb_spec x0 y0 =
-    iff_reflect
-      (eqb
-        x0
-        y0)
+    iff_reflect (eqb x0 y0)
   
-  (** val switch_Eq :
-      comparison
-      ->
-      comparison
-      ->
-      comparison **)
+  (** val switch_Eq : comparison -> comparison -> comparison **)
   
   let switch_Eq c = function
-  | Eq ->
-    c
-  | x0 ->
-    x0
+  | Eq -> c
+  | x0 -> x0
   
-  (** val mask2cmp :
-      mask
-      ->
-      comparison **)
+  (** val mask2cmp : mask -> comparison **)
   
   let mask2cmp = function
-  | IsNul ->
-    Eq
-  | IsPos p0 ->
-    Gt
-  | IsNeg ->
-    Lt
+  | IsNul -> Eq
+  | IsPos p0 -> Gt
+  | IsNeg -> Lt
   
-  (** val leb_spec0 :
-      positive
-      ->
-      positive
-      ->
-      reflect **)
+  (** val leb_spec0 : positive -> positive -> reflect **)
   
   let leb_spec0 x0 y0 =
-    iff_reflect
-      (leb
-        x0
-        y0)
+    iff_reflect (leb x0 y0)
   
-  (** val ltb_spec0 :
-      positive
-      ->
-      positive
-      ->
-      reflect **)
+  (** val ltb_spec0 : positive -> positive -> reflect **)
   
   let ltb_spec0 x0 y0 =
-    iff_reflect
-      (ltb
-        x0
-        y0)
+    iff_reflect (ltb x0 y0)
   
   module Private_Tac = 
    struct 
@@ -1674,312 +1381,78 @@ module Coq_Pos =
   module Private_Dec = 
    struct 
     (** val max_case_strong :
-        positive
-        ->
-        positive
-        ->
-        (positive
-        ->
-        positive
-        ->
-        __
-        ->
-        'a1
-        ->
-        'a1)
-        ->
-        (__
-        ->
-        'a1)
-        ->
-        (__
-        ->
-        'a1)
-        ->
-        'a1 **)
+        positive -> positive -> (positive -> positive -> __ -> 'a1 -> 'a1) ->
+        (__ -> 'a1) -> (__ -> 'a1) -> 'a1 **)
     
     let max_case_strong n0 m compat hl hr =
-      let c =
-        compSpec2Type
-          n0
-          m
-          (compare
-            n0
-            m)
-      in
+      let c = compSpec2Type n0 m (compare n0 m) in
       (match c with
-       | CompGtT ->
-         compat
-           n0
-           (max
-             n0
-             m)
-           __
-           (hl
-             __)
-       | _ ->
-         compat
-           m
-           (max
-             n0
-             m)
-           __
-           (hr
-             __))
+       | CompGtT -> compat n0 (max n0 m) __ (hl __)
+       | _ -> compat m (max n0 m) __ (hr __))
     
     (** val max_case :
-        positive
-        ->
-        positive
-        ->
-        (positive
-        ->
-        positive
-        ->
-        __
-        ->
-        'a1
-        ->
-        'a1)
-        ->
-        'a1
-        ->
-        'a1
-        ->
-        'a1 **)
+        positive -> positive -> (positive -> positive -> __ -> 'a1 -> 'a1) ->
+        'a1 -> 'a1 -> 'a1 **)
     
     let max_case n0 m x0 x1 x2 =
-      max_case_strong
-        n0
-        m
-        x0
-        (fun _ ->
-        x1)
-        (fun _ ->
-        x2)
+      max_case_strong n0 m x0 (fun _ -> x1) (fun _ -> x2)
     
-    (** val max_dec :
-        positive
-        ->
-        positive
-        ->
-        sumbool **)
+    (** val max_dec : positive -> positive -> sumbool **)
     
     let max_dec n0 m =
-      max_case
-        n0
-        m
-        (fun x0 y0 _ h0 ->
-        h0)
-        Left
-        Right
+      max_case n0 m (fun x0 y0 _ h0 -> h0) Left Right
     
     (** val min_case_strong :
-        positive
-        ->
-        positive
-        ->
-        (positive
-        ->
-        positive
-        ->
-        __
-        ->
-        'a1
-        ->
-        'a1)
-        ->
-        (__
-        ->
-        'a1)
-        ->
-        (__
-        ->
-        'a1)
-        ->
-        'a1 **)
+        positive -> positive -> (positive -> positive -> __ -> 'a1 -> 'a1) ->
+        (__ -> 'a1) -> (__ -> 'a1) -> 'a1 **)
     
     let min_case_strong n0 m compat hl hr =
-      let c =
-        compSpec2Type
-          n0
-          m
-          (compare
-            n0
-            m)
-      in
+      let c = compSpec2Type n0 m (compare n0 m) in
       (match c with
-       | CompGtT ->
-         compat
-           m
-           (min
-             n0
-             m)
-           __
-           (hr
-             __)
-       | _ ->
-         compat
-           n0
-           (min
-             n0
-             m)
-           __
-           (hl
-             __))
+       | CompGtT -> compat m (min n0 m) __ (hr __)
+       | _ -> compat n0 (min n0 m) __ (hl __))
     
     (** val min_case :
-        positive
-        ->
-        positive
-        ->
-        (positive
-        ->
-        positive
-        ->
-        __
-        ->
-        'a1
-        ->
-        'a1)
-        ->
-        'a1
-        ->
-        'a1
-        ->
-        'a1 **)
+        positive -> positive -> (positive -> positive -> __ -> 'a1 -> 'a1) ->
+        'a1 -> 'a1 -> 'a1 **)
     
     let min_case n0 m x0 x1 x2 =
-      min_case_strong
-        n0
-        m
-        x0
-        (fun _ ->
-        x1)
-        (fun _ ->
-        x2)
+      min_case_strong n0 m x0 (fun _ -> x1) (fun _ -> x2)
     
-    (** val min_dec :
-        positive
-        ->
-        positive
-        ->
-        sumbool **)
+    (** val min_dec : positive -> positive -> sumbool **)
     
     let min_dec n0 m =
-      min_case
-        n0
-        m
-        (fun x0 y0 _ h0 ->
-        h0)
-        Left
-        Right
+      min_case n0 m (fun x0 y0 _ h0 -> h0) Left Right
    end
   
   (** val max_case_strong :
-      positive
-      ->
-      positive
-      ->
-      (__
-      ->
-      'a1)
-      ->
-      (__
-      ->
-      'a1)
-      ->
-      'a1 **)
+      positive -> positive -> (__ -> 'a1) -> (__ -> 'a1) -> 'a1 **)
   
   let max_case_strong n0 m x0 x1 =
-    Private_Dec.max_case_strong
-      n0
-      m
-      (fun x2 y0 _ x3 ->
-      x3)
-      x0
-      x1
+    Private_Dec.max_case_strong n0 m (fun x2 y0 _ x3 -> x3) x0 x1
   
-  (** val max_case :
-      positive
-      ->
-      positive
-      ->
-      'a1
-      ->
-      'a1
-      ->
-      'a1 **)
+  (** val max_case : positive -> positive -> 'a1 -> 'a1 -> 'a1 **)
   
   let max_case n0 m x0 x1 =
-    max_case_strong
-      n0
-      m
-      (fun _ ->
-      x0)
-      (fun _ ->
-      x1)
+    max_case_strong n0 m (fun _ -> x0) (fun _ -> x1)
   
-  (** val max_dec :
-      positive
-      ->
-      positive
-      ->
-      sumbool **)
+  (** val max_dec : positive -> positive -> sumbool **)
   
   let max_dec =
     Private_Dec.max_dec
   
   (** val min_case_strong :
-      positive
-      ->
-      positive
-      ->
-      (__
-      ->
-      'a1)
-      ->
-      (__
-      ->
-      'a1)
-      ->
-      'a1 **)
+      positive -> positive -> (__ -> 'a1) -> (__ -> 'a1) -> 'a1 **)
   
   let min_case_strong n0 m x0 x1 =
-    Private_Dec.min_case_strong
-      n0
-      m
-      (fun x2 y0 _ x3 ->
-      x3)
-      x0
-      x1
+    Private_Dec.min_case_strong n0 m (fun x2 y0 _ x3 -> x3) x0 x1
   
-  (** val min_case :
-      positive
-      ->
-      positive
-      ->
-      'a1
-      ->
-      'a1
-      ->
-      'a1 **)
+  (** val min_case : positive -> positive -> 'a1 -> 'a1 -> 'a1 **)
   
   let min_case n0 m x0 x1 =
-    min_case_strong
-      n0
-      m
-      (fun _ ->
-      x0)
-      (fun _ ->
-      x1)
+    min_case_strong n0 m (fun _ -> x0) (fun _ -> x1)
   
-  (** val min_dec :
-      positive
-      ->
-      positive
-      ->
-      sumbool **)
+  (** val min_dec : positive -> positive -> sumbool **)
   
   let min_dec =
     Private_Dec.min_dec
@@ -1987,1072 +1460,451 @@ module Coq_Pos =
 
 module N = 
  struct 
-  type t
-    =
-    n
+  type t = n
   
-  (** val zero :
-      n **)
+  (** val zero : n **)
   
   let zero =
     N0
   
-  (** val one :
-      n **)
+  (** val one : n **)
   
   let one =
-    Npos
-      XH
+    Npos XH
   
-  (** val two :
-      n **)
+  (** val two : n **)
   
   let two =
-    Npos
-      (XO
-      XH)
+    Npos (XO XH)
   
-  (** val succ_double :
-      n
-      ->
-      n **)
+  (** val succ_double : n -> n **)
   
   let succ_double = function
-  | N0 ->
-    Npos
-      XH
-  | Npos p ->
-    Npos
-      (XI
-      p)
+  | N0 -> Npos XH
+  | Npos p -> Npos (XI p)
   
-  (** val double :
-      n
-      ->
-      n **)
+  (** val double : n -> n **)
   
   let double = function
-  | N0 ->
-    N0
-  | Npos p ->
-    Npos
-      (XO
-      p)
+  | N0 -> N0
+  | Npos p -> Npos (XO p)
   
-  (** val succ :
-      n
-      ->
-      n **)
+  (** val succ : n -> n **)
   
   let succ = function
-  | N0 ->
-    Npos
-      XH
-  | Npos p ->
-    Npos
-      (Coq_Pos.succ
-        p)
+  | N0 -> Npos XH
+  | Npos p -> Npos (Coq_Pos.succ p)
   
-  (** val pred :
-      n
-      ->
-      n **)
+  (** val pred : n -> n **)
   
   let pred = function
-  | N0 ->
-    N0
-  | Npos p ->
-    Coq_Pos.pred_N
-      p
+  | N0 -> N0
+  | Npos p -> Coq_Pos.pred_N p
   
-  (** val succ_pos :
-      n
-      ->
-      positive **)
+  (** val succ_pos : n -> positive **)
   
   let succ_pos = function
-  | N0 ->
-    XH
-  | Npos p ->
-    Coq_Pos.succ
-      p
+  | N0 -> XH
+  | Npos p -> Coq_Pos.succ p
   
-  (** val add :
-      n
-      ->
-      n
-      ->
-      n **)
+  (** val add : n -> n -> n **)
   
   let add n0 m =
     match n0 with
-    | N0 ->
-      m
+    | N0 -> m
     | Npos p ->
       (match m with
-       | N0 ->
-         n0
-       | Npos q0 ->
-         Npos
-           (Coq_Pos.add
-             p
-             q0))
+       | N0 -> n0
+       | Npos q0 -> Npos (Coq_Pos.add p q0))
   
-  (** val sub :
-      n
-      ->
-      n
-      ->
-      n **)
+  (** val sub : n -> n -> n **)
   
   let sub n0 m =
     match n0 with
-    | N0 ->
-      N0
+    | N0 -> N0
     | Npos n' ->
       (match m with
-       | N0 ->
-         n0
+       | N0 -> n0
        | Npos m' ->
-         (match Coq_Pos.sub_mask
-                  n'
-                  m' with
-          | Coq_Pos.IsPos p ->
-            Npos
-              p
-          | _ ->
-            N0))
+         (match Coq_Pos.sub_mask n' m' with
+          | Coq_Pos.IsPos p -> Npos p
+          | _ -> N0))
   
-  (** val mul :
-      n
-      ->
-      n
-      ->
-      n **)
+  (** val mul : n -> n -> n **)
   
   let mul n0 m =
     match n0 with
-    | N0 ->
-      N0
+    | N0 -> N0
     | Npos p ->
       (match m with
-       | N0 ->
-         N0
-       | Npos q0 ->
-         Npos
-           (Coq_Pos.mul
-             p
-             q0))
+       | N0 -> N0
+       | Npos q0 -> Npos (Coq_Pos.mul p q0))
   
-  (** val compare :
-      n
-      ->
-      n
-      ->
-      comparison **)
+  (** val compare : n -> n -> comparison **)
   
   let compare n0 m =
     match n0 with
     | N0 ->
       (match m with
-       | N0 ->
-         Eq
-       | Npos m' ->
-         Lt)
+       | N0 -> Eq
+       | Npos m' -> Lt)
     | Npos n' ->
       (match m with
-       | N0 ->
-         Gt
-       | Npos m' ->
-         Coq_Pos.compare
-           n'
-           m')
+       | N0 -> Gt
+       | Npos m' -> Coq_Pos.compare n' m')
   
-  (** val eqb :
-      n
-      ->
-      n
-      ->
-      bool **)
+  (** val eqb : n -> n -> bool **)
   
   let rec eqb n0 m =
     match n0 with
     | N0 ->
       (match m with
-       | N0 ->
-         True
-       | Npos p ->
-         False)
+       | N0 -> True
+       | Npos p -> False)
     | Npos p ->
       (match m with
-       | N0 ->
-         False
-       | Npos q0 ->
-         Coq_Pos.eqb
-           p
-           q0)
+       | N0 -> False
+       | Npos q0 -> Coq_Pos.eqb p q0)
   
-  (** val leb :
-      n
-      ->
-      n
-      ->
-      bool **)
+  (** val leb : n -> n -> bool **)
   
   let leb x0 y0 =
-    match compare
-            x0
-            y0 with
-    | Gt ->
-      False
-    | _ ->
-      True
+    match compare x0 y0 with
+    | Gt -> False
+    | _ -> True
   
-  (** val ltb :
-      n
-      ->
-      n
-      ->
-      bool **)
+  (** val ltb : n -> n -> bool **)
   
   let ltb x0 y0 =
-    match compare
-            x0
-            y0 with
-    | Lt ->
-      True
-    | _ ->
-      False
+    match compare x0 y0 with
+    | Lt -> True
+    | _ -> False
   
-  (** val min :
-      n
-      ->
-      n
-      ->
-      n **)
+  (** val min : n -> n -> n **)
   
   let min n0 n' =
-    match compare
-            n0
-            n' with
-    | Gt ->
-      n'
-    | _ ->
-      n0
+    match compare n0 n' with
+    | Gt -> n'
+    | _ -> n0
   
-  (** val max :
-      n
-      ->
-      n
-      ->
-      n **)
+  (** val max : n -> n -> n **)
   
   let max n0 n' =
-    match compare
-            n0
-            n' with
-    | Gt ->
-      n0
-    | _ ->
-      n'
+    match compare n0 n' with
+    | Gt -> n0
+    | _ -> n'
   
-  (** val div2 :
-      n
-      ->
-      n **)
+  (** val div2 : n -> n **)
   
   let div2 = function
-  | N0 ->
-    N0
+  | N0 -> N0
   | Npos p0 ->
     (match p0 with
-     | XI p ->
-       Npos
-         p
-     | XO p ->
-       Npos
-         p
-     | XH ->
-       N0)
+     | XI p -> Npos p
+     | XO p -> Npos p
+     | XH -> N0)
   
-  (** val even :
-      n
-      ->
-      bool **)
+  (** val even : n -> bool **)
   
   let even = function
-  | N0 ->
-    True
+  | N0 -> True
   | Npos p ->
     (match p with
-     | XO p0 ->
-       True
-     | _ ->
-       False)
+     | XO p0 -> True
+     | _ -> False)
   
-  (** val odd :
-      n
-      ->
-      bool **)
+  (** val odd : n -> bool **)
   
   let odd n0 =
-    negb
-      (even
-        n0)
+    negb (even n0)
   
-  (** val pow :
-      n
-      ->
-      n
-      ->
-      n **)
+  (** val pow : n -> n -> n **)
   
   let pow n0 = function
-  | N0 ->
-    Npos
-      XH
+  | N0 -> Npos XH
   | Npos p0 ->
     (match n0 with
-     | N0 ->
-       N0
-     | Npos q0 ->
-       Npos
-         (Coq_Pos.pow
-           q0
-           p0))
+     | N0 -> N0
+     | Npos q0 -> Npos (Coq_Pos.pow q0 p0))
   
-  (** val square :
-      n
-      ->
-      n **)
+  (** val square : n -> n **)
   
   let square = function
-  | N0 ->
-    N0
-  | Npos p ->
-    Npos
-      (Coq_Pos.square
-        p)
+  | N0 -> N0
+  | Npos p -> Npos (Coq_Pos.square p)
   
-  (** val log2 :
-      n
-      ->
-      n **)
+  (** val log2 : n -> n **)
   
   let log2 = function
-  | N0 ->
-    N0
+  | N0 -> N0
   | Npos p0 ->
     (match p0 with
-     | XI p ->
-       Npos
-         (Coq_Pos.size
-           p)
-     | XO p ->
-       Npos
-         (Coq_Pos.size
-           p)
-     | XH ->
-       N0)
+     | XI p -> Npos (Coq_Pos.size p)
+     | XO p -> Npos (Coq_Pos.size p)
+     | XH -> N0)
   
-  (** val size :
-      n
-      ->
-      n **)
+  (** val size : n -> n **)
   
   let size = function
-  | N0 ->
-    N0
-  | Npos p ->
-    Npos
-      (Coq_Pos.size
-        p)
+  | N0 -> N0
+  | Npos p -> Npos (Coq_Pos.size p)
   
-  (** val size_nat :
-      n
-      ->
-      nat **)
+  (** val size_nat : n -> nat **)
   
   let size_nat = function
-  | N0 ->
-    O
-  | Npos p ->
-    Coq_Pos.size_nat
-      p
+  | N0 -> O
+  | Npos p -> Coq_Pos.size_nat p
   
-  (** val pos_div_eucl :
-      positive
-      ->
-      n
-      ->
-      (n,
-      n)
-      prod **)
+  (** val pos_div_eucl : positive -> n -> (n, n) prod **)
   
   let rec pos_div_eucl a b =
     match a with
     | XI a' ->
-      let Pair (q0,
-                r) =
-        pos_div_eucl
-          a'
-          b
-      in
-      let r' =
-        succ_double
-          r
-      in
-      (match leb
-               b
-               r' with
-       | True ->
-         Pair
-           ((succ_double
-              q0),
-           (sub
-             r'
-             b))
-       | False ->
-         Pair
-           ((double
-              q0),
-           r'))
+      let Pair (q0, r) = pos_div_eucl a' b in
+      let r' = succ_double r in
+      (match leb b r' with
+       | True -> Pair ((succ_double q0), (sub r' b))
+       | False -> Pair ((double q0), r'))
     | XO a' ->
-      let Pair (q0,
-                r) =
-        pos_div_eucl
-          a'
-          b
-      in
-      let r' =
-        double
-          r
-      in
-      (match leb
-               b
-               r' with
-       | True ->
-         Pair
-           ((succ_double
-              q0),
-           (sub
-             r'
-             b))
-       | False ->
-         Pair
-           ((double
-              q0),
-           r'))
+      let Pair (q0, r) = pos_div_eucl a' b in
+      let r' = double r in
+      (match leb b r' with
+       | True -> Pair ((succ_double q0), (sub r' b))
+       | False -> Pair ((double q0), r'))
     | XH ->
       (match b with
-       | N0 ->
-         Pair
-           (N0,
-           (Npos
-           XH))
+       | N0 -> Pair (N0, (Npos XH))
        | Npos p ->
          (match p with
-          | XH ->
-            Pair
-              ((Npos
-              XH),
-              N0)
-          | _ ->
-            Pair
-              (N0,
-              (Npos
-              XH))))
+          | XH -> Pair ((Npos XH), N0)
+          | _ -> Pair (N0, (Npos XH))))
   
-  (** val div_eucl :
-      n
-      ->
-      n
-      ->
-      (n,
-      n)
-      prod **)
+  (** val div_eucl : n -> n -> (n, n) prod **)
   
   let div_eucl a b =
     match a with
-    | N0 ->
-      Pair
-        (N0,
-        N0)
+    | N0 -> Pair (N0, N0)
     | Npos na ->
       (match b with
-       | N0 ->
-         Pair
-           (N0,
-           a)
-       | Npos p ->
-         pos_div_eucl
-           na
-           b)
+       | N0 -> Pair (N0, a)
+       | Npos p -> pos_div_eucl na b)
   
-  (** val div :
-      n
-      ->
-      n
-      ->
-      n **)
+  (** val div : n -> n -> n **)
   
   let div a b =
-    fst
-      (div_eucl
-        a
-        b)
+    fst (div_eucl a b)
   
-  (** val modulo :
-      n
-      ->
-      n
-      ->
-      n **)
+  (** val modulo : n -> n -> n **)
   
   let modulo a b =
-    snd
-      (div_eucl
-        a
-        b)
+    snd (div_eucl a b)
   
-  (** val gcd :
-      n
-      ->
-      n
-      ->
-      n **)
+  (** val gcd : n -> n -> n **)
   
   let gcd a b =
     match a with
-    | N0 ->
-      b
+    | N0 -> b
     | Npos p ->
       (match b with
-       | N0 ->
-         a
-       | Npos q0 ->
-         Npos
-           (Coq_Pos.gcd
-             p
-             q0))
+       | N0 -> a
+       | Npos q0 -> Npos (Coq_Pos.gcd p q0))
   
-  (** val ggcd :
-      n
-      ->
-      n
-      ->
-      (n,
-      (n,
-      n)
-      prod)
-      prod **)
+  (** val ggcd : n -> n -> (n, (n, n) prod) prod **)
   
   let ggcd a b =
     match a with
-    | N0 ->
-      Pair
-        (b,
-        (Pair
-        (N0,
-        (Npos
-        XH))))
+    | N0 -> Pair (b, (Pair (N0, (Npos XH))))
     | Npos p ->
       (match b with
-       | N0 ->
-         Pair
-           (a,
-           (Pair
-           ((Npos
-           XH),
-           N0)))
+       | N0 -> Pair (a, (Pair ((Npos XH), N0)))
        | Npos q0 ->
-         let Pair (g,
-                   p0) =
-           Coq_Pos.ggcd
-             p
-             q0
-         in
-         let Pair (aa,
-                   bb) =
-           p0
-         in
-         Pair
-         ((Npos
-         g),
-         (Pair
-         ((Npos
-         aa),
-         (Npos
-         bb)))))
+         let Pair (g, p0) = Coq_Pos.ggcd p q0 in
+         let Pair (aa, bb) = p0 in
+         Pair ((Npos g), (Pair ((Npos aa), (Npos bb)))))
   
-  (** val sqrtrem :
-      n
-      ->
-      (n,
-      n)
-      prod **)
+  (** val sqrtrem : n -> (n, n) prod **)
   
   let sqrtrem = function
-  | N0 ->
-    Pair
-      (N0,
-      N0)
+  | N0 -> Pair (N0, N0)
   | Npos p ->
-    let Pair (s,
-              m) =
-      Coq_Pos.sqrtrem
-        p
-    in
+    let Pair (s, m) = Coq_Pos.sqrtrem p in
     (match m with
-     | Coq_Pos.IsPos r ->
-       Pair
-         ((Npos
-         s),
-         (Npos
-         r))
-     | _ ->
-       Pair
-         ((Npos
-         s),
-         N0))
+     | Coq_Pos.IsPos r -> Pair ((Npos s), (Npos r))
+     | _ -> Pair ((Npos s), N0))
   
-  (** val sqrt :
-      n
-      ->
-      n **)
+  (** val sqrt : n -> n **)
   
   let sqrt = function
-  | N0 ->
-    N0
-  | Npos p ->
-    Npos
-      (Coq_Pos.sqrt
-        p)
+  | N0 -> N0
+  | Npos p -> Npos (Coq_Pos.sqrt p)
   
-  (** val coq_lor :
-      n
-      ->
-      n
-      ->
-      n **)
+  (** val coq_lor : n -> n -> n **)
   
   let coq_lor n0 m =
     match n0 with
-    | N0 ->
-      m
+    | N0 -> m
     | Npos p ->
       (match m with
-       | N0 ->
-         n0
-       | Npos q0 ->
-         Npos
-           (Coq_Pos.coq_lor
-             p
-             q0))
+       | N0 -> n0
+       | Npos q0 -> Npos (Coq_Pos.coq_lor p q0))
   
-  (** val coq_land :
-      n
-      ->
-      n
-      ->
-      n **)
+  (** val coq_land : n -> n -> n **)
   
   let coq_land n0 m =
     match n0 with
-    | N0 ->
-      N0
+    | N0 -> N0
     | Npos p ->
       (match m with
-       | N0 ->
-         N0
-       | Npos q0 ->
-         Coq_Pos.coq_land
-           p
-           q0)
+       | N0 -> N0
+       | Npos q0 -> Coq_Pos.coq_land p q0)
   
-  (** val ldiff :
-      n
-      ->
-      n
-      ->
-      n **)
+  (** val ldiff : n -> n -> n **)
   
   let rec ldiff n0 m =
     match n0 with
-    | N0 ->
-      N0
+    | N0 -> N0
     | Npos p ->
       (match m with
-       | N0 ->
-         n0
-       | Npos q0 ->
-         Coq_Pos.ldiff
-           p
-           q0)
+       | N0 -> n0
+       | Npos q0 -> Coq_Pos.ldiff p q0)
   
-  (** val coq_lxor :
-      n
-      ->
-      n
-      ->
-      n **)
+  (** val coq_lxor : n -> n -> n **)
   
   let coq_lxor n0 m =
     match n0 with
-    | N0 ->
-      m
+    | N0 -> m
     | Npos p ->
       (match m with
-       | N0 ->
-         n0
-       | Npos q0 ->
-         Coq_Pos.coq_lxor
-           p
-           q0)
+       | N0 -> n0
+       | Npos q0 -> Coq_Pos.coq_lxor p q0)
   
-  (** val shiftl_nat :
-      n
-      ->
-      nat
-      ->
-      n **)
+  (** val shiftl_nat : n -> nat -> n **)
   
   let shiftl_nat a n0 =
-    nat_iter
-      n0
-      double
-      a
+    nat_iter n0 double a
   
-  (** val shiftr_nat :
-      n
-      ->
-      nat
-      ->
-      n **)
+  (** val shiftr_nat : n -> nat -> n **)
   
   let shiftr_nat a n0 =
-    nat_iter
-      n0
-      div2
-      a
+    nat_iter n0 div2 a
   
-  (** val shiftl :
-      n
-      ->
-      n
-      ->
-      n **)
+  (** val shiftl : n -> n -> n **)
   
   let shiftl a n0 =
     match a with
-    | N0 ->
-      N0
-    | Npos a0 ->
-      Npos
-        (Coq_Pos.shiftl
-          a0
-          n0)
+    | N0 -> N0
+    | Npos a0 -> Npos (Coq_Pos.shiftl a0 n0)
   
-  (** val shiftr :
-      n
-      ->
-      n
-      ->
-      n **)
+  (** val shiftr : n -> n -> n **)
   
   let shiftr a = function
-  | N0 ->
-    a
-  | Npos p ->
-    Coq_Pos.iter
-      p
-      div2
-      a
+  | N0 -> a
+  | Npos p -> Coq_Pos.iter p div2 a
   
-  (** val testbit_nat :
-      n
-      ->
-      nat
-      ->
-      bool **)
+  (** val testbit_nat : n -> nat -> bool **)
   
   let testbit_nat = function
-  | N0 ->
-    (fun x0 ->
-      False)
-  | Npos p ->
-    Coq_Pos.testbit_nat
-      p
+  | N0 -> (fun x0 -> False)
+  | Npos p -> Coq_Pos.testbit_nat p
   
-  (** val testbit :
-      n
-      ->
-      n
-      ->
-      bool **)
+  (** val testbit : n -> n -> bool **)
   
   let testbit a n0 =
     match a with
-    | N0 ->
-      False
-    | Npos p ->
-      Coq_Pos.testbit
-        p
-        n0
+    | N0 -> False
+    | Npos p -> Coq_Pos.testbit p n0
   
-  (** val to_nat :
-      n
-      ->
-      nat **)
+  (** val to_nat : n -> nat **)
   
   let to_nat = function
-  | N0 ->
-    O
-  | Npos p ->
-    Coq_Pos.to_nat
-      p
+  | N0 -> O
+  | Npos p -> Coq_Pos.to_nat p
   
-  (** val of_nat :
-      nat
-      ->
-      n **)
+  (** val of_nat : nat -> n **)
   
   let of_nat = function
-  | O ->
-    N0
-  | S n' ->
-    Npos
-      (Coq_Pos.of_succ_nat
-        n')
+  | O -> N0
+  | S n' -> Npos (Coq_Pos.of_succ_nat n')
   
-  (** val iter :
-      n
-      ->
-      ('a1
-      ->
-      'a1)
-      ->
-      'a1
-      ->
-      'a1 **)
+  (** val iter : n -> ('a1 -> 'a1) -> 'a1 -> 'a1 **)
   
   let iter n0 f x0 =
     match n0 with
-    | N0 ->
-      x0
-    | Npos p ->
-      Coq_Pos.iter
-        p
-        f
-        x0
+    | N0 -> x0
+    | Npos p -> Coq_Pos.iter p f x0
   
-  (** val eq_dec :
-      n
-      ->
-      n
-      ->
-      sumbool **)
+  (** val eq_dec : n -> n -> sumbool **)
   
   let eq_dec n0 m =
     match n0 with
     | N0 ->
       (match m with
-       | N0 ->
-         Left
-       | Npos p ->
-         Right)
+       | N0 -> Left
+       | Npos p -> Right)
     | Npos x0 ->
       (match m with
-       | N0 ->
-         Right
-       | Npos p0 ->
-         Coq_Pos.eq_dec
-           x0
-           p0)
+       | N0 -> Right
+       | Npos p0 -> Coq_Pos.eq_dec x0 p0)
   
-  (** val discr :
-      n
-      ->
-      positive
-      sumor **)
+  (** val discr : n -> positive sumor **)
   
   let discr = function
-  | N0 ->
-    Inright
-  | Npos p ->
-    Inleft
-      p
+  | N0 -> Inright
+  | Npos p -> Inleft p
   
   (** val binary_rect :
-      'a1
-      ->
-      (n
-      ->
-      'a1
-      ->
-      'a1)
-      ->
-      (n
-      ->
-      'a1
-      ->
-      'a1)
-      ->
-      n
-      ->
-      'a1 **)
+      'a1 -> (n -> 'a1 -> 'a1) -> (n -> 'a1 -> 'a1) -> n -> 'a1 **)
   
   let binary_rect f0 f2 fS2 n0 =
-    let f2' =
-      fun p ->
-      f2
-        (Npos
-        p)
-    in
-    let fS2' =
-      fun p ->
-      fS2
-        (Npos
-        p)
-    in
+    let f2' = fun p -> f2 (Npos p) in
+    let fS2' = fun p -> fS2 (Npos p) in
     (match n0 with
-     | N0 ->
-       f0
+     | N0 -> f0
      | Npos p ->
        let rec f = function
-       | XI p1 ->
-         fS2'
-           p1
-           (f
-             p1)
-       | XO p1 ->
-         f2'
-           p1
-           (f
-             p1)
-       | XH ->
-         fS2
-           N0
-           f0
-       in f
-            p)
+       | XI p1 -> fS2' p1 (f p1)
+       | XO p1 -> f2' p1 (f p1)
+       | XH -> fS2 N0 f0
+       in f p)
   
   (** val binary_rec :
-      'a1
-      ->
-      (n
-      ->
-      'a1
-      ->
-      'a1)
-      ->
-      (n
-      ->
-      'a1
-      ->
-      'a1)
-      ->
-      n
-      ->
-      'a1 **)
+      'a1 -> (n -> 'a1 -> 'a1) -> (n -> 'a1 -> 'a1) -> n -> 'a1 **)
   
   let binary_rec =
     binary_rect
   
-  (** val peano_rect :
-      'a1
-      ->
-      (n
-      ->
-      'a1
-      ->
-      'a1)
-      ->
-      n
-      ->
-      'a1 **)
+  (** val peano_rect : 'a1 -> (n -> 'a1 -> 'a1) -> n -> 'a1 **)
   
   let peano_rect f0 f n0 =
-    let f' =
-      fun p ->
-      f
-        (Npos
-        p)
-    in
+    let f' = fun p -> f (Npos p) in
     (match n0 with
-     | N0 ->
-       f0
-     | Npos p ->
-       Coq_Pos.peano_rect
-         (f
-           N0
-           f0)
-         f'
-         p)
+     | N0 -> f0
+     | Npos p -> Coq_Pos.peano_rect (f N0 f0) f' p)
   
-  (** val peano_rec :
-      'a1
-      ->
-      (n
-      ->
-      'a1
-      ->
-      'a1)
-      ->
-      n
-      ->
-      'a1 **)
+  (** val peano_rec : 'a1 -> (n -> 'a1 -> 'a1) -> n -> 'a1 **)
   
   let peano_rec =
     peano_rect
   
-  (** val leb_spec0 :
-      n
-      ->
-      n
-      ->
-      reflect **)
+  (** val leb_spec0 : n -> n -> reflect **)
   
   let leb_spec0 x0 y0 =
-    iff_reflect
-      (leb
-        x0
-        y0)
+    iff_reflect (leb x0 y0)
   
-  (** val ltb_spec0 :
-      n
-      ->
-      n
-      ->
-      reflect **)
+  (** val ltb_spec0 : n -> n -> reflect **)
   
   let ltb_spec0 x0 y0 =
-    iff_reflect
-      (ltb
-        x0
-        y0)
+    iff_reflect (ltb x0 y0)
   
   module Private_BootStrap = 
    struct 
     
    end
   
-  (** val recursion :
-      'a1
-      ->
-      (n
-      ->
-      'a1
-      ->
-      'a1)
-      ->
-      n
-      ->
-      'a1 **)
+  (** val recursion : 'a1 -> (n -> 'a1 -> 'a1) -> n -> 'a1 **)
   
   let recursion x0 =
-    peano_rect
-      x0
+    peano_rect x0
   
   module Private_OrderTac = 
    struct 
@@ -3077,141 +1929,60 @@ module N =
     
    end
   
-  (** val sqrt_up :
-      n
-      ->
-      n **)
+  (** val sqrt_up : n -> n **)
   
   let sqrt_up a =
-    match compare
-            N0
-            a with
-    | Lt ->
-      succ
-        (sqrt
-          (pred
-            a))
-    | _ ->
-      N0
+    match compare N0 a with
+    | Lt -> succ (sqrt (pred a))
+    | _ -> N0
   
-  (** val log2_up :
-      n
-      ->
-      n **)
+  (** val log2_up : n -> n **)
   
   let log2_up a =
-    match compare
-            (Npos
-            XH)
-            a with
-    | Lt ->
-      succ
-        (log2
-          (pred
-            a))
-    | _ ->
-      N0
+    match compare (Npos XH) a with
+    | Lt -> succ (log2 (pred a))
+    | _ -> N0
   
   module Private_NZDiv = 
    struct 
     
    end
   
-  (** val lcm :
-      n
-      ->
-      n
-      ->
-      n **)
+  (** val lcm : n -> n -> n **)
   
   let lcm a b =
-    mul
-      a
-      (div
-        b
-        (gcd
-          a
-          b))
+    mul a (div b (gcd a b))
   
-  (** val eqb_spec :
-      n
-      ->
-      n
-      ->
-      reflect **)
+  (** val eqb_spec : n -> n -> reflect **)
   
   let eqb_spec x0 y0 =
-    iff_reflect
-      (eqb
-        x0
-        y0)
+    iff_reflect (eqb x0 y0)
   
-  (** val b2n :
-      bool
-      ->
-      n **)
+  (** val b2n : bool -> n **)
   
   let b2n = function
-  | True ->
-    Npos
-      XH
-  | False ->
-    N0
+  | True -> Npos XH
+  | False -> N0
   
-  (** val setbit :
-      n
-      ->
-      n
-      ->
-      n **)
+  (** val setbit : n -> n -> n **)
   
   let setbit a n0 =
-    coq_lor
-      a
-      (shiftl
-        (Npos
-        XH)
-        n0)
+    coq_lor a (shiftl (Npos XH) n0)
   
-  (** val clearbit :
-      n
-      ->
-      n
-      ->
-      n **)
+  (** val clearbit : n -> n -> n **)
   
   let clearbit a n0 =
-    ldiff
-      a
-      (shiftl
-        (Npos
-        XH)
-        n0)
+    ldiff a (shiftl (Npos XH) n0)
   
-  (** val ones :
-      n
-      ->
-      n **)
+  (** val ones : n -> n **)
   
   let ones n0 =
-    pred
-      (shiftl
-        (Npos
-        XH)
-        n0)
+    pred (shiftl (Npos XH) n0)
   
-  (** val lnot :
-      n
-      ->
-      n
-      ->
-      n **)
+  (** val lnot : n -> n -> n **)
   
   let lnot a n0 =
-    coq_lxor
-      a
-      (ones
-        n0)
+    coq_lxor a (ones n0)
   
   module Private_Tac = 
    struct 
@@ -3221,312 +1992,74 @@ module N =
   module Private_Dec = 
    struct 
     (** val max_case_strong :
-        n
-        ->
-        n
-        ->
-        (n
-        ->
-        n
-        ->
-        __
-        ->
-        'a1
-        ->
-        'a1)
-        ->
-        (__
-        ->
-        'a1)
-        ->
-        (__
-        ->
-        'a1)
-        ->
-        'a1 **)
+        n -> n -> (n -> n -> __ -> 'a1 -> 'a1) -> (__ -> 'a1) -> (__ -> 'a1)
+        -> 'a1 **)
     
     let max_case_strong n0 m compat hl hr =
-      let c =
-        compSpec2Type
-          n0
-          m
-          (compare
-            n0
-            m)
-      in
+      let c = compSpec2Type n0 m (compare n0 m) in
       (match c with
-       | CompGtT ->
-         compat
-           n0
-           (max
-             n0
-             m)
-           __
-           (hl
-             __)
-       | _ ->
-         compat
-           m
-           (max
-             n0
-             m)
-           __
-           (hr
-             __))
+       | CompGtT -> compat n0 (max n0 m) __ (hl __)
+       | _ -> compat m (max n0 m) __ (hr __))
     
     (** val max_case :
-        n
-        ->
-        n
-        ->
-        (n
-        ->
-        n
-        ->
-        __
-        ->
-        'a1
-        ->
-        'a1)
-        ->
-        'a1
-        ->
-        'a1
-        ->
-        'a1 **)
+        n -> n -> (n -> n -> __ -> 'a1 -> 'a1) -> 'a1 -> 'a1 -> 'a1 **)
     
     let max_case n0 m x0 x1 x2 =
-      max_case_strong
-        n0
-        m
-        x0
-        (fun _ ->
-        x1)
-        (fun _ ->
-        x2)
+      max_case_strong n0 m x0 (fun _ -> x1) (fun _ -> x2)
     
-    (** val max_dec :
-        n
-        ->
-        n
-        ->
-        sumbool **)
+    (** val max_dec : n -> n -> sumbool **)
     
     let max_dec n0 m =
-      max_case
-        n0
-        m
-        (fun x0 y0 _ h0 ->
-        h0)
-        Left
-        Right
+      max_case n0 m (fun x0 y0 _ h0 -> h0) Left Right
     
     (** val min_case_strong :
-        n
-        ->
-        n
-        ->
-        (n
-        ->
-        n
-        ->
-        __
-        ->
-        'a1
-        ->
-        'a1)
-        ->
-        (__
-        ->
-        'a1)
-        ->
-        (__
-        ->
-        'a1)
-        ->
-        'a1 **)
+        n -> n -> (n -> n -> __ -> 'a1 -> 'a1) -> (__ -> 'a1) -> (__ -> 'a1)
+        -> 'a1 **)
     
     let min_case_strong n0 m compat hl hr =
-      let c =
-        compSpec2Type
-          n0
-          m
-          (compare
-            n0
-            m)
-      in
+      let c = compSpec2Type n0 m (compare n0 m) in
       (match c with
-       | CompGtT ->
-         compat
-           m
-           (min
-             n0
-             m)
-           __
-           (hr
-             __)
-       | _ ->
-         compat
-           n0
-           (min
-             n0
-             m)
-           __
-           (hl
-             __))
+       | CompGtT -> compat m (min n0 m) __ (hr __)
+       | _ -> compat n0 (min n0 m) __ (hl __))
     
     (** val min_case :
-        n
-        ->
-        n
-        ->
-        (n
-        ->
-        n
-        ->
-        __
-        ->
-        'a1
-        ->
-        'a1)
-        ->
-        'a1
-        ->
-        'a1
-        ->
-        'a1 **)
+        n -> n -> (n -> n -> __ -> 'a1 -> 'a1) -> 'a1 -> 'a1 -> 'a1 **)
     
     let min_case n0 m x0 x1 x2 =
-      min_case_strong
-        n0
-        m
-        x0
-        (fun _ ->
-        x1)
-        (fun _ ->
-        x2)
+      min_case_strong n0 m x0 (fun _ -> x1) (fun _ -> x2)
     
-    (** val min_dec :
-        n
-        ->
-        n
-        ->
-        sumbool **)
+    (** val min_dec : n -> n -> sumbool **)
     
     let min_dec n0 m =
-      min_case
-        n0
-        m
-        (fun x0 y0 _ h0 ->
-        h0)
-        Left
-        Right
+      min_case n0 m (fun x0 y0 _ h0 -> h0) Left Right
    end
   
-  (** val max_case_strong :
-      n
-      ->
-      n
-      ->
-      (__
-      ->
-      'a1)
-      ->
-      (__
-      ->
-      'a1)
-      ->
-      'a1 **)
+  (** val max_case_strong : n -> n -> (__ -> 'a1) -> (__ -> 'a1) -> 'a1 **)
   
   let max_case_strong n0 m x0 x1 =
-    Private_Dec.max_case_strong
-      n0
-      m
-      (fun x2 y0 _ x3 ->
-      x3)
-      x0
-      x1
+    Private_Dec.max_case_strong n0 m (fun x2 y0 _ x3 -> x3) x0 x1
   
-  (** val max_case :
-      n
-      ->
-      n
-      ->
-      'a1
-      ->
-      'a1
-      ->
-      'a1 **)
+  (** val max_case : n -> n -> 'a1 -> 'a1 -> 'a1 **)
   
   let max_case n0 m x0 x1 =
-    max_case_strong
-      n0
-      m
-      (fun _ ->
-      x0)
-      (fun _ ->
-      x1)
+    max_case_strong n0 m (fun _ -> x0) (fun _ -> x1)
   
-  (** val max_dec :
-      n
-      ->
-      n
-      ->
-      sumbool **)
+  (** val max_dec : n -> n -> sumbool **)
   
   let max_dec =
     Private_Dec.max_dec
   
-  (** val min_case_strong :
-      n
-      ->
-      n
-      ->
-      (__
-      ->
-      'a1)
-      ->
-      (__
-      ->
-      'a1)
-      ->
-      'a1 **)
+  (** val min_case_strong : n -> n -> (__ -> 'a1) -> (__ -> 'a1) -> 'a1 **)
   
   let min_case_strong n0 m x0 x1 =
-    Private_Dec.min_case_strong
-      n0
-      m
-      (fun x2 y0 _ x3 ->
-      x3)
-      x0
-      x1
+    Private_Dec.min_case_strong n0 m (fun x2 y0 _ x3 -> x3) x0 x1
   
-  (** val min_case :
-      n
-      ->
-      n
-      ->
-      'a1
-      ->
-      'a1
-      ->
-      'a1 **)
+  (** val min_case : n -> n -> 'a1 -> 'a1 -> 'a1 **)
   
   let min_case n0 m x0 x1 =
-    min_case_strong
-      n0
-      m
-      (fun _ ->
-      x0)
-      (fun _ ->
-      x1)
+    min_case_strong n0 m (fun _ -> x0) (fun _ -> x1)
   
-  (** val min_dec :
-      n
-      ->
-      n
-      ->
-      sumbool **)
+  (** val min_dec : n -> n -> sumbool **)
   
   let min_dec =
     Private_Dec.min_dec
@@ -3534,792 +2067,320 @@ module N =
 
 module Z = 
  struct 
-  type t
-    =
-    z
+  type t = z
   
-  (** val zero :
-      z **)
+  (** val zero : z **)
   
   let zero =
     Z0
   
-  (** val one :
-      z **)
+  (** val one : z **)
   
   let one =
-    Zpos
-      XH
+    Zpos XH
   
-  (** val two :
-      z **)
+  (** val two : z **)
   
   let two =
-    Zpos
-      (XO
-      XH)
+    Zpos (XO XH)
   
-  (** val double :
-      z
-      ->
-      z **)
+  (** val double : z -> z **)
   
   let double = function
-  | Z0 ->
-    Z0
-  | Zpos p ->
-    Zpos
-      (XO
-      p)
-  | Zneg p ->
-    Zneg
-      (XO
-      p)
+  | Z0 -> Z0
+  | Zpos p -> Zpos (XO p)
+  | Zneg p -> Zneg (XO p)
   
-  (** val succ_double :
-      z
-      ->
-      z **)
+  (** val succ_double : z -> z **)
   
   let succ_double = function
-  | Z0 ->
-    Zpos
-      XH
-  | Zpos p ->
-    Zpos
-      (XI
-      p)
-  | Zneg p ->
-    Zneg
-      (Coq_Pos.pred_double
-        p)
+  | Z0 -> Zpos XH
+  | Zpos p -> Zpos (XI p)
+  | Zneg p -> Zneg (Coq_Pos.pred_double p)
   
-  (** val pred_double :
-      z
-      ->
-      z **)
+  (** val pred_double : z -> z **)
   
   let pred_double = function
-  | Z0 ->
-    Zneg
-      XH
-  | Zpos p ->
-    Zpos
-      (Coq_Pos.pred_double
-        p)
-  | Zneg p ->
-    Zneg
-      (XI
-      p)
+  | Z0 -> Zneg XH
+  | Zpos p -> Zpos (Coq_Pos.pred_double p)
+  | Zneg p -> Zneg (XI p)
   
-  (** val pos_sub :
-      positive
-      ->
-      positive
-      ->
-      z **)
+  (** val pos_sub : positive -> positive -> z **)
   
   let rec pos_sub x0 y0 =
     match x0 with
     | XI p ->
       (match y0 with
-       | XI q0 ->
-         double
-           (pos_sub
-             p
-             q0)
-       | XO q0 ->
-         succ_double
-           (pos_sub
-             p
-             q0)
-       | XH ->
-         Zpos
-           (XO
-           p))
+       | XI q0 -> double (pos_sub p q0)
+       | XO q0 -> succ_double (pos_sub p q0)
+       | XH -> Zpos (XO p))
     | XO p ->
       (match y0 with
-       | XI q0 ->
-         pred_double
-           (pos_sub
-             p
-             q0)
-       | XO q0 ->
-         double
-           (pos_sub
-             p
-             q0)
-       | XH ->
-         Zpos
-           (Coq_Pos.pred_double
-             p))
+       | XI q0 -> pred_double (pos_sub p q0)
+       | XO q0 -> double (pos_sub p q0)
+       | XH -> Zpos (Coq_Pos.pred_double p))
     | XH ->
       (match y0 with
-       | XI q0 ->
-         Zneg
-           (XO
-           q0)
-       | XO q0 ->
-         Zneg
-           (Coq_Pos.pred_double
-             q0)
-       | XH ->
-         Z0)
+       | XI q0 -> Zneg (XO q0)
+       | XO q0 -> Zneg (Coq_Pos.pred_double q0)
+       | XH -> Z0)
   
-  (** val add :
-      z
-      ->
-      z
-      ->
-      z **)
+  (** val add : z -> z -> z **)
   
   let add x0 y0 =
     match x0 with
-    | Z0 ->
-      y0
+    | Z0 -> y0
     | Zpos x' ->
       (match y0 with
-       | Z0 ->
-         x0
-       | Zpos y' ->
-         Zpos
-           (Coq_Pos.add
-             x'
-             y')
-       | Zneg y' ->
-         pos_sub
-           x'
-           y')
+       | Z0 -> x0
+       | Zpos y' -> Zpos (Coq_Pos.add x' y')
+       | Zneg y' -> pos_sub x' y')
     | Zneg x' ->
       (match y0 with
-       | Z0 ->
-         x0
-       | Zpos y' ->
-         pos_sub
-           y'
-           x'
-       | Zneg y' ->
-         Zneg
-           (Coq_Pos.add
-             x'
-             y'))
+       | Z0 -> x0
+       | Zpos y' -> pos_sub y' x'
+       | Zneg y' -> Zneg (Coq_Pos.add x' y'))
   
-  (** val opp :
-      z
-      ->
-      z **)
+  (** val opp : z -> z **)
   
   let opp = function
-  | Z0 ->
-    Z0
-  | Zpos x1 ->
-    Zneg
-      x1
-  | Zneg x1 ->
-    Zpos
-      x1
+  | Z0 -> Z0
+  | Zpos x1 -> Zneg x1
+  | Zneg x1 -> Zpos x1
   
-  (** val succ :
-      z
-      ->
-      z **)
+  (** val succ : z -> z **)
   
   let succ x0 =
-    add
-      x0
-      (Zpos
-      XH)
+    add x0 (Zpos XH)
   
-  (** val pred :
-      z
-      ->
-      z **)
+  (** val pred : z -> z **)
   
   let pred x0 =
-    add
-      x0
-      (Zneg
-      XH)
+    add x0 (Zneg XH)
   
-  (** val sub :
-      z
-      ->
-      z
-      ->
-      z **)
+  (** val sub : z -> z -> z **)
   
   let sub m n0 =
-    add
-      m
-      (opp
-        n0)
+    add m (opp n0)
   
-  (** val mul :
-      z
-      ->
-      z
-      ->
-      z **)
+  (** val mul : z -> z -> z **)
   
   let mul x0 y0 =
     match x0 with
-    | Z0 ->
-      Z0
+    | Z0 -> Z0
     | Zpos x' ->
       (match y0 with
-       | Z0 ->
-         Z0
-       | Zpos y' ->
-         Zpos
-           (Coq_Pos.mul
-             x'
-             y')
-       | Zneg y' ->
-         Zneg
-           (Coq_Pos.mul
-             x'
-             y'))
+       | Z0 -> Z0
+       | Zpos y' -> Zpos (Coq_Pos.mul x' y')
+       | Zneg y' -> Zneg (Coq_Pos.mul x' y'))
     | Zneg x' ->
       (match y0 with
-       | Z0 ->
-         Z0
-       | Zpos y' ->
-         Zneg
-           (Coq_Pos.mul
-             x'
-             y')
-       | Zneg y' ->
-         Zpos
-           (Coq_Pos.mul
-             x'
-             y'))
+       | Z0 -> Z0
+       | Zpos y' -> Zneg (Coq_Pos.mul x' y')
+       | Zneg y' -> Zpos (Coq_Pos.mul x' y'))
   
-  (** val pow_pos :
-      z
-      ->
-      positive
-      ->
-      z **)
+  (** val pow_pos : z -> positive -> z **)
   
   let pow_pos z0 n0 =
-    Coq_Pos.iter
-      n0
-      (mul
-        z0)
-      (Zpos
-      XH)
+    Coq_Pos.iter n0 (mul z0) (Zpos XH)
   
-  (** val pow :
-      z
-      ->
-      z
-      ->
-      z **)
+  (** val pow : z -> z -> z **)
   
   let pow x0 = function
-  | Z0 ->
-    Zpos
-      XH
-  | Zpos p ->
-    pow_pos
-      x0
-      p
-  | Zneg p ->
-    Z0
+  | Z0 -> Zpos XH
+  | Zpos p -> pow_pos x0 p
+  | Zneg p -> Z0
   
-  (** val square :
-      z
-      ->
-      z **)
+  (** val square : z -> z **)
   
   let square = function
-  | Z0 ->
-    Z0
-  | Zpos p ->
-    Zpos
-      (Coq_Pos.square
-        p)
-  | Zneg p ->
-    Zpos
-      (Coq_Pos.square
-        p)
+  | Z0 -> Z0
+  | Zpos p -> Zpos (Coq_Pos.square p)
+  | Zneg p -> Zpos (Coq_Pos.square p)
   
-  (** val compare :
-      z
-      ->
-      z
-      ->
-      comparison **)
+  (** val compare : z -> z -> comparison **)
   
   let compare x0 y0 =
     match x0 with
     | Z0 ->
       (match y0 with
-       | Z0 ->
-         Eq
-       | Zpos y' ->
-         Lt
-       | Zneg y' ->
-         Gt)
+       | Z0 -> Eq
+       | Zpos y' -> Lt
+       | Zneg y' -> Gt)
     | Zpos x' ->
       (match y0 with
-       | Zpos y' ->
-         Coq_Pos.compare
-           x'
-           y'
-       | _ ->
-         Gt)
+       | Zpos y' -> Coq_Pos.compare x' y'
+       | _ -> Gt)
     | Zneg x' ->
       (match y0 with
-       | Zneg y' ->
-         compOpp
-           (Coq_Pos.compare
-             x'
-             y')
-       | _ ->
-         Lt)
+       | Zneg y' -> compOpp (Coq_Pos.compare x' y')
+       | _ -> Lt)
   
-  (** val sgn :
-      z
-      ->
-      z **)
+  (** val sgn : z -> z **)
   
   let sgn = function
-  | Z0 ->
-    Z0
-  | Zpos p ->
-    Zpos
-      XH
-  | Zneg p ->
-    Zneg
-      XH
+  | Z0 -> Z0
+  | Zpos p -> Zpos XH
+  | Zneg p -> Zneg XH
   
-  (** val leb :
-      z
-      ->
-      z
-      ->
-      bool **)
+  (** val leb : z -> z -> bool **)
   
   let leb x0 y0 =
-    match compare
-            x0
-            y0 with
-    | Gt ->
-      False
-    | _ ->
-      True
+    match compare x0 y0 with
+    | Gt -> False
+    | _ -> True
   
-  (** val ltb :
-      z
-      ->
-      z
-      ->
-      bool **)
+  (** val ltb : z -> z -> bool **)
   
   let ltb x0 y0 =
-    match compare
-            x0
-            y0 with
-    | Lt ->
-      True
-    | _ ->
-      False
+    match compare x0 y0 with
+    | Lt -> True
+    | _ -> False
   
-  (** val geb :
-      z
-      ->
-      z
-      ->
-      bool **)
+  (** val geb : z -> z -> bool **)
   
   let geb x0 y0 =
-    match compare
-            x0
-            y0 with
-    | Lt ->
-      False
-    | _ ->
-      True
+    match compare x0 y0 with
+    | Lt -> False
+    | _ -> True
   
-  (** val gtb :
-      z
-      ->
-      z
-      ->
-      bool **)
+  (** val gtb : z -> z -> bool **)
   
   let gtb x0 y0 =
-    match compare
-            x0
-            y0 with
-    | Gt ->
-      True
-    | _ ->
-      False
+    match compare x0 y0 with
+    | Gt -> True
+    | _ -> False
   
-  (** val eqb :
-      z
-      ->
-      z
-      ->
-      bool **)
+  (** val eqb : z -> z -> bool **)
   
   let rec eqb x0 y0 =
     match x0 with
     | Z0 ->
       (match y0 with
-       | Z0 ->
-         True
-       | _ ->
-         False)
+       | Z0 -> True
+       | _ -> False)
     | Zpos p ->
       (match y0 with
-       | Zpos q0 ->
-         Coq_Pos.eqb
-           p
-           q0
-       | _ ->
-         False)
+       | Zpos q0 -> Coq_Pos.eqb p q0
+       | _ -> False)
     | Zneg p ->
       (match y0 with
-       | Zneg q0 ->
-         Coq_Pos.eqb
-           p
-           q0
-       | _ ->
-         False)
+       | Zneg q0 -> Coq_Pos.eqb p q0
+       | _ -> False)
   
-  (** val max :
-      z
-      ->
-      z
-      ->
-      z **)
+  (** val max : z -> z -> z **)
   
   let max n0 m =
-    match compare
-            n0
-            m with
-    | Lt ->
-      m
-    | _ ->
-      n0
+    match compare n0 m with
+    | Lt -> m
+    | _ -> n0
   
-  (** val min :
-      z
-      ->
-      z
-      ->
-      z **)
+  (** val min : z -> z -> z **)
   
   let min n0 m =
-    match compare
-            n0
-            m with
-    | Gt ->
-      m
-    | _ ->
-      n0
+    match compare n0 m with
+    | Gt -> m
+    | _ -> n0
   
-  (** val abs :
-      z
-      ->
-      z **)
+  (** val abs : z -> z **)
   
   let abs = function
-  | Zneg p ->
-    Zpos
-      p
-  | x0 ->
-    x0
+  | Zneg p -> Zpos p
+  | x0 -> x0
   
-  (** val abs_nat :
-      z
-      ->
-      nat **)
+  (** val abs_nat : z -> nat **)
   
   let abs_nat = function
-  | Z0 ->
-    O
-  | Zpos p ->
-    Coq_Pos.to_nat
-      p
-  | Zneg p ->
-    Coq_Pos.to_nat
-      p
+  | Z0 -> O
+  | Zpos p -> Coq_Pos.to_nat p
+  | Zneg p -> Coq_Pos.to_nat p
   
-  (** val abs_N :
-      z
-      ->
-      n **)
+  (** val abs_N : z -> n **)
   
   let abs_N = function
-  | Z0 ->
-    N0
-  | Zpos p ->
-    Npos
-      p
-  | Zneg p ->
-    Npos
-      p
+  | Z0 -> N0
+  | Zpos p -> Npos p
+  | Zneg p -> Npos p
   
-  (** val to_nat :
-      z
-      ->
-      nat **)
+  (** val to_nat : z -> nat **)
   
   let to_nat = function
-  | Zpos p ->
-    Coq_Pos.to_nat
-      p
-  | _ ->
-    O
+  | Zpos p -> Coq_Pos.to_nat p
+  | _ -> O
   
-  (** val to_N :
-      z
-      ->
-      n **)
+  (** val to_N : z -> n **)
   
   let to_N = function
-  | Zpos p ->
-    Npos
-      p
-  | _ ->
-    N0
+  | Zpos p -> Npos p
+  | _ -> N0
   
-  (** val of_nat :
-      nat
-      ->
-      z **)
+  (** val of_nat : nat -> z **)
   
   let of_nat = function
-  | O ->
-    Z0
-  | S n1 ->
-    Zpos
-      (Coq_Pos.of_succ_nat
-        n1)
+  | O -> Z0
+  | S n1 -> Zpos (Coq_Pos.of_succ_nat n1)
   
-  (** val of_N :
-      n
-      ->
-      z **)
+  (** val of_N : n -> z **)
   
   let of_N = function
-  | N0 ->
-    Z0
-  | Npos p ->
-    Zpos
-      p
+  | N0 -> Z0
+  | Npos p -> Zpos p
   
-  (** val to_pos :
-      z
-      ->
-      positive **)
+  (** val to_pos : z -> positive **)
   
   let to_pos = function
-  | Zpos p ->
-    p
-  | _ ->
-    XH
+  | Zpos p -> p
+  | _ -> XH
   
-  (** val iter :
-      z
-      ->
-      ('a1
-      ->
-      'a1)
-      ->
-      'a1
-      ->
-      'a1 **)
+  (** val iter : z -> ('a1 -> 'a1) -> 'a1 -> 'a1 **)
   
   let iter n0 f x0 =
     match n0 with
-    | Zpos p ->
-      Coq_Pos.iter
-        p
-        f
-        x0
-    | _ ->
-      x0
+    | Zpos p -> Coq_Pos.iter p f x0
+    | _ -> x0
   
-  (** val pos_div_eucl :
-      positive
-      ->
-      z
-      ->
-      (z,
-      z)
-      prod **)
+  (** val pos_div_eucl : positive -> z -> (z, z) prod **)
   
   let rec pos_div_eucl a b =
     match a with
     | XI a' ->
-      let Pair (q0,
-                r) =
-        pos_div_eucl
-          a'
-          b
-      in
-      let r' =
-        add
-          (mul
-            (Zpos
-            (XO
-            XH))
-            r)
-          (Zpos
-          XH)
-      in
-      (match ltb
-               r'
-               b with
-       | True ->
-         Pair
-           ((mul
-              (Zpos
-              (XO
-              XH))
-              q0),
-           r')
-       | False ->
-         Pair
-           ((add
-              (mul
-                (Zpos
-                (XO
-                XH))
-                q0)
-              (Zpos
-              XH)),
-           (sub
-             r'
-             b)))
+      let Pair (q0, r) = pos_div_eucl a' b in
+      let r' = add (mul (Zpos (XO XH)) r) (Zpos XH) in
+      (match ltb r' b with
+       | True -> Pair ((mul (Zpos (XO XH)) q0), r')
+       | False -> Pair ((add (mul (Zpos (XO XH)) q0) (Zpos XH)), (sub r' b)))
     | XO a' ->
-      let Pair (q0,
-                r) =
-        pos_div_eucl
-          a'
-          b
-      in
-      let r' =
-        mul
-          (Zpos
-          (XO
-          XH))
-          r
-      in
-      (match ltb
-               r'
-               b with
-       | True ->
-         Pair
-           ((mul
-              (Zpos
-              (XO
-              XH))
-              q0),
-           r')
-       | False ->
-         Pair
-           ((add
-              (mul
-                (Zpos
-                (XO
-                XH))
-                q0)
-              (Zpos
-              XH)),
-           (sub
-             r'
-             b)))
+      let Pair (q0, r) = pos_div_eucl a' b in
+      let r' = mul (Zpos (XO XH)) r in
+      (match ltb r' b with
+       | True -> Pair ((mul (Zpos (XO XH)) q0), r')
+       | False -> Pair ((add (mul (Zpos (XO XH)) q0) (Zpos XH)), (sub r' b)))
     | XH ->
-      (match leb
-               (Zpos
-               (XO
-               XH))
-               b with
-       | True ->
-         Pair
-           (Z0,
-           (Zpos
-           XH))
-       | False ->
-         Pair
-           ((Zpos
-           XH),
-           Z0))
+      (match leb (Zpos (XO XH)) b with
+       | True -> Pair (Z0, (Zpos XH))
+       | False -> Pair ((Zpos XH), Z0))
   
-  (** val div_eucl :
-      z
-      ->
-      z
-      ->
-      (z,
-      z)
-      prod **)
+  (** val div_eucl : z -> z -> (z, z) prod **)
   
   let div_eucl a b =
     match a with
-    | Z0 ->
-      Pair
-        (Z0,
-        Z0)
+    | Z0 -> Pair (Z0, Z0)
     | Zpos a' ->
       (match b with
-       | Z0 ->
-         Pair
-           (Z0,
-           Z0)
-       | Zpos p ->
-         pos_div_eucl
-           a'
-           b
+       | Z0 -> Pair (Z0, Z0)
+       | Zpos p -> pos_div_eucl a' b
        | Zneg b' ->
-         let Pair (q0,
-                   r) =
-           pos_div_eucl
-             a'
-             (Zpos
-             b')
-         in
+         let Pair (q0, r) = pos_div_eucl a' (Zpos b') in
          (match r with
-          | Z0 ->
-            Pair
-              ((opp
-                 q0),
-              Z0)
-          | _ ->
-            Pair
-              ((opp
-                 (add
-                   q0
-                   (Zpos
-                   XH))),
-              (add
-                b
-                r))))
+          | Z0 -> Pair ((opp q0), Z0)
+          | _ -> Pair ((opp (add q0 (Zpos XH))), (add b r))))
     | Zneg a' ->
       (match b with
-       | Z0 ->
-         Pair
-           (Z0,
-           Z0)
+       | Z0 -> Pair (Z0, Z0)
        | Zpos p ->
-         let Pair (q0,
-                   r) =
-           pos_div_eucl
-             a'
-             b
-         in
+         let Pair (q0, r) = pos_div_eucl a' b in
          (match r with
-          | Z0 ->
-            Pair
-              ((opp
-                 q0),
-              Z0)
+          | Z0 -> Pair ((opp q0), Z0)
           | _ -> Pair ((opp (add q0 (Zpos XH))), (sub b r)))
        | Zneg b' ->
          let Pair (q0, r) = pos_div_eucl a' (Zpos b') in Pair (q0, (opp r)))
@@ -5538,1735 +3599,589 @@ let decision_instance_0 =
 let inject_Z_Q =
   inject_Z
 
-(** val decision_instance_1 :
-    q
-    ->
-    q
-    ->
-    decision **)
+(** val decision_instance_1 : q -> q -> decision **)
 
 let decision_instance_1 y0 x0 =
-  let filtered_var =
-    qlt_le_dec
-      x0
-      y0
-  in
+  let filtered_var = qlt_le_dec x0 y0 in
   (match filtered_var with
-   | Left ->
-     Right
-   | Right ->
-     Left)
+   | Left -> Right
+   | Right -> Left)
 
-(** val cR :
-    metricSpace **)
+(** val cR : metricSpace **)
 
 let cR =
-  complete
-    q_as_MetricSpace
+  complete q_as_MetricSpace
 
-(** val inject_Q_CR :
-    (q,
-    st_car)
-    cast **)
+(** val inject_Q_CR : (q, st_car) cast **)
 
 let inject_Q_CR =
-  Obj.magic
-    (Obj.magic
-      (cunit
-        q_as_MetricSpace)).ucFun
+  Obj.magic (Obj.magic (cunit q_as_MetricSpace)).ucFun
 
-(** val qtranslate_uc :
-    st_car
-    ->
-    st_car **)
+(** val qtranslate_uc : st_car -> st_car **)
 
 let qtranslate_uc a =
-  Obj.magic
-    { ucFun =
-    (fun b ->
-    q_as_CSemiGroup.csg_op.csbf_fun
-      a
-      b);
-    mu =
-    (fun x0 ->
-    Qpos2QposInf
-    x0) }
+  Obj.magic { ucFun = (fun b -> q_as_CSemiGroup.csg_op.csbf_fun a b); mu =
+    (fun x0 -> Qpos2QposInf x0) }
 
-(** val qplus_uc :
-    st_car **)
+(** val qplus_uc : st_car **)
 
 let qplus_uc =
-  Obj.magic
-    { ucFun =
-    qtranslate_uc;
-    mu =
-    (fun x0 ->
-    Qpos2QposInf
-    x0) }
+  Obj.magic { ucFun = qtranslate_uc; mu = (fun x0 -> Qpos2QposInf x0) }
 
-(** val cRplus_uc :
-    st_car **)
+(** val cRplus_uc : st_car **)
 
 let cRplus_uc =
-  cmap2
-    q_as_MetricSpace
-    q_as_MetricSpace
-    q_as_MetricSpace
-    qplus_uc
+  cmap2 q_as_MetricSpace q_as_MetricSpace q_as_MetricSpace qplus_uc
 
-(** val cRplus :
-    st_car
-    plus0 **)
+(** val cRplus : st_car plus0 **)
 
 let cRplus =
-  ucFun2
-    cR
-    cR
-    cR
-    cRplus_uc
+  ucFun2 cR cR cR cRplus_uc
 
-(** val qopp_uc :
-    st_car **)
+(** val qopp_uc : st_car **)
 
 let qopp_uc =
-  Obj.magic
-    { ucFun =
-    (Obj.magic
-      qopp);
-    mu =
-    (fun x0 ->
-    Qpos2QposInf
-    x0) }
+  Obj.magic { ucFun = (Obj.magic qopp); mu = (fun x0 -> Qpos2QposInf x0) }
 
-(** val cRopp :
-    st_car
-    negate **)
+(** val cRopp : st_car negate **)
 
 let cRopp =
-  (Obj.magic
-    (cmap
-      q_as_MetricSpace
-      q_as_MetricSpace
-      qopp_uc)).ucFun
+  (Obj.magic (cmap q_as_MetricSpace q_as_MetricSpace qopp_uc)).ucFun
 
-(** val qboundBelow_uc :
-    st_car
-    ->
-    st_car **)
+(** val qboundBelow_uc : st_car -> st_car **)
 
 let qboundBelow_uc a =
-  Obj.magic
-    { ucFun =
-    (fun b ->
-    Obj.magic
-      (qmax
-        (Obj.magic
-          a)
-        (Obj.magic
-          b)));
-    mu =
-    (fun x0 ->
-    Qpos2QposInf
-    x0) }
+  Obj.magic { ucFun = (fun b ->
+    Obj.magic (qmax (Obj.magic a) (Obj.magic b))); mu = (fun x0 ->
+    Qpos2QposInf x0) }
 
-(** val qboundAbove_uc :
-    st_car
-    ->
-    st_car **)
+(** val qboundAbove_uc : st_car -> st_car **)
 
 let qboundAbove_uc a =
-  Obj.magic
-    { ucFun =
-    (fun b ->
-    Obj.magic
-      (qmin
-        (Obj.magic
-          a)
-        (Obj.magic
-          b)));
-    mu =
-    (fun x0 ->
-    Qpos2QposInf
-    x0) }
+  Obj.magic { ucFun = (fun b ->
+    Obj.magic (qmin (Obj.magic a) (Obj.magic b))); mu = (fun x0 ->
+    Qpos2QposInf x0) }
 
-(** val qscale_modulus :
-    q
-    ->
-    qpos
-    ->
-    qposInf **)
+(** val qscale_modulus : q -> qpos -> qposInf **)
 
 let qscale_modulus a e =
-  let { qnum =
-    qnum0;
-    qden =
-    ad } =
-    a
-  in
+  let { qnum = qnum0; qden = ad } = a in
   (match qnum0 with
-   | Z0 ->
-     QposInfinity
-   | Zpos an ->
-     Qpos2QposInf
-       (qpos_mult
-         (qposMake
-           ad
-           an)
-         e)
-   | Zneg an ->
-     Qpos2QposInf
-       (qpos_mult
-         (qposMake
-           ad
-           an)
-         e))
+   | Z0 -> QposInfinity
+   | Zpos an -> Qpos2QposInf (qpos_mult (qposMake ad an) e)
+   | Zneg an -> Qpos2QposInf (qpos_mult (qposMake ad an) e))
 
-(** val qscale_uc :
-    st_car
-    ->
-    st_car **)
+(** val qscale_uc : st_car -> st_car **)
 
 let qscale_uc a =
-  Obj.magic
-    { ucFun =
-    (fun b ->
-    Obj.magic
-      (qmult
-        (Obj.magic
-          a)
-        (Obj.magic
-          b)));
-    mu =
-    (qscale_modulus
-      (Obj.magic
-        a)) }
+  Obj.magic { ucFun = (fun b ->
+    Obj.magic (qmult (Obj.magic a) (Obj.magic b))); mu =
+    (qscale_modulus (Obj.magic a)) }
 
-(** val scale :
-    q
-    ->
-    st_car **)
+(** val scale : q -> st_car **)
 
 let scale a =
-  cmap
-    q_as_MetricSpace
-    q_as_MetricSpace
-    (qscale_uc
-      (Obj.magic
-        a))
+  cmap q_as_MetricSpace q_as_MetricSpace (qscale_uc (Obj.magic a))
 
-(** val qboundAbs :
-    qpos
-    ->
-    st_car **)
+(** val qboundAbs : qpos -> st_car **)
 
 let qboundAbs c =
-  uc_compose
-    q_as_MetricSpace
-    q_as_MetricSpace
-    q_as_MetricSpace
-    (qboundBelow_uc
-      (Obj.magic
-        (qopp
-          (qposAsQ
-            c))))
-    (qboundAbove_uc
-      (Obj.magic
-        (qposAsQ
-          c)))
+  uc_compose q_as_MetricSpace q_as_MetricSpace q_as_MetricSpace
+    (qboundBelow_uc (Obj.magic (qopp (qposAsQ c))))
+    (qboundAbove_uc (Obj.magic (qposAsQ c)))
 
-(** val qmult_modulus :
-    qpos
-    ->
-    qpos
-    ->
-    qposInf **)
+(** val qmult_modulus : qpos -> qpos -> qposInf **)
 
 let qmult_modulus c e =
-  Qpos2QposInf
-    (qpos_mult
-      e
-      (qpos_inv
-        c))
+  Qpos2QposInf (qpos_mult e (qpos_inv c))
 
-(** val qmult_uc :
-    qpos
-    ->
-    st_car **)
+(** val qmult_uc : qpos -> st_car **)
 
 let qmult_uc c =
-  Obj.magic
-    { ucFun =
-    (fun a ->
-    uc_compose
-      q_as_MetricSpace
-      q_as_MetricSpace
-      q_as_MetricSpace
-      (qscale_uc
-        a)
-      (qboundAbs
-        c));
-    mu =
-    (qmult_modulus
-      c) }
+  Obj.magic { ucFun = (fun a ->
+    uc_compose q_as_MetricSpace q_as_MetricSpace q_as_MetricSpace
+      (qscale_uc a) (qboundAbs c)); mu = (qmult_modulus c) }
 
-(** val cRmult_bounded :
-    qpos
-    ->
-    st_car **)
+(** val cRmult_bounded : qpos -> st_car **)
 
 let cRmult_bounded c =
-  cmap2
-    q_as_MetricSpace
-    q_as_MetricSpace
-    q_as_MetricSpace
-    (qmult_uc
-      c)
+  cmap2 q_as_MetricSpace q_as_MetricSpace q_as_MetricSpace (qmult_uc c)
 
-(** val cR_b :
-    qpos
-    ->
-    st_car
-    ->
-    qpos **)
+(** val cR_b : qpos -> st_car -> qpos **)
 
 let cR_b e x0 =
   mkQpos
     (qplus
       (qabs
         (Obj.magic
-          (approximate
-            q_as_MetricSpace
-            (Obj.magic
-              x0)
-            (Qpos2QposInf
-            e))))
-      (qposAsQ
-        e))
+          (approximate q_as_MetricSpace (Obj.magic x0) (Qpos2QposInf e))))
+      (qposAsQ e))
 
-(** val cRmult :
-    st_car
-    mult **)
+(** val cRmult : st_car mult **)
 
 let cRmult x0 y0 =
-  ucFun2
-    cR
-    cR
-    cR
-    (cRmult_bounded
-      (cR_b
-        (qposMake
-          XH
-          XH)
-        y0))
-    x0
-    y0
+  ucFun2 cR cR cR (cRmult_bounded (cR_b (qposMake XH XH) y0)) x0 y0
 
-(** val approximateQ :
-    q
-    ->
-    positive
-    ->
-    q **)
+(** val approximateQ : q -> positive -> q **)
 
 let approximateQ x0 p =
-  let { qnum =
-    n0;
-    qden =
-    d } =
-    x0
-  in
-  { qnum =
-  (Z.div
-    (Z.mul
-      n0
-      (Zpos
-      p))
-    (Zpos
-    d));
-  qden =
-  p }
+  let { qnum = n0; qden = d } = x0 in
+  { qnum = (Z.div (Z.mul n0 (Zpos p)) (Zpos d)); qden = p }
 
-(** val root_step :
-    q
-    ->
-    q
-    ->
-    q **)
+(** val root_step : q -> q -> q **)
 
 let root_step a b =
-  qplus
-    (qdiv
-      b
-      { qnum =
-      (Zpos
-      (XO
-      XH));
-      qden =
-      XH })
-    (qdiv
-      a
-      (qmult
-        { qnum =
-        (Zpos
-        (XO
-        XH));
-        qden =
-        XH }
-        b))
+  qplus (qdiv b { qnum = (Zpos (XO XH)); qden = XH })
+    (qdiv a (qmult { qnum = (Zpos (XO XH)); qden = XH } b))
 
-(** val initial_root :
-    q
-    ->
-    q **)
+(** val initial_root : q -> q **)
 
 let initial_root a =
-  qmult
-    { qnum =
-    (Zpos
-    XH);
-    qden =
-    (XO
-    XH) }
-    (qplus
-      a
-      { qnum =
-      (Zpos
-      XH);
-      qden =
-      XH })
+  qmult { qnum = (Zpos XH); qden = (XO XH) }
+    (qplus a { qnum = (Zpos XH); qden = XH })
 
-(** val root_loop :
-    q
-    ->
-    qpos
-    ->
-    nat
-    ->
-    q
-    ->
-    positive
-    ->
-    q **)
+(** val root_loop : q -> qpos -> nat -> q -> positive -> q **)
 
 let rec root_loop a e n0 b err =
   match n0 with
-  | O ->
-    b
+  | O -> b
   | S n' ->
-    (match qlt_le_dec_fast
-             (qposAsQ
-               e)
-             { qnum =
-             (Zpos
-             XH);
-             qden =
-             err } with
+    (match qlt_le_dec_fast (qposAsQ e) { qnum = (Zpos XH); qden = err } with
      | Left ->
-       let err' =
-         Coq_Pos.mul
-           err
-           err
-       in
-       root_loop
-         a
-         e
-         n'
-         (approximateQ
-           (root_step
-             a
-             b)
-           (Coq_Pos.mul
-             (XO
-             XH)
-             err'))
-         err'
-     | Right ->
-       b)
+       let err' = Coq_Pos.mul err err in
+       root_loop a e n'
+         (approximateQ (root_step a b) (Coq_Pos.mul (XO XH) err')) err'
+     | Right -> b)
 
-(** val sqrt_raw :
-    q
-    ->
-    qposInf
-    ->
-    q **)
+(** val sqrt_raw : q -> qposInf -> q **)
 
 let sqrt_raw a = function
 | Qpos2QposInf e' ->
-  root_loop
-    a
-    e'
-    (S
-    (Coq_Pos.size_nat
-      (qposAsQ
-        e').qden))
-    (initial_root
-      a)
-    (XO
-    XH)
-| QposInfinity ->
-  { qnum =
-    (Zpos
-    XH);
-    qden =
-    XH }
+  root_loop a e' (S (Coq_Pos.size_nat (qposAsQ e').qden)) (initial_root a)
+    (XO XH)
+| QposInfinity -> { qnum = (Zpos XH); qden = XH }
 
-(** val rational_sqrt_mid :
-    q
-    ->
-    st_car **)
+(** val rational_sqrt_mid : q -> st_car **)
 
 let rational_sqrt_mid a =
-  Obj.magic
-    (Obj.magic
-      (sqrt_raw
-        a))
+  Obj.magic (Obj.magic (sqrt_raw a))
 
-(** val rational_sqrt_big_bounded :
-    nat
-    ->
-    q
-    ->
-    st_car **)
+(** val rational_sqrt_big_bounded : nat -> q -> st_car **)
 
 let rec rational_sqrt_big_bounded n0 a =
   match n0 with
-  | O ->
-    inject_Q_CR
-      { qnum =
-      (Zpos
-      XH);
-      qden =
-      XH }
+  | O -> inject_Q_CR { qnum = (Zpos XH); qden = XH }
   | S n1 ->
-    let s =
-      qle_total
-        a
-        { qnum =
-        (Zpos
-        (XO
-        (XO
-        XH)));
-        qden =
-        XH }
-    in
+    let s = qle_total a { qnum = (Zpos (XO (XO XH))); qden = XH } in
     (match s with
-     | Left ->
-       rational_sqrt_mid
-         a
+     | Left -> rational_sqrt_mid a
      | Right ->
-       (Obj.magic
-         (scale
-           { qnum =
-           (Zpos
-           (XO
-           XH));
-           qden =
-           XH })).ucFun
-         (rational_sqrt_big_bounded
-           n1
-           (qdiv
-             a
-             { qnum =
-             (Zpos
-             (XO
-             (XO
-             XH)));
-             qden =
-             XH })))
+       (Obj.magic (scale { qnum = (Zpos (XO XH)); qden = XH })).ucFun
+         (rational_sqrt_big_bounded n1
+           (qdiv a { qnum = (Zpos (XO (XO XH))); qden = XH })))
 
-(** val rational_sqrt_small_bounded :
-    nat
-    ->
-    q
-    ->
-    st_car **)
+(** val rational_sqrt_small_bounded : nat -> q -> st_car **)
 
 let rec rational_sqrt_small_bounded n0 a =
   match n0 with
-  | O ->
-    rational_sqrt_mid
-      a
+  | O -> rational_sqrt_mid a
   | S n1 ->
-    let s =
-      qle_total
-        a
-        { qnum =
-        (Zpos
-        XH);
-        qden =
-        XH }
-    in
+    let s = qle_total a { qnum = (Zpos XH); qden = XH } in
     (match s with
      | Left ->
-       (Obj.magic
-         (scale
-           { qnum =
-           (Zpos
-           XH);
-           qden =
-           (XO
-           XH) })).ucFun
-         (rational_sqrt_small_bounded
-           n1
-           (qmult
-             { qnum =
-             (Zpos
-             (XO
-             (XO
-             XH)));
-             qden =
-             XH }
-             a))
-     | Right ->
-       rational_sqrt_mid
-         a)
+       (Obj.magic (scale { qnum = (Zpos XH); qden = (XO XH) })).ucFun
+         (rational_sqrt_small_bounded n1
+           (qmult { qnum = (Zpos (XO (XO XH))); qden = XH } a))
+     | Right -> rational_sqrt_mid a)
 
-(** val rational_sqrt_pos :
-    q
-    ->
-    st_car **)
+(** val rational_sqrt_pos : q -> st_car **)
 
 let rational_sqrt_pos a =
-  let s =
-    qle_total
-      { qnum =
-      (Zpos
-      XH);
-      qden =
-      XH }
-      a
-  in
+  let s = qle_total { qnum = (Zpos XH); qden = XH } a in
   (match s with
    | Left ->
      rational_sqrt_big_bounded
-       (let { qnum =
-          n0;
-          qden =
-          x0 } =
-          a
-        in
+       (let { qnum = n0; qden = x0 } = a in
         (match n0 with
-         | Zpos p ->
-           Coq_Pos.size_nat
-             p
-         | _ ->
-           O))
-       a
+         | Zpos p -> Coq_Pos.size_nat p
+         | _ -> O)) a
    | Right ->
      rational_sqrt_small_bounded
-       (let { qnum =
-          x0;
-          qden =
-          d } =
-          a
-        in
-        Coq_Pos.size_nat
-          d)
-       a)
+       (let { qnum = x0; qden = d } = a in Coq_Pos.size_nat d) a)
 
-(** val rational_sqrt :
-    q
-    ->
-    st_car **)
+(** val rational_sqrt : q -> st_car **)
 
 let rational_sqrt a =
-  match qlt_le_dec_fast
-          { qnum =
-          Z0;
-          qden =
-          XH }
-          a with
-  | Left ->
-    rational_sqrt_pos
-      a
-  | Right ->
-    inject_Q_CR
-      { qnum =
-      Z0;
-      qden =
-      XH }
+  match qlt_le_dec_fast { qnum = Z0; qden = XH } a with
+  | Left -> rational_sqrt_pos a
+  | Right -> inject_Q_CR { qnum = Z0; qden = XH }
 
-(** val iterate :
-    ('a1
-    ->
-    'a1)
-    ->
-    'a1
-    ->
-    'a1
-    stream **)
+(** val iterate : ('a1 -> 'a1) -> 'a1 -> 'a1 stream **)
 
 let rec iterate f x0 =
-  lazy (Cons0 (x0,
-    (iterate
-      f
-      (f
-        x0))))
+  lazy (Cons0 (x0, (iterate f (f x0))))
 
 (** val takeUntil :
-    ('a1
-    stream
-    ->
-    bool)
-    ->
-    'a1
-    stream
-    ->
-    ('a1
-    ->
-    'a2
-    ->
-    'a2)
-    ->
-    'a2
-    ->
-    'a2 **)
+    ('a1 stream -> bool) -> 'a1 stream -> ('a1 -> 'a2 -> 'a2) -> 'a2 -> 'a2 **)
 
 let rec takeUntil p s cons nil =
-  match p
-          s with
-  | True ->
-    nil
-  | False ->
-    cons
-      (hd
-        s)
-      (takeUntil
-        p
-        (tl
-          s)
-        cons
-        nil)
+  match p s with
+  | True -> nil
+  | False -> cons (hd s) (takeUntil p (tl s) cons nil)
 
-(** val everyOther :
-    'a1
-    stream
-    ->
-    'a1
-    stream **)
+(** val everyOther : 'a1 stream -> 'a1 stream **)
 
 let rec everyOther s =
-  lazy (Cons0 ((hd
-                 s),
-    (everyOther
-      (tl
-        (tl
-          s)))))
+  lazy (Cons0 ((hd s), (everyOther (tl (tl s)))))
 
-(** val mult_Streams :
-    'a1
-    mult
-    ->
-    'a1
-    stream
-    ->
-    'a1
-    stream
-    ->
-    'a1
-    stream **)
+(** val mult_Streams : 'a1 mult -> 'a1 stream -> 'a1 stream -> 'a1 stream **)
 
 let mult_Streams h1 =
-  zipWith
-    (mult0
-      h1)
+  zipWith (mult0 h1)
 
-(** val powers_help :
-    'a1
-    mult
-    ->
-    'a1
-    ->
-    'a1
-    ->
-    'a1
-    stream **)
+(** val powers_help : 'a1 mult -> 'a1 -> 'a1 -> 'a1 stream **)
 
 let powers_help h1 a =
-  iterate
-    (fun y0 ->
-    mult0
-      h1
-      y0
-      a)
+  iterate (fun y0 -> mult0 h1 y0 a)
 
-(** val partialAlternatingSumUntil :
-    (q
-    stream
-    ->
-    bool)
-    ->
-    q
-    stream
-    ->
-    q **)
+(** val partialAlternatingSumUntil : (q stream -> bool) -> q stream -> q **)
 
 let partialAlternatingSumUntil p s =
-  takeUntil
-    p
-    s
-    qminus'
-    (zero1
-      q_0)
+  takeUntil p s qminus' (zero1 q_0)
 
-(** val infiniteAlternatingSum_raw :
-    q
-    stream
-    ->
-    qposInf
-    ->
-    q **)
+(** val infiniteAlternatingSum_raw : q stream -> qposInf -> q **)
 
 let infiniteAlternatingSum_raw s __U03b5_ =
-  partialAlternatingSumUntil
-    (fun s0 ->
-    qball_ex_bool
-      __U03b5_
-      (hd
-        (Obj.magic
-          s0))
-      (Obj.magic
-        { qnum =
-        Z0;
-        qden =
-        XH }))
-    s
+  partialAlternatingSumUntil (fun s0 ->
+    qball_ex_bool __U03b5_ (hd (Obj.magic s0))
+      (Obj.magic { qnum = Z0; qden = XH })) s
 
-(** val infiniteAlternatingSum :
-    q
-    stream
-    ->
-    st_car **)
+(** val infiniteAlternatingSum : q stream -> st_car **)
 
 let infiniteAlternatingSum seq =
-  Obj.magic
-    (Obj.magic
-      (infiniteAlternatingSum_raw
-        seq))
+  Obj.magic (Obj.magic (infiniteAlternatingSum_raw seq))
 
-(** val ppositives_help :
-    positive
-    ->
-    positive
-    stream **)
+(** val ppositives_help : positive -> positive stream **)
 
 let rec ppositives_help n0 =
-  lazy (Cons0 (n0,
-    (ppositives_help
-      (Coq_Pos.succ
-        n0))))
+  lazy (Cons0 (n0, (ppositives_help (Coq_Pos.succ n0))))
 
-(** val ppositives :
-    positive
-    stream **)
+(** val ppositives : positive stream **)
 
 let ppositives =
-  ppositives_help
-    XH
+  ppositives_help XH
 
-(** val qrecip_positives :
-    q
-    stream **)
+(** val qrecip_positives : q stream **)
 
 let qrecip_positives =
-  map0
-    (fun x0 ->
-    { qnum =
-    (Zpos
-    XH);
-    qden =
-    x0 })
-    ppositives
+  map0 (fun x0 -> { qnum = (Zpos XH); qden = x0 }) ppositives
 
-(** val arctanSequence :
-    q
-    ->
-    q
-    stream **)
+(** val arctanSequence : q -> q stream **)
 
 let arctanSequence a =
-  mult_Streams
-    q_mult
-    (everyOther
-      qrecip_positives)
-    (powers_help
-      q_mult
-      (qpower
-        a
-        (Zpos
-        (XO
-        XH)))
-      a)
+  mult_Streams q_mult (everyOther qrecip_positives)
+    (powers_help q_mult (qpower a (Zpos (XO XH))) a)
 
-(** val rational_arctan_small_pos :
-    q
-    ->
-    st_car **)
+(** val rational_arctan_small_pos : q -> st_car **)
 
 let rational_arctan_small_pos a =
-  infiniteAlternatingSum
-    (arctanSequence
-      a)
+  infiniteAlternatingSum (arctanSequence a)
 
-(** val rational_arctan_small :
-    q
-    ->
-    st_car **)
+(** val rational_arctan_small : q -> st_car **)
 
 let rational_arctan_small a =
-  let s =
-    qle_total
-      a
-      { qnum =
-      Z0;
-      qden =
-      XH }
-  in
+  let s = qle_total a { qnum = Z0; qden = XH } in
   (match s with
-   | Left ->
-     cRopp
-       (rational_arctan_small_pos
-         (qopp
-           a))
-   | Right ->
-     rational_arctan_small_pos
-       a)
+   | Left -> cRopp (rational_arctan_small_pos (qopp a))
+   | Right -> rational_arctan_small_pos a)
 
-(** val r_pi :
-    q
-    ->
-    st_car **)
+(** val r_pi : q -> st_car **)
 
 let r_pi r =
-  ucFun2
-    cR
-    cR
-    cR
-    cRplus_uc
-    (ucFun2
-      cR
-      cR
-      cR
-      cRplus_uc
+  ucFun2 cR cR cR cRplus_uc
+    (ucFun2 cR cR cR cRplus_uc
       ((Obj.magic
          (scale
-           (qmult
-             (inject_Z
-               (Zpos
-               (XO
-               (XO
-               (XO
-               (XO
-               (XI
-               (XI
-               (XO
-               XH)))))))))
-             r))).ucFun
-        (rational_arctan_small_pos
-          { qnum =
-          (Zpos
-          XH);
-          qden =
-          (XI
-          (XO
-          (XO
-          (XI
-          (XI
-          XH))))) }))
+           (qmult (inject_Z (Zpos (XO (XO (XO (XO (XI (XI (XO XH))))))))) r))).ucFun
+        (rational_arctan_small_pos { qnum = (Zpos XH); qden = (XI (XO (XO (XI
+          (XI XH))))) }))
+      ((Obj.magic (scale (qmult (inject_Z (Zpos (XO (XO (XI (XI XH)))))) r))).ucFun
+        (rational_arctan_small_pos { qnum = (Zpos XH); qden = (XI (XI (XI (XI
+          (XO (XI (XI XH))))))) })))
+    (ucFun2 cR cR cR cRplus_uc
       ((Obj.magic
          (scale
-           (qmult
-             (inject_Z
-               (Zpos
-               (XO
-               (XO
-               (XI
-               (XI
-               XH))))))
-             r))).ucFun
-        (rational_arctan_small_pos
-          { qnum =
-          (Zpos
-          XH);
-          qden =
-          (XI
-          (XI
-          (XI
-          (XI
-          (XO
-          (XI
-          (XI
-          XH))))))) })))
-    (ucFun2
-      cR
-      cR
-      cR
-      cRplus_uc
+           (qmult (qopp (inject_Z (Zpos (XO (XO (XO (XO (XI XH)))))))) r))).ucFun
+        (rational_arctan_small_pos { qnum = (Zpos XH); qden = (XO (XI (XO (XI
+          (XO (XI (XO (XI (XO XH))))))))) }))
       ((Obj.magic
-         (scale
-           (qmult
-             (qopp
-               (inject_Z
-                 (Zpos
-                 (XO
-                 (XO
-                 (XO
-                 (XO
-                 (XI
-                 XH))))))))
-             r))).ucFun
-        (rational_arctan_small_pos
-          { qnum =
-          (Zpos
-          XH);
-          qden =
-          (XO
-          (XI
-          (XO
-          (XI
-          (XO
-          (XI
-          (XO
-          (XI
-          (XO
-          XH))))))))) }))
-      ((Obj.magic
-         (scale
-           (qmult
-             (inject_Z
-               (Zpos
-               (XO
-               (XO
-               (XO
-               (XO
-               (XO
-               (XI
-               XH))))))))
-             r))).ucFun
-        (rational_arctan_small_pos
-          { qnum =
-          (Zpos
-          XH);
-          qden =
-          (XI
-          (XI
-          (XI
-          (XI
-          (XO
-          (XO
-          (XO
-          (XI
-          (XO
-          (XI
-          (XO
-          (XO
-          (XI
-          XH))))))))))))) })))
+         (scale (qmult (inject_Z (Zpos (XO (XO (XO (XO (XO (XI XH)))))))) r))).ucFun
+        (rational_arctan_small_pos { qnum = (Zpos XH); qden = (XI (XI (XI (XI
+          (XO (XO (XO (XI (XO (XI (XO (XO (XI XH))))))))))))) })))
 
-(** val cRpi :
-    st_car **)
+(** val cRpi : st_car **)
 
 let cRpi =
-  r_pi
-    { qnum =
-    (Zpos
-    XH);
-    qden =
-    XH }
+  r_pi { qnum = (Zpos XH); qden = XH }
 
-(** val rational_arctan_big_pos :
-    q
-    ->
-    st_car **)
+(** val rational_arctan_big_pos : q -> st_car **)
 
 let rational_arctan_big_pos a =
-  ucFun2
-    cR
-    cR
-    cR
-    cRplus_uc
-    (r_pi
-      { qnum =
-      (Zpos
-      XH);
-      qden =
-      (XO
-      XH) })
-    (cRopp
-      (rational_arctan_small_pos
-        (qinv
-          a)))
+  ucFun2 cR cR cR cRplus_uc (r_pi { qnum = (Zpos XH); qden = (XO XH) })
+    (cRopp (rational_arctan_small_pos (qinv a)))
 
-(** val rational_arctan_mid_pos :
-    q
-    ->
-    st_car **)
+(** val rational_arctan_mid_pos : q -> st_car **)
 
 let rational_arctan_mid_pos a =
-  ucFun2
-    cR
-    cR
-    cR
-    cRplus_uc
-    (r_pi
-      { qnum =
-      (Zpos
-      XH);
-      qden =
-      (XO
-      (XO
-      XH)) })
+  ucFun2 cR cR cR cRplus_uc (r_pi { qnum = (Zpos XH); qden = (XO (XO XH)) })
     (rational_arctan_small
-      (qdiv
-        (qminus
-          a
-          { qnum =
-          (Zpos
-          XH);
-          qden =
-          XH })
-        (qplus
-          a
-          { qnum =
-          (Zpos
-          XH);
-          qden =
-          XH })))
+      (qdiv (qminus a { qnum = (Zpos XH); qden = XH })
+        (qplus a { qnum = (Zpos XH); qden = XH })))
 
-(** val rational_arctan_pos :
-    q
-    ->
-    st_car **)
+(** val rational_arctan_pos : q -> st_car **)
 
 let rational_arctan_pos a =
-  let s =
-    qle_total
-      { qnum =
-      (Zpos
-      (XO
-      XH));
-      qden =
-      (XI
-      (XO
-      XH)) }
-      a
-  in
+  let s = qle_total { qnum = (Zpos (XO XH)); qden = (XI (XO XH)) } a in
   (match s with
    | Left ->
-     let s0 =
-       qle_total
-         { qnum =
-         (Zpos
-         (XI
-         (XO
-         XH)));
-         qden =
-         (XO
-         XH) }
-         a
-     in
+     let s0 = qle_total { qnum = (Zpos (XI (XO XH))); qden = (XO XH) } a in
      (match s0 with
-      | Left ->
-        rational_arctan_big_pos
-          a
-      | Right ->
-        rational_arctan_mid_pos
-          a)
-   | Right ->
-     rational_arctan_small_pos
-       a)
+      | Left -> rational_arctan_big_pos a
+      | Right -> rational_arctan_mid_pos a)
+   | Right -> rational_arctan_small_pos a)
 
-(** val rational_arctan :
-    q
-    ->
-    st_car **)
+(** val rational_arctan : q -> st_car **)
 
 let rational_arctan a =
-  let s =
-    qle_total
-      a
-      { qnum =
-      Z0;
-      qden =
-      XH }
-  in
+  let s = qle_total a { qnum = Z0; qden = XH } in
   (match s with
-   | Left ->
-     cRopp
-       (rational_arctan_pos
-         (qopp
-           a))
-   | Right ->
-     rational_arctan_pos
-       a)
+   | Left -> cRopp (rational_arctan_pos (qopp a))
+   | Right -> rational_arctan_pos a)
 
-(** val qabs_uc :
-    st_car **)
+(** val qabs_uc : st_car **)
 
 let qabs_uc =
-  Obj.magic
-    { ucFun =
-    (Obj.magic
-      qabs);
-    mu =
-    (fun x0 ->
-    Qpos2QposInf
-    x0) }
+  Obj.magic { ucFun = (Obj.magic qabs); mu = (fun x0 -> Qpos2QposInf x0) }
 
-(** val cRabs :
-    st_car **)
+(** val cRabs : st_car **)
 
 let cRabs =
-  cmap
-    q_as_MetricSpace
-    q_as_MetricSpace
-    qabs_uc
+  cmap q_as_MetricSpace q_as_MetricSpace qabs_uc
 
-(** val rational_sqrt_SqrtFun_instance :
-    (q,
-    st_car)
-    sqrtFun **)
+(** val rational_sqrt_SqrtFun_instance : (q, st_car) sqrtFun **)
 
 let rational_sqrt_SqrtFun_instance =
   rational_sqrt
 
-(** val normSpace_instance_0 :
-    (st_car,
-    st_car)
-    normSpace **)
+(** val normSpace_instance_0 : (st_car, st_car) normSpace **)
 
 let normSpace_instance_0 =
-  (Obj.magic
-    cRabs).ucFun
+  (Obj.magic cRabs).ucFun
 
-(** val cRpi_RealNumberPi_instance :
-    st_car
-    realNumberPi **)
+(** val cRpi_RealNumberPi_instance : st_car realNumberPi **)
 
 let cRpi_RealNumberPi_instance =
   cRpi
 
-(** val q_Half_instance :
-    q
-    halfNum **)
+(** val q_Half_instance : q halfNum **)
 
 let q_Half_instance =
-  { qnum =
-    (Zpos
-    XH);
-    qden =
-    (XO
-    XH) }
+  { qnum = (Zpos XH); qden = (XO XH) }
 
-(** val qSign :
-    'a1
-    negate
-    ->
-    q
-    ->
-    'a1
-    ->
-    'a1 **)
+(** val qSign : 'a1 negate -> q -> 'a1 -> 'a1 **)
 
 let qSign h q0 a =
-  match decide
-          (lt_dec
-            decision_instance_1
-            q0
-            (zero1
-              q_0)) with
-  | Left ->
-    negate0
-      h
-      a
-  | Right ->
-    a
+  match decide (lt_dec decision_instance_1 q0 (zero1 q_0)) with
+  | Left -> negate0 h a
+  | Right -> a
 
-(** val q2Zapprox :
-    q
-    ->
-    z **)
+(** val q2Zapprox : q -> z **)
 
 let q2Zapprox q0 =
-  let qf =
-    qfloor
-      q0
-  in
+  let qf = qfloor q0 in
   (match decide
-           (decision_instance_1
-             (qminus
-               q0
-               (inject_Z
-                 qf))
-             { qnum =
-             (Zpos
-             XH);
-             qden =
-             (XO
-             XH) }) with
-   | Left ->
-     qf
-   | Right ->
-     Z.add
-       qf
-       (Zpos
-       XH))
+           (decision_instance_1 (qminus q0 (inject_Z qf)) { qnum = (Zpos XH);
+             qden = (XO XH) }) with
+   | Left -> qf
+   | Right -> Z.add qf (Zpos XH))
 
-(** val r2ZApprox :
-    st_car
-    ->
-    qpos
-    ->
-    z **)
+(** val r2ZApprox : st_car -> qpos -> z **)
 
 let r2ZApprox r eps =
   q2Zapprox
     (Obj.magic
-      (approximate
-        q_as_MetricSpace
-        (Obj.magic
-          r)
-        (Qpos2QposInf
-        eps)))
+      (approximate q_as_MetricSpace (Obj.magic r) (Qpos2QposInf eps)))
 
-(** val cast_instance_0 :
-    (positive,
-    st_car)
-    cast **)
+(** val cast_instance_0 : (positive, st_car) cast **)
 
 let cast_instance_0 =
-  compose
-    (compose
-      (cast0
-        inject_Q_CR)
-      (cast0
-        inject_Z_Q))
-    (fun x0 ->
-    Zpos
+  compose (compose (cast0 inject_Q_CR) (cast0 inject_Z_Q)) (fun x0 -> Zpos
     x0)
 
-(** val simpleApproximate :
-    st_car
-    ->
-    positive
-    ->
-    qpos
-    ->
-    q **)
+(** val simpleApproximate : st_car -> positive -> qpos -> q **)
 
 let simpleApproximate r den eps =
-  { qnum =
-    (r2ZApprox
-      (mult0
-        cRmult
-        r
-        (cast0
-          cast_instance_0
-          den))
-      eps);
-    qden =
-    den }
+  { qnum = (r2ZApprox (mult0 cRmult r (cast0 cast_instance_0 den)) eps);
+    qden = den }
 
-(** val qSignHalf :
-    q
-    ->
-    q **)
+(** val qSignHalf : q -> q **)
 
 let qSignHalf q0 =
-  qSign
-    q_opp
-    q0
-    (half_num
-      q_Half_instance)
+  qSign q_opp q0 (half_num q_Half_instance)
 
-(** val polarTheta :
-    q
-    cart2D
-    ->
-    st_car **)
+(** val polarTheta : q cart2D -> st_car **)
 
 let polarTheta cart =
-  match decide
-          (decision_instance_0
-            cart.x
-            (zero1
-              q_0)) with
-  | Left ->
-    mult0
-      cRmult
-      cRpi
-      (cast0
-        inject_Q_CR
-        (qSignHalf
-          cart.y))
+  match decide (decision_instance_0 cart.x (zero1 q_0)) with
+  | Left -> mult0 cRmult cRpi (cast0 inject_Q_CR (qSignHalf cart.y))
   | Right ->
-    let angle =
-      rational_arctan
-        (qdiv
-          cart.y
-          cart.x)
-    in
-    (match decide
-             (lt_dec
-               decision_instance_1
-               cart.x
-               (zero1
-                 q_0)) with
+    let angle = rational_arctan (qdiv cart.y cart.x) in
+    (match decide (lt_dec decision_instance_1 cart.x (zero1 q_0)) with
      | Left ->
-       plus1
-         cRplus
-         angle
-         (qSign
-           cRopp
-           cart.y
-           (__U03c0_
-             cRpi_RealNumberPi_instance))
-     | Right ->
-       angle)
+       plus1 cRplus angle
+         (qSign cRopp cart.y (__U03c0_ cRpi_RealNumberPi_instance))
+     | Right -> angle)
 
-(** val polar__U03b8_Sign :
-    q
-    cart2D
-    ->
-    q **)
+(** val polar__U03b8_Sign : q cart2D -> q **)
 
 let polar__U03b8_Sign target =
-  qSign
-    q_opp
-    target.y
-    (one1
-      q_1)
+  qSign q_opp target.y (one1 q_1)
 
-(** val cart2Polar :
-    q
-    cart2D
-    ->
-    st_car
-    polar2D **)
+(** val cart2Polar : q cart2D -> st_car polar2D **)
 
 let cart2Polar cart =
   { rad =
     (norm
-      (normSpace_instance_Cart2D
-        rational_sqrt_SqrtFun_instance
-        q_plus
-        q_mult)
-      cart);
-    __U03b8_ =
-    (polarTheta
-      cart) }
+      (normSpace_instance_Cart2D rational_sqrt_SqrtFun_instance q_plus
+        q_mult) cart); __U03b8_ = (polarTheta cart) }
 
 (** val robotPureProgam :
-    qpos
-    ->
-    qpos
-    ->
-    qpos
-    ->
-    qpos
-    ->
-    positive
-    ->
-    q
-    cart2D
-    ->
-    (q,
-    q
-    polar2D)
-    prod
-    list **)
+    qpos -> qpos -> qpos -> qpos -> positive -> q cart2D -> (q, q polar2D)
+    prod list **)
 
 let robotPureProgam rotspeed speed delay delEps delRes target =
-  let polarTarget =
-    cart2Polar
-      target
-  in
+  let polarTarget = cart2Polar target in
   let rotDuration =
-    mult0
-      cRmult
-      (norm
-        normSpace_instance_0
-        polarTarget.__U03b8_)
-      (cast0
-        inject_Q_CR
-        (qinv
-          (qposAsQ
-            rotspeed)))
+    mult0 cRmult (norm normSpace_instance_0 polarTarget.__U03b8_)
+      (cast0 inject_Q_CR (qinv (qposAsQ rotspeed)))
   in
   let translDuration =
-    mult0
-      cRmult
-      polarTarget.rad
-      (cast0
-        inject_Q_CR
-        (qinv
-          (qposAsQ
-            speed)))
+    mult0 cRmult polarTarget.rad (cast0 inject_Q_CR (qinv (qposAsQ speed)))
   in
-  Cons
-  ((Pair
-  ((zero1
-     q_0),
-  { rad =
-  (zero1
-    q_0);
-  __U03b8_ =
-  (mult0
-    q_mult
-    (polar__U03b8_Sign
-      target)
-    (qposAsQ
-      rotspeed)) })),
-  (Cons
-  ((Pair
-  ((simpleApproximate
-     rotDuration
-     delRes
-     delEps),
-  { rad =
-  (zero1
-    q_0);
-  __U03b8_ =
-  (zero1
-    q_0) })),
-  (Cons
-  ((Pair
-  ((cast0
-     (nonNeg_inject
-       { qnum =
-       Z0;
-       qden =
-       XH })
-     delay),
-  { rad =
-  (cast0
-    (nonNeg_inject
-      { qnum =
-      Z0;
-      qden =
-      XH })
-    speed);
-  __U03b8_ =
-  (zero1
-    q_0) })),
-  (Cons
-  ((Pair
-  ((simpleApproximate
-     translDuration
-     delRes
-     delEps),
-  { rad =
-  (zero1
-    q_0);
-  __U03b8_ =
-  (zero1
-    q_0) })),
-  Nil)))))))
+  Cons ((Pair ((zero1 q_0), { rad = (zero1 q_0); __U03b8_ =
+  (mult0 q_mult (polar__U03b8_Sign target) (qposAsQ rotspeed)) })), (Cons
+  ((Pair ((simpleApproximate rotDuration delRes delEps), { rad = (zero1 q_0);
+  __U03b8_ = (zero1 q_0) })), (Cons ((Pair
+  ((cast0 (nonNeg_inject { qnum = Z0; qden = XH }) delay), { rad =
+  (cast0 (nonNeg_inject { qnum = Z0; qden = XH }) speed); __U03b8_ =
+  (zero1 q_0) })), (Cons ((Pair
+  ((simpleApproximate translDuration delRes delEps), { rad = (zero1 q_0);
+  __U03b8_ = (zero1 q_0) })), Nil)))))))
 
 type topic =
 | VELOCITY
 | TARGETPOS
 
-(** val topic_beq :
-    topic
-    ->
-    topic
-    ->
-    bool **)
+(** val topic_beq : topic -> topic -> bool **)
 
 let rec topic_beq x0 y0 =
   match x0 with
   | VELOCITY ->
     (match y0 with
-     | VELOCITY ->
-       True
-     | TARGETPOS ->
-       False)
+     | VELOCITY -> True
+     | TARGETPOS -> False)
   | TARGETPOS ->
     (match y0 with
-     | VELOCITY ->
-       False
-     | TARGETPOS ->
-       True)
+     | VELOCITY -> False
+     | TARGETPOS -> True)
 
-(** val topic_eq_dec :
-    topic
-    ->
-    topic
-    ->
-    sumbool **)
+(** val topic_eq_dec : topic -> topic -> sumbool **)
 
 let topic_eq_dec x0 y0 =
-  let b =
-    topic_beq
-      x0
-      y0
-  in
+  let b = topic_beq x0 y0 in
   (match b with
-   | True ->
-     Left
-   | False ->
-     Right)
+   | True -> Left
+   | False -> Right)
 
-(** val ldskflskdalfkTopic_eq_dec :
-    topic
-    decEq **)
+(** val ldskflskdalfkTopic_eq_dec : topic decEq **)
 
 let ldskflskdalfkTopic_eq_dec =
   topic_eq_dec
 
-(** val ttttt :
-    topic
-    rosTopicType **)
+(** val ttttt : topic rosTopicType **)
 
 let ttttt =
   Build_RosTopicType
 
-(** val rotSpeedRadPerSec :
-    qpos **)
+(** val rotSpeedRadPerSec : qpos **)
 
 let rotSpeedRadPerSec =
-  qposMake
-    XH
-    (XO
-    XH)
+  qposMake XH (XO XH)
 
-(** val speedMetresPerSec :
-    qpos **)
+(** val speedMetresPerSec : qpos **)
 
 let speedMetresPerSec =
-  qposMake
-    XH
-    (XO
-    (XI
-    (XO
-    XH)))
+  qposMake XH (XO (XI (XO XH)))
 
-(** val delResSecInv :
-    positive **)
+(** val delResSecInv : positive **)
 
 let delResSecInv =
-  XO
-    (XO
-    (XO
-    (XI
-    (XO
-    (XI
-    (XI
-    (XI
-    (XI
-    XH))))))))
+  XO (XO (XO (XI (XO (XI (XI (XI (XI XH))))))))
 
-(** val delEpsSec :
-    qpos **)
+(** val delEpsSec : qpos **)
 
 let delEpsSec =
-  qposMake
-    XH
-    (XO
-    (XO
-    (XO
-    (XO
-    (XI
-    (XO
-    (XO
-    (XO
-    (XI
-    (XI
-    (XI
-    (XO
-    (XO
+  qposMake XH (XO (XO (XO (XO (XI (XO (XO (XO (XI (XI (XI (XO (XO
     XH)))))))))))))
 
-(** val initDelayLin :
-    qpos **)
+(** val initDelayLin : qpos **)
 
 let initDelayLin =
-  qposMake
-    XH
-    XH
+  qposMake XH XH
 
-(** val robotProgramInstance :
-    qpos
-    ->
-    topic
-    pureProcWDelay **)
+(** val robotProgramInstance : qpos -> topic pureProcWDelay **)
 
 let robotProgramInstance delayLinSec =
   Obj.magic
-    (robotPureProgam
-      rotSpeedRadPerSec
-      speedMetresPerSec
-      delayLinSec
-      delEpsSec
-      delResSecInv)
+    (robotPureProgam rotSpeedRadPerSec speedMetresPerSec delayLinSec
+      delEpsSec delResSecInv)
 
-(** val swProcessInstance :
-    (topic
-    message,
-    topic
-    message
-    list)
-    process **)
+(** val swProcessInstance : (topic message, topic message list) process **)
 
 let swProcessInstance =
-  { curState =
-    (Obj.magic
-      (qposAsQ
-        initDelayLin));
-    handler =
-    (fun ins inm ->
+  { curState = (Obj.magic (qposAsQ initDelayLin)); handler = (fun ins inm ->
     Pair
-    ((Obj.magic
-       (qmult
-         (Obj.magic
-           ins)
-         (plus1
-           q_plus
-           (one1
-             q_1)
-           (one1
-             q_1)))),
-    (delayedLift2Mesg
-      ldskflskdalfkTopic_eq_dec
-      ttttt
-      TARGETPOS
-      VELOCITY
-      (robotProgramInstance
-        (qabsQpos
-          (Obj.magic
-            ins)))
-      inm))) }
+    ((Obj.magic (qmult (Obj.magic ins) (plus1 q_plus (one1 q_1) (one1 q_1)))),
+    (delayedLift2Mesg ldskflskdalfkTopic_eq_dec ttttt TARGETPOS VELOCITY
+      (robotProgramInstance (qabsQpos (Obj.magic ins))) inm))) }
 
-(** val target1Metres :
-    q
-    cart2D **)
+(** val target1Metres : q cart2D **)
 
 let target1Metres =
-  { x =
-    { qnum =
-    (Zpos
-    XH);
-    qden =
-    XH };
-    y =
-    { qnum =
-    (Zpos
-    XH);
-    qden =
+  { x = { qnum = (Zpos XH); qden = XH }; y = { qnum = (Zpos XH); qden =
     XH } }
 
-(** val robotOutput :
-    (q,
-    q
-    polar2D)
-    prod
-    list **)
+(** val robotOutput : (q, q polar2D) prod list **)
 
 let robotOutput =
-  Obj.magic
-    (robotProgramInstance
-      initDelayLin
-      (Obj.magic
-        target1Metres))
+  Obj.magic (robotProgramInstance initDelayLin (Obj.magic target1Metres))
+
+(** val projNums : (q, q polar2D) prod -> ((z, z) prod, z) prod **)
+
+let projNums = function
+| Pair (del, pos) ->
+  Pair ((Pair (del.qnum, pos.rad.qnum)), pos.__U03b8_.qnum)
+
+(** val robotOutputInts : ((z, z) prod, z) prod list **)
+
+let robotOutputInts =
+  map projNums robotOutput
+
+(** val map3 :
+    ('a1 -> 'a2) -> (('a1, 'a1) prod, 'a1) prod -> (('a2, 'a2) prod, 'a2)
+    prod **)
+
+let map3 f = function
+| Pair (xy, z0) ->
+  let Pair (x0, y0) = xy in Pair ((Pair ((f x0), (f y0))), (f z0))
 
