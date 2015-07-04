@@ -23,7 +23,7 @@ while nodes:
     nodes += glob.glob(node + '/*')
 
 includes = ' '.join(map(lambda x: '-I ' + x, dirs[1:]))
-Rs = '-R . ROSCOQ -R ../../../ssrcorn CoRN -R ../../../ssrcorn/math-classes/src MathClasses'
+Rs = '-R . ROSCOQ -R ../dependencies/corn CoRN -R ../dependencies/corn/math-classes/src MathClasses'
 coqcmd = 'coqc ${str(SOURCE)[:-2]} ' + Rs
 
 env['COQFLAGS'] = Rs
