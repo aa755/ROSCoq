@@ -873,7 +873,8 @@ Proof.
   apply proj1 in Hc.
 
   unfold MotorEventsNthTime, MotorEventsNth in t0.
-  destruct (MotorEvents2 0 (decAuto (0<4)%nat I)) as [evStartTurn  H0m].
+let x := constr:(decAuto (0<4)%nat I) in
+  destruct (MotorEvents2 O x) as [evStartTurn  H0m].
   simpl in t0.
   unfold minDelayForIndex, roscore.delay, Basics.compose in H0m.
   Local Opaque getPayloadAndEv.
@@ -983,8 +984,10 @@ Proof.
   apply proj1 in Hc.
   unfold mt0, mt1.
   unfold MotorEventsNthTime, MotorEventsNth.
-  destruct (MotorEvents2 0 (decAuto (0<4)%nat I)) as [evStartTurn  H0m].
-  destruct (MotorEvents2 1 (decAuto (1<4)%nat I)) as [evStopTurn  H1m].
+  let x := constr:(decAuto (0<4)%nat I) in
+  destruct (MotorEvents2 O x) as [evStartTurn  H0m].
+  let x := constr:(decAuto (1<4)%nat I) in
+  destruct (MotorEvents2 1 x) as [evStopTurn  H1m].
   unfold minDelayForIndex, roscore.delay, Basics.compose in H1m.
   Local Opaque getPayloadAndEv.
   autounfold with π₁ in H1m.
@@ -1497,9 +1500,11 @@ Proof.
   apply proj1 in Hc.
 
   unfold MotorEventsNthTime, MotorEventsNth in t1, t2.
-  destruct (MotorEvents2 1 (decAuto (1<4)%nat I)) as [evStartTurn  H0m].
+  let x := constr:(decAuto (1<4)%nat I) in
+  destruct (MotorEvents2 1 x) as [evStartTurn  H0m].
   simpl in t1.
-  destruct (MotorEvents2 2 (decAuto (2<4)%nat I)) as [evStopTurn  H1m].
+  let x := constr:(decAuto (2<4)%nat I) in
+  destruct (MotorEvents2 2 x) as [evStopTurn  H1m].
   simpl in t2.
   unfold minDelayForIndex, roscore.delay, Basics.compose in H1m.
   Local Opaque getPayloadAndEv.
@@ -1709,9 +1714,11 @@ Proof.
   apply proj1 in Hc.
 
   unfold MotorEventsNthTime, MotorEventsNth in t1, t2.
-  destruct (MotorEvents2 2 (decAuto (2<4)%nat I)) as [evStartTurn  H0m].
+   let x := constr:(decAuto (2<4)%nat I) in
+  destruct (MotorEvents2 2 x) as [evStartTurn  H0m].
   simpl in t1.
-  destruct (MotorEvents2 3 (decAuto (3<4)%nat I)) as [evStopTurn  H1m].
+  let x := constr:(decAuto (3<4)%nat I) in
+  destruct (MotorEvents2 3 x) as [evStopTurn  H1m].
   simpl in t2.
   unfold minDelayForIndex, roscore.delay, Basics.compose in H1m.
   Local Opaque getPayloadAndEv.
