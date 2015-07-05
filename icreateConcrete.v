@@ -132,11 +132,19 @@ Definition robotOutput : list (Q ** Polar2D Q) :=
     (robotProgramInstance 
     initDelayLin target1Metres).
 
+Definition polar2Pair  (inp : (Q ** Polar2D Q))
+  : Q ** (Q ** Q) :=
+  let (del,pos) := inp in
+  (del, ((rad pos), (θ pos))).
+
+(** After Extraction, Haskell will have all the Show instances it needs*)
+Definition robotOutputShowable : list (Q ** (Q ** Q)) :=
+    map polar2Pair robotOutput.
+
 Definition projNums  (inp : (Q ** Polar2D Q))
   : Z ** Z ** Z :=
   let (del,pos) := inp in
   (Qnum del, Qnum (rad pos), Qnum (θ pos)).
-
 
 Definition robotOutputInts : list (Z ** Z ** Z) :=
     map  projNums robotOutput.
@@ -150,6 +158,7 @@ Definition map3 {A B: Type} (f:A -> B)
  
 Extraction Language Haskell. 
 Require Import ExtrHaskellBasic.
+Require Import extraction.ExtrHaskellQ.
 
 Extraction 
   "extraction/roboExtract.hs"
@@ -162,4 +171,4 @@ Extraction
           speedMetresPerSec
           initDelayLin
           delEpsSec
-          delResSecInv robotOutputInts map3.
+          delResSecInv robotOutputInts robotOutputShowable map3.

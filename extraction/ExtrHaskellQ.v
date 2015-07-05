@@ -4,6 +4,9 @@
 *)
 
 Require Export QArith.
+
+(* run getExtractionFiles.sh and then scons -k in ../
+   if the line below fails *)
 Require Import ExtrHaskellZInteger.
 
 (** Although the definition of Haskell's Ratio is 
@@ -11,5 +14,5 @@ Require Import ExtrHaskellZInteger.
   the haskell version has useful utilities like conversion
   to and from floats *)
 
-Extract Inductive Q => "HQ" ["(\x y -> mkQ x y)"]
-  "(\fp qn -> fp (hQnum qn) (hQden qn))".
+Extract Inductive Q => "(Ratio Prelude.Integer)" ["(\x y -> x % y)"]
+  "(\fp qn -> fp (numerator qn) (denominator qn))".
