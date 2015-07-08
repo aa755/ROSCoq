@@ -11,7 +11,7 @@ Also, there are slides from a talk at the Coq workshop 2015
 http://www.cs.cornell.edu/~aa755/ROSCoq/CoqWorkshop.pdf
 If you use an annotation-aware PDF reader, e.g. Foxit, Adobe, you will notice that the slides have speech bubbles.
 In these bubbles, have put down what I said (IIRC) while describing that slide.
-Questions are welcome; please create an issue.
+Questions are welcome; please create an issue, or ask me directly.
 
 
 Status:
@@ -21,10 +21,17 @@ However, more work needs to be done for running these programs on ROS supported 
 There is an old shim written in ROSJava that only handles iCreate robots:
 http://www.cs.cornell.edu/~aa755/ROSCoq/installation.html (the last 2 sections)
 
-I plan to write a more general shim in Haskell using roshask:
+The plan is to write a more general shim in Haskell using roshask:
 https://github.com/acowley/roshask
-The plan is to extract Coq programs to Haskell and then run  link it with the haskell shim.
-I have an unrelated full-time job till the end of August, and untill then, I will be unable to find much time to work on ROSCoq.
+Then one can extract Coq programs to Haskell and then run  link it with the haskell shim.
+
+Unfortunately, I have to work on an unrelated full-time job till the end of August 2015, and untill then, I will be unable to find much time to work on ROSCoq.
 However, starting september, my first priority will be to develop the above mentioned Haskell shim.
+
 Pull Requests are welcome.
+Here are some clearly defined substeps for writing that shim. If anyone wants to work on any of these substeps, or has any suggestions, please let me know.
+
+1) Modify roshask code so that it also emites Coq definitions for ROS message data-types. Currently it produces (only) Haskell definitions. The Coq code should also contain Extraction directives so that the Coq type gets mapped to the corresponding Haskell type. Note that the Haskell definition of message types have additional code for (de)serialization, which need not be generated on the Coq side. I will soon post an example illustrating a generated Haskell type and what the corresponding Coq type should look like. 
+
+2) ... 
 
