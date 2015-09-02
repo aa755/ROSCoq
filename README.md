@@ -7,10 +7,10 @@ https://www.youtube.com/watch?v=3cV4Qr1-I0E&feature=youtu.be
 
 For more details, please visit:
 http://www.cs.cornell.edu/~aa755/ROSCoq/ 
-Also, there are slides from a talk at the Coq workshop 2015
-http://www.cs.cornell.edu/~aa755/ROSCoq/CoqWorkshop.pdf
-If you use an annotation-aware PDF reader, e.g. Foxit, Adobe, you will notice that the slides have speech bubbles.
-In these bubbles, have put down what I said (IIRC) while describing that slide.
+
+Also, there are slides from a talk at ITP 2015:
+http://www.cs.cornell.edu/~aa755/ROSCoq/ITP.pdf
+
 Questions are welcome; please create an issue, or ask me directly.
 
 
@@ -25,8 +25,6 @@ The plan is to write a more general shim in Haskell using roshask:
 https://github.com/acowley/roshask
 Then one can extract Coq programs to Haskell and then run  link it with the haskell shim.
 
-Unfortunately, I have to work on an unrelated full-time job till the end of August 2015, and untill then, I will be unable to find much time to work on ROSCoq.
-However, starting september, my first priority will be to develop the above mentioned Haskell shim.
 
 Pull Requests are welcome.
 Here are some clearly defined substeps for writing that shim. If anyone wants to work on any of these substeps, or has any suggestions, please let me know.
