@@ -2353,10 +2353,11 @@ div_eucl0 a b =
       b)
     a
 
+div1 :: Prelude.Integer -> Prelude.Integer -> Prelude.Integer
+div1 = (\n m -> if m Prelude.== 0 then 0 else Prelude.div n m)
+
 modulo0 :: Prelude.Integer -> Prelude.Integer -> Prelude.Integer
-modulo0 a b =
-  case div_eucl0 a b of {
-   (,) x0 r -> r}
+modulo0 = (\n m -> if m Prelude.== 0 then 0 else Prelude.mod n m)
 
 quotrem :: Prelude.Integer -> Prelude.Integer -> (,) Prelude.Integer
            Prelude.Integer
@@ -2468,8 +2469,8 @@ odd0 z =
       p)
     z
 
-div1 :: Prelude.Integer -> Prelude.Integer
-div1 z =
+div3 :: Prelude.Integer -> Prelude.Integer
+div3 z =
   (\fO fP fN n -> if n Prelude.== 0 then fO () else
                    if n Prelude.> 0 then fP n else
                    fN (Prelude.negate n))
@@ -2687,7 +2688,7 @@ shiftl1 a n =
     (\p ->
     iter p ((Prelude.*) ((\x -> x) ((\x -> 2 Prelude.* x) 1))) a)
     (\p ->
-    iter p div1 a)
+    iter p div3 a)
     n
 
 shiftr1 :: Prelude.Integer -> Prelude.Integer -> Prelude.Integer
@@ -2874,8 +2875,8 @@ log2_up0 a =
    Lt -> succ1 (log0 (pred1 a));
    _ -> 0}
 
-div3 :: Prelude.Integer -> Prelude.Integer -> Prelude.Integer
-div3 =
+div4 :: Prelude.Integer -> Prelude.Integer -> Prelude.Integer
+div4 =
   quot
 
 modulo1 :: Prelude.Integer -> Prelude.Integer -> Prelude.Integer
@@ -2884,7 +2885,7 @@ modulo1 =
 
 lcm0 :: Prelude.Integer -> Prelude.Integer -> Prelude.Integer
 lcm0 a b =
-  abs ((Prelude.*) a (Prelude.div b (gcd1 a b)))
+  abs ((Prelude.*) a (div1 b (gcd1 a b)))
 
 eqb_spec1 :: Prelude.Integer -> Prelude.Integer -> Reflect
 eqb_spec1 x0 y0 =
@@ -3305,7 +3306,7 @@ qfloor :: (Ratio Prelude.Integer) -> Prelude.Integer
 qfloor x0 =
   (\fp qn -> fp (numerator qn) (denominator qn))
     (\n d ->
-    Prelude.div n ((\x -> x) d))
+    div1 n ((\x -> x) d))
     x0
 
 ap_Q_cotransitive0 :: (Ratio Prelude.Integer) -> (Ratio Prelude.Integer) ->
@@ -3828,7 +3829,7 @@ approximateQ :: (Ratio Prelude.Integer) -> Prelude.Integer ->
 approximateQ x0 p =
   (\fp qn -> fp (numerator qn) (denominator qn))
     (\n d -> (\x y -> x % y)
-    (Prelude.div ((Prelude.*) n ((\x -> x) p)) ((\x -> x) d))
+    (div1 ((Prelude.*) n ((\x -> x) p)) ((\x -> x) d))
     p)
     x0
 
