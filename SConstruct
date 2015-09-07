@@ -1,6 +1,5 @@
 import os, glob, string
 
-# Removing examples directory since we do not need it every time.
 dirs_to_compile = ['.']
 
 nodes = map(lambda x: './' + x, dirs_to_compile)
@@ -23,6 +22,10 @@ while nodes:
     nodes += glob.glob(node + '/*')
 
 includes = ' '.join(map(lambda x: '-I ' + x, dirs[1:]))
+
+
+#Note that ROSCoq depends on Corn (which depends on MathClasses). Please edit the line below, depending on how you installed them. 
+# See https://github.com/c-corn/corn
 Rs = '-R . ROSCOQ -R ../dependencies/corn CoRN -R ../dependencies/corn/math-classes/src MathClasses'
 coqcmd = 'coqc ${str(SOURCE)[:-2]} ' + Rs
 
