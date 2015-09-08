@@ -152,7 +152,7 @@ Extraction Language Ocaml.
 (* Require Import ExtrHaskellBasic. *)
 
 Extraction 
-  "extraction/roboExtract.ml"
+  "src/extraction/roboExtract.ml"
   robotProgramInstance 
   SwProcessInstance
   initDelayLin target1Metres

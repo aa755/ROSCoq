@@ -390,6 +390,10 @@ Global Instance  :
   split; simpl; rewrite Heq; auto.
 Qed.
 
+
+Require Import MathClasses.interfaces.canonical_names.
+Locate le.
+Print le.
 Global Instance ProperLeCartIR : Proper 
  (equiv ==> equiv ==> iff)
 (@le (Cart2D IR) _).

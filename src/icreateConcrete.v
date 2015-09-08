@@ -161,7 +161,7 @@ Require Import ExtrHaskellBasic.
 Require Import extraction.ExtrHaskellQ.
 
 Extraction 
-  "extraction/roboExtract.hs"
+  "src/extraction/roboExtract.hs"
   (* "extraction/roboExtract.ml" *)
  (* mkInpMsgFromBig *)
   robotProgramInstance 

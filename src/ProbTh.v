@@ -41,7 +41,7 @@ Variable A : CRing.
 
 Require Export CRRing2MCRing.
 
-Require Export MCmisc.BooleanAlgebra.
+Require Export MCMisc.BooleanAlgebra.
 
 
 (** make sure that A4 and A5 are provable. 
