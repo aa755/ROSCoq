@@ -3,6 +3,10 @@ Require Import String.
 Require Import ExtrHaskellString.
 
 
+(** This file exposes https://github.com/aa755/ROSCoq/blob/bbc63a39163b8df2e287673fc769f0f77529be21/src/shim/Haskell/examples/String.hs to Coq.
+   It defines the following ROS message : http://docs.ros.org/api/std_msgs/html/msg/String.html
+*)
+
 Extraction Language Haskell.
 
 (** temporary example for generation of Coq types for ROS messages, 

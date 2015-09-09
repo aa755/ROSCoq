@@ -29,7 +29,15 @@ Then one can extract Coq programs to Haskell and then run  link it with the hask
 Pull Requests are welcome.
 Here are some clearly defined substeps for writing that shim. If anyone wants to work on any of these substeps, or has any suggestions, please let me know.
 
-1) Modify roshask code so that it also emites Coq definitions for ROS message data-types. Currently it produces (only) Haskell definitions. The Coq code should also contain Extraction directives so that the Coq type gets mapped to the corresponding Haskell type. Note that the Haskell definition of message types have additional code for (de)serialization, which need not be generated on the Coq side. I will soon post an example illustrating a generated Haskell type and what the corresponding Coq type should look like. 
+1) Modify roshask code so that it also emites Coq definitions for ROS message data-types. Currently it produces (only) Haskell definitions. Here is an example ROS message type,
+and its definitions in Haskell and Coq:
+
+http://docs.ros.org/api/std_msgs/html/msg/String.html
+
+https://github.com/aa755/ROSCoq/blob/bbc63a39163b8df2e287673fc769f0f77529be21/src/shim/Haskell/examples/String.hs
+
+https://github.com/aa755/ROSCoq/blob/bbc63a39163b8df2e287673fc769f0f77529be21/src/shim/Haskell/ROSStringMsg.v 
+
 
 2) ... 
 
