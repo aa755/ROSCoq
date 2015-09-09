@@ -1,7 +1,7 @@
 {-# OPTIONS_GHC -cpp -XMagicHash #-}
 {- For Hugs, use the option -F"cpp -P -traditional" -}
 
-module CoqEcho where
+module Main where
 
 import qualified Prelude
 import qualified Ros.Node
@@ -322,5 +322,5 @@ echoNode =
     (unsafeCoerce (subscribe rOSMsgInstance_ROS_StdMsg_String chatter))
 
 
-main = Ros.Node.runNode "talker"  echoNode
+main = Ros.Node.runNode "echo"  echoNode
 
