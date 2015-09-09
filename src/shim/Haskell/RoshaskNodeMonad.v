@@ -1,10 +1,14 @@
 Require Import String.
-Require Import RoshaskMsg.
 
 Extraction Language Haskell.
 
 Axiom Node : Type -> Type.
 Extract Constant Node "'a" => "Ros.Node 'a".
+
+(** I doubt that Coq typeclasses
+  get extracted to Haskell typeclasses. It makes sense to do the resolution in Coq.
+  So, we have extraction directives specifically for the return and bind functions of Node.
+*)
 
 Axiom nreturn : forall {a:Type}, a  -> Node a.
 Extract Constant nreturn => "Ros.ROSCoqUtil.nreturn".
@@ -29,6 +33,7 @@ Axiom AssumeMonadNodeHaskell: forall nodeEq, @Monad Node nodeEq _ _.
 
 Instance MonadInstanceNodeHaskell : forall nodeEq, @Monad Node nodeEq _ _ :=
   AssumeMonadNodeHaskell.
+
 
 
 

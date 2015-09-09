@@ -1,6 +1,7 @@
 Require Import String.
 Require Import ExtrHaskellString.
 Require Import ROSCOQ.CoList.
+Require Import RoshaskNodeMonad.
 
 
 Definition TopicName : Type := string.
@@ -17,23 +18,9 @@ Definition TopicName : Type := string.
 Definition ROSStream (T:Type) := CoList T.
 
 Class RoshashMsgType (T:Type) :=
-  {
-    (** Ideally, these functions should be put in a monad which gets extracted
-      to the Node monad of roshask. 
-     Then one can directly use these functions on Coq programs.
-     Currently, these are there just to implement the ROSCoq message handlers.
-     *)
-    (** Found a suitable definition of Monads in Coq:
-https://github.com/coq-ext-lib/coq-ext-lib/blob/4af1a22651e3397435636c1b15d3a27829a3537c/theories/Structures/Monad.v#L8 
-  It even has Haskell like notations defined. However I doubt that Coq typeclasses
-  get extracted to Haskell typeclasses. It makes sense to do the resolution in Coq.
-  So, we would just put extraction directives for the return and bind functions of
-  the particular Coq instance,
-  to the concrete bind and return functions of the Node monad in roshak
-*)
-    
-   subscribe : TopicName -> ROSStream T;
-   publish : TopicName -> ROSStream T -> unit (*will be mapped to advertize in Roshask*)
+  {    
+   subscribe : TopicName -> Node (ROSStream T);
+   publish : TopicName -> ROSStream T -> Node unit (*will be mapped to advertize in Roshask*)
 }.
 
 (**roshask will be modified to generate Coq Types for ROS message types. These message types
