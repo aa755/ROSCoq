@@ -1,4 +1,5 @@
 Require Import String.
+Require ExtrHaskellBasic.
 
 Extraction Language Haskell.
 

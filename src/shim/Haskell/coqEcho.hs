@@ -35,13 +35,6 @@ type Any = ()
 __ :: any
 __ = Prelude.error "Logical or arity value used"
 
-data Unit =
-   Tt
-
-data Bool =
-   True
- | False
-
 type MonadBind m = () -> () -> (Any -> m) -> m -> m
 
 bind :: (MonadBind a1) -> (a2 -> a1) -> a1 -> a1
@@ -64,14 +57,14 @@ type ROSStream t = ([]) t
 data ROSMsgType t =
    Build_ROSMsgType (TopicName -> Node (ROSStream t)) (TopicName ->
                                                       (ROSStream t) -> Node
-                                                      Unit)
+                                                      ())
 
 subscribe :: (ROSMsgType a1) -> TopicName -> Node (ROSStream a1)
 subscribe rOSMsgType =
   case rOSMsgType of {
    Build_ROSMsgType subscribe0 publish0 -> subscribe0}
 
-publish :: (ROSMsgType a1) -> TopicName -> (ROSStream a1) -> Node Unit
+publish :: (ROSMsgType a1) -> TopicName -> (ROSStream a1) -> Node ()
 publish rOSMsgType =
   case rOSMsgType of {
    Build_ROSMsgType subscribe0 publish0 -> publish0}
@@ -81,7 +74,7 @@ subscribe_ROS_StdMsg_String :: TopicName -> Node
 subscribe_ROS_StdMsg_String = (Ros.ROSCoqUtil.subscribeCoList)
 
 publish_ROS_StdMsg_String :: TopicName -> (ROSStream
-                             Ros.Std_msgs.String.String) -> Node Unit
+                             Ros.Std_msgs.String.String) -> Node ()
 publish_ROS_StdMsg_String = (Ros.ROSCoqUtil.publishCoList)
 
 rOSMsgInstance_ROS_StdMsg_String :: ROSMsgType Ros.Std_msgs.String.String
@@ -100,7 +93,8 @@ chatter =
       (if b5 then Data.Bits.shiftL 1 5 else 0) Prelude.+
       (if b6 then Data.Bits.shiftL 1 6 else 0) Prelude.+
       (if b7 then Data.Bits.shiftL 1 7 else 0)))
-    True True True True False True False False) ((:)
+    Prelude.True Prelude.True Prelude.True Prelude.True Prelude.False
+    Prelude.True Prelude.False Prelude.False) ((:)
     ((\b0 b1 b2 b3 b4 b5 b6 b7 -> Data.Char.chr (
       (if b0 then Data.Bits.shiftL 1 0 else 0) Prelude.+
       (if b1 then Data.Bits.shiftL 1 1 else 0) Prelude.+
@@ -110,7 +104,8 @@ chatter =
       (if b5 then Data.Bits.shiftL 1 5 else 0) Prelude.+
       (if b6 then Data.Bits.shiftL 1 6 else 0) Prelude.+
       (if b7 then Data.Bits.shiftL 1 7 else 0)))
-    True True False False False True True False) ((:)
+    Prelude.True Prelude.True Prelude.False Prelude.False Prelude.False
+    Prelude.True Prelude.True Prelude.False) ((:)
     ((\b0 b1 b2 b3 b4 b5 b6 b7 -> Data.Char.chr (
       (if b0 then Data.Bits.shiftL 1 0 else 0) Prelude.+
       (if b1 then Data.Bits.shiftL 1 1 else 0) Prelude.+
@@ -120,7 +115,8 @@ chatter =
       (if b5 then Data.Bits.shiftL 1 5 else 0) Prelude.+
       (if b6 then Data.Bits.shiftL 1 6 else 0) Prelude.+
       (if b7 then Data.Bits.shiftL 1 7 else 0)))
-    False False False True False True True False) ((:)
+    Prelude.False Prelude.False Prelude.False Prelude.True Prelude.False
+    Prelude.True Prelude.True Prelude.False) ((:)
     ((\b0 b1 b2 b3 b4 b5 b6 b7 -> Data.Char.chr (
       (if b0 then Data.Bits.shiftL 1 0 else 0) Prelude.+
       (if b1 then Data.Bits.shiftL 1 1 else 0) Prelude.+
@@ -130,7 +126,8 @@ chatter =
       (if b5 then Data.Bits.shiftL 1 5 else 0) Prelude.+
       (if b6 then Data.Bits.shiftL 1 6 else 0) Prelude.+
       (if b7 then Data.Bits.shiftL 1 7 else 0)))
-    True False False False False True True False) ((:)
+    Prelude.True Prelude.False Prelude.False Prelude.False Prelude.False
+    Prelude.True Prelude.True Prelude.False) ((:)
     ((\b0 b1 b2 b3 b4 b5 b6 b7 -> Data.Char.chr (
       (if b0 then Data.Bits.shiftL 1 0 else 0) Prelude.+
       (if b1 then Data.Bits.shiftL 1 1 else 0) Prelude.+
@@ -140,7 +137,8 @@ chatter =
       (if b5 then Data.Bits.shiftL 1 5 else 0) Prelude.+
       (if b6 then Data.Bits.shiftL 1 6 else 0) Prelude.+
       (if b7 then Data.Bits.shiftL 1 7 else 0)))
-    False False True False True True True False) ((:)
+    Prelude.False Prelude.False Prelude.True Prelude.False Prelude.True
+    Prelude.True Prelude.True Prelude.False) ((:)
     ((\b0 b1 b2 b3 b4 b5 b6 b7 -> Data.Char.chr (
       (if b0 then Data.Bits.shiftL 1 0 else 0) Prelude.+
       (if b1 then Data.Bits.shiftL 1 1 else 0) Prelude.+
@@ -150,7 +148,8 @@ chatter =
       (if b5 then Data.Bits.shiftL 1 5 else 0) Prelude.+
       (if b6 then Data.Bits.shiftL 1 6 else 0) Prelude.+
       (if b7 then Data.Bits.shiftL 1 7 else 0)))
-    False False True False True True True False) ((:)
+    Prelude.False Prelude.False Prelude.True Prelude.False Prelude.True
+    Prelude.True Prelude.True Prelude.False) ((:)
     ((\b0 b1 b2 b3 b4 b5 b6 b7 -> Data.Char.chr (
       (if b0 then Data.Bits.shiftL 1 0 else 0) Prelude.+
       (if b1 then Data.Bits.shiftL 1 1 else 0) Prelude.+
@@ -160,7 +159,8 @@ chatter =
       (if b5 then Data.Bits.shiftL 1 5 else 0) Prelude.+
       (if b6 then Data.Bits.shiftL 1 6 else 0) Prelude.+
       (if b7 then Data.Bits.shiftL 1 7 else 0)))
-    True False True False False True True False) ((:)
+    Prelude.True Prelude.False Prelude.True Prelude.False Prelude.False
+    Prelude.True Prelude.True Prelude.False) ((:)
     ((\b0 b1 b2 b3 b4 b5 b6 b7 -> Data.Char.chr (
       (if b0 then Data.Bits.shiftL 1 0 else 0) Prelude.+
       (if b1 then Data.Bits.shiftL 1 1 else 0) Prelude.+
@@ -170,7 +170,8 @@ chatter =
       (if b5 then Data.Bits.shiftL 1 5 else 0) Prelude.+
       (if b6 then Data.Bits.shiftL 1 6 else 0) Prelude.+
       (if b7 then Data.Bits.shiftL 1 7 else 0)))
-    False True False False True True True False) ([]))))))))
+    Prelude.False Prelude.True Prelude.False Prelude.False Prelude.True
+    Prelude.True Prelude.True Prelude.False) ([]))))))))
 
 chatterecho :: TopicName
 chatterecho =
@@ -184,7 +185,8 @@ chatterecho =
       (if b5 then Data.Bits.shiftL 1 5 else 0) Prelude.+
       (if b6 then Data.Bits.shiftL 1 6 else 0) Prelude.+
       (if b7 then Data.Bits.shiftL 1 7 else 0)))
-    True True True True False True False False) ((:)
+    Prelude.True Prelude.True Prelude.True Prelude.True Prelude.False
+    Prelude.True Prelude.False Prelude.False) ((:)
     ((\b0 b1 b2 b3 b4 b5 b6 b7 -> Data.Char.chr (
       (if b0 then Data.Bits.shiftL 1 0 else 0) Prelude.+
       (if b1 then Data.Bits.shiftL 1 1 else 0) Prelude.+
@@ -194,7 +196,8 @@ chatterecho =
       (if b5 then Data.Bits.shiftL 1 5 else 0) Prelude.+
       (if b6 then Data.Bits.shiftL 1 6 else 0) Prelude.+
       (if b7 then Data.Bits.shiftL 1 7 else 0)))
-    True True False False False True True False) ((:)
+    Prelude.True Prelude.True Prelude.False Prelude.False Prelude.False
+    Prelude.True Prelude.True Prelude.False) ((:)
     ((\b0 b1 b2 b3 b4 b5 b6 b7 -> Data.Char.chr (
       (if b0 then Data.Bits.shiftL 1 0 else 0) Prelude.+
       (if b1 then Data.Bits.shiftL 1 1 else 0) Prelude.+
@@ -204,7 +207,8 @@ chatterecho =
       (if b5 then Data.Bits.shiftL 1 5 else 0) Prelude.+
       (if b6 then Data.Bits.shiftL 1 6 else 0) Prelude.+
       (if b7 then Data.Bits.shiftL 1 7 else 0)))
-    False False False True False True True False) ((:)
+    Prelude.False Prelude.False Prelude.False Prelude.True Prelude.False
+    Prelude.True Prelude.True Prelude.False) ((:)
     ((\b0 b1 b2 b3 b4 b5 b6 b7 -> Data.Char.chr (
       (if b0 then Data.Bits.shiftL 1 0 else 0) Prelude.+
       (if b1 then Data.Bits.shiftL 1 1 else 0) Prelude.+
@@ -214,7 +218,8 @@ chatterecho =
       (if b5 then Data.Bits.shiftL 1 5 else 0) Prelude.+
       (if b6 then Data.Bits.shiftL 1 6 else 0) Prelude.+
       (if b7 then Data.Bits.shiftL 1 7 else 0)))
-    True False False False False True True False) ((:)
+    Prelude.True Prelude.False Prelude.False Prelude.False Prelude.False
+    Prelude.True Prelude.True Prelude.False) ((:)
     ((\b0 b1 b2 b3 b4 b5 b6 b7 -> Data.Char.chr (
       (if b0 then Data.Bits.shiftL 1 0 else 0) Prelude.+
       (if b1 then Data.Bits.shiftL 1 1 else 0) Prelude.+
@@ -224,7 +229,8 @@ chatterecho =
       (if b5 then Data.Bits.shiftL 1 5 else 0) Prelude.+
       (if b6 then Data.Bits.shiftL 1 6 else 0) Prelude.+
       (if b7 then Data.Bits.shiftL 1 7 else 0)))
-    False False True False True True True False) ((:)
+    Prelude.False Prelude.False Prelude.True Prelude.False Prelude.True
+    Prelude.True Prelude.True Prelude.False) ((:)
     ((\b0 b1 b2 b3 b4 b5 b6 b7 -> Data.Char.chr (
       (if b0 then Data.Bits.shiftL 1 0 else 0) Prelude.+
       (if b1 then Data.Bits.shiftL 1 1 else 0) Prelude.+
@@ -234,7 +240,8 @@ chatterecho =
       (if b5 then Data.Bits.shiftL 1 5 else 0) Prelude.+
       (if b6 then Data.Bits.shiftL 1 6 else 0) Prelude.+
       (if b7 then Data.Bits.shiftL 1 7 else 0)))
-    False False True False True True True False) ((:)
+    Prelude.False Prelude.False Prelude.True Prelude.False Prelude.True
+    Prelude.True Prelude.True Prelude.False) ((:)
     ((\b0 b1 b2 b3 b4 b5 b6 b7 -> Data.Char.chr (
       (if b0 then Data.Bits.shiftL 1 0 else 0) Prelude.+
       (if b1 then Data.Bits.shiftL 1 1 else 0) Prelude.+
@@ -244,7 +251,8 @@ chatterecho =
       (if b5 then Data.Bits.shiftL 1 5 else 0) Prelude.+
       (if b6 then Data.Bits.shiftL 1 6 else 0) Prelude.+
       (if b7 then Data.Bits.shiftL 1 7 else 0)))
-    True False True False False True True False) ((:)
+    Prelude.True Prelude.False Prelude.True Prelude.False Prelude.False
+    Prelude.True Prelude.True Prelude.False) ((:)
     ((\b0 b1 b2 b3 b4 b5 b6 b7 -> Data.Char.chr (
       (if b0 then Data.Bits.shiftL 1 0 else 0) Prelude.+
       (if b1 then Data.Bits.shiftL 1 1 else 0) Prelude.+
@@ -254,7 +262,8 @@ chatterecho =
       (if b5 then Data.Bits.shiftL 1 5 else 0) Prelude.+
       (if b6 then Data.Bits.shiftL 1 6 else 0) Prelude.+
       (if b7 then Data.Bits.shiftL 1 7 else 0)))
-    False True False False True True True False) ((:)
+    Prelude.False Prelude.True Prelude.False Prelude.False Prelude.True
+    Prelude.True Prelude.True Prelude.False) ((:)
     ((\b0 b1 b2 b3 b4 b5 b6 b7 -> Data.Char.chr (
       (if b0 then Data.Bits.shiftL 1 0 else 0) Prelude.+
       (if b1 then Data.Bits.shiftL 1 1 else 0) Prelude.+
@@ -264,7 +273,8 @@ chatterecho =
       (if b5 then Data.Bits.shiftL 1 5 else 0) Prelude.+
       (if b6 then Data.Bits.shiftL 1 6 else 0) Prelude.+
       (if b7 then Data.Bits.shiftL 1 7 else 0)))
-    True False True False False True True False) ((:)
+    Prelude.True Prelude.False Prelude.True Prelude.False Prelude.False
+    Prelude.True Prelude.True Prelude.False) ((:)
     ((\b0 b1 b2 b3 b4 b5 b6 b7 -> Data.Char.chr (
       (if b0 then Data.Bits.shiftL 1 0 else 0) Prelude.+
       (if b1 then Data.Bits.shiftL 1 1 else 0) Prelude.+
@@ -274,7 +284,8 @@ chatterecho =
       (if b5 then Data.Bits.shiftL 1 5 else 0) Prelude.+
       (if b6 then Data.Bits.shiftL 1 6 else 0) Prelude.+
       (if b7 then Data.Bits.shiftL 1 7 else 0)))
-    True True False False False True True False) ((:)
+    Prelude.True Prelude.True Prelude.False Prelude.False Prelude.False
+    Prelude.True Prelude.True Prelude.False) ((:)
     ((\b0 b1 b2 b3 b4 b5 b6 b7 -> Data.Char.chr (
       (if b0 then Data.Bits.shiftL 1 0 else 0) Prelude.+
       (if b1 then Data.Bits.shiftL 1 1 else 0) Prelude.+
@@ -284,7 +295,8 @@ chatterecho =
       (if b5 then Data.Bits.shiftL 1 5 else 0) Prelude.+
       (if b6 then Data.Bits.shiftL 1 6 else 0) Prelude.+
       (if b7 then Data.Bits.shiftL 1 7 else 0)))
-    False False False True False True True False) ((:)
+    Prelude.False Prelude.False Prelude.False Prelude.True Prelude.False
+    Prelude.True Prelude.True Prelude.False) ((:)
     ((\b0 b1 b2 b3 b4 b5 b6 b7 -> Data.Char.chr (
       (if b0 then Data.Bits.shiftL 1 0 else 0) Prelude.+
       (if b1 then Data.Bits.shiftL 1 1 else 0) Prelude.+
@@ -294,9 +306,10 @@ chatterecho =
       (if b5 then Data.Bits.shiftL 1 5 else 0) Prelude.+
       (if b6 then Data.Bits.shiftL 1 6 else 0) Prelude.+
       (if b7 then Data.Bits.shiftL 1 7 else 0)))
-    True True True True False True True False) ([]))))))))))))
+    Prelude.True Prelude.True Prelude.True Prelude.True Prelude.False
+    Prelude.True Prelude.True Prelude.False) ([]))))))))))))
 
-echoNode :: Node Unit
+echoNode :: Node ()
 echoNode =
   bind (unsafeCoerce (\_ _ -> bindInstanceNodeHaskell)) (\strmIn ->
     publish rOSMsgInstance_ROS_StdMsg_String chatterecho strmIn)
