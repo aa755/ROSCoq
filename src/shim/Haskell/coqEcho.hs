@@ -4,6 +4,12 @@
 module CoqEcho where
 
 import qualified Prelude
+import qualified Ros.Node
+import qualified Ros.Topic (repeatM)
+import qualified Ros.ROSCoqUtil
+import qualified Ros.Std_msgs.String
+import qualified Data.Bits
+import qualified Data.Char
 
 
 #ifdef __GLASGOW_HASKELL__
@@ -314,4 +320,7 @@ echoNode =
   bind (unsafeCoerce (\_ _ -> bindInstanceNodeHaskell)) (\strmIn ->
     publish rOSMsgInstance_ROS_StdMsg_String chatterecho strmIn)
     (unsafeCoerce (subscribe rOSMsgInstance_ROS_StdMsg_String chatter))
+
+
+main = Ros.Node.runNode "talker"  echoNode
 
