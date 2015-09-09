@@ -3,7 +3,7 @@ Require Import String.
 Extraction Language Haskell.
 
 Axiom Node : Type -> Type.
-Extract Constant Node "'a" => "Ros.Node 'a".
+Extract Constant Node "a" => "Ros.Node.Node a".
 
 (** I doubt that Coq typeclasses
   get extracted to Haskell typeclasses. It makes sense to do the resolution in Coq.
@@ -12,7 +12,7 @@ Extract Constant Node "'a" => "Ros.Node 'a".
 
 Axiom nreturn : forall {a:Type}, a  -> Node a.
 Extract Constant nreturn => "Ros.ROSCoqUtil.nreturn".
-(* Extract Constant nreturn "'a" => "Ros.ROSCoqUtil.nreturn 'a". *)
+(* Extract Constant nreturn "a" => "Ros.ROSCoqUtil.nreturn a". *)
 
 Definition example : Node nat := nreturn 0.
 Recursive Extraction example.

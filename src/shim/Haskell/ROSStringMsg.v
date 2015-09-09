@@ -10,10 +10,10 @@ Extraction Language Haskell.
 Record ROS_StdMsg_String := mkString
                               {__data:string}.
 
-Extract Inductive ROS_StdMsg_String => "ROS.Std_msgs.String.String"
+Extract Inductive ROS_StdMsg_String => "Ros.Std_msgs.String.String"
                                             [ "ROS.Std_msgs.String.String"].
 
-Extract Constant __data => "ROS.Std_msgs.String.__data".
+Extract Constant __data => "Ros.Std_msgs.String.__data".
 
 Require Import RoshaskNodeMonad.
 

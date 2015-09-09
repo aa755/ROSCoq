@@ -48,7 +48,7 @@ bind :: (MonadBind a1) -> (a2 -> a1) -> a1 -> a1
 bind monadBind x x0 =
   unsafeCoerce monadBind __ __ x x0
 
-type Node 'a = Ros.Node 'a
+type Node a = Ros.Node.Node a
 
 nbind :: (Node a1) -> (a1 -> Node a2) -> Node a2
 nbind = Ros.ROSCoqUtil.nbind
@@ -77,14 +77,14 @@ publish rOSMsgType =
    Build_ROSMsgType subscribe0 publish0 -> publish0}
 
 subscribe_ROS_StdMsg_String :: TopicName -> Node
-                               (ROSStream ROS.Std_msgs.String.String)
+                               (ROSStream Ros.Std_msgs.String.String)
 subscribe_ROS_StdMsg_String = (Ros.ROSCoqUtil.subscribeCoList)
 
 publish_ROS_StdMsg_String :: TopicName -> (ROSStream
-                             ROS.Std_msgs.String.String) -> Node Unit
+                             Ros.Std_msgs.String.String) -> Node Unit
 publish_ROS_StdMsg_String = (Ros.ROSCoqUtil.publishCoList)
 
-rOSMsgInstance_ROS_StdMsg_String :: ROSMsgType ROS.Std_msgs.String.String
+rOSMsgInstance_ROS_StdMsg_String :: ROSMsgType Ros.Std_msgs.String.String
 rOSMsgInstance_ROS_StdMsg_String =
   Build_ROSMsgType subscribe_ROS_StdMsg_String publish_ROS_StdMsg_String
 
