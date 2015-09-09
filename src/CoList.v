@@ -48,4 +48,17 @@ match len with
 end.
 
 
+Section Map.
+  Variables A B : Type.
+  Variable f : A -> B.
+
+CoFixpoint coMap (l:CoList A) : CoList B :=
+    match l with
+      | cnil => cnil B
+      | ccons a t => ccons (f a) (coMap t)
+    end.
+
+End Map.
+
 Extraction "CoList.hs" initialSegment.
+
