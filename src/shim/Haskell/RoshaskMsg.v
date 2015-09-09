@@ -17,7 +17,7 @@ Definition TopicName : Type := string.
   *)
 Definition ROSStream (T:Type) := CoList T.
 
-Class RoshashMsgType (T:Type) :=
+Class ROSMsgType (T:Type) :=
   {    
    subscribe : TopicName -> Node (ROSStream T);
    publish : TopicName -> ROSStream T -> Node unit (*will be mapped to advertize in Roshask*)
