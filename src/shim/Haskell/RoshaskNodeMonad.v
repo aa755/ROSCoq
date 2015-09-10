@@ -15,8 +15,6 @@ Axiom nreturn : forall {a:Type}, a  -> Node a.
 Extract Constant nreturn => "Ros.ROSCoqUtil.nreturn".
 (* Extract Constant nreturn "a" => "Ros.ROSCoqUtil.nreturn a". *)
 
-Definition example : Node nat := nreturn 0.
-Recursive Extraction example.
 
 Axiom nbind : forall {a b:Type},  Node a -> (a -> Node b) -> Node b.
 Extract Constant nbind => "Ros.ROSCoqUtil.nbind".
