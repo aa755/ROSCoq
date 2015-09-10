@@ -36,6 +36,13 @@ Instance MonadInstanceNodeHaskell : forall nodeEq, @Monad Node nodeEq _ _ :=
   AssumeMonadNodeHaskell.
 
 
+Require Import CoList.
+
+Axiom asapMerge :  forall {A:Type}, CoList A -> CoList A -> CoList A.
+
+Extract Constant asapMerge => "Ros.ROSCoqUtil.asapMergeCoList".
+
+
 
 
 
