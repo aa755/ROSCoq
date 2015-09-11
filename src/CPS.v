@@ -1,5 +1,5 @@
 
-Require Export roscore.
+Require Export message.
 Require Import Coq.QArith.QArith.
 Require Import Coq.QArith.Qabs.
 Require Import Coq.QArith.QOrderedType.

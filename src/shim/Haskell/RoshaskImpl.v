@@ -1,6 +1,6 @@
 Require Import String.
 Require Import RoshaskMsg.
-Require Import ROSCOQ.roscore.
+Require Import ROSCOQ.message.
 
 (** To run a ROSCoq CPS using roshask, one has to provide some 
    ROS(hask) specific implementation details.

@@ -1,7 +1,7 @@
 Require Export Coq.Program.Tactics.
 Require Export LibTactics.
 
-Require Export ROSCyberPhysicalSystem.
+Require Export CPS.
 Require Export String.
 (* Require Export CoRN.ode.SimpleIntegration. *)
 

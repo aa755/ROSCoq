@@ -25,7 +25,7 @@ Require Export LibTactics.
 (** printing ' $ $ #'# *)
 
 Require Export Vector.
-Require Export ROSCyberPhysicalSystem.
+Require Export CPS.
 
 Require Export MathClasses.interfaces.canonical_names.
 Require Export MCInstances.

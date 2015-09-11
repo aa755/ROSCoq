@@ -876,7 +876,7 @@ Proof.
 let x := constr:(decAuto (0<4)%nat I) in
   destruct (MotorEvents2 O x) as [evStartTurn  H0m].
   simpl in t0.
-  unfold minDelayForIndex, roscore.delay, Basics.compose in H0m.
+  unfold minDelayForIndex, message.delay, Basics.compose in H0m.
   Local Opaque getPayloadAndEv.
   simpl in H0m.
   unfold corrSinceLastVel in Hc.
@@ -988,7 +988,7 @@ Proof.
   destruct (MotorEvents2 O x) as [evStartTurn  H0m].
   let x := constr:(decAuto (1<4)%nat I) in
   destruct (MotorEvents2 1 x) as [evStopTurn  H1m].
-  unfold minDelayForIndex, roscore.delay, Basics.compose in H1m.
+  unfold minDelayForIndex, message.delay, Basics.compose in H1m.
   Local Opaque getPayloadAndEv.
   autounfold with π₁ in H1m.
   simpl in H1m.
@@ -1034,7 +1034,7 @@ Lemma minDelayForIndexConseq : ∀ {tp : Topic}
       nth (S n) (map fst resp) 0
       = (minDelayForIndex msgs (S n) - minDelayForIndex msgs n)%Q.
 Proof.
-  unfold minDelayForIndex, roscore.delay, Basics.compose.
+  unfold minDelayForIndex, message.delay, Basics.compose.
   induction n; simpl; intros ? H1l.
 - destruct resp as [|r1 resp]; simpl in H1l; try omega.
   simpl.
@@ -1506,7 +1506,7 @@ Proof.
   let x := constr:(decAuto (2<4)%nat I) in
   destruct (MotorEvents2 2 x) as [evStopTurn  H1m].
   simpl in t2.
-  unfold minDelayForIndex, roscore.delay, Basics.compose in H1m.
+  unfold minDelayForIndex, message.delay, Basics.compose in H1m.
   Local Opaque getPayloadAndEv.
   autounfold with π₁ in H1m.
   simpl in H1m.
@@ -1720,7 +1720,7 @@ Proof.
   let x := constr:(decAuto (3<4)%nat I) in
   destruct (MotorEvents2 3 x) as [evStopTurn  H1m].
   simpl in t2.
-  unfold minDelayForIndex, roscore.delay, Basics.compose in H1m.
+  unfold minDelayForIndex, message.delay, Basics.compose in H1m.
   Local Opaque getPayloadAndEv.
   autounfold with π₁ in H1m.
   simpl in H1m.
