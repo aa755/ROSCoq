@@ -10,6 +10,13 @@ Require Import ROSCOQ.roscore.
    an identity function. However, one may wish to reason about a simplified datatype
    in ROSCoq. For examples, while reasoning, it is painful to reason about
    how data is encoded into bytes.
+   
+   One also has to map each topic to the string that represents the 
+   fully qualified name of the actual ROS topic.
+
+   To avoid confusion, perhaps we should drop the prefix ROS from names of types used in reasoning.
+   So, RosTopicType should just be TopicType, because the information there is not yet at the level of ROS.
+  
 *)
 
 
@@ -30,15 +37,25 @@ Require Import ROSCOQ.roscore.
  *)
 Definition FiniteC (T:Type) {deq : DecEq T} := {all:list T | NoDup all /\ forall t:T, In t all}.
 
-Class RosHaskImplementable  `{RosTopicType RosTopic} :=
+Class RosHaskImplementable (RosTopic:Type) `{RosTopicType RosTopic} :=
 {
    topicImplType  : RosTopic -> Type (** Would Set suffice?*);
-   topicImplTypeCorrect: forall (t:RosTopic), RoshashMsgType (topicImplType t);
+   topicImplTypeCorrect: forall (t:RosTopic), ROSMsgType (topicImplType t);
    (**ideally, identity, used when sending a message*)
    toImpl : forall (t:RosTopic), (topicType t) ->  (topicImplType t) ;
    (**ideally, identity, used when receiving a message*)
    fromImpl : forall (t:RosTopic), (topicImplType t) ->  (topicType t)
 }.
 
+(** Given the above (possibly trivial) implementation details, we promise to run a software agent
+    in a way specified by [SwSemantics]. *)
 
+Section RunSwAgent.
+  Context (Topic:Type) `{RosTopicType Topic} `{RosHaskImplementable Topic}.
+  Variable (sw: RosSwNode). (** we are supposed to run this agent(node), using the API exported from roshask *)
 
+  Require Import RoshaskNodeMonad.
+  Open Scope mc_scope. (** to get the monadic notations*)
+ 
+  Definition runSwNode : Node unit. Admitted.
+End RunSwAgent.
