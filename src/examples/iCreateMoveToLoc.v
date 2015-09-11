@@ -55,7 +55,7 @@ match t with
 end.
 
 
-Global Instance  ttttt : @RosTopicType Topic _.
+Global Instance  ttttt : @TopicClass Topic _.
   constructor. exact topic2Type.
 Defined.
 

@@ -15,7 +15,6 @@ Require Import ROSCOQ.roscore.
    fully qualified name of the actual ROS topic.
 
    To avoid confusion, perhaps we should drop the prefix ROS from names of types used in reasoning.
-   So, RosTopicType should just be TopicType, because the information there is not yet at the level of ROS.
   
 *)
 
@@ -37,7 +36,7 @@ Require Import ROSCOQ.roscore.
  *)
 Definition FiniteC (T:Type) {deq : DecEq T} := {all:list T | NoDup all /\ forall t:T, In t all}.
 
-Class RosHaskImplementable (RosTopic:Type) `{RosTopicType RosTopic} :=
+Class RosHaskImplementable (RosTopic:Type) `{TopicClass RosTopic} :=
 {
    topicImplType  : RosTopic -> Type (** Would Set suffice?*);
    topicImplTypeCorrect: forall (t:RosTopic), ROSMsgType (topicImplType t);
@@ -51,7 +50,7 @@ Class RosHaskImplementable (RosTopic:Type) `{RosTopicType RosTopic} :=
     in a way specified by [SwSemantics]. *)
 
 Section RunSwAgent.
-  Context (Topic:Type) `{RosTopicType Topic} `{RosHaskImplementable Topic}.
+  Context (Topic:Type) `{TopicClass Topic} `{RosHaskImplementable Topic}.
   Variable (sw: RosSwNode). (** we are supposed to run this agent(node), using the API exported from roshask *)
 
   Require Import RoshaskNodeMonad.

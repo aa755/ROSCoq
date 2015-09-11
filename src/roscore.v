@@ -5,7 +5,7 @@ Local  Notation π₂ := snd.
 
 
 Set Implicit Arguments.
-Class RosTopicType (RT : Type) {deq : DecEq RT}
+Class TopicClass (RT : Type) {deq : DecEq RT}
 :=
 {
     (** each topic is associated with a type of messages *)
@@ -25,7 +25,7 @@ Record Header := mkHeader
 
 Section RosCore.
 
-Context  `{RosTopicType RosTopic}.
+Context  `{TopicClass RosTopic}.
 
 Definition Message := (sigT topicType) × Header .
 (* string could be rrplaced by a list bool to indicate a binary blob *)

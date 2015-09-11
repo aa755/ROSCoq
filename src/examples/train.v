@@ -38,7 +38,7 @@ match t with
 end.
 
 
-Instance  ttttt : @RosTopicType Topic _.
+Instance  ttttt : @TopicClass Topic _.
   constructor. exact topic2Type.
 Defined.
 

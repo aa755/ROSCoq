@@ -27,7 +27,7 @@ Inductive EventKind : Set :=
 
 
 Section Event.
-Context  `{rtopic : RosTopicType RosTopic}.
+Context  `{rtopic : TopicClass RosTopic}.
 
 (** [Event] is a type
     representing all events in the system *)
@@ -106,7 +106,7 @@ End Event.
 Section EvtProps.
 
 Context  
-  `{rtopic : RosTopicType RosTopic} 
+  `{rtopic : TopicClass RosTopic} 
   `{dteq : Deq RosTopic}
   `{etype : @EventType _ _ _ Event LocT minGap tdeq }.
 
@@ -1036,7 +1036,7 @@ Section DeviceAndLoc.
      changed over time *)
 
 Context  {PhysicalEnvEvolutionType : Type}
-    `{rtopic : RosTopicType RosTopic}
+    `{rtopic : TopicClass RosTopic}
     `{evt : @EventType _ _ _ Event LocT minG tdeq}.
 
 
@@ -1125,7 +1125,7 @@ Section Global.
 Context  (PhysicalEnvType : Type)
   (physics : PhysicalEnvType)
   (minGap : Q)
-  `{rtopic : RosTopicType RosTopic} 
+  `{rtopic : TopicClass RosTopic} 
   `{dteq : Deq RosTopic}
  `{etype : @EventType _ _ _ Event LocT minGap tdeq }
   `{rlct : @RosLocType PhysicalEnvType RosTopic Event LocT ldeq}.

@@ -73,7 +73,7 @@ Record iCreate : Type := {
 Section HardwareAgents.
 
 Context 
-  `{rtopic : RosTopicType RosTopic} 
+  `{rtopic : TopicClass RosTopic} 
   `{dteq : Deq RosTopic}
   `{etype : @EventType _ _ _ Event LocT minGap tdeq}.
   
