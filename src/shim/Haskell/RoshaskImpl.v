@@ -36,25 +36,53 @@ Require Import ROSCOQ.message.
  *)
 Definition FiniteC (T:Type) {deq : DecEq T} := {all:list T | NoDup all /\ forall t:T, In t all}.
 
-Class RosHaskImplementable (RosTopic:Type) `{TopicClass RosTopic} :=
+Class RosHaskImplementable (Topic:Type) `{TopicClass Topic} :=
 {
-   topicImplType  : RosTopic -> Type (** Would Set suffice?*);
-   topicImplTypeCorrect: forall (t:RosTopic), ROSMsgType (topicImplType t);
+   topicImplType  : Topic -> Type (** Would Set suffice?*);
+   topicImplTypeCorrect: forall (t:Topic), ROSMsgType (topicImplType t);
    (**ideally, identity, used when sending a message*)
-   toImpl : forall (t:RosTopic), (topicType t) ->  (topicImplType t) ;
+   toImpl : forall (t:Topic), (topicType t) ->  (topicImplType t) ;
    (**ideally, identity, used when receiving a message*)
-   fromImpl : forall (t:RosTopic), (topicImplType t) ->  (topicType t)
+   fromImpl : forall (t:Topic), (topicImplType t) ->  (topicType t);
+   
+   rosQualName : Topic -> TopicName
+                                                       
 }.
 
 (** Given the above (possibly trivial) implementation details, we promise to run a software agent
     in a way specified by [SwSemantics]. *)
 
+Require Import CPS.
+
 Section RunSwAgent.
   Context (Topic:Type) `{TopicClass Topic} `{RosHaskImplementable Topic}.
-  Variable (sw: RosSwNode). (** we are supposed to run this agent(node), using the API exported from roshask *)
 
   Require Import RoshaskNodeMonad.
-  Open Scope mc_scope. (** to get the monadic notations*)
+  Require Import CoList.
+  
+
+  (** some helper functions *)
+  Definition mkMsg (t:Topic) (rospayload : topicImplType t) : Message :=
+    (existT _ t (fromImpl t rospayload), defHdr).
+
+  Require Import MathClasses.interfaces.monads.
+  Open Scope mc_scope.
+
+  Instance fsldkjfkdsj  (t:Topic):  ROSMsgType (topicImplType t) := topicImplTypeCorrect t.
+
+  
+  Definition subscribeMsgCoList  (t:Topic) : Node (CoList Message) :=
+    strmIn  ← (subscribe (rosQualName t));
+    ret (coMap (mkMsg t) strmIn). (* Perhaps define an instance of the  Functor typeclass and just say fmap instead of coMap *)
+    
+    
+    
+  
+  
+  Variable (sw: RosSwNode). (** we are supposed to run this agent(node), using the API exported from roshask *)
+  Variable tpInfo :  @TopicInfo Topic. (** which topics [sw] subscribes/publishes to*)
+    
  
-  Definition runSwNode : Node unit. Admitted.
+  Definition runSwNode (tp: @TopicInfo Topic): Node unit. Admitted.    
+    
 End RunSwAgent.
