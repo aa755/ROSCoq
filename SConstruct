@@ -37,14 +37,12 @@ for node in vs: env.Coq(node, COQCMD=coqcmd)
 os.system('coqdep ' + ' '.join(map(str, vs)) + ' ' + includes + ' ' + Rs + ' > deps')
 ParseDepends('deps')
 
-#corn_vs, corn_vos, corn_globs = env.SConscript(dirs='../../../ssrcorn')
 
 #open('coqidescript', 'w').write('#!/bin/sh\ncoqide ' + Rs + ' $@ \n')
 #os.chmod('coqidescript', 0755)
 
-#env.CoqDoc(env.Dir('coqdoc'), vs, COQDOCFLAGS='-utf8 --toc --latex --interpolate --no-lib-name --coqlib http://coq.inria.fr/library')
 
 
 # enable the 2 lines below to enable coqdoc generation (using scons coqdoc).  dont forget to then patch the generated HTML to disable caching. run patchNoCache.sh in the generated coqdoc/ directory. also see updateDoc.sh
-#mc_vs, mc_vos, mc_globs = env.SConscript(dirs='../../../ssrcorn')
-#env.CoqDoc(env.Dir('coqdoc'), vs+mc_vs, COQDOCFLAGS='-utf8 --toc --interpolate --no-lib-name --coqlib http://coq.inria.fr/library')
+mc_vs, mc_vos, mc_globs = env.SConscript(dirs='dependencies/corn/') # CoRN + MathClasses
+env.CoqDoc(env.Dir('coqdoc'), vs+mc_vs, COQDOCFLAGS='-utf8 --toc --interpolate --no-lib-name --coqlib http://coq.inria.fr/library')
