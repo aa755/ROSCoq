@@ -48,3 +48,21 @@ subscribe and advertize methods respectively in roshask.
 On top of these functions, the ROSCoq message handler functionality will be built.
 *)
 
+
+Axiom Chan : Type -> Type.
+Extract Constant Chan "a" => "Control.Concurrent.Chan".
+
+(** The first two arguments are implicit in Haskell. They musst be so here*)
+Axiom advertiseNewChan  : forall {a:Type} {_: ROSMsgType a} , TopicName -> Node (Chan a).
+Extract Constant advertiseNewChan => "advertiseNewChan".
+
+
+Axiom  publishMsgOnChan: forall {a:Type}, (Chan a) -> a -> Node unit.
+Extract Constant publishMsgOnChan => "publishMsgOnChan".
+
+
+Require ExtrHaskellZNum.
+Require Import ZArith.
+Axiom publishDelayedMsgOnChan: forall {a:Type}, Z -> (Chan a) -> a -> Node unit.
+Extract Constant publishDelayedMsgOnChan => "publishDelayedMsgOnChan".
+

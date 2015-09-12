@@ -46,10 +46,13 @@ Extract Constant asapMerge => "Ros.ROSCoqUtil.asapMergeCoList".
     returned [CoList] cannot be evaluated to either [cnil] or [ccons] in bounded amount 
     of time. Hence we put this computation in the Node monad. 
    Node (CoList A) is an abstract type (neither inductive, nor coinductive).
+
+Not needed anymore?
 *)
 Axiom flattenCoListList :  forall {A:Type}, CoList (list A)  -> Node (CoList A).
 Extract Constant flattenCoListList => "(\ll . return (Prelude.concat ll))".
 (** recall that [CoList T] extracts to Haskell as [T]. *)
+
 
 
 
