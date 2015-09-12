@@ -36,7 +36,10 @@ Instance MonadInstanceNodeHaskell : forall nodeEq, @Monad Node nodeEq _ _ :=
 
 Require Import CoList.
 
-Axiom asapMerge :  forall {A:Type}, CoList A -> CoList A -> CoList A.
+(** this is not a pure computation. the final result depends on not just
+   the values of the 2 streams, but when items in the streams arrived*)
+Axiom asapMerge :  forall {A:Type}, CoList A -> CoList A -> Node (CoList A).
+
 
 Extract Constant asapMerge => "Ros.ROSCoqUtil.asapMergeCoList".
 

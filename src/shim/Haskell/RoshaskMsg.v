@@ -17,6 +17,18 @@ Definition TopicName : Type := string.
   *)
 Definition ROSStream (T:Type) := CoList T.
 
+(** Haskell Definition, which doesn't work in Coq, because m may not be positive
+newtype Topic m a = Topic { runTopic :: m (a, Topic m a) } 
+
+CoInductive Topic (m:Type ->Type) `{Monad m} (a:Type) :=
+| CTopic (runTopic : m (a × Topic m a)).
+
+
+Error: Non strictly positive occurrence of "Topic" in
+ "m (a × Topic m H H0 H1 H2 a) → Topic m H H0 H1 H2 a". 
+*)
+
+
 Class ROSMsgType (T:Type) :=
   {    
    subscribe : TopicName -> Node (ROSStream T);
@@ -28,3 +40,4 @@ will be instances of the above typeclass. The publish and subscribe implementati
 subscribe and advertize methods respectively in roshask.
 On top of these functions, the ROSCoq message handler functionality will be built.
 *)
+

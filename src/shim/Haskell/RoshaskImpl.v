@@ -54,6 +54,9 @@ Class RosHaskImplementable (Topic:Type) `{TopicClass Topic} :=
 
 Require Import CPS.
 
+Require Import MathClasses.interfaces.monads.
+
+                          
 Section RunSwAgent.
   Context (Topic:Type) `{TopicClass Topic} `{RosHaskImplementable Topic}.
 
@@ -75,14 +78,20 @@ Section RunSwAgent.
     strmIn  ← (subscribe (rosQualName t));
     ret (coMap (mkMsg t) strmIn). (* Perhaps define an instance of the  Functor typeclass and just say fmap instead of coMap *)
     
-    
-    
-  
+  Fixpoint subscribeMsgMultiple  (lt: list Topic) : Node (CoList Message) :=
+    match lt with
+      | nil => ret (cnil Message)
+      | h::tl =>
+        sh ←  (subscribeMsgCoList h);
+        stl ← (subscribeMsgMultiple tl);
+        asapMerge sh stl
+    end.
+                  
   
   Variable (sw: RosSwNode). (** we are supposed to run this agent(node), using the API exported from roshask *)
   Variable tpInfo :  @TopicInfo Topic. (** which topics [sw] subscribes/publishes to*)
     
  
-  Definition runSwNode (tp: @TopicInfo Topic): Node unit. Admitted.    
+  Definition runSwNode : Node unit. Admitted.    
     
 End RunSwAgent.
