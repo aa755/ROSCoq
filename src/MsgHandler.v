@@ -4,8 +4,22 @@ Require Export StdlibMisc.
 (** printing × $\times$ #×# *)
 
 Set Implicit Arguments.
+Require Import CoList.
+
+
 Definition MsgHandlerType (S I O : Type) := S → I → (S × O).
- 
+
+Require Export Coq.Lists.List.
+
+CoFixpoint outMsgsAux {S I O : Type} (st : S) (mh : MsgHandlerType S I O)
+           (ins : CoList I) : CoList O :=
+  match ins with
+    | cnil => cnil O
+    | ccons h tl => let (ns,out) := (mh st h) in
+                    ccons out (outMsgsAux ns mh tl)
+  end.
+    
+
 Definition mkPureHandler {In Out} 
  (f : In → Out) : MsgHandlerType unit In Out :=
  λ st inp, (st, f inp).
@@ -16,6 +30,11 @@ Record Process (In Out : Type) :Type := {
   curState : State;
   handler : MsgHandlerType State In Out
 }.
+
+Definition procOutMsgs {I O : Type} (p : Process I O)
+           (ins : CoList I) : CoList O :=
+  outMsgsAux (curState p) (handler p) ins.
+
 
 Definition getOutput {In Out : Type}
   (p: Process In Out) (inp : In ): Out :=
@@ -34,7 +53,6 @@ Definition getNewProc {In Out : Type}
   (p: Process In Out) (inp : In ): Process In Out :=
 updateState p (fst ((handler p) (curState p) inp)).
 
-Require Export Coq.Lists.List.
 
 (* outermost event is the last event *)
 Fixpoint getNewProcL  {In Out : Type}

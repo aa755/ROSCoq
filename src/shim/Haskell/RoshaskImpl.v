@@ -52,7 +52,6 @@ Class RosHaskImplementable (Topic:Type) `{TopicClass Topic} :=
 (** Given the above (possibly trivial) implementation details, we promise to run a software agent
     in a way specified by [SwSemantics]. *)
 
-Require Import CPS.
 
 Require Import MathClasses.interfaces.monads.
 
@@ -86,12 +85,22 @@ Section RunSwAgent.
         stl ← (subscribeMsgMultiple tl);
         asapMerge sh stl
     end.
-                  
-  
-  Variable (sw: RosSwNode). (** we are supposed to run this agent(node), using the API exported from roshask *)
+                             
+  Variable (sw: Process Message (list Message)). (** we are supposed to run this agent(node), using the API exported from roshask *)
+    (** move to ROSCOQ.MsgHandler*)
+
   Variable tpInfo :  @TopicInfo Topic. (** which topics [sw] subscribes/publishes to*)
-    
- 
-  Definition runSwNode : Node unit. Admitted.    
+
+  (** split it into several streams, one for each topic, and then publish each stream.
+    The main difficulty will be to take into account the timing requests.
+    Will need to write some functions in Haskell and use them here. *)
+  Definition publishMsgs (outMsgs: CoList Message) : Node unit. Admitted.
+  
+                                                       
+  Definition runSwNode : Node unit :=
+  let subTopics := fst tpInfo in
+  inMsgs ← subscribeMsgMultiple subTopics;
+  outMsgs ← flattenCoListList (procOutMsgs sw inMsgs);
+  publishMsgs outMsgs.
     
 End RunSwAgent.

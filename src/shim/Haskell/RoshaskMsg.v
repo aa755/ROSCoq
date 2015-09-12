@@ -30,9 +30,16 @@ Error: Non strictly positive occurrence of "Topic" in
 
 
 Class ROSMsgType (T:Type) :=
-  {    
-   subscribe : TopicName -> Node (ROSStream T);
-   publish : TopicName -> ROSStream T -> Node unit (*will be mapped to advertize in Roshask*)
+  {
+    (* it will be incorrect to remove [Node] (monad) below. If the return type was
+      just [CoList T], Coq's semantics need that it be reduced to either a [cnil]
+      or a [ccons _ _] within a bounded amount of time. Unfortunately, since
+      elements of this "stream" are coming from outside world, we have no control over
+      when things will arrive.       
+      Also, there will be issues with being a function, i.e. equal output for equal topic name.
+ *)
+   subscribe : TopicName -> Node (CoList T);
+   publish : TopicName -> CoList T -> Node unit (*will be mapped to advertize in Roshask*)
 }.
 
 (**roshask will be modified to generate Coq Types for ROS message types. These message types
