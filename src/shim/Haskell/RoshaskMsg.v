@@ -17,7 +17,7 @@ Definition TopicName : Type := string.
   *)
 Definition ROSStream (T:Type) := CoList T.
 
-(** Haskell Definition, which doesn't work in Coq, because m may not be positive
+(* Haskell Definition, which doesn't work in Coq, because m may not be positive
 newtype Topic m a = Topic { runTopic :: m (a, Topic m a) } 
 
 CoInductive Topic (m:Type ->Type) `{Monad m} (a:Type) :=

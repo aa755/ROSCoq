@@ -1,6 +1,6 @@
 for f in *.html
 do 
-	cat ../noCacheHeader.html > temp
+	cat ../doc/noCacheHeader.html > temp
 	tail -n +5 $f >> temp
 	mv temp  $f
 done
