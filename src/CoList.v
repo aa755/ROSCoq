@@ -60,5 +60,3 @@ CoFixpoint coMap (l:CoList A) : CoList B :=
 
 End Map.
 
-Extraction "CoList.hs" initialSegment.
-

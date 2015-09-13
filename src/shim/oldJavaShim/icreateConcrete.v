@@ -20,7 +20,7 @@ Definition robotProgramInstance (delayLinSec : Qpos) :  PureProcWDelay TARGETPOS
           delEpsSec
           delResSecInv.
 
-(** To ensure that the Java shim maintains the state correctly,
+(** To test that the Java shim maintains the state correctly,
    we make this process whose state is non-trivial and
    stores the delay between the "stop-turning" and
    the "start-moving" message.

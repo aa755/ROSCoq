@@ -14,6 +14,7 @@ while nodes:
   if (node.endswith('.v')
    and not node.endswith('CRMisc/ContField.v')
    and not node.endswith('CRMisc/PointWiseRing.v')
+   and not node.endswith('shim/oldJavaShim/icreateConcrete.v')
    and not node.endswith('Everything.v')
    and not node.endswith('trash.v')):
     vs += [File(node)]
