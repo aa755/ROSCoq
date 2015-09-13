@@ -42,5 +42,20 @@ Extract Constant roshaskInt8Add => "(+)".
 Require Export MathClasses.interfaces.canonical_names.
 Instance PlusInstanceRoshaskInt8 : Plus RoshaskInt8 := roshaskInt8Add.
 
+Require Import ExtrHaskellQ.
+
+Axiom RoshaskFloat : Type.
+(** this must extracted what roshask uses for ROS float type.
+   One way to find out is to look at what roshask generates for geometry_msgs/Vector3.
+*)
+Extract Constant RoshaskFloat => "Prelude.double".
+Axiom toRoshaskFloat : Q -> RoshaskFloat.
+Extract Constant toRoshaskFloat => "fromRational".
+
+Axiom fromRoshaskFloat : RoshaskFloat -> Q.
+Extract Constant fromRoshaskFloat => "toRational".
+
+
+
 
 
