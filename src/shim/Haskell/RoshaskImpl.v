@@ -113,27 +113,18 @@ Section RunSwAgent.
         end.
                                                               
     
-  (** split it into several streams, one for each topic, and then publish each stream.
-    The main difficulty will be to take into account the timing requests.
-    Will need to write some functions in Haskell and use them here. *)
-(*
- The return type is not coinductive. So cofix wont work. Need to define
- something like cofold in haskell and use it here.
+  Definition publishMsgsStep (chans : TopicChannel)(m : Message) : Node TopicChannel :=
+        let t := mtopic m in
+          p ← lookupChan chans t;
+          _ ← publishMsgOnChan (fst p) (toImpl t (mPayload m));
+          ret (snd p).
 
-  CoFixpoint publishMsgsAux (chans : TopicChannel)(outMsgs: CoList Message)
-  : Node unit :=
-  match outMsgs with
-      | cnil => ret tt
-      | ccons hm mtl =>
-        let ht := mtopic hm in
-          p ← lookupChan chans ht;
-          _ ← publishMsgOnChan (fst p) (toImpl ht (mPayload hm));
-         publishMsgsAux (snd p) mtl
-  end.
-*)                                                       
-
-  Definition publishMsgs (outMsgs: CoList Message)
-  : Node unit. Admitted.
+  Definition initTopicChan : TopicChannel := λ t, None.
+  
+  Definition publishMsgs (outMsgs: CoList Message) : Node unit :=
+    _ ← coFoldLeft publishMsgsStep outMsgs initTopicChan; ret tt.
+    
+  
 
   Definition runSwNode : Node unit :=
   let subTopics := fst tpInfo in

@@ -54,15 +54,15 @@ Extract Constant Chan "a" => "Control.Concurrent.Chan".
 
 (** The first two arguments are implicit in Haskell. They musst be so here*)
 Axiom advertiseNewChan  : forall {a:Type} {_: ROSMsgType a} , TopicName -> Node (Chan a).
-Extract Constant advertiseNewChan => "advertiseNewChan".
+Extract Constant advertiseNewChan => "Ros.ROSCoqUtil.advertiseNewChan".
 
 
 Axiom  publishMsgOnChan: forall {a:Type}, (Chan a) -> a -> Node unit.
-Extract Constant publishMsgOnChan => "publishMsgOnChan".
+Extract Constant publishMsgOnChan => "Ros.ROSCoqUtil.publishMsgOnChan".
 
 
 Require ExtrHaskellZNum.
 Require Import ZArith.
 Axiom publishDelayedMsgOnChan: forall {a:Type}, Z -> (Chan a) -> a -> Node unit.
-Extract Constant publishDelayedMsgOnChan => "publishDelayedMsgOnChan".
+Extract Constant publishDelayedMsgOnChan => "Ros.ROSCoqUtil.publishDelayedMsgOnChan".
 

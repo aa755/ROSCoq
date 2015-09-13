@@ -53,6 +53,8 @@ Axiom flattenCoListList :  forall {A:Type}, CoList (list A)  -> Node (CoList A).
 Extract Constant flattenCoListList => "(\ll . return (Prelude.concat ll))".
 (** recall that [CoList T] extracts to Haskell as [T]. *)
 
+Axiom coFoldLeft: forall {a b:Type}, (a-> b ->Node a)-> CoList b -> a -> Node a.
+Extract Constant coFoldLeft => "Ros.ROSCoqUtil.coFoldLeft".
 
 
 
