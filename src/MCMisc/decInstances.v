@@ -9,6 +9,10 @@ Require Import ROSCOQ.StdlibMisc.
 Require Import interfaces.abstract_algebra.
 Require Export Coq.Lists.List.
 
+Instance InstanceDecidableEq {T:Type} {deq : DecEq T} (x y:T) : Decision (x ≡ y).
+  apply eqdec.
+Defined.
+
 
 Instance InstanceDecidableIn {T:Type} {deq : DecEq T} (h:T) (l: list T) : Decision (In h l).
 apply in_dec. apply eqdec.

@@ -89,18 +89,56 @@ Section RunSwAgent.
   Variable (sw: Process Message (list Message)). (** we are supposed to run this agent(node), using the API exported from roshask *)
     (** move to ROSCOQ.MsgHandler*)
 
+  
   Variable tpInfo :  @TopicInfo Topic. (** which topics [sw] subscribes/publishes to*)
 
+  Require Import decInstances.
+  Require Import interfaces.abstract_algebra.
+  Require Import RoshaskMsg.
+
+  Definition updateDepMap `{DecEq A} {B: A -> Type} (init : forall a:A, B a) (a:A) (newb : B a) (x:A) : B x.
+    destruct (decide (x≡a)).
+    - rewrite e. exact newb.
+    - exact (init x).
+  Defined.
+
+  Definition TopicChannel := forall t:Topic, option (Chan (topicImplType t)).
+
+  (** update if it was none.*)
+  Definition lookupChan (tc : TopicChannel) (t:Topic) : Node ((Chan (topicImplType t))  × TopicChannel) :=
+        match tc t with
+          | Some c => ret (c, tc)
+          | None => nc ← advertiseNewChan (rosQualName t);
+                    ret (nc, updateDepMap tc t (Some nc))
+        end.
+                                                              
+    
   (** split it into several streams, one for each topic, and then publish each stream.
     The main difficulty will be to take into account the timing requests.
     Will need to write some functions in Haskell and use them here. *)
-  Definition publishMsgs (outMsgs: CoList Message) : Node unit. Admitted.
-  
-                                                       
+(*
+ The return type is not coinductive. So cofix wont work. Need to define
+ something like cofold in haskell and use it here.
+
+  CoFixpoint publishMsgsAux (chans : TopicChannel)(outMsgs: CoList Message)
+  : Node unit :=
+  match outMsgs with
+      | cnil => ret tt
+      | ccons hm mtl =>
+        let ht := mtopic hm in
+          p ← lookupChan chans ht;
+          _ ← publishMsgOnChan (fst p) (toImpl ht (mPayload hm));
+         publishMsgsAux (snd p) mtl
+  end.
+*)                                                       
+
+  Definition publishMsgs (outMsgs: CoList Message)
+  : Node unit. Admitted.
+
   Definition runSwNode : Node unit :=
   let subTopics := fst tpInfo in
   inMsgs ← subscribeMsgMultiple subTopics;
-  outMsgs ← flattenCoListList (procOutMsgs sw inMsgs);
+  outMsgs ← flattenCoListList (procOutMsgs sw inMsgs); (** one can get rid of this flattening (undefineable in Coq) and just make [publishMsgs] a bit complicated. *)
   publishMsgs outMsgs.
     
 End RunSwAgent.
