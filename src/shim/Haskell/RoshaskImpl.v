@@ -111,12 +111,15 @@ Section RunSwAgent.
           | None => nc ← advertiseNewChan (rosQualName t);
                     ret (nc, updateDepMap tc t (Some nc))
         end.
-                                                              
-    
+
+  (** there is an unwritten rule that Qden is 10^6. This should be captured in types*)
+  Definition delayInMicros (m:Message) : Z := Qnum (delay (snd m)).
+                                                  
+  
   Definition publishMsgsStep (chans : TopicChannel)(m : Message) : Node TopicChannel :=
         let t := mtopic m in
           p ← lookupChan chans t;
-          _ ← publishMsgOnChan (fst p) (toImpl t (mPayload m));
+          _ ← publishDelayedMsgOnChan (delayInMicros m) (fst p) (toImpl t (mPayload m));
           ret (snd p).
 
   Definition initTopicChan : TopicChannel := λ t, None.
