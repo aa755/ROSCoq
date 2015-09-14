@@ -29,6 +29,9 @@ Error: Non strictly positive occurrence of "Topic" in
 *)
 
 
+Axiom Chan : Type -> Type.
+Extract Constant Chan "a" => "Control.Concurrent.Chan a".
+
 Class ROSMsgType (T:Type) :=
   {
     (* it will be incorrect to remove [Node] (monad) below. If the return type was
@@ -39,7 +42,8 @@ Class ROSMsgType (T:Type) :=
       Also, there will be issues with being a function, i.e. equal output for equal topic name.
  *)
    subscribe : TopicName -> Node (CoList T);
-   publish : TopicName -> CoList T -> Node unit (*will be mapped to advertize in Roshask*)
+   publish : TopicName -> CoList T -> Node unit; (*will be mapped to advertize in Roshask*)
+   advertiseNewChan  : TopicName -> Node (Chan T)
 }.
 
 (**roshask will be modified to generate Coq Types for ROS message types. These message types
@@ -48,13 +52,6 @@ subscribe and advertize methods respectively in roshask.
 On top of these functions, the ROSCoq message handler functionality has been built.
 *)
 
-
-Axiom Chan : Type -> Type.
-Extract Constant Chan "a" => "Control.Concurrent.Chan a".
-
-(** The first two arguments are implicit in Haskell. They musst be so here*)
-Axiom advertiseNewChan  : forall {a:Type} {_: ROSMsgType a} , TopicName -> Node (Chan a).
-Extract Constant advertiseNewChan => "\_ -> Ros.ROSCoqUtil.advertiseNewChan".
 
 
 Axiom  publishMsgOnChan: forall {a:Type}, (Chan a) -> a -> Node unit.

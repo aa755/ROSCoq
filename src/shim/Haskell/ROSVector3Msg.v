@@ -31,8 +31,11 @@ Extract Constant  subscribe_ROS_Geometry_Vector3 => "(Ros.ROSCoqUtil.subscribeCo
 Axiom publish_ROS_Geometry_Vector3 : TopicName -> ROSStream ROS_Geometry_Vector3 -> Node unit.
 Extract Constant  publish_ROS_Geometry_Vector3 => "(Ros.ROSCoqUtil.publishCoList)".
 
+Axiom advertise_Vector3  : TopicName -> Node (Chan ROS_Geometry_Vector3).
+Extract Constant advertise_Vector3 => "Ros.ROSCoqUtil.advertiseNewChan".
+
 Instance ROSMsgInstance_ROS_Geometry_Vector3 : ROSMsgType ROS_Geometry_Vector3 :=
-  Build_ROSMsgType _  subscribe_ROS_Geometry_Vector3  publish_ROS_Geometry_Vector3.
+  Build_ROSMsgType _  subscribe_ROS_Geometry_Vector3  publish_ROS_Geometry_Vector3 advertise_Vector3.
 
 
 

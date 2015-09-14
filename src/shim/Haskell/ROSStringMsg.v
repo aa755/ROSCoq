@@ -27,8 +27,12 @@ Extract Constant  subscribe_ROS_StdMsg_String => "(Ros.ROSCoqUtil.subscribeCoLis
 Axiom publish_ROS_StdMsg_String : TopicName -> ROSStream ROS_StdMsg_String -> Node unit.
 Extract Constant  publish_ROS_StdMsg_String => "(Ros.ROSCoqUtil.publishCoList)".
 
+
+Axiom advertise_String  : TopicName -> Node (Chan ROS_StdMsg_String).
+Extract Constant advertise_String => "Ros.ROSCoqUtil.advertiseNewChan".
+
 Instance ROSMsgInstance_ROS_StdMsg_String : ROSMsgType ROS_StdMsg_String :=
-  Build_ROSMsgType _  subscribe_ROS_StdMsg_String  publish_ROS_StdMsg_String.
+  Build_ROSMsgType _  subscribe_ROS_StdMsg_String  publish_ROS_StdMsg_String advertise_String.
 
 
 
