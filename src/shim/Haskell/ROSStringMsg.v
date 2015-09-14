@@ -20,19 +20,21 @@ Extract Inductive ROS_StdMsg_String => "Ros.Std_msgs.String.String"
 Extract Constant __data => "Ros.Std_msgs.String.__data".
 
 Require Import RoshaskNodeMonad.
+Require Import RoshaskTopic.
 
-Axiom subscribe_ROS_StdMsg_String : TopicName -> Node (ROSStream ROS_StdMsg_String).
-Extract Constant  subscribe_ROS_StdMsg_String => "(Ros.ROSCoqUtil.subscribeCoList)".
+Axiom subscribe_ROS_StdMsg_String : TopicName -> Node (RTopic ROS_StdMsg_String).
+Extract Constant  subscribe_ROS_StdMsg_String => "(Ros.ROSCoqUtil.subscribe)".
 
-Axiom publish_ROS_StdMsg_String : TopicName -> ROSStream ROS_StdMsg_String -> Node unit.
-Extract Constant  publish_ROS_StdMsg_String => "(Ros.ROSCoqUtil.publishCoList)".
+Axiom publish_ROS_StdMsg_String : TopicName -> RTopic ROS_StdMsg_String -> Node unit.
+Extract Constant  publish_ROS_StdMsg_String => "(Ros.ROSCoqUtil.publish)".
 
-
+(*
 Axiom advertise_String  : TopicName -> Node (Chan ROS_StdMsg_String).
 Extract Constant advertise_String => "Ros.ROSCoqUtil.advertiseNewChan".
+ *)
 
 Instance ROSMsgInstance_ROS_StdMsg_String : ROSMsgType ROS_StdMsg_String :=
-  Build_ROSMsgType _  subscribe_ROS_StdMsg_String  publish_ROS_StdMsg_String advertise_String.
+  Build_ROSMsgType _  subscribe_ROS_StdMsg_String  publish_ROS_StdMsg_String (* advertise_String *).
 
 
 

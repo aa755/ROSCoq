@@ -92,6 +92,7 @@ Defined.
 
 Require Import RoshaskNodeMonad.
 Definition icreateRoshaskSwNode : Node unit :=
-  runSwNode Topic SwProcessInstance (locTopics SWNODE).
+  let prf := decAuto (0 < Datatypes.length (fst (locTopics SWNODE)))%nat I in
+  runSwNode Topic SwProcessInstance (locTopics SWNODE) prf.
 
 Extraction "src/examples/icreateMoveToLoc.hs" icreateRoshaskSwNode.

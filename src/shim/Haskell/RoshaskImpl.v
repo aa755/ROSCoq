@@ -1,6 +1,7 @@
 Require Import String.
 Require Import RoshaskMsg.
 Require Import ROSCOQ.message.
+Require Import RoshaskTopic.
 
 (** To run a ROSCoq CPS using roshask, one has to provide some 
    ROS(hask) specific implementation details.
@@ -73,18 +74,26 @@ Section RunSwAgent.
   Instance fsldkjfkdsj  (t:Topic):  ROSMsgType (topicImplType t) := topicImplTypeCorrect t.
 
   
-  Definition subscribeMsgCoList  (t:Topic) : Node (CoList Message) :=
+  Definition subscribeMsgCoList  (t:Topic) : Node (RTopic Message) :=
     strmIn  ← (subscribe (rosQualName t));
-    ret (coMap (mkMsg t) strmIn). (* Perhaps define an instance of the  Functor typeclass and just say fmap instead of coMap *)
-    
-  Fixpoint subscribeMsgMultiple  (lt: list Topic) : Node (CoList Message) :=
-    match lt with
-      | nil => ret (cnil Message)
-      | h::tl =>
-        sh ←  (subscribeMsgCoList h);
-        stl ← (subscribeMsgMultiple tl);
-        asapMerge sh stl
-    end.
+    ret (tmap (mkMsg t) strmIn). (* Perhaps define an instance of the  Functor typeclass and just say fmap instead of coMap *)
+
+  Require Import MCInstances.
+  Require Export MathClasses.misc.decision.
+
+  Open Scope nat_scope.
+  Require Omega.
+  Definition subscribeMsgMultiple  (lt: list Topic) (p: 0 < length lt) : Node (RTopic Message).
+    induction lt as [|h tlt]; [simpl in p; omega|].
+    destruct tlt.
+    - exact (subscribeMsgCoList h).
+    - assert (0 < Datatypes.length (t :: tlt)) as pl. simpl. omega.
+      apply IHtlt in pl.
+      exact   (sh ←  subscribeMsgCoList h;
+               stl ←  pl;
+                ret (asapMerge sh stl)).
+  Defined.
+  
                              
   Variable (sw: Process Message (list Message)). (** we are supposed to run this agent(node), using the API exported from roshask *)
     (** move to ROSCOQ.MsgHandler*)
@@ -102,7 +111,7 @@ Section RunSwAgent.
     - exact (init x).
   Defined.
 
-  Definition TopicChannel := forall t:Topic, option (Chan (topicImplType t)).
+(*  Definition TopicChannel := forall t:Topic, option (Chan (topicImplType t)).
 
   (** update if it was none.*)
   Definition lookupChan (tc : TopicChannel) (t:Topic) : Node ((Chan (topicImplType t))  × TopicChannel) :=
@@ -126,32 +135,35 @@ Section RunSwAgent.
   
   Definition publishMsgs (outMsgs: CoList Message) : Node unit :=
     _ ← coFoldLeft publishMsgsStep outMsgs initTopicChan; ret tt.
+*)
 
-  Definition filterTopicAux (t:Topic) (retm : CoList (topicImplType t))
-             (h : Message) : Node (CoList (topicImplType t)).
-    destruct (decide (mtopic h ≡ t));[ | exact (ret retm)].
-    rewrite <- e. rewrite <- e in retm. exact (ret (ccons (toImpl (mtopic h)(mPayload h)) retm)).
+  Definition filterTopic (t:Topic)
+             (msgs : RTopic Message) : (RTopic (topicImplType t)).
+    apply tfilter with (f:= fun m => bool_decide (mtopic m ≡ t));[ | exact msgs].
+    intros a p.
+    apply bool_decide_true in p.
+    rewrite <- p. exact (toImpl (mtopic a) (mPayload a)).
   Defined.
   
-  Definition filterTopic (t:Topic)
-             (msgs : CoList Message) : Node (CoList (topicImplType t)) :=
-    coFoldLeft (filterTopicAux t) msgs (cnil (topicImplType t)).
-  
-  Fixpoint publishMsgsNoTiming  (lt: list Topic) (msgs: CoList Message) : Node unit :=
+  Fixpoint publishMsgsNoTiming  (lt: list Topic) (msgs: RTopic Message) : Node unit :=
     match lt with
       | nil => ret tt
       | h::tl =>
-        sh ←  (filterTopic h msgs);
-        _ ← (publish (rosQualName h) sh);
+        _ ← (publish (rosQualName h) ((filterTopic h msgs)));
         publishMsgsNoTiming tl msgs
     end.
 
-       
+  Definition swap {A B: Type} (p: A * B) : B* A := (snd p, fst p).
+  
+  Definition procOutMsgs {I O : Type} (p : Process I O)
+           (ins : RTopic I) : RTopic O :=
+  @foldMapL (State p) I O (curState p) (fun s i => swap (handler p s i)) ins.
 
+  Variable prf : (0 < Datatypes.length (fst tpInfo))%nat.
+  
   Definition runSwNode : Node unit :=
-  let (subTopics, pubTopics) := tpInfo in
-  inMsgs ← subscribeMsgMultiple subTopics;
-  outMsgs ← flattenCoListList (procOutMsgs sw inMsgs); (** one can get rid of this flattening (undefineable in Coq) and just make [publishMsgs] a bit complicated. *)
-  publishMsgsNoTiming pubTopics outMsgs.
+    let (_, pubTopics) := tpInfo in
+  inMsgs ← subscribeMsgMultiple (fst tpInfo) prf;
+  publishMsgsNoTiming pubTopics (flattenTL (procOutMsgs sw inMsgs)).
     
 End RunSwAgent.

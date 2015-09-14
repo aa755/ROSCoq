@@ -25,17 +25,21 @@ Extract Constant _z => "Ros.Geometry_msgs.Vector3._z".
 
 Require Import RoshaskNodeMonad.
 
-Axiom subscribe_ROS_Geometry_Vector3 : TopicName -> Node (ROSStream ROS_Geometry_Vector3).
+Require Import RoshaskTopic.
+
+Axiom subscribe_ROS_Geometry_Vector3 : TopicName -> Node (RTopic ROS_Geometry_Vector3).
 Extract Constant  subscribe_ROS_Geometry_Vector3 => "(Ros.ROSCoqUtil.subscribeCoList)".
 
-Axiom publish_ROS_Geometry_Vector3 : TopicName -> ROSStream ROS_Geometry_Vector3 -> Node unit.
+Axiom publish_ROS_Geometry_Vector3 : TopicName -> RTopic ROS_Geometry_Vector3 -> Node unit.
 Extract Constant  publish_ROS_Geometry_Vector3 => "(Ros.ROSCoqUtil.publishCoList)".
 
+(*
 Axiom advertise_Vector3  : TopicName -> Node (Chan ROS_Geometry_Vector3).
 Extract Constant advertise_Vector3 => "Ros.ROSCoqUtil.advertiseNewChan".
-
+*)
 Instance ROSMsgInstance_ROS_Geometry_Vector3 : ROSMsgType ROS_Geometry_Vector3 :=
-  Build_ROSMsgType _  subscribe_ROS_Geometry_Vector3  publish_ROS_Geometry_Vector3 advertise_Vector3.
+  Build_ROSMsgType _  subscribe_ROS_Geometry_Vector3  publish_ROS_Geometry_Vector3.
+(*advertise_Vector3.*)
 
 
 
