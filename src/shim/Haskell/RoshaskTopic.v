@@ -24,11 +24,11 @@ Error: Non strictly positive occurrence of "Topic" in
 
 (** TODO: make it an instance of functior*)
 Axiom tmap : forall {A B :Type}, (A->B) -> RTopic A -> RTopic B.
-Extract Constant tmap  => "fmap".
+Extract Constant tmap  => "GHC.Base.fmap".
 
 Axiom tfilter : forall {A B: Type} (f: A -> bool)
                   (g: forall (a:A) {pr: f a = true}, B), RTopic A -> RTopic B.
-Extract Constant tfilter  => "\f g l -> fmap g (Ros.Topic.filter f l)".
+Extract Constant tfilter  => "\f g l -> GHC.Base.fmap (\x -> g x ()) (Ros.Topic.filter f l)".
 
 (** this is not a pure computation. the final result depends on not just
    the values of the 2 streams, but when items in the streams arrived*)

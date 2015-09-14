@@ -4,7 +4,8 @@ shopt -s extglob
 ORIG="import qualified Prelude"
 REP="import qualified Prelude
 import qualified Ros.Node
-import qualified Ros.Topic (repeatM)
+import qualified Ros.Topic
+import qualified Ros.Topic.Util
 import qualified Ros.ROSCoqUtil
 import qualified Control.Concurrent
 import qualified Ros.Std_msgs.String

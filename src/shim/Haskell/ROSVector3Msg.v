@@ -28,10 +28,10 @@ Require Import RoshaskNodeMonad.
 Require Import RoshaskTopic.
 
 Axiom subscribe_ROS_Geometry_Vector3 : TopicName -> Node (RTopic ROS_Geometry_Vector3).
-Extract Constant  subscribe_ROS_Geometry_Vector3 => "(Ros.ROSCoqUtil.subscribeCoList)".
+Extract Constant  subscribe_ROS_Geometry_Vector3 => "(Ros.Node.subscribe)".
 
 Axiom publish_ROS_Geometry_Vector3 : TopicName -> RTopic ROS_Geometry_Vector3 -> Node unit.
-Extract Constant  publish_ROS_Geometry_Vector3 => "(Ros.ROSCoqUtil.publishCoList)".
+Extract Constant  publish_ROS_Geometry_Vector3 => "(Ros.Node.advertise)".
 
 (*
 Axiom advertise_Vector3  : TopicName -> Node (Chan ROS_Geometry_Vector3).
