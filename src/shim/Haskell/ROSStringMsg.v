@@ -23,10 +23,10 @@ Require Import RoshaskNodeMonad.
 Require Import RoshaskTopic.
 
 Axiom subscribe_ROS_StdMsg_String : TopicName -> Node (RTopic ROS_StdMsg_String).
-Extract Constant  subscribe_ROS_StdMsg_String => "(Ros.ROSCoqUtil.subscribe)".
+Extract Constant  subscribe_ROS_StdMsg_String => "(Ros.Node.subscribe)".
 
 Axiom publish_ROS_StdMsg_String : TopicName -> RTopic ROS_StdMsg_String -> Node unit.
-Extract Constant  publish_ROS_StdMsg_String => "(Ros.ROSCoqUtil.publish)".
+Extract Constant  publish_ROS_StdMsg_String => "(Ros.Node.advertise)".
 
 (*
 Axiom advertise_String  : TopicName -> Node (Chan ROS_StdMsg_String).
