@@ -126,13 +126,32 @@ Section RunSwAgent.
   
   Definition publishMsgs (outMsgs: CoList Message) : Node unit :=
     _ ← coFoldLeft publishMsgsStep outMsgs initTopicChan; ret tt.
-    
+
+  Definition filterTopicAux (t:Topic) (retm : CoList (topicImplType t))
+             (h : Message) : Node (CoList (topicImplType t)).
+    destruct (decide (mtopic h ≡ t));[ | exact (ret retm)].
+    rewrite <- e. rewrite <- e in retm. exact (ret (ccons (toImpl (mtopic h)(mPayload h)) retm)).
+  Defined.
   
+  Definition filterTopic (t:Topic)
+             (msgs : CoList Message) : Node (CoList (topicImplType t)) :=
+    coFoldLeft (filterTopicAux t) msgs (cnil (topicImplType t)).
+  
+  Fixpoint publishMsgsNoTiming  (lt: list Topic) (msgs: CoList Message) : Node unit :=
+    match lt with
+      | nil => ret tt
+      | h::tl =>
+        sh ←  (filterTopic h msgs);
+        _ ← (publish (rosQualName h) sh);
+        publishMsgsNoTiming tl msgs
+    end.
+
+       
 
   Definition runSwNode : Node unit :=
-  let subTopics := fst tpInfo in
+  let (subTopics, pubTopics) := tpInfo in
   inMsgs ← subscribeMsgMultiple subTopics;
   outMsgs ← flattenCoListList (procOutMsgs sw inMsgs); (** one can get rid of this flattening (undefineable in Coq) and just make [publishMsgs] a bit complicated. *)
-  publishMsgs outMsgs.
+  publishMsgsNoTiming pubTopics outMsgs.
     
 End RunSwAgent.
