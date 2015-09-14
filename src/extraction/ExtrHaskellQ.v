@@ -14,5 +14,5 @@ Require Import ExtrHaskellZInteger.
   the haskell version has useful utilities like conversion
   to and from floats *)
 
-Extract Inductive Q => "(Ratio Prelude.Integer)" ["(\x y -> x % y)"]
-  "(\fp qn -> fp (numerator qn) (denominator qn))".
+Extract Inductive Q => "(Data.Ratio.Ratio Prelude.Integer)" ["(\x y -> (Data.Ratio.%) x y)"]
+  "(\fp qn -> fp (Data.Ratio.numerator qn) (Data.Ratio.denominator qn))".

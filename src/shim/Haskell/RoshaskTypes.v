@@ -48,12 +48,12 @@ Axiom RoshaskFloat : Type.
 (** this must extracted what roshask uses for ROS float type.
    One way to find out is to look at what roshask generates for geometry_msgs/Vector3.
 *)
-Extract Constant RoshaskFloat => "Prelude.double".
+Extract Constant RoshaskFloat => "Prelude.Double".
 Axiom toRoshaskFloat : Q -> RoshaskFloat.
-Extract Constant toRoshaskFloat => "fromRational".
+Extract Constant toRoshaskFloat => "Prelude.fromRational".
 
 Axiom fromRoshaskFloat : RoshaskFloat -> Q.
-Extract Constant fromRoshaskFloat => "toRational".
+Extract Constant fromRoshaskFloat => "Prelude.toRational".
 
 
 

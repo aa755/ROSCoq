@@ -50,7 +50,7 @@ Extract Constant asapMerge => "Ros.ROSCoqUtil.asapMergeCoList".
 Not needed anymore?
 *)
 Axiom flattenCoListList :  forall {A:Type}, CoList (list A)  -> Node (CoList A).
-Extract Constant flattenCoListList => "(\ll . return (Prelude.concat ll))".
+Extract Constant flattenCoListList => "(\ll -> GHC.Base.return (Prelude.concat ll))".
 (** recall that [CoList T] extracts to Haskell as [T]. *)
 
 Axiom coFoldLeft: forall {a b:Type}, (a-> b ->Node a)-> CoList b -> a -> Node a.

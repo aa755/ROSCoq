@@ -50,11 +50,11 @@ On top of these functions, the ROSCoq message handler functionality has been bui
 
 
 Axiom Chan : Type -> Type.
-Extract Constant Chan "a" => "Control.Concurrent.Chan".
+Extract Constant Chan "a" => "Control.Concurrent.Chan a".
 
 (** The first two arguments are implicit in Haskell. They musst be so here*)
 Axiom advertiseNewChan  : forall {a:Type} {_: ROSMsgType a} , TopicName -> Node (Chan a).
-Extract Constant advertiseNewChan => "Ros.ROSCoqUtil.advertiseNewChan".
+Extract Constant advertiseNewChan => "\_ -> Ros.ROSCoqUtil.advertiseNewChan".
 
 
 Axiom  publishMsgOnChan: forall {a:Type}, (Chan a) -> a -> Node unit.
