@@ -7,7 +7,7 @@ Extraction Language Haskell.
 Open Scope string_scope.
 Require Import MathClasses.interfaces.monads.
 Open Scope mc_scope.
-Require Import CoList.
+Require Import RoshaskTopic.
 
 
 (** This file illustrates how to directly use the roshask API exported to Coq. These programs (e.g. [echoNode] below) look
@@ -28,7 +28,7 @@ Definition procStrMsg (s:  ROS_StdMsg_String ) :  ROS_StdMsg_String :=
 
 Definition echoNode : Node unit :=
   strmIn  ← (subscribe chatter);
-  publish chatterecho (coMap procStrMsg strmIn).
+  publish chatterecho (tmap procStrMsg strmIn).
 
 Extraction "coqEcho.hs" echoNode.
 
