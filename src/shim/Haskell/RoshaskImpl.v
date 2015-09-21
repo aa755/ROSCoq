@@ -3,13 +3,15 @@ Require Import RoshaskMsg.
 Require Import ROSCOQ.message.
 Require Import RoshaskTopic.
 
+
+
 (** To run a ROSCoq CPS using roshask, one has to provide some 
    ROS(hask) specific implementation details.
-   One has to map the abstract ROSCoq topic types to actual ROS message types whose
+   One has to map the ROSCoq topic types to actual ROS message types whose
    Haskell and Coq files have already been generated using the roshask utility.
    Ideally, if one directly used ROS message types in ROSCoq, this mapping will be
    an identity function. However, one may wish to reason about a simplified datatype
-   in ROSCoq. For examples, while reasoning, it is painful to reason about
+   in ROSCoq. For examples, while reasoning, it is painful to worry about
    how data is encoded into bytes.
    
    One also has to map each topic to the string that represents the 
@@ -111,7 +113,16 @@ Section RunSwAgent.
     - exact (init x).
   Defined.
 
-(*  Definition TopicChannel := forall t:Topic, option (Chan (topicImplType t)).
+  Definition delayInMicros (m:Message) : Z :=
+    let (num,den) := (delay (snd m)) * delayResolutionSecInv  in
+     Zdiv num den.
+    
+
+  Definition delayMessages (rt: RTopic Message) : RTopic Message :=
+    delayMsgsRoshask delayInMicros rt.
+                     
+    
+  (*  Definition TopicChannel := forall t:Topic, option (Chan (topicImplType t)).
 
   (** update if it was none.*)
   Definition lookupChan (tc : TopicChannel) (t:Topic) : Node ((Chan (topicImplType t))  × TopicChannel) :=
@@ -120,9 +131,6 @@ Section RunSwAgent.
           | None => nc ← advertiseNewChan (rosQualName t);
                     ret (nc, updateDepMap tc t (Some nc))
         end.
-
-  (** there is an unwritten rule that Qden is 10^6. This should be captured in types*)
-  Definition delayInMicros (m:Message) : Z := Qnum (delay (snd m)).
                                                   
   
   Definition publishMsgsStep (chans : TopicChannel)(m : Message) : Node TopicChannel :=
@@ -164,6 +172,6 @@ Section RunSwAgent.
   Definition runSwNode : Node unit :=
     let (_, pubTopics) := tpInfo in
   inMsgs ← subscribeMsgMultiple (fst tpInfo) prf;
-  publishMsgsNoTiming pubTopics (flattenTL (procOutMsgs sw inMsgs)).
+  publishMsgsNoTiming pubTopics (delayMessages (flattenTL (procOutMsgs sw inMsgs))).
     
 End RunSwAgent.

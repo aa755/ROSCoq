@@ -36,5 +36,7 @@ Extract Constant publishDelayedMsgOnChan => "Ros.ROSCoqUtil.publishDelayedMsgOnC
 
 Require ExtrHaskellZNum.
 Require Import ZArith.
+Axiom delayMsgsRoshask : forall {A:Type}, (A -> Z) -> (RTopic A) ->  (RTopic A).
+Extract Constant delayMsgsRoshask =>  "Ros.ROSCoqUtil.delayMsgs".
 Definition delayResolutionSecInv :  positive := (1000000)%positive. (** depends on the Haskell definition of the function above.*)
 
