@@ -21,23 +21,7 @@ However, more work needs to be done for running these programs on ROS supported 
 There is an old shim written in ROSJava that only handles iCreate robots:
 http://www.cs.cornell.edu/~aa755/ROSCoq/installation.html (the last 2 sections)
 
-I am writing a more general shim in Haskell using (my fork of) roshask:
-https://github.com/aa755/roshask
-Then one can extract Coq programs to Haskell and then run  link it with the haskell shim.
-
-
-Pull Requests are welcome.
-Here are some remaining substeps for that shim. If anyone wants to work on any of these substeps, or has any suggestions, please let me know.
-
-1) Modify roshask code so that it also emites Coq definitions for ROS message data-types. Currently it produces (only) Haskell definitions. Here is an example ROS message type,
-and its definitions in Haskell and Coq:
-
-http://docs.ros.org/api/std_msgs/html/msg/String.html
-
-https://github.com/aa755/ROSCoq/blob/bbc63a39163b8df2e287673fc769f0f77529be21/src/shim/Haskell/examples/String.hs
-
-https://github.com/aa755/ROSCoq/blob/bbc63a39163b8df2e287673fc769f0f77529be21/src/shim/Haskell/ROSStringMsg.v 
-
-
-2) testing.
-
+For the past few weeks, I have been writing a more general shim in Haskell using (my fork of) roshask:
+https://github.com/aa755/roshask .
+Then one can extract Coq programs to Haskell and then link it with the haskell shim.
+Also, it would be then possible to use ROSCoq to program **any** robot supported by ROS. 
