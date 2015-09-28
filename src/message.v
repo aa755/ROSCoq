@@ -84,7 +84,7 @@ Definition transport {T:Type} {a b:T} {P:T -> Type} (eq:a=b) (pa: P a) : (P b):=
 Definition getPayloadR  (topic : RosTopic) (m : sigT topicType) :
 option (topicType topic) :=
 match m with
-| (existT tp pl) => match (eqdec  tp topic) with
+| (existT _ tp pl) => match (eqdec  tp topic) with
                   | left peq =>  Some (@transport _ _ _ (fun tpp => ( (topicType tpp))) peq pl)
                   | right _ => None
                   end

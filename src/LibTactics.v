@@ -610,9 +610,10 @@ Definition eq' := @eq.
 
 Hint Unfold eq'.
 
+(*
 Notation "x '='' y" := (@eq' _ x y) 
   (at level 70, arguments at next level).
-
+*)
 
 
 (* ********************************************************************** *)
@@ -4090,7 +4091,7 @@ Ltac skip_with_existential :=
   match goal with |- ?G => 
     let H := fresh in evar(H:G); eexact H end.
 
-Variable skip_axiom : False. 
+Variable skip_axiom : True. 
   (* To obtain a safe development, change to [skip_axiom : True] *)
 Ltac skip_with_axiom :=
   elimtype False; apply skip_axiom.

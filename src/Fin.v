@@ -5,11 +5,11 @@ Local Coercion toBool : sumbool >->bool.
 
 Require Export Arith.
 Require Export Arith.EqNat.
-Require Omega.
+Require Import Omega.
 
 
 Definition Fin (n:nat)
-  := {m:nat | if lt_dec m n then True else False}.
+  := sig (fun m => if lt_dec m n then True else False).
 
 
 Lemma sdjflksdjsdlkf2: forall n mm: nat, 
@@ -52,7 +52,7 @@ Coercion FinCast : Fin >-> Fin.
 
 Lemma Fin_eq:
   ∀ (n: nat) (fa fb : Fin n),
-    (projT1 fa) = (projT1 fb)
+    (proj1_sig fa) = (proj1_sig fb)
     → fa = fb.
 Proof.
   intros ? ? ? Heq.
@@ -60,6 +60,7 @@ Proof.
   destruct fb as [b bp].
   simpl in Heq. simpl.
   subst.
+  Print eq_existsT.
   apply eq_existsT with (ea := eq_refl).
   remember (lt_dec b n); destruct s; destruct ap, bp; auto.
 Qed.
@@ -68,7 +69,7 @@ Instance Fin_decidable : ∀ (n:nat),  DecEq (Fin n).
 Proof.
   constructor.
   intros.
-  destruct (NPeano.Nat.eq_dec (projT1 a) (projT1 b)) as [T|F];[left|right].
+  destruct (NPeano.Nat.eq_dec (proj1_sig a) (proj1_sig b)) as [T|F];[left|right].
   - apply Fin_eq; auto.
   - intro Heq. destruct F. destruct a. destruct b.
     inversion Heq.  subst. simpl. reflexivity.
@@ -111,7 +112,7 @@ destruct (le_dec (S n) (S n)) as [Hs | Hn];[exact I|].
 apply Hn. constructor.
 Defined.
 
-Definition Fin2N {n : nat} (fn : Fin n): nat := projT1 fn.
+Definition Fin2N {n : nat} (fn : Fin n): nat := proj1_sig fn.
 
 Definition predF {n: nat} (fn : Fin n) : Fin n.
   destruct fn as [nn np].

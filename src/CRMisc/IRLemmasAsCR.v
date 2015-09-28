@@ -171,9 +171,9 @@ Qed.
 Lemma  OnePlusSqrPos : forall r:CR, 0 < (1 + r ^ 2).
 Proof.
   intros.
-  apply semirings.pos_plus_le_lt_compat_l; auto;
-    [simpl; apply semirings.lt_0_1 |].
-  apply CRsqr_nonneg.
+  apply semirings.pos_plus_le_lt_compat_l; auto;[| apply CRsqr_nonneg; fail].
+  (* simpl. In Coq 8.5, simpl will unfold CR and confuse typeclass search*)
+  apply positive_semiring_elements.Pos_1_obligation_1.
 Qed.
 
 Lemma  OnePlusSqrAp : forall r:CR, (1 + r ^ 2) ≶ 0.

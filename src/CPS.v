@@ -176,16 +176,22 @@ Proof.
   rewrite Heqn in Hti.
   rewrite <- Hdr in Hti.
   DestImp Hti;[|auto].
-  rewrite Q.Qabs_Qminus, Qabs_pos in Hspr;[| lra].
+  rewrite Q.Qabs_Qminus, Qabs_pos in Hspr;
+  [ |clear H Hspl Hspr; lra].
+  (* remember (QT2Q (eTime evp)) as qp.
+   remember (QT2Q (eTime ev)) as q. 
+    lra. *)
+
   assert (0<=(qt-minGap))%Q as Hgt by lra.
   apply mkQTimeSnd in Hgt.
-  apply IHn with (qt:=mkQTime (qt-minGap) Hgt) in Hdr; auto;
-    [| simpl; lra].
+  apply IHn with (qt:=mkQTime (qt-minGap) Hgt) in Hdr; auto; 
+   [|simpl; remember (QT2Q (eTime evp)) as qp; lra].
   unfold searchBound in Hdr.
   simpl in Hdr. clear Hgt.
   apply Q.Qlt_lt_of_nat_inject_Z in Hdr.
   apply (Qmult_lt_r _ _ _ H) in Hdr.
-  field_simplify in Hdr;[| lra].
+  field_simplify in Hdr; [| simpl; remember (QT2Q (eTime evp)) as qp;
+     remember (QT2Q (eTime ev)) as q; lra].
   simpl in Hdr.
   rewrite  Q.Qdiv_1_r in Hdr.
   rewrite  Q.Qdiv_1_r in Hdr.
@@ -235,7 +241,7 @@ Proof.
   unfold nthEvtBefore.
   rewrite locEvtIndexRW with (c:= ev);
     [| split; auto].
-  destruct (Qlt_le_dec (eTime ev) qt); auto; lra.
+  destruct (Qlt_le_dec (eTime ev) qt); auto. simpl. remember (QT2Q (eTime ev)) as qp. lra.
 
 - unfold nthEvtBefore in Heqsop.
   pose proof Hlt as Hltb.
@@ -258,6 +264,8 @@ Proof.
   pose proof (proj2 ( eventSpacing ev1 ev2) Hl) as Ht.
   apply timeIndexConsistent in Hlt.
   rewrite Q.Qabs_Qminus in Ht.
+  remember ((QT2Q(eTime ev2))) as qt2.
+  remember ((QT2Q(eTime ev1))) as qt1.
   rewrite Qabs.Qabs_pos in Ht; lra.
 Qed.
 
@@ -448,7 +456,6 @@ Qed.
 Definition getRecdPayload (tp : RosTopic) (ev : Event) 
   : option (topicType tp)  :=
 opBind (getPayload tp) (deqMesg ev).
-Require Import LibTactics.
 
 Lemma getRecdPayloadSpecDeq: 
     forall tp ev tv,
@@ -490,6 +497,7 @@ Proof.
   destruct (eqdec x tp);simpl in Heq; inversion Heq; subst; reflexivity.
 Qed.
 
+Require Import LibTactics.
 Lemma getRecdPayloadSpecMesg: forall tp ev tv,
       getRecdPayload tp ev = Some tv
       -> isDeqEvt ev ∧ π₁ (eMesg ev) = (mkMesg tp tv).

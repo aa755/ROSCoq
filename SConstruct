@@ -28,7 +28,8 @@ includes = ' '.join(map(lambda x: '-I ' + x, dirs[1:]))
 #Note that ROSCoq depends on Corn (which depends on MathClasses). Please edit the line below, depending on how you installed them. 
 # See https://github.com/c-corn/corn
 #TODO: remove the last one and put it in a custom SConstruct for src/examples
-Rs = '-R src ROSCOQ -R dependencies/corn CoRN -R dependencies/corn/math-classes/src MathClasses -R ~/.cabal/share/x86_64-linux-ghc-7.6.3/roshask-0.3/Geometry_msgs/Ros Ros'
+#Rs = '-R src ROSCOQ -R dependencies/corn CoRN -R dependencies/corn/math-classes/src MathClasses -R ~/.cabal/share/x86_64-linux-ghc-7.6.3/roshask-0.3/Geometry_msgs/Ros Ros'
+Rs = '-R src ROSCOQ -R dependencies/corn CoRN -R dependencies/corn/math-classes/src MathClasses'
 coqcmd = 'coqc ${str(SOURCE)[:-2]} ' + Rs
 
 env['COQFLAGS'] = Rs

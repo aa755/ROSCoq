@@ -14,7 +14,7 @@ Require Export Coq.Lists.List.
 CoFixpoint outMsgsAux {S I O : Type} (st : S) (mh : MsgHandlerType S I O)
            (ins : CoList I) : CoList O :=
   match ins with
-    | cnil => cnil O
+    | cnil _ => cnil O
     | ccons h tl => let (ns,out) := (mh st h) in
                     ccons out (outMsgsAux ns mh tl)
   end.

@@ -72,12 +72,14 @@ Definition mkTime (t:ℝ) (p: [0] [<=] t) : Time.
   exact p.
 Defined.
 
-Definition QNNeg : Type := {q : Q | (if Qlt_le_dec q 0 then False else True) : Prop}.
+Definition QNNeg : Type :=
+sig (fun q => (if Qlt_le_dec q 0 then False else True)).
+
 Definition QTime := QNNeg.
 
 (** if [q] is a closed non-negative rational, then p:=I is guaranteed to work *)
-Definition mkQTime (q:Q) (p: (if Qlt_le_dec q 0 then False else True)) : QTime
-:= exist _ q p.
+Definition mkQTime (q:Q) (p: (if Qlt_le_dec q 0 then False else True)) : QTime :=
+exist _ q p.
 
 
 

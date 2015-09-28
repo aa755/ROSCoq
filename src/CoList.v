@@ -42,7 +42,7 @@ Fixpoint initialSegment {A} (len : nat) (cl : CoList A) : list A :=
 match len with
 | 0 => nil
 | S len' => match cl with
-         | cnil => nil
+         | cnil _ => nil
          | ccons hd tl => cons hd (initialSegment len' tl)
          end
 end.
@@ -54,7 +54,7 @@ Section Map.
 
 CoFixpoint coMap (l:CoList A) : CoList B :=
     match l with
-      | cnil => cnil B
+      | cnil _ => cnil B
       | ccons a t => ccons (f a) (coMap t)
     end.
 
