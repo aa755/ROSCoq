@@ -1,8 +1,8 @@
 SHELL:=/bin/bash
 
 icreateMoveToLoc.hs : icreateMoveToLocExt.v
-	cd ../.. ; scons src/examples/icreateMoveToLocExt.vo
-	../shim/Haskell/postProcExt.sh $@
+	scons src/examples/icreateMoveToLocExt.vo
+	../src/shim/Haskell/postProcExt.sh $@
 	echo "main = Ros.Node.runNode \"icreateSw\"  icreateRoshaskSwNode" >> $@
 
 icreateMoveToLoc : icreateMoveToLoc.hs

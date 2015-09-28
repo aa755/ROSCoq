@@ -74,7 +74,7 @@ Definition R2QPrec : Qpos := simpleApproximateErr delRes delEps.
 
 Instance ProjectionFst_instance_sig 
    (A : Type) (P: A → Prop):  
-    ProjectionFst (sig P) A := (@projT1 A P) .
+    ProjectionFst (sig P) A := (@proj1_sig A P) .
 
 Instance ProjectionFst_instance_sigT 
    (A : Type) (P: A → Type):  
@@ -415,7 +415,7 @@ Lemma SwEventsSn :
                ≡ nth_error
                     (map (λ p, mkDelayedMesg (π₁ p) (π₂ p)) resp) n
             ∧ ball sendTimeAcc
-                (eTime (projT1 SwEvents0)
+                (eTime (proj1_sig SwEvents0)
                      + minDelayForIndex
                          (map (λ p, mkDelayedMesg (π₁ p) (π₂ p)) resp) 
                          n 
@@ -669,7 +669,7 @@ Lemma MotorEvents:
                ≡ nth_error
                     (map (λ p, existT topicType VELOCITY (π₂ p)) resp) n
             ∧ ball (sendTimeAcc+delivDelayVar)
-                ( eTime (projT1 SwEvents0) + expectedDelivDelay
+                ( eTime (proj1_sig SwEvents0) + expectedDelivDelay
                      + minDelayForIndex
                          (map (λ p, mkDelayedMesg (π₁ p) (π₂ p)) resp) 
                          n 
@@ -750,7 +750,7 @@ Lemma MotorEvents2:
                 ≡ opBind (λ pl, Some (π₂ pl, ev))
                        (nth_error resp n)
             ∧ ball (sendTimeAcc+delivDelayVar)
-                ( eTime (projT1 SwEvents0) + expectedDelivDelay
+                ( eTime (proj1_sig SwEvents0) + expectedDelivDelay
                      + minDelayForIndex
                          (map (λ p, mkDelayedMesg (π₁ p) (π₂ p)) resp) 
                          n 
@@ -932,6 +932,7 @@ Proof.
   unfold le, Le_instance_QTime in Hle.
   pose proof (qtimePos t0) as Hq.
   pose proof correctVelTill0 as Hc.
+  Local Opaque decAuto.
   simpl in Hc. fold t0 in Hc.
   unfold correctVelDuring in Hc.
   apply proj1 in Hc.
@@ -955,7 +956,7 @@ Local Transparent mkQTime.
     (F':=(transVel ic[*]CFCos (theta ic)));
     eauto with ICR.
   intros tq Hbw. simpl in Hbw.
-  rewrite IContRMultAp, Hd0; [| lra].
+  rewrite IContRMultAp, Hd0;[| lra].
   rewrite IR_mult_zero_left.
   unfold zero, Zero_Instace_IR_better.
   rewrite inj_Q_Zero. reflexivity.
@@ -1061,8 +1062,10 @@ Proof.
   simpl in t0.
   destruct (MotorEvents2 (S n) ps) as [evStopTurn  H1m].
   simpl in t1.
+  Local Opaque Qball.
   repeat (apply proj2 in H1m).
   repeat (apply proj2 in H0m).
+  Local Transparent Qball.
   autounfold with π₁ in H0m, H1m.
   remember (map (λ p : Q ** topicType VELOCITY, mkDelayedMesg (fst p) (π₂ p))
               (PureSwProgram target)) as ddd.
@@ -1091,7 +1094,7 @@ Proof.
   subst ddd tdiff.
   rewrite  (@minDelayForIndexConseq VELOCITY) ; auto.
   simpl.
-  ring.
+  clear. ring.
 Qed.
 
 

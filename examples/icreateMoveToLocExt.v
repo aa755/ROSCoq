@@ -96,4 +96,4 @@ Definition icreateRoshaskSwNode : Node unit :=
   let prf := decAuto (0 < Datatypes.length (fst (locTopics SWNODE)))%nat I in
   runSwNode Topic SwProcessInstance (locTopics SWNODE) prf.
 
-Extraction "src/examples/icreateMoveToLoc.hs" icreateRoshaskSwNode.
+Extraction "icreateMoveToLoc.hs" icreateRoshaskSwNode.
