@@ -20,9 +20,11 @@ However, more work needs to be done for running these programs on ROS supported 
 There is an old shim written in ROSJava that only handles iCreate robots:
 http://www.cs.cornell.edu/~aa755/ROSCoq/installation.html (the last 2 sections)
 
-I have almost completed writing a more general shim in Haskell using (my fork of) roshask:  
+I have almost completed writing a more general [shim in Haskell](https://github.com/aa755/ROSCoq/tree/master/src/shim/Haskell) using (my fork of) roshask:  
 https://github.com/aa755/roshask  
 One can now extract Coq programs to Haskell and then link it with the haskell shim.
 It should be now possible to use ROSCoq to program **any** robot supported by ROS.
 Slowly, but steadily, I am documenting the new shim at the github wiki:  
 https://github.com/aa755/ROSCoq/wiki
+
+If you have questions, please ask at any time; do not wait till the wiki is complete.
