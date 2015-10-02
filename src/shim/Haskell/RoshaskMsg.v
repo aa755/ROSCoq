@@ -17,22 +17,11 @@ Class ROSMsgType (T:Type) :=
    (*; advertiseNewChan  : TopicName -> Node (Chan T) *)
 }.
 
-(**roshask will be modified to generate Coq Types for ROS message types. These message types
-will be instances of the above typeclass. The publish and subscribe implementations will use 
+(**roshask generates Coq Types for ROS message types. These message types
+are instances of the above typeclass. The publish and subscribe implementations use 
 subscribe and advertize methods respectively in roshask.
-On top of these functions, the ROSCoq message handler functionality has been built.
+On top of these functions, the ROSCoq message handler functionality has been built in RoshaskImpl.v
 *)
-
-
-(*
-Axiom  publishMsgOnChan: forall {a:Type}, (Chan a) -> a -> Node unit.
-Extract Constant publishMsgOnChan => "Ros.ROSCoqUtil.publishMsgOnChan".
-
-
-
-Axiom publishDelayedMsgOnChan: forall {a:Type}, Z -> (Chan a) -> a -> Node unit.
-Extract Constant publishDelayedMsgOnChan => "Ros.ROSCoqUtil.publishDelayedMsgOnChan".
- *)
 
 Require ExtrHaskellZNum.
 Require Import ZArith.
