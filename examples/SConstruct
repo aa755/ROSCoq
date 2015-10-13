@@ -44,4 +44,5 @@ ParseDepends('deps')
 # enabling it before somehow messes the dependency analysis done by scons
 mc_vs, mc_vos, mc_globs = env.SConscript(dirs='../dependencies/corn/') # CoRN + MathClasses
 rc_vs, rc_vos, rc_globs = env.SConscript(dirs='../') # ROSCoq
-env.CoqDoc(env.Dir('coqdoc'), vs+rc_vs+mc_vs, COQDOCFLAGS='-utf8 --toc --interpolate --no-lib-name --coqlib http://coq.inria.fr/library')
+ros_vs, ros_vos, ros_globs = env.SConscript(dirs='/home/abhishek/.cabal/share/x86_64-linux-ghc-7.6.3/roshask-0.3/Geometry_msgs/Ros') # Geometry_msgs
+env.CoqDoc(env.Dir('coqdoc'), vs+ros_vs+rc_vs+mc_vs, COQDOCFLAGS='-utf8 --toc --interpolate --no-lib-name --coqlib http://coq.inria.fr/library')
