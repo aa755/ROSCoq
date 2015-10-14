@@ -1047,7 +1047,7 @@ Proof.
     specialize (Hind H6). clear H6.
     unfold inBetween in i.
     clear concreteValues Heqeks Heqevloc eo reactionTimeGap transitionValues velAccuracy boundary 
-      alertDist safeDist maxDelay hwidth reactionTime.
+      alertDist safeDist maxDelay hwidth.
     eapply centerPosUB2; eauto.
 
   + clear Hind. symmetry in Heqeks. rename es into ed.
@@ -1230,7 +1230,7 @@ Proof.
     specialize (Hind H6). clear H6.
     unfold inBetween in i.
     clear concreteValues Heqeks Heqevloc eo reactionTimeGap transitionValues velAccuracy boundary 
-      alertDist safeDist maxDelay hwidth reactionTime.
+      alertDist safeDist maxDelay hwidth.
     eapply centerPosLB2; eauto.
 
   + clear Hind. symmetry in Heqeks. rename es into ed.
@@ -1785,6 +1785,8 @@ Proof.
   fold (lt (eLocIndex evMn) np) in Hnp.
   rewrite <- Heqoevr  in Hnp.
   apply timeIndexConsistent in Hnp.
+  remember (eTime ev).
+  remember (eTime evMp).
   lra.
 Qed.
 
@@ -1839,6 +1841,8 @@ Proof.
   fold (lt (eLocIndex evMn) np) in Hnp.
   rewrite <- Heqoevr  in Hnp.
   apply timeIndexConsistent in Hnp.
+  remember (eTime ev).
+  remember (eTime evMp).
   lra.
 Qed.
 
@@ -1892,7 +1896,7 @@ Proof.
   specialize (Hmrl (eTime ev)). rewrite Hnn in Hmrl.
   apply evSpacIndex in Hev;[| congruence].
   assert (eTime (snd plev) + reactionTime <= eTime ev)%Q
-    by lra.
+    by (  remember (eTime ev);  remember (eTime evMp); remember (eTime (snd plev)); lra).
   assert (qt <= eTime ev)%Q as Hqt by 
     eauto using Qle_trans.
   rewrite Hmrl;
@@ -1947,7 +1951,7 @@ Proof.
   specialize (Hmrl (eTime ev)). rewrite Hnn in Hmrl.
   apply evSpacIndex in Hev;[| congruence].
   assert (eTime (snd plev) + reactionTime <= eTime ev)%Q
-    by lra.
+    by (  remember (eTime ev);  remember (eTime evMp); remember (eTime (snd plev)); lra).
   assert (qt <= eTime ev)%Q as Hqt by 
     eauto using Qle_trans.
   rewrite Hmrl;
@@ -1985,7 +1989,8 @@ Proof.
   repnd. rewrite Hprl in Hcomp. rewrite Hprr in Hcomp.
   specialize (Hcomp _ eq_refl eq_refl).
   rewrite reactionTime1 in Hbetl. 
-  DestImp Hcomp;[|apply numPrevEvtsSpec; trivial; lra].
+  DestImp Hcomp;[|apply numPrevEvtsSpec; trivial; remember (eTime evMn);  remember (eTime evMp); lra].
+
   remember(filterPayloadsUptoIndex MOTOR (localEvts BASEMOTOR)
              (numPrevEvts (localEvts BASEMOTOR) t)) as lf.
   destruct lf as [ | plev lft ];[inverts Hcomp; fail|].
@@ -1994,11 +1999,12 @@ Proof.
   pose proof (NegAfterLatestPos _ _ _ 
       (numPrevEvts (localEvts BASEMOTOR) t) Hpb Hl Het) as Hnn.
   rewrite <- Heqlf in Hnn. simpl in Hnn.
-  DestImp Hnn;[|apply numPrevEvtsSpec; trivial; lra].
+  DestImp Hnn;[|apply numPrevEvtsSpec; trivial;  remember (eTime evMn);  remember (eTime evMp); lra].
   eapply filterPayloadsIndexSorted in Hcomp; eauto.
   apply filterPayloadsTimeCorr in Heqlf.
   rename Heqlf into Hf. repnd. 
-  assert (eTime (snd plev) < tunsafe)%Q by  lra.
+  assert (eTime (snd plev) < tunsafe)%Q by  ( remember (eTime evMn);  remember (eTime evMp); 
+     remember (eTime (snd plev)); lra).
   DestImp Hnn;[|trivial;fail].
   eapply VelNegAfterLatestPosAux in Hcomp; eauto.
   rewrite Hnn in Hm.
@@ -2069,7 +2075,7 @@ Proof.
   repnd. rewrite Hprl in Hcomp. rewrite Hprr in Hcomp.
   specialize (Hcomp _ eq_refl eq_refl).
   rewrite reactionTime1 in Hbetl. 
-  DestImp Hcomp;[|apply numPrevEvtsSpec; trivial; lra].
+  DestImp Hcomp;[|apply numPrevEvtsSpec; trivial; remember (eTime evMn);  remember (eTime evMp); lra].
   remember(filterPayloadsUptoIndex MOTOR (localEvts BASEMOTOR)
              (numPrevEvts (localEvts BASEMOTOR) t)) as lf.
   destruct lf as [ | plev lft ];[inverts Hcomp; fail|].
@@ -2078,11 +2084,12 @@ Proof.
   pose proof (PosAfterLatestNeg _ _ _ 
       (numPrevEvts (localEvts BASEMOTOR) t) Hpb Hl Het) as Hnn.
   rewrite <- Heqlf in Hnn. simpl in Hnn.
-  DestImp Hnn;[|apply numPrevEvtsSpec; trivial; lra].
+  DestImp Hnn;[|apply numPrevEvtsSpec; trivial; remember (eTime evMn);  remember (eTime evMp); lra].
   eapply filterPayloadsIndexSorted in Hcomp; eauto.
   apply filterPayloadsTimeCorr in Heqlf.
   rename Heqlf into Hf. repnd. 
-  assert (eTime (snd plev) < tunsafe)%Q by  lra.
+  assert (eTime (snd plev) < tunsafe)%Q by   ( remember (eTime evMn);  remember (eTime evMp); 
+     remember (eTime (snd plev)); lra).
   DestImp Hnn;[|trivial;fail].
   eapply VelPosAfterLatestNegAux in Hcomp; eauto.
   rewrite Hnn in Hm.
@@ -2121,7 +2128,6 @@ Proof.
   rewrite Hmrl;
     [|split; trivial]; apply leEq_reflexive; fail.
 Qed.
-
 
 
 Lemma RHSSafe : forall t: QTime,  (centerPosAtTime tstate t) [<=]  95.
@@ -2188,17 +2194,21 @@ Proof.
   unfold cg_minus in Htlt.
   simpl in Htlt.
 
+
     (* now invoking sensor's spec
       to get the event that it fired soon after [tivt] *)
+
   
   pose proof (corrNodes 
                 eo 
                 (PROXSENSOR right)) as Hnc.
+
   simpl in Hnc.
   apply proj1 in Hnc.
   specialize (Hnc tivt).
   unfold rEndPos, rboundary in Hnc.
   pose proof concreteValues as Hcon.
+
 Open Scope nat_scope.
     AndProjN 0 Hcon as Hhw.
     AndProjN 1 Hcon as Hbb.
@@ -2206,7 +2216,11 @@ Open Scope nat_scope.
     AndProjN 3 Hcon as Hmd.
     AndProjN 4 Hcon as Hrrrrr.
 Close Scope nat_scope.
+
+Check VelNegAfterLatestPos.
+pose proof VelNegAfterLatestPos as Hvnalpb.
   subst.
+
   clear Hcon Hhw Hbb Hal Hmd. 
   unfold Z2R, inject_Z in Hnc.
   rewrite cag_commutes in Hnc.
@@ -2216,7 +2230,8 @@ Close Scope nat_scope.
     eapply leEq_transitive; eauto;
     unfold Q2R;
     repeat (rewrite <- inj_Q_minus);
-    apply inj_Q_leEq; unfold cg_minus; simpl; lra].
+    apply inj_Q_leEq; unfold cg_minus; simpl;
+        remember (eTime evMp); lra].
   destruct Hnc as [n Hnc].
   destruct Hnc as [ev Hnc].
   repnd.
@@ -2227,6 +2242,7 @@ Close Scope nat_scope.
   repnd. simpl in Hncrrlr.
   rename Hncrrlr  into Htub.
   (** lets deliver the message to the s/w node *)
+
 
   pose proof (eventualDelivery eo _ Hncrl) as Hrec.
   destruct Hrec as [Er  Hrec].
@@ -2245,10 +2261,14 @@ Close Scope nat_scope.
 
   (** got the msg received by sw. lets update the time bounds *)
 
-  assert ((eTime Eswr) < tivt + (2 # 1))%Q  as Htubb by lra.
+  assert ((eTime Eswr) < tivt + (2 # 1))%Q  as Htubb by 
+    (remember (eTime Eswr);  remember (eTime evMp); lra).
+
   clear Htub. rename Htubb into Htub.
   pose proof (globalCausal _ _ _ Hrecrl) as Hubb.
-  assert (tivt < (eTime Eswr))%Q  as Htlb by lra.
+  assert (tivt < (eTime Eswr))%Q  as Htlb 
+    by (remember (eTime Eswr); remember (eTime Esens);  
+        remember (eTime evMp);lra).
   clear Hubb Hrecl Hncrrr Hncrl Hrecrl Hnclr Hncll Htppt
       Hncrrll Esens.
 
@@ -2287,9 +2307,13 @@ Close Scope nat_scope.
   (** got the msg sent received by sw. 
       lets update the time bounds *)
 
-  assert ((eTime Esws) < tivt + (3 # 1))%Q  as Htubb by lra.
+  assert ((eTime Esws) < tivt + (3 # 1))%Q  as Htubb by 
+    (remember (eTime Eswr); remember (eTime Esws);  
+        remember (eTime evMp);lra).
   clear Htub. rename Htubb into Htub.
-  assert (tivt < (eTime Esws))%Q  as Htlbb by lra.
+  assert (tivt < (eTime Esws))%Q  as Htlbb by 
+    (remember (eTime Eswr); remember (eTime Esws);  
+        remember (eTime evMp);lra).
   clear Htlb. rename Htlbb into Htlb.
   rename e0 into Hss.
   apply locEvtIndex in Hss.
@@ -2318,23 +2342,31 @@ Close Scope nat_scope.
   apply leEq_inj_Q in Httpp.
   simpl in Httpp.
   pose proof (globalCausal _ _ _ Hmrecrl) as Hubb.
-  assert (eTime evMp < eTime Emr)%Q as Hql by lra.
-  assert ((eTime Emr) < t)%Q as Hlt by lra.
+  assert (eTime evMp < eTime Emr)%Q as Hql by 
+        (remember (eTime Emr); remember (eTime Esws);  
+        remember (eTime evMp);lra).
+
+  assert ((eTime Emr) < t)%Q as Hlt by 
+    (remember (eTime Emr); remember (eTime Esws);  
+        remember (eTime evMp);lra).
   assert (Qtadd (eTime Emr) (mkQTime 1 I)< tivt + (5 # 1))%Q  
-    as Htubb by (unfold Qtadd; simpl; lra).
+    as Htubb by (unfold Qtadd; simpl; (remember (eTime Emr); remember (eTime Esws);  
+        remember (eTime evMp);lra)).
   assert (tivt < Qtadd (eTime Emr) (mkQTime 1 I))%Q  
-    as Htlbb by (unfold Qtadd; simpl; lra).
+    as Htlbb by (unfold Qtadd; simpl; (remember (eTime Emr); remember (eTime Esws);  
+        remember (eTime evMp);lra)).
   assert (Qtadd (eTime Emr) (mkQTime 1 I) < t)%Q  
-    as Hltt by (unfold Qtadd; simpl; lra).
-  clear dependent Esws.
+    as Hltt by (unfold Qtadd; simpl; (remember (eTime Emr); remember (eTime Esws);  
+        remember (eTime evMp);lra)).
   apply (centerPosUB _ _ _ _ (conj Htlbb Htubb)) in HUB.
   revert HUB. simplInjQ. intro HUB.
   pose proof (fun tl pm
-      => VelNegAfterLatestPos evMp Emr t tl pm Hlatb) as Hv.
+      => Hvnalpb evMp Emr t tl pm Hlatb) as Hv.
   specialize (fun tl pm => Hv tl pm Hql).
   unfold priorMotorMesg, getRecdPayload, deqMesg in Hv.
   unfold isRecvEvt, isDeqEvt in Hmrecrr.
   destruct (eKind Emr); inversion Hmrecrr; [].
+  Local Opaque Q2R.
   simpl in Hv, Hmeq. 
   simpl in Hv. unfold getPayload in Hv.
   simpl in Hv. rewrite <- Hmeq in Hv.
@@ -2342,7 +2374,6 @@ Close Scope nat_scope.
   specialize (fun tl => Hv tl (conj Hlt (conj eq_refl HmotR))).
   pose proof (QVelPosUB tstate _ _ (Qlt_le_weak _ _ Hltt) (inject_Z (-1))) 
       as Hvb.
-  rewrite reactionTime1 in Hv.
   specialize ( Hvb Hv).
   clear Hv. unfold centerPosAtTime in HUB.
   remember ({tstate} (Qtadd (eTime Emr) (mkQTime 1 I))) as qta.
@@ -2352,7 +2383,9 @@ Close Scope nat_scope.
      (eapply  leEq_transitive; eauto;
       rewrite <- inj_Q_Zero;
       apply inj_Q_leEq;
-      simpl; unfold inject_Z; simpl; lra).
+      simpl; unfold inject_Z; simpl; 
+       remember (eTime Emr); remember (eTime Esws); remember (eTime evMp);
+      lra).
   pose proof (plus_resp_leEq_both _ _ _ _ _ HH0 HUB) as Hf.
   rewrite <- cg_cancel_mixed in Hf.
   pose proof (leEq_transitive _ _ _ _ Hc Hf) as XX.
@@ -2360,6 +2393,7 @@ Close Scope nat_scope.
   rewrite <- inj_Q_plus in XX.
   apply leEq_inj_Q in XX.
   simpl in XX. unfold inject_Z in XX.
+  remember (eTime Emr); remember (eTime Esws); remember (eTime evMp).
   lra.
 Qed.
 
