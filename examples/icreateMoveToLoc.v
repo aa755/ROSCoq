@@ -23,22 +23,64 @@ Require Export robots.icreate.
 
 (** printing ' $ $ #'# *)
 
+(** 
+In this file (chapter), we explain how to use ROSCoq to program
+an iRobot Create. 
+Our program receives requests to navigate to specific positions and
+computes appropriate commands for the robot.
+In the next file, we will prove upper bounds on how close the robot
+will end up to the requested position.
+To do this proof, we use the axiomatization of the 
+cybe-physical behaviour of the iRobot Create robot, 
+as explained in the previous chapter.
+
+If you have an iRobot Create, you will
+be able to run the program on the robot.
+Coq guarantees that the program will behave as proved, unless
+our axiomatization of the robot was incorrect.
+
+Before getting into the specifics of ROSCoq, let us first
+look at the core of our program.
+*)
+
 Require Export canonical_names.
 Section RobotProgam.
-Variables  rotspeed speed delay delEps : Qpos.
+
+(** To move to the target position, the robot first turns towards it and then
+moves forward. Because a robot may not be able to physical acieve
+any arbitrary angular linear speed, we let the user specify the desired 
+speeds. By adjusting the duration of rotation and linear motion, we can
+make the robot go anywhere. The two para*)
+
+Variable  rotspeed  : Qpos.
+Variable  linspeed  : Qpos.
+Variable  delay  : Qpos.
+Variable  delEps  : Qpos.
 Variable delRes : Z⁺.
 
 Close Scope Q_scope.
+
 Definition robotPureProgam (target : Cart2D Q) : list (Q × Polar2D Q) :=
   let polarTarget : Polar2D CR := Cart2Polar target in
   let rotDuration : CR :=  ((| θ polarTarget |) * '(/ rotspeed)%Q) in
-  let translDuration : CR :=  (rad polarTarget) * '(/ speed)%Q in
+  let translDuration : CR :=  (rad polarTarget) * '(/ linspeed)%Q in
   [ (0,{|rad:= 0 ; θ := (polarθSign target) * rotspeed |}) 
       ; (tapprox rotDuration  delRes delEps , {|rad:= 0 ; θ := 0 |}) 
-      ; ('delay , {|rad:=  'speed ; θ := 0 |}) 
+      ; ('delay , {|rad:=  'linspeed ; θ := 0 |}) 
       ; (tapprox translDuration delRes delEps , {|rad:= 0 ; θ := 0 |}) ].
 
-Inductive Topic :=  VELOCITY | TARGETPOS. (* similar to CMD_VEL *)
+
+(** 
+Like the Robot Operating System (ROS), ROSCoq uses a publish-subscribe
+approach to communication between agents of a distributed system.
+Agents can publish messages to named topics without knowing about who
+are receiving them.
+
+Agents can subsctibe to topics without knowing who is publishing them.
+For example, the agent 
+*)
+
+Inductive Topic :=  VELOCITY | TARGETPOS.
 
 Scheme Equality for Topic.
 
@@ -1708,7 +1750,7 @@ Hint Resolve OmegaAtEv2 MotorEventsNthTimeInc: ICR.
 Lemma correctVel2to3:
   let t1 : QTime := MotorEventsNthTime 2 (decAuto (2<4)%nat I) in
   let t2 : QTime := MotorEventsNthTime 3 (decAuto (3<4)%nat I) in
-  let requestedVel : Polar2D Q := {|rad:= QposAsQ speed ; θ := 0 |} in
+  let requestedVel : Polar2D Q := {|rad:= QposAsQ linspeed ; θ := 0 |} in
   correctVelDuring requestedVel t1 t2 ic.
 Proof.
   intros. pose proof (corrNodes eo MOVABLEBASE) as Hc.
@@ -1743,7 +1785,7 @@ Qed.
 Definition θ2 := {theta ic} mt2.
 
 Definition rotErrTrans
-:= (θ (motorPrec {| rad := QposAsQ speed; θ := 0 |})).
+:= (θ (motorPrec {| rad := QposAsQ linspeed; θ := 0 |})).
 
 
 Lemma ThetaEv2To3 :
@@ -1774,7 +1816,7 @@ Proof.
   assumption.
 Qed.
 
-Definition transDuration : CR :=  ((| target |) * '(/speed)%Q).
+Definition transDuration : CR :=  ((| target |) * '(/linspeed)%Q).
 
 
 Lemma MotorEv23Gap :
@@ -2317,14 +2359,14 @@ Qed.
 
 
 Definition transErrTrans
-:= (rad (motorPrec {| rad := QposAsQ speed; θ := 0 |})).
+:= (rad (motorPrec {| rad := QposAsQ linspeed; θ := 0 |})).
 
 Require Export core.
 Lemma SpeedUbEv2To3 : ∀ (t:QTime), 
   let t3 : QTime := MotorEventsNthTime 3 (decAuto (3<4)%nat I) in
   let t2 : QTime := MotorEventsNthTime 2 (decAuto (2<4)%nat I) in
   t2 ≤ t ≤ t3 
-  -> AbsIR ({transVel ic} t)[<=](speed + transErrTrans)%Q.
+  -> AbsIR ({transVel ic} t)[<=](linspeed + transErrTrans)%Q.
 Proof.
   intros ? ? ? Hb.
   pose proof correctVel2to3 as Hc.
@@ -2350,8 +2392,8 @@ Proof.
   pose proof (λ t p, (AbsIR_bnd_AbsIR  _ _ _
           (Hcrl t p)))
      as Hmrl. clear Hcrl.
-  setoid_rewrite (AbsIRQpos speed) in Hmrl.
-  setoid_rewrite (AbsIRQpos speed) in Hqt.
+  setoid_rewrite (AbsIRQpos linspeed) in Hmrl.
+  setoid_rewrite (AbsIRQpos linspeed) in Hqt.
   unfold QT2R in Hqt.
   unfold Q2R.
   autorewrite with InjQDown.
@@ -2374,7 +2416,7 @@ Lemma YDerivEv2To3 : ∀ (t:QTime),
   let t2 : QTime := MotorEventsNthTime 2 (decAuto (2<4)%nat I) in
   t2 ≤ t ≤ t3 
   → AbsIR ({Y'Deriv} t) 
-      ≤   (Sin (θErrTrans + θErrTurn)) * (speed + transErrTrans)%Q.
+      ≤   (Sin (θErrTrans + θErrTurn)) * (linspeed + transErrTrans)%Q.
 Proof.
   intros ? ? ? Hb.
   unfold Y'Deriv.
@@ -2401,7 +2443,7 @@ Qed.
 Lemma YDerivEv2To3_1 : ∀ (t:QTime), 
   mt2 ≤ t ≤ mt3 
   → AbsIR ({Y'Deriv} t [-] [0]) 
-      ≤   (Sin (θErrTrans + θErrTurn)) * (speed + transErrTrans)%Q.
+      ≤   (Sin (θErrTrans + θErrTurn)) * (linspeed + transErrTrans)%Q.
 Proof.
   intros.
   rewrite cg_inv_zero.
@@ -2413,7 +2455,7 @@ Qed.
 Lemma YChangeEv2To3 :
   AbsIR ({Y rotOrigininPos} mt3 [-] {Y rotOrigininPos} mt2) 
       ≤   Q2R (mt3 - mt2)%Q * ((Sin (θErrTrans + θErrTurn))
-                       * (speed + transErrTrans)%Q).
+                       * (linspeed + transErrTrans)%Q).
 Proof.
   pose proof (YDerivEv2To3_1) as Hyd.
   apply (TDerivativeAbsQ (Y rotOrigininPos)) in Hyd;
@@ -2434,7 +2476,7 @@ Qed.
 Lemma YChangeEv2To3_2 :
   AbsIR ({Y rotOrigininPos} mt3 [-] {Y rotOrigininPos} mt2) 
       ≤  Ev23TimeGapUB  * ((Sin (θErrTrans + θErrTurn))
-                       * (speed + transErrTrans)%Q).
+                       * (linspeed + transErrTrans)%Q).
 Proof.
   intros.
   pose proof (YChangeEv2To3) as Hyd.
@@ -2472,10 +2514,10 @@ Proof.
 Qed.
 
 
-Lemma Dist23RW: Ev23TimeGapUB * (speed + transErrTrans)%Q 
+Lemma Dist23RW: Ev23TimeGapUB * (linspeed + transErrTrans)%Q 
 [=] (('(|target |)) 
           + Ev23TimeGapUB * QT2R transErrTrans
-          + Q2R speed * timeErr).
+          + Q2R linspeed * timeErr).
 Proof.
   unfold Ev23TimeGapUB, transDuration.
   unfoldMC. autounfold with IRMC.
@@ -2499,7 +2541,7 @@ Lemma YChangeEv2To3_3 :
       ≤ (Sin (θErrTrans + θErrTurn) * 
         (('(|target |)) 
           + Ev23TimeGapUB * QT2R transErrTrans
-          + Q2R speed * timeErr)).
+          + Q2R linspeed * timeErr)).
 Proof.
   intros.
   pose proof (YChangeEv2To3_2) as Hyd.
@@ -2521,13 +2563,13 @@ reflexivity.
 Qed.
 
 Lemma transErrTransEq :
-  (eeev speed 0) = transErrTrans.
+  (eeev linspeed 0) = transErrTrans.
 reflexivity.
 Qed.
 
 
 Definition ErrY': IR :=  '(eeev 0 w) * (QT2R reacTime + Ev01TimeGapUB)
-+ (Sin (θErrTrans + θErrTurn)) * ('(|target |) + Ev23TimeGapUB * '(eeev speed 0) + (Q2R speed) * timeErr).
++ (Sin (θErrTrans + θErrTurn)) * ('(|target |) + Ev23TimeGapUB * '(eeev linspeed 0) + (Q2R linspeed) * timeErr).
 
 Lemma Ev3Y' : AbsIR ({Y rotOrigininPos} mt3)  ≤ ErrY'.
 Proof.
@@ -2560,14 +2602,14 @@ Hint Resolve injQ_nonneg : CoRN.
 
 Hint Resolve QPQTQplusnNeg : ROSCOQ.
 
-Variable speedTransErrTrans : (0 <= speed - transErrTrans)%Q.
+Variable speedTransErrTrans : (0 <= linspeed - transErrTrans)%Q.
 
   
 Lemma XDerivEv2To3UBAux : ∀ (t:QTime), 
   let t3 : QTime := MotorEventsNthTime 3 (decAuto (3<4)%nat I) in
   let t2 : QTime := MotorEventsNthTime 2 (decAuto (2<4)%nat I) in
   t2 ≤ t ≤ t3 
-  → AbsIR ({X'Deriv} t) ≤ (speed + transErrTrans)%Q.
+  → AbsIR ({X'Deriv} t) ≤ (linspeed + transErrTrans)%Q.
 Proof.
   intros ? ? ? Hb.
   unfold X'Deriv.
@@ -2588,7 +2630,7 @@ Lemma XDerivEv2To3UB : ∀ (t:QTime),
   let t3 : QTime := MotorEventsNthTime 3 (decAuto (3<4)%nat I) in
   let t2 : QTime := MotorEventsNthTime 2 (decAuto (2<4)%nat I) in
   t2 ≤ t ≤ t3 
-  → ({X'Deriv} t) ≤ (speed + transErrTrans)%Q.
+  → ({X'Deriv} t) ≤ (linspeed + transErrTrans)%Q.
 Proof.
   intros ? ? ? Hb.
   eapply leEq_transitive;[| apply (XDerivEv2To3UBAux t); assumption].
@@ -2599,7 +2641,7 @@ Lemma XChangeUBEv2To3 :
   let t3 : QTime := MotorEventsNthTime 3 (decAuto (3<4)%nat I) in
   let t2 : QTime := MotorEventsNthTime 2 (decAuto (2<4)%nat I) in
    ({X rotOrigininPos} t3 [-] {X rotOrigininPos} t2) 
-      ≤  ((t3 - t2) * (speed + transErrTrans))%Q.
+      ≤  ((t3 - t2) * (linspeed + transErrTrans))%Q.
 Proof.
   intros ? ?.
   unfold Q2R.
@@ -2612,7 +2654,7 @@ Qed.
 
 Lemma XChangeUBEv2To3_2 :
    ({X rotOrigininPos} mt3 [-] {X rotOrigininPos} mt2) 
-      ≤  (Ev23TimeGapUB * (speed + transErrTrans)%Q).
+      ≤  (Ev23TimeGapUB * (linspeed + transErrTrans)%Q).
 Proof.
   intros.
   pose proof (XChangeUBEv2To3) as Hyd.
@@ -2626,7 +2668,7 @@ Qed.
 
 
 Definition X'DiffUB: IR :=  '(eeev 0 w) * (QT2R reacTime + Ev01TimeGapUB)
-+ Ev23TimeGapUB * '(eeev speed 0) + (Q2R speed) * timeErr.
++ Ev23TimeGapUB * '(eeev linspeed 0) + (Q2R linspeed) * timeErr.
 
 Definition idealX' :IR := '(|target |).
 
@@ -2673,7 +2715,7 @@ Lemma SpeedLbEv2To3 :
   ∃ qtrans : QTime, (mt2 <= qtrans <= mt2 + reacTime)%Q ∧
   (∀ t:QTime, mt2 ≤ t ≤ qtrans →  0 ≤ ({transVel ic} t))
   ∧ (∀ t:QTime, qtrans ≤ t ≤ mt3 →
-        Q2R (speed - transErrTrans)%Q [<=] ({transVel ic} t)).
+        Q2R (linspeed - transErrTrans)%Q [<=] ({transVel ic} t)).
 Proof.
   pose proof correctVel2to3 as Hc.
   fold mt2 mt3 in Hc.
@@ -2710,7 +2752,7 @@ Lemma XDerivLBEv2To3 :
   ∃ qtrans : Q, (mt2 <= qtrans <= mt2 + reacTime)%Q ∧
   (∀ t:QTime, (mt2 <= t <= Qmin qtrans mt3)%Q →  0 ≤ ({X'Deriv} t))
   ∧ (∀ t:QTime, qtrans ≤ t ≤ mt3 →
-        (Cos (θErrTrans + θErrTurn)) * (speed - transErrTrans)%Q 
+        (Cos (θErrTrans + θErrTurn)) * (linspeed - transErrTrans)%Q 
           [<=] (({X'Deriv} t))).
 Proof.
   pose proof SpeedLbEv2To3 as Hs.
@@ -2767,7 +2809,7 @@ Qed.
 Lemma XChangeLBEv2To3 :
   ∃ qtrans : QTime,  (mt2 <= qtrans <= mt2 + reacTime)%Q
   ∧ (Cos (θErrTrans + θErrTurn) 
-        * (speed - transErrTrans)%Q 
+        * (linspeed - transErrTrans)%Q 
         * (Qmax 0 (mt3 - qtrans))%Q)
       ≤  ({X rotOrigininPos} mt3 [-] {X rotOrigininPos} mt2).
 Proof.
@@ -2829,7 +2871,7 @@ Qed.
 
 Lemma XChangeLBEv2To3_2 :
   (Cos (θErrTrans + θErrTurn) 
-      * (speed - transErrTrans)%Q 
+      * (linspeed - transErrTrans)%Q 
       * (Ev23TimeGapLB - QT2Q reacTime))
   ≤  ({X rotOrigininPos} mt3 [-] {X rotOrigininPos} mt2).
 Proof.
@@ -2855,7 +2897,7 @@ Qed.
 Lemma XChangeLBEv2To3_3 :
   (Cos (θErrTrans + θErrTurn)) 
       * (idealX' - Ev23TimeGapLB*(QT2Q transErrTrans)
-          + (transErrTrans* reacTime - speed*reacTime -timeErr*speed)%Q) 
+          + (transErrTrans* reacTime - linspeed*reacTime -timeErr*linspeed)%Q) 
   ≤  ({X rotOrigininPos} mt3 [-] {X rotOrigininPos} mt2).
 Proof.
   pose proof (XChangeLBEv2To3_2) as Hyd.
@@ -2881,8 +2923,8 @@ Proof.
   rewrite ring_distr1.
   autorewrite with QSimpl.
   simpl.
-  assert (/ speed * speed == 1)%Q as Heq
-    by (field; destruct speed; simpl; lra).
+  assert (/ linspeed * linspeed == 1)%Q as Heq
+    by (field; destruct linspeed; simpl; lra).
   rewrite Heq.
   clear Heq.
   unfold idealX'.
@@ -2903,8 +2945,8 @@ Qed.
 Definition X'DiffLB: IR :=  '(eeev 0 w) * (QT2R reacTime + Ev01TimeGapUB)
 + idealX' * (1 - Cos (θErrTrans + θErrTurn))
 + (Cos (θErrTrans + θErrTurn)) 
-      * (Ev23TimeGapLB*(eeev speed 0)
-          + (speed*reacTime + timeErr*speed -(eeev speed 0)* reacTime)%Q).
+      * (Ev23TimeGapLB*(eeev linspeed 0)
+          + (linspeed*reacTime + timeErr*linspeed -(eeev linspeed 0)* reacTime)%Q).
 
 
 Lemma Ev3X'DiffLb : idealX' - X'DiffLB ≤ {X rotOrigininPos} mt3.
