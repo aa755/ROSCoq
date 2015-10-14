@@ -23,42 +23,79 @@ Require Export robots.icreate.
 
 (** printing ' $ $ #'# *)
 
-(** 
-In this file (chapter), we explain how to use ROSCoq to program
+Require Export canonical_names.
+
+(**
+
+* Overview
+
+In this chapter (file), we explain how to use ROSCoq to program
 an iRobot Create. 
 Our program receives requests to navigate to specific positions and
 computes appropriate commands for the robot.
-In the next file, we will prove upper bounds on how close the robot
+This programs forms will be a software agent in a distributed system
+consisting of 3 agents, as shown in the figure:
+
+
+#<img src="icreateMoveToLoc.svg"/>#
+
+The hardware agent represents the iRobot create hardware and its ROS drivers.
+It was defined in the previous chapter.
+The request to navigate comes from the external agent.
+
+In the next chapter, we will prove upper bounds on how close the robot
 will end up to the requested position.
-To do this proof, we use the axiomatization of the 
-cybe-physical behaviour of the iRobot Create robot, 
-as explained in the previous chapter.
+To do this proof, we use the axiomatization of the hardware agent.
 
 If you have an iRobot Create, you will
 be able to run the program on the robot.
+The Coq program can be extracted to Haskell and linked with a shim
+that actually handles the sending and receiving of messages.
+
 Coq guarantees that the program will behave as proved, unless
 our axiomatization of the robot was incorrect.
 
-Before getting into the specifics of ROSCoq, let us first
-look at the core of our program.
+Before getting into the details of the specification of the entire
+distributed system in ROSCoq, let us first
+look at the core of the navigation program.
 *)
 
-Require Export canonical_names.
 Section RobotProgam.
 
 (** To move to the target position, the robot first turns towards it and then
-moves forward. Because a robot may not be able to physical acieve
+moves forward. Because a robot may not be able to physical achieve
 any arbitrary angular linear speed, we let the user specify the desired 
 speeds. By adjusting the duration of rotation and linear motion, we can
-make the robot go anywhere. The two para*)
+make the robot go anywhere. 
+The two variable respectively denote the user specified rotational(angular) and linear speed.*)
 
 Variable  rotspeed  : Qpos.
 Variable  linspeed  : Qpos.
-Variable  delay  : Qpos.
-Variable  delEps  : Qpos.
+
+(** 
+To control the duration of rotation, the program inserts a delay between
+the command to start turning and the command to stop turning.
+The shim in Haskell can only support a finite resolution for the time requests.
+The variable below is used to specify the resolution of the timer.
+Formally, 1/[delRes] is the resolution of the timer.
+The current Haskell shim is based on the 
+#<a href="https://hackage.haskell.org/package/base-4.8.1.0/docs/Control-Concurrent.html">threadDelay</a>#
+function of Haskell, whose resolution is 1 microseconds.
+Hence delRes will be instantiated with 1000000.
+However, we choose to make our program and proofs generic over that value.
+*)
+
 Variable delRes : Z⁺.
 
+(** The meaning of the 2 parameters below will be explained while explaining 
+the program. *)
+
+Variable  delEps  : Qpos.
+Variable  delay  : Qpos.
+
 Close Scope Q_scope.
+
+(** Here is the program.*)
 
 Definition robotPureProgam (target : Cart2D Q) : list (Q × Polar2D Q) :=
   let polarTarget : Polar2D CR := Cart2Polar target in
@@ -71,25 +108,64 @@ Definition robotPureProgam (target : Cart2D Q) : list (Q × Polar2D Q) :=
 
 
 (** 
+
+* Specifying the whole cyber-physical system system.
+
+The above program sends 4 commands to the iRobot create
+device driver. The behaviour of the robot on the receipt
+of such commands is specified in the axiomatization of the robot.
+To be able to prove that the robot will end up at a place
+close to the position requested by the external agent, 
+we have to specify the whole cyber-physical system
+that it is a part of, or at least its relevant parts.
+For example, we have to specify the agents of the distributed system,
+and the fact that the messages sent by the software agent are received
+by the robot device driver.
+
+
+** Topics
+
 Like the Robot Operating System (ROS), ROSCoq uses a publish-subscribe
 approach to communication between agents of a distributed system.
 Agents can publish messages to named topics without knowing about who
 are receiving them.
+Similarly, agents can subsctibe to topics without knowing who is publishing them.
+As explained in the previous chapter, the icreate driver
+subscribes to a designated topic, and acts on the messages
+specifying the linear and angular velocities for the robot.
 
-Agents can subsctibe to topics without knowing who is publishing them.
-For example, the agent 
+To specify a Cyber-physical System (CpS) in ROSCoq, one
+specifies a type denoting the collection of topics used for communication.
+This type must be an instance of the [TopicClass] typeclass.
+
 *)
 
 Inductive Topic :=  VELOCITY | TARGETPOS.
 
+(** 
+In this application, we use 2 topics. The [VELOCITY] topic is used
+the software agent to send the linear and angular velocity commands
+to the robot hardware agent.
+
+The [TARGETPOS] topic is used by
+the external agent (see Fig. in Sec. 1)
+to send the cartesian coordinates of
+the target position (relative to the
+robot’s current position) to the software
+agent.
+*)
+
 Scheme Equality for Topic.
+
+(** [TopicClass] the type to have decidable equality*)
 
 Global Instance ldskflskdalfkTopic_eq_dec : DecEq Topic.
 constructor. exact Topic_eq_dec.
 Defined.
 
 
-(** When adding a nrew topic, add cases of this function *)
+(** The [TopicClass] also needs the payload type for eqch topic.*)
+
 Definition topic2Type (t : Topic) : Type :=
 match t with
 | VELOCITY => Polar2D Q
@@ -100,6 +176,12 @@ end.
 Global Instance  ttttt : @TopicClass Topic _.
   constructor. exact topic2Type.
 Defined.
+
+(** 
+** Collection of Agents.
+
+
+*)
 
 Inductive RosLoc :=  MOVABLEBASE | EXTERNALCMD | SWNODE.
 
