@@ -240,6 +240,7 @@ match rl with
 end.
 
 (** 
+** Physical Model
 Now that we have defined the the collection of agents, we have to
 specify the behvior of each agent in a mutually independent way.
 However, the behavior of hardware devices such as sensors and actuators
@@ -262,6 +263,8 @@ If there were, say 2 robots, the physical model could be the type [iCreate * iCr
 Notation PhysicalModel := iCreate.
 
 (**
+** Semantics of Agents
+
 Now we specify the behavior of each agent.
 Recall from section 4 of the 
 #<a href="http://www.cs.cornell.edu/~aa755/ROSCoq/ROSCOQ.pdf">ROSCoq paper</a>#
@@ -278,20 +281,17 @@ Context
 Using the [Context] keyword, we assumed the type [Event] which denotes
 the collection of all events.
 We also assumed that the type [Event] is an instance of the [EventType] typeclass.
-
+This typeclass enables us to use many functions events.
+For example, we can use [eLoc] to get the location of an event.
+For more details, please see the definition of the type [EventType] (just clicking it
+should take it to its definition), or see Sec. 3 of the 
+#<a href="http://www.cs.cornell.edu/~aa755/ROSCoq/ROSCOQ.pdf">ROSCoq paper</a>#
 *)
 
-Variable target : Cart2D Q.
-Variable eCmdEv0 : Event.
 
-
-Definition externalCmdSemantics {Phys : Type} 
- : @NodeSemantics Phys Event :=
-  λ _ evs , ((evs 0) ≡ Some eCmdEv0) 
-              ∧  isSendEvt eCmdEv0 
-              ∧ (getPayload TARGETPOS (eMesg eCmdEv0) ≡ Some target)
-              ∧ ∀ n : nat, (evs (S n)) ≡ None.
-
+(**
+*** Hardware Agent
+*)
 Variable reacTime : QTime.
 (** It is more sensible to change the type to [QNonNeg]
     as the value certainly does not represent time.
@@ -302,6 +302,10 @@ Hypothesis motorPrec0 : motorPrec {| rad :=0 ; θ :=0 |} ≡ {| rad :=0 ; θ :=0
 
 Definition HwAgent := HwAgent VELOCITY eq_refl reacTime motorPrec.
 
+
+(**
+*** Software Agent
+*)
 Definition PureSwProgram: PureProcWDelay TARGETPOS VELOCITY:=
   robotPureProgam.
 
@@ -315,6 +319,24 @@ Require Export CoRN.model.metric2.Qmetric.
 
 Definition ControllerNode : RosSwNode :=
   Build_RosSwNode (SwProcess) (procTime, sendTimeAcc).
+
+
+(**
+*** External Agent
+*)
+Variable target : Cart2D Q.
+Variable eCmdEv0 : Event.
+
+
+Definition externalCmdSemantics {Phys : Type} 
+ : @NodeSemantics Phys Event :=
+  λ _ evs , ((evs 0) ≡ Some eCmdEv0) 
+              ∧  isSendEvt eCmdEv0 
+              ∧ (getPayload TARGETPOS (eMesg eCmdEv0) ≡ Some target)
+              ∧ ∀ n : nat, (evs (S n)) ≡ None.
+
+(**
+*** Putting it all together. *)
 
 Definition locNode (rl : RosLoc) : NodeSemantics :=
 match rl with
@@ -335,8 +357,10 @@ Global Instance rllllfjkfhsdakfsdakh : @RosLocType PhysicalModel Topic Event  Ro
 Defined.
 
 
+(** 
+* Proving the correctness property 
+*)
 
-(* Variable acceptableDist : Q. *)
 Variable ic : iCreate.
 Variable eo : (@PossibleEventOrder _  ic minGap _ _ _ _ _ _ _ _ _).
 
