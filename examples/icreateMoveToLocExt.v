@@ -1,9 +1,9 @@
 
-Require Export iCreateMoveToLoc.
+Require Export icreateMoveToLoc.
 
 Definition rotSpeedRadPerSec : Qpos := QposMake 1 2.
 
-Definition speedMetresPerSec : Qpos := QposMake 1 10.
+Definition linSpeedMetresPerSec : Qpos := QposMake 1 10.
 
 Require Import RoshaskMsg.
 
@@ -16,10 +16,10 @@ Definition initDelayLin : Qpos := QposMake 1 1.
 Definition robotProgramInstance (delayLinSec : Qpos) :  PureProcWDelay TARGETPOS VELOCITY :=
   robotPureProgam 
           rotSpeedRadPerSec 
-          speedMetresPerSec
-          delayLinSec
+          linSpeedMetresPerSec
+          delResSecInv
           delEpsSec
-          delResSecInv.
+          delayLinSec.
 
 
 Definition SwProcessInstance : Process Message (list Message):=

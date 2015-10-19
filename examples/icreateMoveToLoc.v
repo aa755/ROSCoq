@@ -184,10 +184,13 @@ of agents and the physical model of the cyber-physical system.
 One has to then specify the behavior of each agent in a mutually independent way.
 All of this is achieved by specifying an instance of [RosLocType].
 We will see how to build one for our example.
-First, we need a type to denote the collection of agents
+First, we need a type to denote the collection of agents.
+Each member of the type below denotes an agent (vertical downward arrow) in the message
+sequence diagram near the top of this page.
+Also, below they appear in the same order as they appear in the figure above.
 *)
 
-Inductive RosLoc :=  MOVABLEBASE | EXTERNALCMD | SWNODE.
+Inductive RosLoc :=  MOVABLEBASE | SWNODE |  EXTERNALCMD .
 
 Scheme Equality for RosLoc.
 
