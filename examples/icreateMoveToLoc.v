@@ -79,7 +79,7 @@ The shim in Haskell can only support a finite resolution for the time requests.
 The variable below is used to specify the resolution of the timer.
 Formally, 1/[delRes] is the resolution of the timer.
 The current Haskell shim is based on the 
-#<a href="https://hackage.haskell.org/package/base-4.8.1.0/docs/Control-Concurrent.html">threadDelay</a>#
+#<a href="https://hackage.haskell.org/package/base-4.8.1.0/docs/Control-Concurrent.html##v:threadDelay">threadDelay</a>#
 function of Haskell, whose resolution is 1 microseconds.
 Hence delRes will be instantiated with 1000000.
 However, we choose to make our program and proofs generic over that value.
@@ -179,8 +179,12 @@ Defined.
 
 (** 
 ** Collection of Agents.
-
-
+To be able to holistically reason about a CpS, we have to specify the collection
+of agents and the physical model of the cyber-physical system.
+One has to then specify the behavior of each agent in a mutually independent way.
+All of this is achieved by specifying an instance of [RosLocType].
+We will see how to build one for our example.
+First, we need a type to denote the collection of agents
 *)
 
 Inductive RosLoc :=  MOVABLEBASE | EXTERNALCMD | SWNODE.
