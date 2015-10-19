@@ -25,6 +25,15 @@ Require Export robots.icreate.
 
 Require Export canonical_names.
 
+
+Instance ProjectionFst_instance_sig 
+   (A : Type) (P: A → Prop):  
+    ProjectionFst (sig P) A := (@proj1_sig A P) .
+
+Instance ProjectionFst_instance_sigT 
+   (A : Type) (P: A → Type):  
+    ProjectionFst (sigT P) A := (@projT1 A P) .
+
 (**
 
 * Overview
@@ -92,6 +101,7 @@ the program. *)
 
 Variable  delEps  : Qpos.
 Variable  delay  : Qpos.
+Definition R2QPrec : Qpos := simpleApproximateErr delRes delEps.
 
 Close Scope Q_scope.
 
@@ -153,7 +163,9 @@ to send the cartesian coordinates of
 the target position (relative to the
 robot’s current position) to the software
 agent.
+
 *)
+
 
 Scheme Equality for Topic.
 
@@ -177,6 +189,14 @@ Global Instance  ttttt : @TopicClass Topic _.
   constructor. exact topic2Type.
 Defined.
 
+(**
+The type [Topic] will serve as an implicit parameter of the type [Message].
+A message is just a dependent pair of a topic and its payload type.
+Here is an example usage. 
+*)
+Definition mkTargetMsg  (q: Cart2D Q) : Message :=
+  mkImmMesg TARGETPOS q.
+
 (** 
 ** Collection of Agents.
 To be able to holistically reason about a CpS, we have to specify the collection
@@ -192,44 +212,26 @@ Also, below they appear in the same order as they appear in the figure above.
 
 Inductive RosLoc :=  MOVABLEBASE | SWNODE |  EXTERNALCMD .
 
+
+(**  Decidable equality is a requirement of the [RosLocType] typeclass *)
 Scheme Equality for RosLoc.
 
 Global Instance rldeqdsjfklsajlk : DecEq RosLoc.
   constructor. exact RosLoc_eq_dec.
 Defined.
 
-Definition mkTargetMsg  (q: Cart2D Q) : Message :=
-  mkImmMesg TARGETPOS q.
-
-Definition R2QPrec : Qpos := simpleApproximateErr delRes delEps.
-
-Instance ProjectionFst_instance_sig 
-   (A : Type) (P: A → Prop):  
-    ProjectionFst (sig P) A := (@proj1_sig A P) .
-
-Instance ProjectionFst_instance_sigT 
-   (A : Type) (P: A → Type):  
-    ProjectionFst (sigT P) A := (@projT1 A P) .
-
-
-Definition PureSwProgram: PureProcWDelay TARGETPOS VELOCITY:=
-  robotPureProgam.
-
-Definition SwProcess : Process Message (list Message):= 
-  mkPureProcess (delayedLift2Mesg (PureSwProgram)).
-
-Variable procTime : QTime.
-Variable sendTimeAcc : Qpos.
-Require Export CoRN.model.metric2.Qmetric.
-
-
-Definition ControllerNode : RosSwNode :=
-  Build_RosSwNode (SwProcess) (procTime, sendTimeAcc).
-
-
-(* The software could reply back to the the external agent saying "done".
-    Then the s/w will output messages to two different topics
-    In that case, change the [SWNODE] claue *)
+(** 
+The typeclass [RosLocType] also needs a function that
+specifies the list of topics subscribed and published by each agent.
+A [TopicInfo] is a pair of lists. The first member is the list of subscribed
+topics. The second member is the list of published topics.
+This list cannot be changed at runtime.
+When actually running  a software agent, the Haskell shim
+uses the ROS (Robot Operating System) API to subscribe to each topic
+in the first member of [TopicInfo].
+The software agent will then be invoked on any ROS message received on
+the subscribed topics.
+ *)
 Definition locTopics (rl : RosLoc) : TopicInfo :=
 match rl with
 | MOVABLEBASE => ((VELOCITY::nil), nil)
@@ -237,9 +239,47 @@ match rl with
 | EXTERNALCMD => (nil, (TARGETPOS::nil))
 end.
 
+(** 
+Now that we have defined the the collection of agents, we have to
+specify the behvior of each agent in a mutually independent way.
+However, the behavior of hardware devices such as sensors and actuators
+cannot be specified without modeling the evolution of the relevant physical
+quantities (e.g. the ones they measure or influence).
+The first argument of [RosLocType], which is implicit, a a type denoting
+the physical model of the cyber-physical system.
+As described in Sec. 2 of the 
+#<a href="http://www.cs.cornell.edu/~aa755/ROSCoq/ROSCOQ.pdf">ROSCoq paper</a>#,
+A physical model is a type that specifies how each relevant physical
+quantities evolved over time, and the physical laws governing that evolution.
+In this example, there is only one robot (iRobot Create), and the physical quantities
+are the physical quantities relevant to that robot where specified in the type
+[iCreate].
+So that type will serve as our physical model.
+If there were, say 2 robots, the physical model could be the type [iCreate * iCreate]
+*)
+
+
+Notation PhysicalModel := iCreate.
+
+(**
+Now we specify the behavior of each agent.
+Recall from section 4 of the 
+#<a href="http://www.cs.cornell.edu/~aa755/ROSCoq/ROSCOQ.pdf">ROSCoq paper</a>#
+that each agent is specified as a relation between how the physical quantities
+evolved over time and how the sequence of events at the agent.
+In the above message sequence diagram, events are denoted by either a start
+or an end of a slanted arrow. Such slanted arrows denote flight of messages.
+*)
 
 Context
  `{etype : @EventType _ _ _ Event RosLoc minGap tdeq}.
+
+(**
+Using the [Context] keyword, we assumed the type [Event] which denotes
+the collection of all events.
+We also assumed that the type [Event] is an instance of the [EventType] typeclass.
+
+*)
 
 Variable target : Cart2D Q.
 Variable eCmdEv0 : Event.
@@ -262,6 +302,20 @@ Hypothesis motorPrec0 : motorPrec {| rad :=0 ; θ :=0 |} ≡ {| rad :=0 ; θ :=0
 
 Definition HwAgent := HwAgent VELOCITY eq_refl reacTime motorPrec.
 
+Definition PureSwProgram: PureProcWDelay TARGETPOS VELOCITY:=
+  robotPureProgam.
+
+Definition SwProcess : Process Message (list Message):= 
+  mkPureProcess (delayedLift2Mesg (PureSwProgram)).
+
+Variable procTime : QTime.
+Variable sendTimeAcc : Qpos.
+Require Export CoRN.model.metric2.Qmetric.
+
+
+Definition ControllerNode : RosSwNode :=
+  Build_RosSwNode (SwProcess) (procTime, sendTimeAcc).
+
 Definition locNode (rl : RosLoc) : NodeSemantics :=
 match rl with
 | MOVABLEBASE => DeviceSemantics (λ ts,  ts) HwAgent
@@ -272,14 +326,17 @@ end.
 Variable expectedDelivDelay : Qpos.
 Variable delivDelayVar : Qpos.
 
-Global Instance rllllfjkfhsdakfsdakh : @RosLocType iCreate Topic Event  RosLoc _.
+
+Global Instance rllllfjkfhsdakfsdakh : @RosLocType PhysicalModel Topic Event  RosLoc _.
   apply Build_RosLocType.
   - exact locNode.
   - exact locTopics.
   - exact (λ _ _ t , ball delivDelayVar t (QposAsQ expectedDelivDelay)).
 Defined.
 
-Variable acceptableDist : Q.
+
+
+(* Variable acceptableDist : Q. *)
 Variable ic : iCreate.
 Variable eo : (@PossibleEventOrder _  ic minGap _ _ _ _ _ _ _ _ _).
 
