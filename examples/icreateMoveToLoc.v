@@ -105,7 +105,10 @@ Definition R2QPrec : Qpos := simpleApproximateErr delRes delEps.
 
 Close Scope Q_scope.
 
-(** Here is the program.*)
+(** Here is the program. For a detailed explanation, please
+refer to Section 4.2 of the 
+#<a href="http://www.cs.cornell.edu/~aa755/ROSCoq/ROSCOQ.pdf">ROSCoq paper</a>#
+*)
 
 Definition robotPureProgam (target : Cart2D Q) : list (Q × Polar2D Q) :=
   let polarTarget : Polar2D CR := Cart2Polar target in
@@ -358,7 +361,10 @@ Defined.
 
 
 (** 
-* Proving the correctness property 
+* Proving the correctness property. 
+
+We need to prove that in ALL POSSIBLE EXECUTIONS
+ of this cyber-physical system. 
 *)
 
 Variable ic : iCreate.
@@ -387,7 +393,7 @@ Ltac contra :=
   | [H: ~(assert true) |- _ ] => provefalse; apply H; reflexivity
   end.
 
-(** No Change at All from the train proof.
+(* No Change at All from the train proof.
     However, it was changed later when ROSCPS was simplified*)
 Lemma SwOnlyReceivesFromExt :   forall Es Er,
   isSendEvt Es
@@ -463,7 +469,7 @@ Proof.
   reflexivity.
 Qed.
 
-(** No Change at All from the train proof *)
+(* No Change at All from the train proof *)
 
 Lemma ExCMDOnlySendsToSw :   forall Es Er,
   isSendEvt Es
