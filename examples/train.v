@@ -414,7 +414,7 @@ Defined.
 
 
 Variable tstate : Train.
-Variable eo : (@PossibleEventOrder _  tstate minGap _ _ _ _ _ _ _ _ _).
+Variable eo : (@CPSExecution _  tstate minGap _ _ _ _ _ _ _ _ _).
 
 Definition  TrainSpec (t:Time) : Prop :=
     ((lEndPos tstate t) [-] safeDist [>=] lboundary )

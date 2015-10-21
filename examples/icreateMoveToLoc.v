@@ -368,7 +368,7 @@ We need to prove that in ALL POSSIBLE EXECUTIONS
 *)
 
 Variable ic : iCreate.
-Variable eo : (@PossibleEventOrder _  ic minGap _ _ _ _ _ _ _ _ _).
+Variable eo : (@CPSExecution _  ic minGap _ _ _ _ _ _ _ _ _).
 
 
 Lemma derivXNoMC : ∀ icr, isDerivativeOf (transVel icr[*] (CFCos (theta icr))) (X (position icr)).
