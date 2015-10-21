@@ -74,34 +74,15 @@ Context
   `{etype : @EventType _ _ _ Event tdeq }.
 
 
-Definition eTimeOp := 
-option_map eTime.
-
-
-Definition nthEvtBefore  (evs : nat -> option Event)
-  (t:  QTime) (n:nat) : bool :=
-match evs n with
-| Some ev => toBool (Qlt_le_dec (eTime ev) t)
-| None => false
-end.
-  
-
-Close Scope Q_scope.
-
-
-  
-
 (* Prop because the index is there in [ev] anyways *)
 Definition isSendEvt (ev: Event) : bool :=
   match (eKind ev) with
   | sendEvt _ => true
   | _ => false
   end.
-   
 
 Definition isSendEvtOp (ev: option Event) : bool :=
   opApPure isSendEvt false ev.
-
 
 
 Definition isDeqEvt (ev: Event) : bool :=
@@ -109,14 +90,6 @@ Definition isDeqEvt (ev: Event) : bool :=
   | deqEvt => true
   | _ => false
   end.
-
-Lemma DeqNotSend: forall ev,
-  isDeqEvt ev
-  → (~ isSendEvt ev).
-Proof.
-  unfold isDeqEvt, isSendEvt. intros ? Hd Hc.
-  destruct (eKind ev); try congruence.
-Qed.
 
 Definition isDeqEvtOp (ev: option Event) : bool :=
   opApPure isDeqEvt false ev.
@@ -133,52 +106,6 @@ match eKind ev with
  | _ => None
 end.
 
-Lemma deqSingleMessage : forall evD,
-  isDeqEvt evD
-  -> {m : Message |  m = eMesg evD ∧ (deqMesg evD = Some m)}.
-Proof.
-  intros ? Hd.
-  unfold isDeqEvt in Hd.
-  unfold deqMesg. destruct (eKind evD); try (inversion Hd; fail);[].
-  eexists; eauto.
-Defined.
-
-Lemma deqMesgSome : forall ev sm,
-    Some sm = deqMesg ev
-    -> isDeqEvt ev.
-Proof.
-  intros ? ? Heq.
-  unfold deqMesg in Heq.
-  unfold isDeqEvt.
-  destruct (eKind ev); auto;
-  inversion Heq. reflexivity.
-Qed.
-
-Lemma deqSingleMessage2 : forall evD m,
-  Some m = deqMesg evD
-  -> m = eMesg evD.
-Proof.
-  intros ? ? Hd. unfold deqMesg in Hd.
-  destruct (eKind evD); inversion Hd.
-  reflexivity.
-Defined.
-Lemma deqSingleMessage3 : forall evD,
-  isDeqEvt evD
-  -> (deqMesg evD = Some (eMesg evD)).
-Proof.
-  intros ? Hd.
-  unfold isDeqEvt in Hd.
-  unfold deqMesg. destruct (eKind evD); try (inversion Hd; fail);[].
-  eexists; eauto.
-Defined.
-
-Lemma moveMapInsideSome : forall tp lm,
-  opBind (getPayload tp)  (Some lm)
-  = (getPayloadR tp) (fst lm).
-Proof.
-  intros ?. destruct lm; reflexivity.
-Qed.
-
 
 
 Definition sentMesg (ev : Event) : option Message :=
@@ -192,107 +119,12 @@ Definition deqMesgOp := (opBind deqMesg).
 (* Definition sentMesgOp := (opBind sentMesg). *)
 
 
-Lemma deqIsRecvEvt : forall ev sm,
-    Some sm = deqMesg ev
-    -> isRecvEvt ev.
-Proof.
-  intros ? ? Heq.
-  unfold deqMesg in Heq.
-  unfold isRecvEvt, isDeqEvt.
-  destruct (eKind ev); auto;
-  inversion Heq. reflexivity.
-Qed.
-
-
 
 Definition getRecdPayload (tp : RosTopic) (ev : Event) 
   : option (topicType tp)  :=
 opBind (getPayload tp) (deqMesg ev).
 
-Lemma getRecdPayloadSpecDeq: 
-    forall tp ev tv,
-      getRecdPayload tp ev = Some tv
-      -> isDeqEvt ev.
-Proof.
-  intros ? ? ? Hp.
-  unfold getRecdPayload in Hp.
-  pose proof (deqSingleMessage ev) as Hs.
-  unfold isDeqEvt.
-  unfold isDeqEvt in Hs.
-  unfold deqMesg in Hp, Hs.
-  destruct (eKind ev); simpl in Hp; try discriminate;[].
-  eexists; eauto.
-Qed.
 
-Lemma getRecdPayloadSpecMsg: 
-    forall tp ev tv,
-      getRecdPayload tp ev = Some tv
-      -> getPayload tp (eMesg ev) = Some tv.
-Proof.
-  intros ? ? ? Hp.
-  unfold getRecdPayload in Hp.
-  pose proof (deqSingleMessage ev) as Hs.
-  unfold isDeqEvt.
-  unfold isDeqEvt in Hs.
-  unfold deqMesg in Hp, Hs.
-  destruct (eKind ev); simpl in Hp; try discriminate;[].
-   eauto.
-Qed.
-
-Lemma MsgEta: forall tp m pl,
- getPayload tp m = Some pl
-  -> π₁ m = (mkMesg tp pl).
-Proof.
-  unfold getPayload,getPayloadR. intros ? ? ? Heq.
-  destruct m as [m hdr]. destruct m as [x].
-  unfold mkMesg. simpl. simpl in Heq.
-  destruct (eqdec x tp);simpl in Heq; inversion Heq; subst; reflexivity.
-Qed.
-
-Require Import LibTactics.
-Lemma getRecdPayloadSpecMesg: forall tp ev tv,
-      getRecdPayload tp ev = Some tv
-      -> isDeqEvt ev ∧ π₁ (eMesg ev) = (mkMesg tp tv).
-Proof.
-  unfold getRecdPayload. intros ? ? ? Heq.
-  pose proof (deqMesgSome ev) as Hd.
-  remember (deqMesg ev) as dm.
-  destruct dm as [sm|]; [| inverts Heq; fail].
-  simpl in Heq. specialize (Hd _ eq_refl).
-  dands; [trivial; fail|].
-  apply deqSingleMessage in Hd.
-  destruct Hd as [mhd Hd].
-  repnd.
-  rewrite Hdr in Heqdm.
-  inverts Heqdm.
-  apply MsgEta in Heq. 
-  rewrite <- Hdl.
-  simpl. rewrite Heq.
-  reflexivity.
-Qed.
-
-
-Lemma isSendEvtIf : ∀ {ed deqIndex}, 
-    eKind ed = sendEvt deqIndex
-    -> isSendEvt ed.
-Proof.
-  intros ? ? Heq.
-  unfold isSendEvt.
-  destruct  (eKind ed); inversion Heq.
-  reflexivity.
-Qed.
-
-Lemma isDeqEvtIf : ∀ {ed}, 
-    eKind ed = deqEvt
-    -> isDeqEvt ed.
-Proof.
-  intros ? Heq.
-  unfold isDeqEvt.
-  destruct  (eKind ed); inversion Heq.
-  reflexivity.
-Qed.
-
-  
 Definition getRecdPayloadOp (tp : RosTopic) 
   : (option Event) ->  option (topicType tp)  :=
 opBind (getRecdPayload tp).
@@ -308,6 +140,7 @@ match oev with
 | None => None
 end.
 
+
 Fixpoint filterPayloadsUptoIndex (tp : RosTopic) (evs : nat -> option Event) 
     (numPrevEvts : nat) : list ((topicType tp) * Event):=
 match numPrevEvts with
@@ -322,28 +155,11 @@ end.
 Definition latestEvt (P : Event -> Prop) (ev : Event) :=
   P ev /\ (forall ev':Event, P ev' -> ((eTime ev') <= (eTime ev))%Q).
 
-Lemma latestEvtStr: forall  (PS P : Event -> Prop) (ev : Event),
-   PS ev
-   -> (forall ev, PS ev -> P ev)
-   -> latestEvt P ev
-   -> latestEvt PS ev.
-Proof.
-  intros ? ? ? Hp Him Hl.
-  split; [auto;fail|].
-  intros evp Hps. TrimAndLHS Hl.
-  specialize (Hl evp (Him _ Hps)).
-  trivial.
-Qed.
-
-
-
 Coercion is_true  : bool >-> Sortclass.
 
 
 
 Close Scope Q_scope.
-
-
 
 
 (** first event is innermost, last event is outermost.
@@ -372,24 +188,6 @@ Require Export Coq.Program.Basics.
 
 Open Scope program_scope.
   
-(** semantics where all outgoing messages resulting from processing
-    an event happen in a single send event (send once) *)
-Definition possibleDeqSendOncePair
-  (swNode : RosSwNode)
-  (locEvts: nat -> option Event)
-  (nd ns: nat) := 
-  match (locEvts nd, locEvts ns) with
-  | (Some evd, Some evs) => 
-    isDeqEvt evd ∧ isSendEvt evs ∧ nd < ns (* the last bit is redundant because of time *)
-    ∧ (eTime evd < eTime evs < (eTime evd) + (procTime swNode))%Q
-    ∧ let procEvts := prevProcessedEvents nd locEvts in
-      let procMsgs := map eMesg procEvts in
-      let lastProc := getNewProcL (process swNode) procMsgs in
-      (getDeqOutput lastProc (locEvts nd)) 
-        = opBind2 ((λ m, m::nil)∘ eMesg) (locEvts ns)
-  
-  | _ => False
-  end.
 
 Definition getDeqOutput2 (proc: Process Message (list Message))
   (ev : Event) : (list Message) :=
@@ -443,13 +241,6 @@ Definition possibleDeqSendOncePair2
     as soon as the message gets delivered *)
 
 
-Definition sendInfoStartIndex (ev: Event) : option nat :=
-match eKind ev with
-| sendEvt sinf => Some (startIndex sinf)
-| _ => None
-end.
-
-
 Definition RSwNodeSemanticsAux
   (swn : RosSwNode)
   (locEvts: nat -> option Event) :=
@@ -468,14 +259,7 @@ Definition RSwNodeSemanticsAux
     no send event takes place *)
 
 
-
 End EvtProps.
-(*
-Definition isSendOnTopic
-  (tp: RosTopic) (property : (topicType tp) -> Prop) (ev: Event) : Prop :=
-isSendEvt ev /\ 
-(opApPure property False (getPayload tp (eMesg ev))).
-*)
 
 Close Scope Q_scope.
 
@@ -536,33 +320,6 @@ Class CPS (RosLoc: Type)
 
    accDelDelay : RosLoc -> RosLoc -> Q -> Prop
 }.
-
-Lemma possibleDeqSendOncePair2_index : ∀ proc pt tacc evs m n si,
-  possibleDeqSendOncePair2 proc pt tacc evs m n si
-  → m < n.
-Proof.
-  intros ? ? ? ? ? ? ?  Hp.
-  unfold possibleDeqSendOncePair2 in Hp.
-  destruct (evs m), (evs n); simpl in Hp; try contradiction.
-  destruct (eKind e), (eKind e0); try contradiction.
-  repnd. omega.
-Qed.
-
-Lemma SwFirstMessageIsNotASend:  ∀ (swn : RosSwNode) pp evs ev,
-  SwSemantics swn pp evs
-  → evs 0 = Some ev
-  → ~ (isSendEvt ev).
-Proof.
-  intros ? ? ? ? Hrw Heq His.
-  specialize (Hrw 0).
-  rewrite Heq in Hrw.
-  simpl in Hrw.
-  apply π₁ in Hrw.
-  apply Hrw in His. clear Hrw.
-  destruct His as [m His]. destruct His as [si His].
-  apply possibleDeqSendOncePair2_index in His.
-  omega.
-Qed.
 
 
 End DeviceAndLoc.
