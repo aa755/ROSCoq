@@ -7,19 +7,21 @@ Require Import Psatz.
 
 
 Record SendEvtInfo := mkSendEvtInfo  {
-    (* index of the corresponding enq message which trigerred this processing *)
-    enqIndex : nat;
-    (** [startIndex] into the list of messages output by the process
-        on the message received at index [enqIndex]. In this send event,
-        some message starting at that index were sent *)
+(** 
+Currently, every send event is in response to a received message.
+As a response to every received message, a list messages (say [la]) can be sent,
+possibly at different times.
+Every send event sends a list of messages (say [ls]).
+This field for a send event denotes the index of the head of [ls] in [la].
+*)
     startIndex : nat
 }.
 
-(* received messages are enqued in a mailbox
-    and the dequed.
-    Should we add another event to mark the time when processing of an
-    event finished. Now, one has to compute this from the particular
-    s/w.
+(* 
+In future, received messages are enqued in a mailbox
+and then dequeued when its turn comes. There could be different queuing disciplines.
+Currently, a [deqEvt] denotes the start of processing of a received event.
+Queuing time at the destination is included in message delivery time of a message
  *)
 Inductive EventKind : Set := 
   | sendEvt (inf : SendEvtInfo) 
@@ -49,15 +51,20 @@ Class EventType (Event: Type)
  }.
 
 
-(** A device is a relation between how the assosiated (measured/actuated)
-    physical quantity changes over time and a trace of events
-    generated/consumed by the device.
-    The latter is represented by the type [(nat -> option Event)].
-    It will be obtained by plugging in a location in [localEvts] above.
-    
-    The type [(nat -> option Event)] needs to be specialized to indicate
-    facts that events are of same location and have increasing timestamps
-    Right now, a device property writer can assume that these hold. *)
+(** 
+A device is a relation between how the assosiated (measured/actuated)
+physical quantity changes over time and a trace of events (messages sent/received)
+at the device.
+The latter is represented by the type [(nat -> option Event)].
+
+[PhysQ] is the type denoting the evolution of physical quantities.
+
+The type [(nat -> option Event)] needs to be specialized to indicate
+facts that events are of same location and have increasing timestamps
+Right now, a device property writer can assume that these hold.
+
+For an example, see src/robots/icreate.v
+*)
 
 Definition Device `{EventType Event } (PhysQ : Type ) : Type :=
                   PhysQ
@@ -114,9 +121,7 @@ match eKind ev with
 | _ => None
 end.
 
-(* these notations have to be defined again at the end of the section *)
 Definition deqMesgOp := (opBind deqMesg).
-(* Definition sentMesgOp := (opBind sentMesg). *)
 
 
 
@@ -234,12 +239,13 @@ Definition possibleDeqSendOncePair2
   | _ => False
   end.
 
-(* When will the next deque happen? Assume webserver with
-    infinite threads. These start working as soon as a message
-    comes. Therefore, no enque event.
-    So, the answer is that the next deq happens
-    as soon as the message gets delivered *)
-
+(* 
+Our current assumption does not hold if too many messages are received too quicky.
+One workaround is to increase the upper upper bound on the message delivery time
+and its jitter.
+Recall that time spent by a message waiting for being processed by the s/w
+is included in deivery time.
+*)
 
 Definition RSwNodeSemanticsAux
   (swn : RosSwNode)
@@ -255,44 +261,43 @@ Definition RSwNodeSemanticsAux
         ni < length procMsgs
         → { m: nat |
               possibleDeqSendOncePair2 procMsgs procTime timeAcc locEvts n m ni}).
-(** If the functional process does not output anything,
+(** If the message handler does not output anything,
     no send event takes place *)
-
 
 End EvtProps.
 
 Close Scope Q_scope.
 
 Section DeviceAndLoc.
-(** [PhysicalEnvType] would typically represent how physical
+(** [PhysicalEvolutionType] would typically represent how the relevant physical
     quantities like temperature, position, velocity
      changed over time *)
 
-Context  {PhysicalEnvEvolutionType : Type}
+Context  {PhysicalEvolutionType : Type}
     `{rtopic : TopicClass RosTopic}
     `{evt : @EventType _ _ _ Event  tdeq}.
 
 
+(** 
+A device in a CPS typicall does not measure or influence
+all the physical quantities of the CPS.
+So, to define a device, one has to specity its view of the physics,
+typicall as a projection function, but sometimes more non-trivial.
+For example, if the system's [PhysicalEvolutionType] records
+a train's center's position, the proximity sensor on its
+RHS end sees [rightPlatformBoundary -(trainCenterPos + trainWidth/2)]
 
+For every device in a CPS, one must specify the type of its view ([PhysQ])
+a way to extract it from the whole system's physical evolution ([PhysicalEvolutionType]).
+*)
 
-   (** When one uses a device in a CPS, they must provide
-      a way to extract from the system's [PhysicalEnvType]
-      a function that represents the way physical quantity
-      measured/ controlled by devices changes.
-      
-      For example, if the system's [PhysicalEnvType] records
-      a train's center's position, the proximity sensor on its
-      RHS end sees [rightPlatformBoundary -(trainCenterPos + trainWidth/2)]
-
-    *)
-   
 Definition DeviceView (PhysQ : Type) :=
-    PhysicalEnvEvolutionType
+    PhysicalEvolutionType
     ->   PhysQ.
 
 
 Definition NodeSemantics  :=
-  PhysicalEnvEvolutionType
+  PhysicalEvolutionType
   -> (nat -> option Event)
   -> Type.
 
@@ -362,10 +367,10 @@ Class EventOrdering
     /\ (eLoc e1 = eLoc e2 
         -> minGap <= (Qabs ((eTime e1) - (eTime e2))))%Q;
 
-  (** remove this and change the type of [minGap] to [Qpos] *)
+  (* remove this and change the type of [minGap] to [Qpos] *)
   minGapPos : (0 < minGap)%Q;
 
-  (** While this definitely a sensible property, is it needed anywhere? *)
+  (* While this definitely a sensible property, is it needed anywhere? *)
   uniqueSendInfo :
     ∀ (si : SendEvtInfo) ev1 ev2,
       eLoc ev1 = eLoc ev2
@@ -385,8 +390,10 @@ Class EventOrdering
         causedBy e1 e2
         -> (eTime e1 < eTime e2)%Q;
 
-    causalWf : well_founded  causedBy
+    (* the properties below can probably be
+      derived from the ones above *)
 
+    causalWf : well_founded  causedBy
 }.
 
 Definition PossibleSendRecvPair (minGap:Q)
@@ -431,7 +438,7 @@ Record EOReliableDelivery (minGap:Q)
                   /\ causedBy Es Er /\ isSendEvt Es};
     noSpamRecv : forall ev, 
       isDeqEvt ev -> validRecvMesg (validTopics (eLoc ev)) (eMesg ev);
-      (* !FIX! change above to [isEnqEvt] *)
+      (* In future, change above to [isEnqEvt] *)
 
     orderRespectingDelivery : ∀ evs1 evs2 evr1 evr2,
       (eLoc evs1 = eLoc evs2)
@@ -441,9 +448,6 @@ Record EOReliableDelivery (minGap:Q)
       → causedBy evs2 evr2
       → (eLocIndex evs1 < eLocIndex evs2
          ↔ eLocIndex evr1 < eLocIndex evr2)
-
-    (* the stuff below can probably be
-      derived from the stuff above *)
 }.
 
 
