@@ -205,7 +205,7 @@ Definition mkTargetMsg  (q: Cart2D Q) : Message :=
 To be able to holistically reason about a CpS, we have to specify the collection
 of agents and the physical model of the cyber-physical system.
 One has to then specify the behavior of each agent in a mutually independent way.
-All of this is achieved by specifying an instance of [RosLocType].
+All of this is achieved by specifying an instance of [CPS].
 We will see how to build one for our example.
 First, we need a type to denote the collection of agents.
 Each member of the type below denotes an agent (vertical downward arrow) in the message
@@ -216,7 +216,7 @@ Also, below they appear in the same order as they appear in the figure above.
 Inductive RosLoc :=  MOVABLEBASE | SWNODE |  EXTERNALCMD .
 
 
-(**  Decidable equality is a requirement of the [RosLocType] typeclass *)
+(**  Decidable equality is a requirement of the [CPS] typeclass *)
 Scheme Equality for RosLoc.
 
 Global Instance rldeqdsjfklsajlk : DecEq RosLoc.
@@ -224,7 +224,7 @@ Global Instance rldeqdsjfklsajlk : DecEq RosLoc.
 Defined.
 
 (** 
-The typeclass [RosLocType] also needs a function that
+The typeclass [CPS] also needs a function that
 specifies the list of topics subscribed and published by each agent.
 A [TopicInfo] is a pair of lists. The first member is the list of subscribed
 topics. The second member is the list of published topics.
@@ -249,7 +249,7 @@ specify the behvior of each agent in a mutually independent way.
 However, the behavior of hardware devices such as sensors and actuators
 cannot be specified without modeling the evolution of the relevant physical
 quantities (e.g. the ones they measure or influence).
-The first argument of [RosLocType], which is implicit, a a type denoting
+The first argument of [CPS], which is implicit, a a type denoting
 the physical model of the cyber-physical system.
 As described in Sec. 2 of the 
 #<a href="http://www.cs.cornell.edu/~aa755/ROSCoq/ROSCOQ.pdf">ROSCoq paper</a>#,
@@ -352,8 +352,8 @@ Variable expectedDelivDelay : Qpos.
 Variable delivDelayVar : Qpos.
 
 
-Global Instance rllllfjkfhsdakfsdakh : @RosLocType PhysicalModel Topic Event  RosLoc _.
-  apply Build_RosLocType.
+Global Instance rllllfjkfhsdakfsdakh : @CPS PhysicalModel Topic Event  RosLoc _.
+  apply Build_CPS.
   - exact locNode.
   - exact locTopics.
   - exact (λ _ _ t , ball delivDelayVar t (QposAsQ expectedDelivDelay)).

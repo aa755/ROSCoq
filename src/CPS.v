@@ -1086,7 +1086,7 @@ Definition SwSemantics
 Record MessageDeliveryParams :=
 { expectedDelay : option QTime; maxVariation : QTime}.
 
-Class RosLocType (RosLoc: Type) 
+Class CPS (RosLoc: Type) 
      {rldeq : DecEq RosLoc} :=
 {
    locNode: RosLoc -> NodeSemantics;
@@ -1136,7 +1136,7 @@ Context  (PhysicalEnvType : Type)
   `{rtopic : TopicClass RosTopic} 
   `{dteq : Deq RosTopic}
  `{etype : @EventType _ _ _ Event LocT minGap tdeq }
-  `{rlct : @RosLocType PhysicalEnvType RosTopic Event LocT ldeq}.
+  `{rlct : @CPS PhysicalEnvType RosTopic Event LocT ldeq}.
 
 Close Scope Q_scope.
 

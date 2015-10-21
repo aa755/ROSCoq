@@ -404,8 +404,8 @@ match rl with
 | SWCONTROLLER => ((PSENSOR::nil), (MOTOR::nil))
 end.
 
-Instance rllllfjkfhsdakfsdakh : @RosLocType Train Topic Event  RosLoc _.
-  apply Build_RosLocType.
+Instance rllllfjkfhsdakfsdakh : @CPS Train Topic Event  RosLoc _.
+  apply Build_CPS.
   - exact locNode.
   - exact locTopics.
   - exact (fun srs dest del => (del <  1)%Q ).
