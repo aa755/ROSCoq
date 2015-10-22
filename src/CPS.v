@@ -273,8 +273,7 @@ Section DeviceAndLoc.
      changed over time *)
 
 Context  {PhysicalEvolutionType : Type}
-    `{rtopic : TopicClass RosTopic}
-    `{evt : @EventType _ _ _ Event  tdeq}.
+    `{rtopic : TopicClass RosTopic}.
 
 
 (** 
@@ -295,7 +294,8 @@ Definition DeviceView (PhysQ : Type) :=
     ->   PhysQ.
 
 
-Definition NodeSemantics  :=
+Definition NodeSemantics  := forall {Event:Type} 
+ {tdeq : DecEq Event} {_ : EventType Event},
   PhysicalEvolutionType
   -> (nat -> option Event)
   -> Type.
@@ -305,12 +305,12 @@ Definition DeviceSemantics
     (dview : DeviceView PhysQ)
     (dev : Device PhysQ)
      : NodeSemantics :=
- (fun penv evts => dev _ _ _ (dview penv) evts).
+ (fun Event tdeq evtype  penv evts => dev Event tdeq evtype (dview penv) evts).
 
 Definition SwSemantics
     (swn : RosSwNode)
        : NodeSemantics :=
- (fun penv evts => RSwNodeSemanticsAux  swn evts).
+ (fun Event tdeq evtype penv evts => RSwNodeSemanticsAux  swn evts).
 
 Record MessageDeliveryParams :=
 { expectedDelay : option QTime; maxVariation : QTime}.
@@ -403,7 +403,7 @@ Definition PossibleSendRecvPair (minGap:Q)
   {rtopic : @TopicClass Topic tdeq} 
   {etype : @EventType Topic tdeq rtopic Event edeq} 
   {_ : @EventOrdering Topic Event Loc minGap tdeq rtopic edeq etype}
-  {rlct : @CPS PhysicalEnvType Topic Event Loc ldeq}
+  {rlct : @CPS PhysicalEnvType Topic tdeq rtopic Loc ldeq}
   (Es  Er : Event) : Prop
  :=
    (fst (eMesg Es) = fst (eMesg Er))
@@ -422,7 +422,7 @@ Record EOReliableDelivery (minGap:Q)
   {rtopic : @TopicClass Topic tdeq} 
   {etype : @EventType Topic tdeq rtopic Event edeq} 
   {eo : @EventOrdering Topic Event Loc minGap tdeq rtopic edeq etype}
-  {rlct : @CPS PhysicalEnvType Topic Event Loc ldeq} :=
+  {rlct : @CPS PhysicalEnvType Topic tdeq rtopic  Loc ldeq} :=
 {
     eventualDelivery: forall (Es : Event),
           isSendEvt Es
@@ -453,30 +453,34 @@ Record EOReliableDelivery (minGap:Q)
 Section Global.
 
 Context  (minGap:Q)
-  {Topic Event Loc PhysicalEvType: Type}
+  {Topic Loc PhysicalEvType: Type}
   {tdeq : DecEq Topic}
-  {edeq : DecEq Event}
   {ldeq : DecEq Loc}
   {rtopic : @TopicClass Topic tdeq} 
-  {etype : @EventType Topic tdeq rtopic Event edeq} 
-  {rlct : @CPS PhysicalEvType Topic Event Loc ldeq}.
+  {rlct : @CPS PhysicalEvType Topic tdeq rtopic  Loc ldeq}.
 
 Close Scope Q_scope.
 
-
+(** use a namespace (module) for better field names*)
 Record CPSExecution  := {
   physicsEvolution : PhysicalEvType;
-  cpsEventOrdering :> @EventOrdering Topic Event Loc minGap tdeq rtopic edeq etype
+  CPSEvent : Type;
+  CPSedeq : DecEq CPSEvent;
+  CPSetype : @EventType Topic tdeq rtopic CPSEvent CPSedeq;
+  cpsEventOrdering :> @EventOrdering Topic CPSEvent Loc minGap tdeq rtopic CPSedeq CPSetype
 }.
 
 Definition NodeBehCorrect 
+{Event:Type} 
+{edeq : DecEq Event} {etype : EventType Event}
 {eo : @EventOrdering Topic Event Loc minGap tdeq rtopic edeq etype}
   (physics : PhysicalEvType) (l : Loc) : Type :=
-  (locNode l) physics (localEvts l).
+  (locNode l) Event edeq etype physics (localEvts l).
 
  
 Definition CPSExecutionValid (ce: CPSExecution) := 
-  forall l:Loc, @NodeBehCorrect (cpsEventOrdering ce) (physicsEvolution ce) l.
+  forall l:Loc, @NodeBehCorrect (CPSEvent ce) (CPSedeq ce) (CPSetype ce)
+(cpsEventOrdering ce) (physicsEvolution ce) l.
 
 
 
