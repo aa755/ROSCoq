@@ -21,6 +21,9 @@ Context
   {rtopic : @TopicClass Topic tdeq} 
   {etype : @EventType Topic tdeq rtopic Event edeq}.
 
+Definition onlyRecvEvts (evs : nat -> option Event) : Prop :=
+∀ n:nat, isDeqEvtOp (evs n).
+
 Definition eTimeOp := 
 	option_map eTime.
 

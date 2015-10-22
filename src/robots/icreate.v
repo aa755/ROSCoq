@@ -24,12 +24,13 @@ Require Export LibTactics.
 
 (** printing ' $ $ #'# *)
 
-Require Export Vector.
-Require Export CPS.
+Require Import Vector.
+Require Import CPS.
+Require Import CPSUtils.
 
-Require Export MathClasses.interfaces.canonical_names.
-Require Export MCInstances.
-Require Export CartCR.
+Require Import MathClasses.interfaces.canonical_names.
+Require Import MCInstances.
+Require Import CartCR.
 
 Definition initialVel : (Polar2D Q) := {|rad:=0; θ:=0|}.
 
@@ -74,36 +75,11 @@ Section HardwareAgents.
 
 Context 
   `{rtopic : TopicClass RosTopic} 
-  `{dteq : Deq RosTopic}
-  `{etype : @EventType _ _ _ Event LocT minGap tdeq}.
+  `{dteq : Deq RosTopic}.
   
 Variable VELOCITY : RosTopic.
 Hypothesis VelTOPICType : (topicType VELOCITY ≡ Polar2D Q).
 
-(*
-Definition getVelM   (m: Message) : option (Polar2D Q) :=
-  transport VelTOPICType (getPayload VELOCITY m).
-
-
-Definition getVelEv (e : Event) : option (Polar2D Q)  :=
-  getRecdPayload VELOCITY e.
-
-Definition getVelOEv : (option Event) ->  option (Polar2D Q)  :=
-getRecdPayloadOp VELOCITY.
-
-Definition getVelAndTime (oev : option Event) 
-    : option ((Polar2D Q) * Event)  :=
-  getPayloadAndEv VELOCITY oev.
-
-
-Definition inIntervalDuring
-  (interval: interval) (tStart tEnd : QTime)  (f : Time -> ℝ) : Prop :=
-  Squash (forall t : QTime, ( tStart <= t <= tEnd   -> (interval) (f t)))%Q.
-  
-Definition isEqualDuring
-  (vel: Q) (tStart tEnd : QTime)  (f : Time -> ℝ) : Prop :=
-  (forall t : QTime, ( tStart <= t <= tEnd   -> (f t) [=] vel))%Q.
-*)
 
 Variable reacTime : QTime.
 (** It is more sensible to change the type to [QNonNeg]
@@ -114,18 +90,6 @@ Variable motorPrec : Polar2D Q → Polar2D QTime.
 Hypothesis motorPrec0 : motorPrec {| rad :=0 ; θ :=0 |} ≡ {| rad :=0 ; θ :=0 |}.
   
 Close Scope Q_scope.
-
-
-(*
-Definition velocityMessages (t : QTime) :=
-  (filterPayloadsUptoTime VELOCITY (localEvts MOVABLEBASE) t).
-*)
-
-Definition latestVelPayloadAndTime
-  (evs : nat -> option Event) (t : QTime) : ((Polar2D Q) × QTime) :=
-(@transport _ _ _ (λ t, t -> t ** QTime) VelTOPICType 
-   (lastPayloadAndTime VELOCITY evs t)) initialVel.
-
 
 
 Definition correctVelDuring
@@ -148,6 +112,15 @@ Definition correctVelDuring
     reacTime 
     (θ (motorPrec lastVelCmd)).
 
+Context {minGap :Q}.
+Section LastVelocityMessage.
+Context `{etype : @EventType _ _ _ Event  tdeq}.
+
+Definition latestVelPayloadAndTime
+  (evs : nat -> option Event) (t : QTime) : ((Polar2D Q) × QTime) :=
+(@transport _ _ _ (λ t, t -> t ** QTime) VelTOPICType 
+   (lastPayloadAndTime minGap VELOCITY evs t)) initialVel.
+
 Definition corrSinceLastVel
   (evs : nat -> option Event)
   (uptoTime : QTime)
@@ -155,24 +128,23 @@ Definition corrSinceLastVel
 let (lastVel, lastTime) := latestVelPayloadAndTime evs uptoTime in
 correctVelDuring lastVel lastTime uptoTime robot.
 
+End LastVelocityMessage.
 
 Definition HwAgent  : Device iCreate :=
-λ (robot: iCreate) (evs : nat -> option Event) ,
+λ (Event:Type) 
+(tdeq : DecEq Event) (_ : EventType Event) (robot: iCreate) (evs : nat -> option Event) ,
   (∀ t: QTime, corrSinceLastVel evs t robot)
   ∧ ∀ n:nat, isDeqEvtOp (evs n).
 
-(* move to ROSCps*)
-Definition onlyRecvEvts (evs : nat -> option Event) : Prop :=
-∀ n:nat, isDeqEvtOp (evs n).
 
-(* delete the next 2 definitions *)
+
+(* partial simplified definition shown in the paper : 
 Definition eeev  a b : Q  :=
  (rad (motorPrec {|rad:= a; θ:= b|})).
 
 Definition eeew  a b : Q :=
  (θ (motorPrec {|rad:= a; θ:= b|})).
 
-(** partial simplified definition shown in the paper : *)
 Definition HwAgentP (ic: iCreate) (evs : nat -> option Event): Prop :=
 onlyRecvEvts evs ∧ ∀ t: QTime,
   let (lastCmd, tm ) := latestVelPayloadAndTime evs t in 
@@ -214,4 +186,5 @@ Proof.
   autorewrite with QSimpl in H.
   exact H.
 Qed.
+*)
 End HardwareAgents.
