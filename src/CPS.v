@@ -467,8 +467,33 @@ Record CPSExecution  := {
   CPSEvent : Type;
   CPSedeq : DecEq CPSEvent;
   CPSetype : @EventType Topic tdeq rtopic CPSEvent CPSedeq;
-  cpsEventOrdering :> @EventOrdering Topic CPSEvent Loc minGap tdeq rtopic CPSedeq CPSetype
+  CPSEventOrdering : @EventOrdering Topic CPSEvent Loc minGap tdeq rtopic CPSedeq CPSetype
 }.
+
+(** 
+Adding typeclass instances corresponding to the fields of the record type [CPSExecution]
+*)
+
+Section CPSExecutionTypeclasses.
+Variable ce : CPSExecution.
+
+Global Instance DecEqInstanceCPSEvent : DecEq (CPSEvent ce) := CPSedeq ce.
+Global Instance EventTypeInstanceCPSEvent : @EventType Topic tdeq 
+   rtopic (CPSEvent ce) (CPSedeq ce) 
+  := CPSetype  ce.
+Global Instance EventOrderingnInstanceCPSEvent : 
+  @EventOrdering Topic (CPSEvent ce) Loc minGap tdeq rtopic (CPSedeq ce) (CPSetype ce)
+  := CPSEventOrdering  ce.
+
+
+
+
+
+
+
+
+End CPSExecutionTypeclasses.
+
 
 Definition NodeBehCorrect 
 {Event:Type} 
@@ -480,7 +505,7 @@ Definition NodeBehCorrect
  
 Definition CPSExecutionValid (ce: CPSExecution) := 
   forall l:Loc, @NodeBehCorrect (CPSEvent ce) (CPSedeq ce) (CPSetype ce)
-(cpsEventOrdering ce) (physicsEvolution ce) l.
+(CPSEventOrdering ce) (physicsEvolution ce) l.
 
 
 

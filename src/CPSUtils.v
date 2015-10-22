@@ -7,6 +7,10 @@ Require Import Psatz.
 Require Import CPS.
 
 
+Lemma assertTrueAuto : assert true.
+reflexivity. Qed.
+
+Hint Resolve assertTrueAuto.
 
 Section EventProps.
 Context  
@@ -17,6 +21,33 @@ Context
   {rtopic : @TopicClass Topic tdeq} 
   {etype : @EventType Topic tdeq rtopic Event edeq}.
 
+Definition eTimeOp := 
+	option_map eTime.
+
+Lemma DeqNotSend: forall ev,
+  isDeqEvt ev
+  → (~ isSendEvt ev).
+Proof.
+  unfold isDeqEvt, isSendEvt. intros ? Hd Hc.
+  destruct (eKind ev); try congruence.
+Qed.
+
+
+
+Lemma isDeqEvtImplies : forall ev,
+  isDeqEvt ev -> eKind ev = deqEvt.
+Proof.
+  intros ev Hd.
+  unfold isDeqEvt in Hd.
+  destruct (eKind ev); try reflexivity; try discriminate.
+Qed.
+
+
+Definition eTimeDef0 (oev : option Event) : QTime :=
+match oev with
+| Some ev => eTime ev
+| None => mkQTime 0 I
+end.
 
 Definition nthEvtBefore  (evs : nat -> option Event)
   (t:  QTime) (n:nat) : bool :=
@@ -38,7 +69,7 @@ Proof.
 Qed.
 
 Lemma SwFirstMessageIsNotASend:  ∀ (PE: Type) (swn : RosSwNode) pp evs ev,
-  @SwSemantics PE _ _ _ _ _ _ swn pp evs
+  @SwSemantics PE _ _ _ swn _ _  _ pp evs
   → evs 0 = Some ev
   → ~ (isSendEvt ev).
 Proof.
@@ -248,13 +279,6 @@ Qed.
 
 
 
-Lemma DeqNotSend: forall ev,
-  isDeqEvt ev
-  → (~ isSendEvt ev).
-Proof.
-  unfold isDeqEvt, isSendEvt. intros ? Hd Hc.
-  destruct (eKind ev); try congruence.
-Qed.
 
 
 
@@ -279,7 +303,7 @@ Proof.
   unfold deqMesg in Heq.
   unfold isDeqEvt.
   destruct (eKind ev); auto;
-  inversion Heq. reflexivity.
+  inversion Heq.
 Qed.
 
 Lemma deqSingleMessage2 : forall evD m,
@@ -318,7 +342,7 @@ Proof.
   unfold deqMesg in Heq.
   unfold isRecvEvt, isDeqEvt.
   destruct (eKind ev); auto;
-  inversion Heq. reflexivity.
+  inversion Heq.
 Qed.
 
 
@@ -695,65 +719,113 @@ Close Scope Q_scope.
 Set Implicit Arguments.
 
 
-(** Continue refeactoring*)
 
 Section EOProps.
-Variable eo : PossibleEventOrder.
+Context  (minGap:Q)
+  {Topic Event Loc PhysicalEvType: Type}
+  {tdeq : DecEq Topic}
+  {edeq : DecEq Event}
+  {ldeq : DecEq Loc}
+  {rtopic : @TopicClass Topic tdeq} 
+  {etype : @EventType Topic tdeq rtopic Event edeq} 
+  {eo : @EventOrdering Topic Event Loc minGap tdeq rtopic edeq etype}.
 
-Definition  NoDuplicateDelivery : Prop := ∀ evs evr1 evr2,
+Lemma  sameELoc : forall loc nd ns ed es,
+  localEvts loc nd = Some ed 
+  -> localEvts loc ns = Some es
+  -> eLoc ed = eLoc es.
+Proof.
+  intros ? ? ? ? ? H1l H2l.
+  apply locEvtIndex in H1l.
+  apply locEvtIndex in H2l.
+  repnd. congruence.
+Qed.
+
+Definition  NoDuplicateDelivery : Prop := ∀ (evs evr1 evr2 : Event),
       (eLoc evs ≠ eLoc evr1)
       → (eLoc evr1 = eLoc evr2) (* multicast is allowed*)
-      → causedBy eo evs evr1
-      → causedBy eo evs evr2
+      → causedBy evs evr1
+      → causedBy evs evr2
       → evr1 = evr2.
+
+
+Lemma  sameLocCausal : forall loc nd ns ed es,
+  localEvts loc nd = Some ed 
+  -> localEvts loc ns = Some es
+  -> nd < ns
+  -> causedBy ed es.
+Proof.
+  intros ? ? ? ? ? H1l H2l Hlt.
+  pose proof H2l as H2lb.
+  eapply (sameELoc _ nd ns) in H2l; eauto.
+  apply (localCausal) in H2l.
+  apply H2l.
+  apply locEvtIndex in H1l.
+  apply locEvtIndex in H2lb.
+  repnd. congruence.
+Qed.
+
+Definition holdsUptoNextEvent (prp : Time -> ℝ -> Prop)
+  (phys : Time -> ℝ)
+  (evs : nat -> option Event) (n: nat) :=
+  let otn := eTimeOp (evs n) in
+  let otsn := eTimeOp (evs (S n)) in
+  match otn with
+  |  Some tn => 
+      let Tintvl := nextInterval tn otsn in
+      forall t: Time,  (Tintvl) t -> prp t (phys t)
+  | None => True
+  end.
+
+Section ReliableDeliveryProps.
+Context {rlct : @CPS PhysicalEvType Topic tdeq rtopic  Loc ldeq}
+   {e : @EOReliableDelivery minGap Topic Event Loc PhysicalEvType 
+   tdeq _ ldeq rtopic _ _ _}.
 
 Lemma noDuplicateDelivery : NoDuplicateDelivery.
 Proof.
-  pose proof (orderRespectingDelivery eo) as Hord.
   unfold NoDuplicateDelivery.
   intros ? ? ? Hneq Heq H1c H2c.
   pose proof (lt_eq_lt_dec (eLocIndex evr1) (eLocIndex evr2)) as Htric.
   destruct Htric as[Htric| Htric];
     [ destruct Htric as[Htric| Htric]|].
-- specialize (Hord evs evs evr1 evr2 eq_refl Heq Hneq H1c H2c).
+- pose proof (orderRespectingDelivery e evs evs evr1 evr2 eq_refl Heq Hneq H1c H2c) as Hord.
   apply Hord in Htric.
   omega.
 - eauto using indexDistinct.
 - symmetry in Heq.
-  specialize (λ hn, Hord evs evs evr2 evr1 eq_refl Heq hn H2c H1c).
+  pose proof (λ hn, orderRespectingDelivery e evs evs evr2 evr1 eq_refl Heq hn H2c H1c) as Hord.
   apply Hord in Htric;[ | congruence].
   omega.
 Qed.
 
-Lemma orderRespectingDeliverySR:  ∀ evs1 evs2 evr1 evr2,
+Lemma orderRespectingDeliverySR:  ∀ (evs1 evs2 evr1 evr2 : Event),
       (eLoc evs1 = eLoc evs2)
       → (eLoc evr1 = eLoc evr2)
       → (eLoc evs1 ≠ eLoc evr1)
-      → causedBy eo evs1 evr1
-      → causedBy eo evs2 evr2
+      → causedBy evs1 evr1
+      → causedBy evs2 evr2
       → eLocIndex evs1 < eLocIndex evs2
       → eLocIndex evr1 < eLocIndex evr2.
 Proof.
   intros.
-  pose proof (orderRespectingDelivery eo) as Hord.
-  rewrite <- Hord; eauto.
+  rewrite <- (orderRespectingDelivery e); eauto.
 Qed.
 
 Lemma orderRespectingDeliveryRS:  ∀ evs1 evs2 evr1 evr2,
       (eLoc evs1 = eLoc evs2)
       → (eLoc evr1 = eLoc evr2)
       → (eLoc evs1 ≠ eLoc evr1)
-      → causedBy eo evs1 evr1
-      → causedBy eo evs2 evr2
+      → causedBy evs1 evr1
+      → causedBy evs2 evr2
       → eLocIndex evr1 < eLocIndex evr2
       → eLocIndex evs1 < eLocIndex evs2.
 Proof.
   intros.
-  pose proof (orderRespectingDelivery eo) as Hord.
-  rewrite  Hord; eauto.
+  rewrite (orderRespectingDelivery e); eauto.
 Qed.
 
-End EOProps.  
+End ReliableDeliveryProps.
 
 Lemma PureProcDeqSendOncePair : forall ns nd TI TO qt qac loc
     (sp : SimplePureProcess TI TO),
@@ -817,29 +889,12 @@ Proof.
     [| apply False_rect; apply Hneq; reflexivity].
   inversion Hnc.
   simpl.
-  pose proof (@UIPReflDeq RosTopic _ _ Heq) as Heqr.
+  pose proof (@UIPReflDeq Topic _ _ Heq) as Heqr.
   rewrite Heqr.
   simpl. reflexivity.
 Qed.
 
-Lemma isDeqEvtImplies : forall ev,
-  isDeqEvt ev -> eKind ev = deqEvt.
-Proof.
-  intros ev Hd.
-  unfold isDeqEvt in Hd.
-  destruct (eKind ev); try reflexivity; try discriminate.
-Qed.
 
-Lemma assertTrueAuto : assert true.
-reflexivity. Qed.
-
-Hint Resolve assertTrueAuto.
-
-Definition eTimeDef0 (oev : option Event) : QTime :=
-match oev with
-| Some ev => eTime ev
-| None => mkQTime 0 I
-end.
 
 Local  Notation π₁ := fst.
 Local  Notation π₂ := snd.
@@ -874,7 +929,8 @@ Proof.
   remember ((evs nd)) as oevd.
   destruct oevd as [evd|]; inverts Hrcd as Hcrd.
   simpl in Hrs.
-  assert (isDeqEvt evd) as Hdeqd by eauto using getRecdPayloadSpecDeq.
+  (** the line below takes inf. time *)
+  assert (isDeqEvt evd) as Hdeqd by eauto 1 using getRecdPayloadSpecDeq.
   specialize (Hrs Hdeqd).
   unfold procOutMsgs in Hrs.
   rewrite <- Heqoevd in Hrs.
@@ -901,49 +957,7 @@ Proof.
   clear Hrsrrl.
   simpl. rewrite Hrsrl. assumption.
 Qed.
-    
 
-Lemma  sameELoc : forall loc nd ns ed es,
-  localEvts loc nd = Some ed 
-  -> localEvts loc ns = Some es
-  -> eLoc ed = eLoc es.
-Proof.
-  intros ? ? ? ? ? H1l H2l.
-  apply locEvtIndex in H1l.
-  apply locEvtIndex in H2l.
-  repnd. congruence.
-Qed.
-
-Lemma  sameLocCausal : forall eo loc nd ns ed es,
-  localEvts loc nd = Some ed 
-  -> localEvts loc ns = Some es
-  -> nd < ns
-  -> causedBy eo ed es.
-Proof.
-  intros ? ? ? ? ? ? H1l H2l Hlt.
-  pose proof H2l as H2lb.
-  eapply (sameELoc _ nd ns) in H2l; eauto.
-  apply (localCausal eo) in H2l.
-  apply H2l.
-  apply locEvtIndex in H1l.
-  apply locEvtIndex in H2lb.
-  repnd. congruence.
-Qed.
-
-    
-
-Definition holdsUptoNextEvent (prp : Time -> ℝ -> Prop)
-  (phys : Time -> ℝ)
-  (evs : nat -> option Event) (n: nat) :=
-  let otn := eTimeOp (evs n) in
-  let otsn := eTimeOp (evs (S n)) in
-  match otn with
-  |  Some tn => 
-      let Tintvl := nextInterval tn otsn in
-      forall t: Time,  (Tintvl) t -> prp t (phys t)
-  | None => True
-  end.
 
 End Global.
 
-Hint Resolve assertTrueAuto.
