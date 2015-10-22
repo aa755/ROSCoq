@@ -66,7 +66,8 @@ Right now, a device property writer can assume that these hold.
 For an example, see src/robots/icreate.v
 *)
 
-Definition Device `{EventType Event } (PhysQ : Type ) : Type :=
+Definition Device  (PhysQ : Type ) : Type := forall {Event:Type} 
+{tdeq : DecEq Event} {_ : EventType Event},
                   PhysQ
                   -> (nat -> option Event)
                   -> Prop.
@@ -304,9 +305,9 @@ Definition NodeSemantics  :=
 Definition DeviceSemantics
     {PhysQ : Type}
     (dview : DeviceView PhysQ)
-    (inpDev : Device PhysQ)
+    (dev : Device PhysQ)
      : NodeSemantics :=
- (fun penv evts => inpDev (dview penv) evts).
+ (fun penv evts => dev _ _ _ (dview penv) evts).
 
 Definition SwSemantics
     (swn : RosSwNode)
