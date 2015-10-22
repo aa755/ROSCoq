@@ -8,17 +8,52 @@ Require Import CPS.
 
 
 
-Section EventOrderingProps.
-Context  (minGap:Q)
+Section EventProps.
+Context  
   {Topic Event Loc PhysicalEnvType: Type}
   {tdeq : DecEq Topic}
   {edeq : DecEq Event}
   {ldeq : DecEq Loc}
   {rtopic : @TopicClass Topic tdeq} 
-  {etype : @EventType Topic tdeq rtopic Event edeq} 
-  {eo : @EventOrdering Topic Event Loc minGap tdeq rtopic edeq etype}.
+  {etype : @EventType Topic tdeq rtopic Event edeq}.
 
 
+Definition nthEvtBefore  (evs : nat -> option Event)
+  (t:  QTime) (n:nat) : bool :=
+match evs n with
+| Some ev => toBool (Qlt_le_dec (eTime ev) t)
+| None => false
+end.
+  
+
+Lemma possibleDeqSendOncePair2_index : ∀ proc pt tacc evs m n si,
+  possibleDeqSendOncePair2 proc pt tacc evs m n si
+  → m < n.
+Proof.
+  intros ? ? ? ? ? ? ?  Hp.
+  unfold possibleDeqSendOncePair2 in Hp.
+  destruct (evs m), (evs n); simpl in Hp; try contradiction.
+  destruct (eKind e), (eKind e0); try contradiction.
+  repnd. omega.
+Qed.
+
+Lemma SwFirstMessageIsNotASend:  ∀ (PE: Type) (swn : RosSwNode) pp evs ev,
+  @SwSemantics PE _ _ _ _ _ _ swn pp evs
+  → evs 0 = Some ev
+  → ~ (isSendEvt ev).
+Proof.
+  intros ? ? ? ? ? Hrw Heq His.
+  specialize (Hrw 0).
+  rewrite Heq in Hrw.
+  simpl in Hrw.
+  apply π₁ in Hrw.
+  apply Hrw in His. clear Hrw.
+  destruct His as [m His]. destruct His as [si His].
+  apply possibleDeqSendOncePair2_index in His.
+  omega.
+Qed.
+
+Context (minGap:Q) {eo : @EventOrdering Topic Event Loc minGap tdeq rtopic edeq etype}.
 
 
 Definition locEvtIndexRW :=
@@ -28,13 +63,6 @@ Definition locEvtIndexRW :=
 Definition searchBound  (t:  QTime) : nat :=
   Z.to_nat (Qround.Qceiling (t/minGap)).
 
-Definition nthEvtBefore  (evs : nat -> option Event)
-  (t:  QTime) (n:nat) : bool :=
-match evs n with
-| Some ev => toBool (Qlt_le_dec (eTime ev) t)
-| None => false
-end.
-  
 Definition numPrevEvts 
   (evs : nat -> option Event) (t:  QTime) : nat :=
 match (search (searchBound t) (nthEvtBefore evs t)) with
@@ -69,7 +97,7 @@ Proof.
   pose proof (minGapPos).
   apply Qlt_shift_div_l; auto.
   symmetry in Heqn.
-  pose proof (localIndexDense loc (S n) ev n) as Hd.
+  pose proof (@localIndexDense _ _ _ _ _ _ _ _ _ loc (S n) ev n) as Hd.
   DestImp Hd; [| auto].
   DestImp Hd; [| auto].
   destruct Hd as [evp Hd].
@@ -195,7 +223,7 @@ Proof.
   apply (Qlt_irrefl (eTime ev)).
   apply Hsl. omega.
 - symmetry in Hin.
-  pose proof (localIndexDense _ _ ev enp 
+  pose proof (@localIndexDense _ _ _ _ _ _ _ _ _  _ _ ev enp 
     (conj Hl Hin) (lt_n_Sn enp)) as Hld.
   destruct Hld as [evp Hld].
   repnd. symmetry in Hldr.
@@ -218,24 +246,7 @@ Proof.
   apply Hs.
 Qed.
 
-(* Prop because the index is there in [ev] anyways *)
-Definition isSendEvt (ev: Event) : bool :=
-  match (eKind ev) with
-  | sendEvt _ => true
-  | _ => false
-  end.
-   
 
-Definition isSendEvtOp (ev: option Event) : bool :=
-  opApPure isSendEvt false ev.
-
-
-
-Definition isDeqEvt (ev: Event) : bool :=
-  match (eKind ev) with
-  | deqEvt => true
-  | _ => false
-  end.
 
 Lemma DeqNotSend: forall ev,
   isDeqEvt ev
@@ -245,48 +256,10 @@ Proof.
   destruct (eKind ev); try congruence.
 Qed.
 
-Definition isDeqEvtOp (ev: option Event) : bool :=
-  opApPure isDeqEvt false ev.
 
-
-Definition isRecvEvt := isDeqEvt.
 
 Close Scope Q_scope.
 
-(* FIFO queue axiomatization 
-Fixpoint CorrectFIFOQueueUpto   (upto : nat)
-    (locEvts: nat -> option Event) :  Prop * list Message :=
-match upto with
-| 0 => (True, nil)
-| S upto' =>
-    let (pr, queue) := CorrectFIFOQueueUpto upto' locEvts in
-    match locEvts upto' with
-    | None => (pr, queue)
-    | Some ev => 
-          match (eKind ev) with
-          | sendEvt _ => (pr,queue)
-          | enqEvt =>  (pr, enqueueAll (eMesg ev) queue)
-          | deqEvt _ => 
-              let (el, newQueue) := dequeue queue in
-              match el with
-              | None => (False, queue)
-              | Some mesg => (pr /\ (mesg::nil) = (eMesg ev), newQueue)
-               end
-          end
-    end
-end.
-
-
-Definition CorrectFIFOQueue    :  Prop :=
-forall (l: LocT)
- (upto : nat), fst (CorrectFIFOQueueUpto upto (localEvts l)).
-*)
-
-Definition deqMesg (ev : Event): option Message :=
-match eKind ev with
- | deqEvt => Some (eMesg ev)
- | _ => None
-end.
 
 Lemma deqSingleMessage : forall evD,
   isDeqEvt evD
@@ -317,6 +290,7 @@ Proof.
   destruct (eKind evD); inversion Hd.
   reflexivity.
 Defined.
+
 Lemma deqSingleMessage3 : forall evD,
   isDeqEvt evD
   -> (deqMesg evD = Some (eMesg evD)).
@@ -336,17 +310,6 @@ Qed.
 
 
 
-Definition sentMesg (ev : Event) : option Message :=
-match eKind ev with
-| sendEvt _ =>  Some (eMesg ev)
-| _ => None
-end.
-
-(* these notations have to be defined again at the end of the section *)
-Definition deqMesgOp := (opBind deqMesg).
-(* Definition sentMesgOp := (opBind sentMesg). *)
-
-
 Lemma deqIsRecvEvt : forall ev sm,
     Some sm = deqMesg ev
     -> isRecvEvt ev.
@@ -360,9 +323,6 @@ Qed.
 
 
 
-Definition getRecdPayload (tp : RosTopic) (ev : Event) 
-  : option (topicType tp)  :=
-opBind (getPayload tp) (deqMesg ev).
 
 Lemma getRecdPayloadSpecDeq: 
     forall tp ev tv,
@@ -447,37 +407,11 @@ Proof.
   reflexivity.
 Qed.
 
-  
-Definition getRecdPayloadOp (tp : RosTopic) 
-  : (option Event) ->  option (topicType tp)  :=
-opBind (getRecdPayload tp).
-
-
-Definition getPayloadAndEv  (tp : RosTopic) (oev : option Event) 
-    : option ((topicType tp) * Event)  :=
-match oev with
-| Some ev => match getRecdPayload tp ev with
-             | Some vq => Some (vq, ev)
-             | None => None
-             end
-| None => None
-end.
-
-Fixpoint filterPayloadsUptoIndex (tp : RosTopic) (evs : nat -> option Event) 
-    (numPrevEvts : nat) : list ((topicType tp) * Event):=
-match numPrevEvts with
-| 0 => nil
-| S numPrevEvts' => match getPayloadAndEv tp (evs numPrevEvts') with
-          | Some pr => pr::(filterPayloadsUptoIndex tp evs numPrevEvts')
-          | None => filterPayloadsUptoIndex tp evs numPrevEvts'
-           end
-end.
-
-Definition filterPayloadsUptoTime (tp : RosTopic)
+Definition filterPayloadsUptoTime (tp : Topic)
   (evs : nat -> option Event) (t : QTime) : list ((topicType tp) * Event):=
 filterPayloadsUptoIndex tp evs (numPrevEvts evs t).
 
-Definition lastPayloadAndTime (tp : RosTopic)
+Definition lastPayloadAndTime (tp : Topic)
   (evs : nat -> option Event) (upto : QTime) (defPayL : (topicType tp))
     :((topicType tp) × QTime):=
 hd (defPayL,mkQTime 0 I)
@@ -681,7 +615,7 @@ Proof.
 Qed.
 
 
-Coercion is_true  : bool >-> Sortclass.
+(* Coercion is_true  : bool >-> Sortclass. *)
 
 Lemma filterPayloadsTimeLatest : forall tp loc (t:QTime) mev ll,
   (mev::ll = filterPayloadsUptoTime tp (localEvts loc) t)
@@ -704,133 +638,6 @@ Proof.
   destruct Hc as [Hc | Hc]; subst; eauto 3 with *.
 Qed.
 
-
-(*
-Lemma filterPayloadsSpec : forall tp loc m lm  t,
-   (m::lm = filterPayloadsUptoTime tp (localEvts loc) t)
-  -> sig (fun ev=> (eMesg ev) = ((mkMesg _ (fst m))::nil)
-                /\ latestEvt (fun ev' => eTime ev' < t) ev
-                /\ eTime ev = (snd m)
-                /\ lm = filterPayloadsUptoTime tp (localEvts loc) (snd m)
-                /\ eLoc ev = loc
-                /\ isDeqEvt ev).
-Proof.
-  intros ? ? ? ? ? Heq.
-  
-*)
-Close Scope Q_scope.
-
-
-(*
-Lemma queueContents : forall  (locEvts: nat -> option Event)
-     (upto : nat),
-   let (prp, queue) := CorrectFIFOQueueUpto upto locEvts  in
-   prp ->
-   forall m, In m queue -> exists n,
-   n< upto /\ (Some m = enqMesgOp (locEvts n)).
-Proof.
-  induction upto as [| upto' Hind];
-  [simpl; tauto| ].
-  simpl.
-  destruct (CorrectFIFOQueueUpto upto' locEvts)
-    as [prp queue].
-  remember (locEvts upto') as lev.
-  destruct lev as [ev|]; auto;  
-    [| Parallel Hind; destruct Hind; split; trivial; omega].
-  remember (eKind ev) as evk.
-  destruct evk; 
-    [Parallel Hind; destruct Hind; split; trivial; omega | |].
-  - parallelForall Hind. intros m Hin.
-    unfold enqueue, enqueueAll in Hin.
-    simpl in Hin. apply in_app_or in Hin.
-    destruct Hin as [Hin| Hin].
-    + exists upto'. rewrite <- Heqlev.
-      simpl. unfold enqMesg. rewrite <- Heqevk. split; auto; try omega.
-      eapply evEnqHead; eauto.
-    + apply Hind in Hin.
-      Parallel Hin; destruct Hin; split; trivial; omega.
-  - unfold dequeue. remember (rev queue) as revq.
-    destruct revq as [| revh revt]; intro Hf;
-        [contradiction|].
-    destruct Hf as [Hfp H99]. specialize (Hind Hfp).
-    clear H99. parallelForall Hind.
-    rewrite in_rev in Hind.
-    rewrite <- Heqrevq in Hind.
-    simpl in Hind.
-    intro Hin. rewrite <- in_rev  in Hin.
-    specialize (Hind (or_intror Hin)).
-    Parallel Hind; destruct Hind; split; trivial; omega.
-Qed.
-
-Lemma deqEnq : CorrectFIFOQueue
-  -> ∀ (l: LocT) (deqIndex : nat),
-    match deqMesgOp (localEvts l deqIndex) with
-    | None => True
-    | Some m => ∃ evEnq,(eLocIndex evEnq) < deqIndex ∧
-              (m::nil = eMesg evEnq) ∧ eKind evEnq = enqEvt
-              /\ eLoc evEnq = l
-     end.
-Proof.
- intros Hc l dn. unfold deqMesgOp. specialize (Hc l).
- destruct dn.
-- specialize (Hc 1).
-  simpl in Hc.
-  destruct (localEvts l 0) as [ev|] ;auto.
-  unfold deqMesg. simpl.
-  destruct (eKind ev); simpl in Hc; tauto.
-- specialize (Hc (S (S dn))). 
-  remember (S dn) as sdn.
-  simpl in Hc.
-  pose proof  (queueContents (localEvts l) sdn) as Hdq.
-  destruct  (CorrectFIFOQueueUpto sdn (localEvts l))
-      as [prp que].
-  destruct (localEvts l sdn) as [ev|]; simpl;[|tauto].
-  unfold deqMesg. destruct (eKind ev); try tauto;[].
-  pose proof (dequeueIn que) as Hqin.
-  destruct (dequeue que) as [oqm  ].
-  destruct oqm;simpl in Hc; [| contradiction].
-  destruct Hc as [Hcp Heq]. rewrite <- Heq.
-  specialize (Hdq Hcp m Hqin). clear Hqin.
-  clear Heq.
-  destruct Hdq as [n Hdq]. clear ev.
-  remember (localEvts l n) as oev.
-  destruct Hdq as [Hlt Heq].
-  unfold enqMesg in Heq.
-  destruct oev as [ev |];[| inversion Heq; fail].
-  exists ev.
-  symmetry in Heqoev.
-  apply locEvtIndex in Heqoev.
-  destruct Heqoev as [? Heqq]. simpl in Heq. unfold enqMesg in Heq.
-  pose proof (enQDeq1Mesg ev) as XX.  
-  destruct (eKind ev);  inversion Heq as [Heqm]; 
-  clear Heq. split; auto;[rewrite  Heqq; trivial|].
-  split; auto.
-  destruct (eMesg ev); simpl in XX; inversion XX.
-  destruct l1; inversion H1.
-  simpl in Heqm. inversion Heqm. reflexivity.
-Qed.
-*)
-
-
-(** first event is innermost, last event is outermost.
-    only events earleir than m^th are elegible *)
-Fixpoint prevProcessedEvents (m : nat)
-  (locEvents : nat -> option Event) : list Event :=
-  match m with
-  | 0 => nil
-  | S m' => (match locEvents m' with
-              | Some ev => match (eKind ev) with
-                            | deqEvt => (ev)::nil
-                            | _ => nil
-                            end
-              | None => nil (* this will never happen *)
-             end
-            )++ (prevProcessedEvents m' locEvents)
-  end.
-
-Definition getDeqOutput (proc: Process Message (list Message))
-  (ev : option Event) : option (list Message) :=
-  opBind2 (getOutput proc) (deqMesgOp ev).
 
 Close Scope Q_scope.
 
@@ -857,56 +664,14 @@ Definition possibleDeqSendOncePair
   | _ => False
   end.
 
-Definition getDeqOutput2 (proc: Process Message (list Message))
-  (ev : Event) : (list Message) :=
-    (getOutput proc) (eMesg ev).
-
 Local  Notation π₁ := fst.
 Local  Notation π₂ := snd.
 
-Definition minDelayForIndex (lm : list Message) (index : nat) : Q :=
-  let delays := map (delay ∘ (π₂)) (firstn (S index) lm) in
-  fold_right Qplus 0 delays.
-
-Definition procOutMsgs
-  (swNode : RosSwNode)
-  (locEvts: nat -> option Event)
-  (nd : nat) : list Message := 
-    let procEvts := prevProcessedEvents nd locEvts in
-    let procMsgs := map eMesg procEvts in
-    let lastProc := getNewProcL (process swNode) procMsgs in
-    match (locEvts nd) with
-    | Some evd => (getDeqOutput2 lastProc evd)
-    | None => nil
-    end.
 
 Require Import CoRN.model.metric2.Qmetric.
 Open Scope mc_scope.
-Definition possibleDeqSendOncePair2
-  (procOutMsgs : list Message)
-  (procTime : QTime)
-  (timingAcc : Qpos)
-  (locEvts: nat -> option Event)
-  (nd ns sindex : nat) := 
-  match (locEvts nd, locEvts ns) with
-  | (Some evd, Some evs) =>
-      match (eKind evd, eKind evs) with
-      | (deqEvt, sendEvt sinf) =>
-            let minDelay := (minDelayForIndex procOutMsgs (startIndex sinf)) in
-              ns = (S nd) + sindex
-              ∧ sindex = (startIndex sinf)
-              ∧ Some (eMesg evs) = (nth_error procOutMsgs sindex)
-              ∧ ball timingAcc (eTime evd + minDelay + procTime)%Q (QT2Q (eTime evs))
-      | (_,_) => False
-      end
-  | _ => False
-  end.
 
-(* When will the next deque happen? Assume webserver with
-    infinite threads. These start working as soon as a message
-    comes. Therefore, no enque event.
-    So, the answer is that the next deq happens
-    as soon as the message gets delivered *)
+
 
 
 Definition sendInfoStartIndex (ev: Event) : option nat :=
@@ -916,26 +681,8 @@ match eKind ev with
 end.
 
 
-Definition RSwNodeSemanticsAux
-  (swn : RosSwNode)
-  (locEvts: nat -> option Event) :=
-  let procTime := procTime swn in
-  let timeAcc := timingAcc swn in
-  ∀ n : nat, 
-      (isSendEvtOp (locEvts n) 
-       → {m : nat| {si : nat | let procMsgs := (procOutMsgs swn locEvts m) in
-            possibleDeqSendOncePair2 procMsgs procTime timeAcc locEvts m n si}})
-    × (isDeqEvtOp (locEvts n)
-      → ∀ (ni : nat), let procMsgs:= (procOutMsgs swn locEvts n) in
-        ni < length procMsgs
-        → { m: nat |
-              possibleDeqSendOncePair2 procMsgs procTime timeAcc locEvts n m ni}).
-(** If the functional process does not output anything,
-    no send event takes place *)
 
-
-
-End EvtProps.
+End EventProps.
 (*
 Definition isSendOnTopic
   (tp: RosTopic) (property : (topicType tp) -> Prop) (ev: Event) : Prop :=
@@ -945,173 +692,10 @@ isSendEvt ev /\
 
 Close Scope Q_scope.
 
-Section DeviceAndLoc.
-(** [PhysicalEnvType] would typically represent how physical
-    quantities like temperature, position, velocity
-     changed over time *)
-
-Context  {PhysicalEnvEvolutionType : Type}
-    `{rtopic : TopicClass RosTopic}
-    `{evt : @EventType _ _ _ Event LocT minG tdeq}.
-
-
-
-
-   (** When one uses a device in a CPS, they must provide
-      a way to extract from the system's [PhysicalEnvType]
-      a function that represents the way physical quantity
-      measured/ controlled by devices changes.
-      
-      For example, if the system's [PhysicalEnvType] records
-      a train's center's position, the proximity sensor on its
-      RHS end sees [rightPlatformBoundary -(trainCenterPos + trainWidth/2)]
-
-    *)
-   
-Definition DeviceView (PhysQ : Type) :=
-    PhysicalEnvEvolutionType
-    ->   PhysQ.
-
-
-Definition NodeSemantics  :=
-  PhysicalEnvEvolutionType
-  -> (nat -> option Event)
-  -> Type.
-
-Definition DeviceSemantics
-    {PhysQ : Type}
-    (dview : DeviceView PhysQ)
-    (inpDev : Device PhysQ)
-     : NodeSemantics :=
- (fun penv evts => inpDev (dview penv) evts).
-
-Definition SwSemantics
-    (swn : RosSwNode)
-       : NodeSemantics :=
- (fun penv evts => RSwNodeSemanticsAux  swn evts).
-
-Record MessageDeliveryParams :=
-{ expectedDelay : option QTime; maxVariation : QTime}.
-
-Class CPS (RosLoc: Type) 
-     {rldeq : DecEq RosLoc} :=
-{
-   locNode: RosLoc -> NodeSemantics;
-
-   validTopics : RosLoc -> (@TopicInfo RosTopic);
-
-   accDelDelay : RosLoc -> RosLoc -> Q -> Prop
-}.
-
-Lemma possibleDeqSendOncePair2_index : ∀ proc pt tacc evs m n si,
-  possibleDeqSendOncePair2 proc pt tacc evs m n si
-  → m < n.
-Proof.
-  intros ? ? ? ? ? ? ?  Hp.
-  unfold possibleDeqSendOncePair2 in Hp.
-  destruct (evs m), (evs n); simpl in Hp; try contradiction.
-  destruct (eKind e), (eKind e0); try contradiction.
-  repnd. omega.
-Qed.
-
-Lemma SwFirstMessageIsNotASend:  ∀ (swn : RosSwNode) pp evs ev,
-  SwSemantics swn pp evs
-  → evs 0 = Some ev
-  → ~ (isSendEvt ev).
-Proof.
-  intros ? ? ? ? Hrw Heq His.
-  specialize (Hrw 0).
-  rewrite Heq in Hrw.
-  simpl in Hrw.
-  apply π₁ in Hrw.
-  apply Hrw in His. clear Hrw.
-  destruct His as [m His]. destruct His as [si His].
-  apply possibleDeqSendOncePair2_index in His.
-  omega.
-Qed.
-
-
-End DeviceAndLoc.
-
 Set Implicit Arguments.
 
 
-Section Global.
-Context  (PhysicalEnvType : Type)
-  (physics : PhysicalEnvType)
-  (minGap : Q)
-  `{rtopic : TopicClass RosTopic} 
-  `{dteq : Deq RosTopic}
- `{etype : @EventType _ _ _ Event LocT minGap tdeq }
-  `{rlct : @CPS PhysicalEnvType RosTopic Event LocT ldeq}.
-
-Close Scope Q_scope.
-
-Definition NodeBehCorrect (l : LocT) : Type :=
-  (locNode l) physics (localEvts l).
-
-Definition AllNodeBehCorrect : Type:= 
-  forall l,  NodeBehCorrect l.
-
-Definition PossibleSendRecvPair
-  (Es  Er : Event) : Prop :=
-   (fst (eMesg Es) = fst (eMesg Er))
-   /\ (validRecvMesg (validTopics (eLoc Er)) (eMesg Er))
-   /\ (validSendMesg (validTopics (eLoc Es)) (eMesg Es))
-   /\ (accDelDelay  (eLoc Es) (eLoc Er) (eTime Er - eTime Es)).
-    
-
-
-Require Import Coq.Relations.Relation_Definitions.
-
-Arguments well_founded {A} P.
- 
-Record PossibleEventOrder  := {
-    causedBy : Event -> Event -> Prop;
-
-    (* causalTrans : transitive _ causedBy; *)
-
-    localCausal : forall (e1 e2 : Event),
-        (eLoc e1) = (eLoc e2)
-        -> (causedBy e1 e2 <-> eLocIndex e1 < eLocIndex e2);
-
-    globalCausal : forall (e1 e2 : Event),
-        causedBy e1 e2
-        -> (eTime e1 < eTime e2)%Q;
-
-    eventualDelivery: forall (Es : Event),
-          isSendEvt Es
-          ->  {Er: Event |
-              PossibleSendRecvPair Es Er
-              /\ causedBy Es Er /\ isRecvEvt Er};
-
-    recvSend: forall (Er : Event),
-          isRecvEvt Er
-          ->  {Es : Event |
-                  PossibleSendRecvPair Es Er
-                  /\ causedBy Es Er /\ isSendEvt Es};
-
-    corrNodes : AllNodeBehCorrect;
-
-
-    noSpamRecv : forall ev, 
-      isDeqEvt ev -> validRecvMesg (validTopics (eLoc ev)) (eMesg ev);
-      (* !FIX! change above to [isEnqEvt] *)
-
-    orderRespectingDelivery : ∀ evs1 evs2 evr1 evr2,
-      (eLoc evs1 = eLoc evs2)
-      → (eLoc evr1 = eLoc evr2) (* multicast is allowed*)
-      → (eLoc evs1 ≠ eLoc evr1)
-      → causedBy evs1 evr1
-      → causedBy evs2 evr2
-      → (eLocIndex evs1 < eLocIndex evs2
-         ↔ eLocIndex evr1 < eLocIndex evr2);
-      
-    (* the stuff below can probably be
-      derived from the stuff above *)
-    causalWf : well_founded  causedBy
-
-}.
+(** Continue refeactoring*)
 
 Section EOProps.
 Variable eo : PossibleEventOrder.

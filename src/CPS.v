@@ -158,8 +158,6 @@ match numPrevEvts with
 end.
 
 
-Definition latestEvt (P : Event -> Prop) (ev : Event) :=
-  P ev /\ (forall ev':Event, P ev' -> ((eTime ev') <= (eTime ev))%Q).
 
 Coercion is_true  : bool >-> Sortclass.
 
