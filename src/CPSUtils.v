@@ -929,8 +929,8 @@ Proof.
   remember ((evs nd)) as oevd.
   destruct oevd as [evd|]; inverts Hrcd as Hcrd.
   simpl in Hrs.
-  (** the line below takes inf. time *)
-  assert (isDeqEvt evd) as Hdeqd by eauto 1 using getRecdPayloadSpecDeq.
+  assert (isDeqEvt evd) as Hdeqd by
+    (eapply getRecdPayloadSpecDeq; eauto).
   specialize (Hrs Hdeqd).
   unfold procOutMsgs in Hrs.
   rewrite <- Heqoevd in Hrs.
@@ -959,5 +959,5 @@ Proof.
 Qed.
 
 
-End Global.
+End EOProps.
 
