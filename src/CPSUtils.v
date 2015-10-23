@@ -45,6 +45,13 @@ Proof.
   destruct (eKind ev); try reflexivity; try discriminate.
 Qed.
 
+Definition getSentPayload (tp : Topic) (ev : Event) 
+  : option (topicType tp)  :=
+opBind (getPayload tp) (sentMesg ev).
+
+Definition getSentPayloadOp (tp : Topic) 
+  : (option Event) ->  option (topicType tp)  :=
+opBind (getSentPayload tp).
 
 Definition eTimeDef0 (oev : option Event) : QTime :=
 match oev with
@@ -298,6 +305,17 @@ Proof.
   eexists; eauto.
 Defined.
 
+Lemma sendSingleMessage : forall evD,
+  isSendEvt evD
+  -> {m : Message |  m = eMesg evD ∧ (sentMesg evD = Some m)}.
+Proof.
+  intros ? Hd.
+  unfold isSendEvt in Hd.
+  unfold sentMesg. destruct (eKind evD); try (inversion Hd; fail);[].
+  eexists; eauto.
+Defined.
+
+
 Lemma deqMesgSome : forall ev sm,
     Some sm = deqMesg ev
     -> isDeqEvt ev.
@@ -380,6 +398,22 @@ Proof.
   destruct (eKind ev); simpl in Hp; try discriminate;[].
    eauto.
 Qed.
+
+Lemma getSentPayloadSpecMsg: 
+    forall tp ev tv,
+      getSentPayload tp ev = Some tv
+      -> getPayload tp (eMesg ev) = Some tv.
+Proof.
+  intros ? ? ? Hp.
+  unfold getSentPayload in Hp.
+  pose proof (sendSingleMessage ev) as Hs.
+  unfold isSendEvt.
+  unfold isSendEvt in Hs.
+  unfold sentMesg in Hp, Hs.
+  destruct (eKind ev); simpl in Hp; try discriminate;[].
+   eauto.
+Qed.
+
 
 Lemma MsgEta: forall tp m pl,
  getPayload tp m = Some pl

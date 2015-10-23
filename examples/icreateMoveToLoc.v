@@ -342,7 +342,7 @@ Definition externalCmdSemantics
  : @NodeSemantics PhysicalModel Topic _ _:=
   λ Event edeq etype _ evs,
               isSendEvtOp (evs 0)
-  ∧ (getRecdPayloadOp TARGETPOS (evs 0) ≡ Some target)
+  ∧ (getSentPayloadOp TARGETPOS (evs 0) ≡ Some target)
               ∧ ∀ n : nat, (evs (S n)) ≡ None.
 
 
@@ -390,7 +390,9 @@ Definition ic : iCreate := physicsEvolution cpsExec.
 
 Notation EventOp := (option (CPSEvent cpsExec)).
 
-Definition eCmdEv0WSpec : {ev:Event| getRecdPayload TARGETPOS ev ≡ Some target}.
+Definition eCmdEv0WSpec : {ev:Event| getSentPayload TARGETPOS ev ≡ Some target
+/\ localEvts EXTERNALCMD 0 ≡ Some ev
+}.
   pose proof (CPSAgentSpecsHold cpsExec EXTERNALCMD) as Hs.
   simpl in Hs.
   unfold externalCmdSemantics in Hs.
@@ -399,17 +401,17 @@ Definition eCmdEv0WSpec : {ev:Event| getRecdPayload TARGETPOS ev ≡ Some target
   is_true (isSendEvtOp ?x) => remember x as ev0op
   end.
   destruct ev0op as [ev0|];[| inversion Hsl; fail].
-  exists ev0.
-  exact Hsrl.
+  exists ev0. auto.
 Qed.
 
 Definition eCmdEv0 : Event := projT1 eCmdEv0WSpec.
 
-Lemma eCmdEv0Spec : getRecdPayload TARGETPOS eCmdEv0 ≡ Some target.
+Lemma eCmdEv0Spec : getSentPayload TARGETPOS eCmdEv0 ≡ Some target 
+  /\ localEvts EXTERNALCMD 0 ≡ Some eCmdEv0.
 Proof.
-unfold eCmdEv0.
-destruct eCmdEv0WSpec.
-simpl. trivial.
+  unfold eCmdEv0.
+  destruct eCmdEv0WSpec.
+  simpl. trivial.
 Qed.
 
 
@@ -446,7 +448,7 @@ No Change at All from the train proof.
 However, it was changed later when ROSCPS was simplified.
 There are many such proofs below whose bodies are exactly the same.
 Make a tactic out of it so that such proofs could be a oneliner.
-Maybe used recflection to write a provably complete tactic.
+Maybe use recflection to write a provably complete tactic.
 *)
 Lemma SwOnlyReceivesFromExt :   forall (Es Er : Event),
   isSendEvt Es
@@ -611,29 +613,31 @@ Proof.
   destruct Hsend as [Es Hsend].
   repnd. pose proof (globalCausal _ _ Hsendrl) as Htlt.
   pose proof (SwOnlyReceivesFromExt _ _  Hsendrr Heqevk Hsendl Hl) as Hex.
-  pose proof (CPSAgentSpecsHold cpsExec EXTERNALCMD) as Hc.
-  simpl in Hc. unfold externalCmdSemantics in Hc.
-  repnd. remember (eLocIndex Es) as esn.
+  pose proof (CPSAgentSpecsHold cpsExec EXTERNALCMD) as Hs.
+  apply proj2 in Hs. apply proj2 in Hs.
+  remember (eLocIndex Es) as esn.
   destruct esn;
-    [|specialize (Hcrrr esn);
-      rewrite (locEvtIndexRW Es) in Hcrrr; eauto; inversion Hcrrr].
-  clear Hcrrr.
-  rewrite (locEvtIndexRW Es) in Hcl; eauto.
-  inverts Hcl.
+    [|specialize (Hs esn);
+      rewrite (locEvtIndexRW minGap Es) in Hs; eauto; inversion Hs].
+  pose proof (eCmdEv0Spec) as Hc. repnd.
+  rewrite (locEvtIndexRW minGap Es) in Hcr; eauto.
+  inverts Hcr.
   apply proj1 in Hsendl.
   unfold getPayload.
   rewrite <- Hsendl.
-  dands; assumption.
+  dands; try assumption.
+  pose proof  (getSentPayloadSpecMsg TARGETPOS eCmdEv0) as H.
+  apply H in Hcl. clear H.
+  exact Hcl.
 Qed.
 
 
-
-Lemma SwLiveness : notNone (localEvts SWNODE 0).
+Lemma SwLiveness : notNone ((localEvts SWNODE 0):EventOp).
 Proof.
-  pose proof (corrNodes eo EXTERNALCMD) as Hc.
+  pose proof (CPSAgentSpecsHold cpsExec  EXTERNALCMD) as Hc.
   simpl in Hc. unfold externalCmdSemantics in Hc.
   repnd. 
-  pose proof (eventualDelivery eo _ Hcrl) as Hsend.
+  pose proof (eventualDelivery reliableDel _ Hcl) as Hsend.
   destruct Hsend as [Er  Hsend]. repnd.
   apply locEvtIndex in Hcl.
   repnd.
@@ -676,7 +680,7 @@ Proof.
 Qed.
 Local  Notation π₂ := snd.
 
-(** Nice warm up proof.
+(* Nice warm up proof.
     Got many mistakes in definitions corrected *)
 Lemma SwEventsSn :
   let resp := PureSwProgram target in
