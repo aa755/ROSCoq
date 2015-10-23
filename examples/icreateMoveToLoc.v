@@ -342,8 +342,8 @@ Definition externalCmdSemantics
  : @NodeSemantics PhysicalModel Topic _ _:=
   λ Event edeq etype _ evs,
               isSendEvtOp (evs 0)
-              ∧ ∀ n : nat, (evs (S n)) ≡ None
-  ∧ (getRecdPayloadOp TARGETPOS (evs 0) ≡ Some target).
+  ∧ (getRecdPayloadOp TARGETPOS (evs 0) ≡ Some target)
+              ∧ ∀ n : nat, (evs (S n)) ≡ None.
 
 
 (**
@@ -375,11 +375,42 @@ We need to prove that in ALL POSSIBLE EXECUTIONS
 of this cyber-physical system, the robot will end up to some place
 close where it is asked to go by the esternal agent.
 So, we consider an arbitrary execution, and prove the desired property about it.
+We also assume that message delivery is reliable.
 *)
+
+Typeclasses eauto := 1.
+(** This is the arbitrary execution that we will be considering *)
 Variable cpsExec:(CPSExecution minGap).
 
-Variable ic : iCreate.
-Variable eo : (@CPSExecution _  ic minGap _ _ _ _ _ _ _ _ _).
+Notation Event := (CPSEvent cpsExec).
+
+Variable reliableDel : @EOReliableDelivery minGap Topic Event _ PhysicalModel _ _ _ _ _ _ _.
+
+Definition ic : iCreate := physicsEvolution cpsExec.
+
+Notation EventOp := (option (CPSEvent cpsExec)).
+
+Definition eCmdEv0WSpec : {ev:Event| getRecdPayload TARGETPOS ev ≡ Some target}.
+  pose proof (CPSAgentSpecsHold cpsExec EXTERNALCMD) as Hs.
+  simpl in Hs.
+  unfold externalCmdSemantics in Hs.
+  repnd. clear Hsrr.
+  match type of Hsl with
+  is_true (isSendEvtOp ?x) => remember x as ev0op
+  end.
+  destruct ev0op as [ev0|];[| inversion Hsl; fail].
+  exists ev0.
+  exact Hsrl.
+Qed.
+
+Definition eCmdEv0 : Event := projT1 eCmdEv0WSpec.
+
+Lemma eCmdEv0Spec : getRecdPayload TARGETPOS eCmdEv0 ≡ Some target.
+Proof.
+unfold eCmdEv0.
+destruct eCmdEv0WSpec.
+simpl. trivial.
+Qed.
 
 
 Lemma derivXNoMC : ∀ icr, isDerivativeOf (transVel icr[*] (CFCos (theta icr))) (X (position icr)).
@@ -393,20 +424,31 @@ Qed.
 Definition posAtTime (t: Time) : Cart2D IR :=
   {| X:= {X (position ic)} t ; Y := {Y (position ic)} t |}.
 
+Typeclasses eauto := 5.
 Definition targetR : Cart2D IR := ' target.
+Typeclasses eauto := 1.
 
 
 Require Export Coq.Lists.List.
-Hint Resolve (fun a b x => proj1 (locEvtIndex a b x)) : ROSCOQ.
+
+
+(* Hint Resolve (fun a b x => proj1 (locEvtIndex a b x)) : ROSCOQ. *)
 
 Ltac contra :=
   match goal with
   | [H: ~(assert true) |- _ ] => provefalse; apply H; reflexivity
   end.
 
-(* No Change at All from the train proof.
-    However, it was changed later when ROSCPS was simplified*)
-Lemma SwOnlyReceivesFromExt :   forall Es Er,
+
+
+(* 
+No Change at All from the train proof.
+However, it was changed later when ROSCPS was simplified.
+There are many such proofs below whose bodies are exactly the same.
+Make a tactic out of it so that such proofs could be a oneliner.
+Maybe used recflection to write a provably complete tactic.
+*)
+Lemma SwOnlyReceivesFromExt :   forall (Es Er : Event),
   isSendEvt Es
   -> isRecvEvt Er
   -> PossibleSendRecvPair Es Er
@@ -442,9 +484,9 @@ Proof.
   reflexivity.
 Qed.
 
-(** No Change at All from the train proof.
+(* No Change at All from the train proof.
     However, it was changed later when ROSCPS was simplified*)
-Lemma MotorOnlyReceivesFromSw :   forall Es Er,
+Lemma MotorOnlyReceivesFromSw :   forall (Es Er : Event),
   isSendEvt Es
   -> isRecvEvt Er
   -> PossibleSendRecvPair Es Er
@@ -482,7 +524,7 @@ Qed.
 
 (* No Change at All from the train proof *)
 
-Lemma ExCMDOnlySendsToSw :   forall Es Er,
+Lemma ExCMDOnlySendsToSw :   forall (Es Er : Event),
   isSendEvt Es
   -> isRecvEvt Er
   -> PossibleSendRecvPair Es Er
@@ -519,7 +561,7 @@ Proof.
   reflexivity.
 Qed.
 
-Lemma SWOnlySendsToMotor :   forall Es Er,
+Lemma SWOnlySendsToMotor :   forall (Es Er : Event),
   isSendEvt Es
   -> isRecvEvt Er
   -> PossibleSendRecvPair Es Er
@@ -556,18 +598,20 @@ Proof.
   reflexivity.
 Qed.
 
+
+
 Lemma SwRecv : ∀ ev:Event,
   eLoc ev ≡ SWNODE
   -> isDeqEvt ev
   -> (getPayload TARGETPOS (eMesg ev) ≡ Some target
-            ∧ causedBy eo eCmdEv0 ev).
+            ∧ causedBy eCmdEv0 ev).
 Proof.
   intros ev Hl Heqevk.
-  pose proof (recvSend eo ev Heqevk) as Hsend.
+  pose proof (recvSend  reliableDel _ Heqevk) as Hsend.
   destruct Hsend as [Es Hsend].
-  repnd. pose proof (globalCausal _ _ _ Hsendrl) as Htlt.
+  repnd. pose proof (globalCausal _ _ Hsendrl) as Htlt.
   pose proof (SwOnlyReceivesFromExt _ _  Hsendrr Heqevk Hsendl Hl) as Hex.
-  pose proof (corrNodes eo EXTERNALCMD) as Hc.
+  pose proof (CPSAgentSpecsHold cpsExec EXTERNALCMD) as Hc.
   simpl in Hc. unfold externalCmdSemantics in Hc.
   repnd. remember (eLocIndex Es) as esn.
   destruct esn;
