@@ -94,7 +94,10 @@ Proof.
   omega.
 Qed.
 
-Context (minGap:Q) {eo : @EventOrdering Topic Event Loc minGap tdeq rtopic edeq etype}.
+Typeclasses eauto := 1.
+Context {PE:Type} 
+{cps : @CPS PE Topic tdeq rtopic  Loc ldeq}
+{eo : @EventOrdering PE Topic Event Loc tdeq edeq ldeq rtopic etype cps}.
 
 
 Definition locEvtIndexRW :=
