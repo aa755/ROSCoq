@@ -391,7 +391,7 @@ Definition ic : iCreate := physicsEvolution cpsExec.
 Notation EventOp := (option (CPSEvent cpsExec)).
 
 Definition eCmdEv0WSpec : {ev:Event| getSentPayload TARGETPOS ev ≡ Some target
-/\ localEvts EXTERNALCMD 0 ≡ Some ev
+/\ localEvts EXTERNALCMD 0 ≡ Some ev /\ isSendEvt ev
 }.
   pose proof (CPSAgentSpecsHold cpsExec EXTERNALCMD) as Hs.
   simpl in Hs.
@@ -407,7 +407,7 @@ Qed.
 Definition eCmdEv0 : Event := projT1 eCmdEv0WSpec.
 
 Lemma eCmdEv0Spec : getSentPayload TARGETPOS eCmdEv0 ≡ Some target 
-  /\ localEvts EXTERNALCMD 0 ≡ Some eCmdEv0.
+  /\ localEvts EXTERNALCMD 0 ≡ Some eCmdEv0 /\  isSendEvt eCmdEv0.
 Proof.
   unfold eCmdEv0.
   destruct eCmdEv0WSpec.
@@ -620,8 +620,8 @@ Proof.
     [|specialize (Hs esn);
       rewrite (locEvtIndexRW minGap Es) in Hs; eauto; inversion Hs].
   pose proof (eCmdEv0Spec) as Hc. repnd.
-  rewrite (locEvtIndexRW minGap Es) in Hcr; eauto.
-  inverts Hcr.
+  rewrite (locEvtIndexRW minGap Es) in Hcrl; eauto.
+  inverts Hcrl.
   apply proj1 in Hsendl.
   unfold getPayload.
   rewrite <- Hsendl.
@@ -634,18 +634,17 @@ Qed.
 
 Lemma SwLiveness : notNone ((localEvts SWNODE 0):EventOp).
 Proof.
-  pose proof (CPSAgentSpecsHold cpsExec  EXTERNALCMD) as Hc.
-  simpl in Hc. unfold externalCmdSemantics in Hc.
+  pose proof (eCmdEv0Spec) as Hc.
   repnd. 
-  pose proof (eventualDelivery reliableDel _ Hcl) as Hsend.
+  pose proof (eventualDelivery reliableDel _ Hcrr) as Hsend.
   destruct Hsend as [Er  Hsend]. repnd.
-  apply locEvtIndex in Hcl.
+  apply locEvtIndex in Hcrl.
   repnd.
   apply ExCMDOnlySendsToSw in Hsendl; auto.
   remember (eLocIndex Er) as ern.
   destruct ern.
-  - unfold notNone. rewrite (locEvtIndexRW Er); auto.
-  - pose proof (localIndexDense _ _ _ 0 (conj Hsendl eq_refl)) as Hx.
+  - unfold notNone. rewrite (locEvtIndexRW minGap Er); auto.
+  - pose proof (localIndexDense  0 (conj Hsendl eq_refl)) as Hx.
     rewrite <- Heqern in Hx.
     clear Heqern.
     lapply Hx; [clear Hx; intro Hx |omega].
