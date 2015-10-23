@@ -1,4 +1,4 @@
-Require Export robots.icreate.
+Require Import robots.icreate.
 (** printing × $\times$ #×# *)
 (** printing :> $:$ #:># *)
 (** printing ≡ $\equiv$ #≡# *)
@@ -23,8 +23,16 @@ Require Export robots.icreate.
 
 (** printing ' $ $ #'# *)
 
-Require Export canonical_names.
+Require Import canonical_names.
 
+
+Require Import Vector.
+Require Import CPS.
+Require Import CPSUtils.
+
+Require Import MathClasses.interfaces.canonical_names.
+Require Import MCInstances.
+Require Import CartCR.
 
 Instance ProjectionFst_instance_sig 
    (A : Type) (P: A → Prop):  
@@ -277,8 +285,8 @@ In the above message sequence diagram, events are denoted by either a start
 or an end of a slanted arrow. Such slanted arrows denote flight of messages.
 *)
 
-Context
- `{etype : @EventType _ _ _ Event RosLoc minGap tdeq}.
+Context (minGap : Q).
+ (* `{etype : @EventType _ _ _ Event RosLoc minGap tdeq}. *)
 
 (**
 Using the [Context] keyword, we assumed the type [Event] which denotes
@@ -303,7 +311,7 @@ Variable motorPrec : Polar2D Q → Polar2D QTime.
 
 Hypothesis motorPrec0 : motorPrec {| rad :=0 ; θ :=0 |} ≡ {| rad :=0 ; θ :=0 |}.
 
-Definition HwAgent := HwAgent VELOCITY eq_refl reacTime motorPrec.
+Definition HwAgent : Device PhysicalModel := HwAgent VELOCITY eq_refl reacTime motorPrec minGap.
 
 
 (**
@@ -328,15 +336,15 @@ Definition ControllerNode : RosSwNode :=
 *** External Agent
 *)
 Variable target : Cart2D Q.
-Variable eCmdEv0 : Event.
 
 
-Definition externalCmdSemantics {Phys : Type} 
- : @NodeSemantics Phys Event :=
-  λ _ evs , ((evs 0) ≡ Some eCmdEv0) 
-              ∧  isSendEvt eCmdEv0 
-              ∧ (getPayload TARGETPOS (eMesg eCmdEv0) ≡ Some target)
-              ∧ ∀ n : nat, (evs (S n)) ≡ None.
+Definition externalCmdSemantics
+ : @NodeSemantics PhysicalModel Topic _ _:=
+  λ Event edeq etype _ evs,
+              isSendEvtOp (evs 0)
+              ∧ ∀ n : nat, (evs (S n)) ≡ None
+  ∧ (getRecdPayloadOp TARGETPOS (evs 0) ≡ Some target).
+
 
 (**
 *** Putting it all together. *)
@@ -352,7 +360,7 @@ Variable expectedDelivDelay : Qpos.
 Variable delivDelayVar : Qpos.
 
 
-Global Instance rllllfjkfhsdakfsdakh : @CPS PhysicalModel Topic Event  RosLoc _.
+Global Instance rllllfjkfhsdakfsdakh : @CPS PhysicalModel Topic _ _ RosLoc _.
   apply Build_CPS.
   - exact locNode.
   - exact locTopics.
@@ -364,7 +372,7 @@ Defined.
 * Proving the correctness property. 
 
 We need to prove that in ALL POSSIBLE EXECUTIONS
- of this cyber-physical system. 
+of this cyber-physical system. 
 *)
 
 Variable ic : iCreate.

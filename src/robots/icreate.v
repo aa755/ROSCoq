@@ -112,7 +112,7 @@ Definition correctVelDuring
     reacTime 
     (θ (motorPrec lastVelCmd)).
 
-Context {minGap :Q}.
+Variable minGap :Q.
 Section LastVelocityMessage.
 Context `{etype : @EventType _ _ _ Event  tdeq}.
 
