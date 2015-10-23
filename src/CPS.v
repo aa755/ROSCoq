@@ -461,13 +461,22 @@ Context  (minGap:Q)
 
 Close Scope Q_scope.
 
-(** use a namespace (module) for better field names*)
+(* use a namespace (module) for better field names*)
+
+(** 
+The record below captures a possible execution of the CPS.
+It has two main components : how the physical quanties evolved over time,
+the message sequence diagram which captures the 
+messages sent and received by the agents of the system.
+It also includes proofs that the specifications of each agent hold.
+*)
 Record CPSExecution  := {
   physicsEvolution : PhysicalEvType;
   CPSEvent : Type;
   CPSedeq : DecEq CPSEvent;
   CPSetype : @EventType Topic tdeq rtopic CPSEvent CPSedeq;
-  CPSEventOrdering : @EventOrdering Topic CPSEvent Loc minGap tdeq rtopic CPSedeq CPSetype
+  CPSEventOrdering : @EventOrdering Topic CPSEvent Loc minGap tdeq rtopic CPSedeq CPSetype;
+  CPSAgentSpecsHold : ∀l:Loc, (locNode l) CPSEvent CPSedeq CPSetype physicsEvolution (localEvts l)
 }.
 
 (** 
@@ -485,28 +494,7 @@ Global Instance EventOrderingnInstanceCPSEvent :
   @EventOrdering Topic (CPSEvent ce) Loc minGap tdeq rtopic (CPSedeq ce) (CPSetype ce)
   := CPSEventOrdering  ce.
 
-
-
-
-
-
-
-
 End CPSExecutionTypeclasses.
-
-
-Definition NodeBehCorrect 
-{Event:Type} 
-{edeq : DecEq Event} {etype : EventType Event}
-{eo : @EventOrdering Topic Event Loc minGap tdeq rtopic edeq etype}
-  (physics : PhysicalEvType) (l : Loc) : Type :=
-  (locNode l) Event edeq etype physics (localEvts l).
-
- 
-Definition CPSExecutionValid (ce: CPSExecution) := 
-  forall l:Loc, @NodeBehCorrect (CPSEvent ce) (CPSedeq ce) (CPSetype ce)
-(CPSEventOrdering ce) (physicsEvolution ce) l.
-
 
 
 End Global.

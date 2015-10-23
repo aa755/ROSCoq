@@ -372,8 +372,11 @@ Defined.
 * Proving the correctness property. 
 
 We need to prove that in ALL POSSIBLE EXECUTIONS
-of this cyber-physical system. 
+of this cyber-physical system, the robot will end up to some place
+close where it is asked to go by the esternal agent.
+So, we consider an arbitrary execution, and prove the desired property about it.
 *)
+Variable cpsExec:(CPSExecution minGap).
 
 Variable ic : iCreate.
 Variable eo : (@CPSExecution _  ic minGap _ _ _ _ _ _ _ _ _).
