@@ -182,7 +182,7 @@ Scheme Equality for Topic.
 
 (** [TopicClass] the type to have decidable equality*)
 
-Global Instance ldskflskdalfkTopic_eq_dec : DecEq Topic.
+Global Instance tdeq : DecEq Topic.
 constructor. exact Topic_eq_dec.
 Defined.
 
@@ -196,7 +196,7 @@ match t with
 end.
 
 
-Global Instance  ttttt : @TopicClass Topic _.
+Global Instance  rtopic : @TopicClass Topic _.
   constructor. exact topic2Type.
 Defined.
 
@@ -227,7 +227,7 @@ Inductive RosLoc :=  MOVABLEBASE | SWNODE |  EXTERNALCMD .
 (**  Decidable equality is a requirement of the [CPS] typeclass *)
 Scheme Equality for RosLoc.
 
-Global Instance rldeqdsjfklsajlk : DecEq RosLoc.
+Global Instance ldeq : DecEq RosLoc.
   constructor. exact RosLoc_eq_dec.
 Defined.
 
@@ -358,14 +358,16 @@ end.
 
 Variable expectedDelivDelay : Qpos.
 Variable delivDelayVar : Qpos.
+Variable iminGap : Q.
+Hypothesis iminGapPos : (0 < iminGap)%Q.
 
 
-
-Global Instance icreateMoveToLoc : @CPS PhysicalModel Topic _ _ RosLoc _.
-  apply Build_CPS.
+Global Instance icreateMoveToLoc : @CPS PhysicalModel Topic _ _ RosLoc ldeq.
+  eapply (Build_CPS).
   - exact locNode.
   - exact locTopics.
   - exact (λ _ _ t , ball delivDelayVar t (QposAsQ expectedDelivDelay)).
+  - exact iminGapPos.
 Defined.
 
 
