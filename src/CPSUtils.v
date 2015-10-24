@@ -16,10 +16,9 @@ Hint Resolve assertTrueAuto.
 
 Section EventProps.
 Context  
-  {Topic Event Loc PhysicalEnvType: Type}
+  {Topic Event Loc: Type}
   {tdeq : DecEq Topic}
   {edeq : DecEq Event}
-  {ldeq : DecEq Loc}
   {rtopic : @TopicClass Topic tdeq} 
   {etype : @EventType Topic tdeq rtopic Event edeq}.
 
@@ -97,9 +96,9 @@ Proof.
 Qed.
 
 Typeclasses eauto := 1.
-Context {PE:Type} 
-{cps : @CPS PE Topic tdeq rtopic  Loc ldeq}
-{eo : @EventOrdering PE Topic Event Loc tdeq edeq ldeq rtopic etype cps}.
+Context 
+{minGap:Q} {minGapPos:(0<minGap)%Q}
+{eo : @EventOrdering Topic Event Loc tdeq edeq rtopic etype minGap}.
 
 
 Definition locEvtIndexRW :=
@@ -227,7 +226,7 @@ Proof.
     [| split; auto].
   destruct (Qlt_le_dec (eTime ev) qt); auto. simpl. remember (QT2Q (eTime ev)) as qp. lra.
 
-- unfold nthEvtBefore in Heqsop.
+- provefalse. unfold nthEvtBefore in Heqsop.
   pose proof Hlt as Hltb.
   eapply searchBoundSpec in Hlt; eauto.
   apply searchNone with (m:=eLocIndex ev) in Heqsop; auto.
@@ -774,14 +773,13 @@ Set Implicit Arguments.
 
 Section EOProps.
 Context 
-  {Topic Event Loc PhysicalEvType: Type}
+  {Topic Event Loc: Type}
   {tdeq : DecEq Topic}
   {edeq : DecEq Event}
-  {ldeq : DecEq Loc}
   {rtopic : @TopicClass Topic tdeq} 
   {etype : @EventType Topic tdeq rtopic Event edeq} 
-  {cps : @CPS PhysicalEvType Topic tdeq rtopic  Loc ldeq}
-  {eo : @EventOrdering PhysicalEvType Topic Event Loc tdeq edeq ldeq rtopic etype cps}.
+  {minGap:Q} {minGapPos:(0<minGap)%Q}
+  {eo : @EventOrdering Topic Event Loc tdeq edeq rtopic etype minGap}.
 
 
 Lemma  sameELoc : forall loc nd ns ed es,
@@ -832,9 +830,11 @@ Definition holdsUptoNextEvent (prp : Time -> ℝ -> Prop)
   end.
 
 Section ReliableDeliveryProps.
-Context {rlct : @CPS PhysicalEvType Topic tdeq rtopic  Loc ldeq}
-   {e : @EOReliableDelivery Topic Event Loc PhysicalEvType 
-   tdeq _ ldeq rtopic _ _ _}.
+Typeclasses eauto := 3.
+Context 
+  {lcon : Connectivity Loc}
+   {e : @EOReliableDelivery Topic Event Loc 
+   tdeq edeq rtopic etype minGap eo lcon}.
 
 Lemma noDuplicateDelivery : NoDuplicateDelivery.
 Proof.

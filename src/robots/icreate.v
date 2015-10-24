@@ -114,12 +114,16 @@ Definition correctVelDuring
 
 Variable minGap :Q.
 Section LastVelocityMessage.
+
 Context `{etype : @EventType _ _ _ Event  tdeq}.
+
+
+Typeclasses eauto :=2.
 
 Definition latestVelPayloadAndTime
   (evs : nat -> option Event) (t : QTime) : ((Polar2D Q) × QTime) :=
 (@transport _ _ _ (λ t, t -> t ** QTime) VelTOPICType 
-   (lastPayloadAndTime minGap VELOCITY evs t)) initialVel.
+   (lastPayloadAndTime VELOCITY evs t)) initialVel.
 
 Definition corrSinceLastVel
   (evs : nat -> option Event)

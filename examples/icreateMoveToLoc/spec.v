@@ -86,8 +86,8 @@ speeds. By adjusting the duration of rotation and linear motion, we can
 make the robot go anywhere. 
 The two variable respectively denote the user specified rotational(angular) and linear speed.*)
 
-Variable  rotspeed  : Qpos.
-Variable  linspeed  : Qpos.
+Context {rotspeed  : Qpos}.
+Context  {linspeed  : Qpos}.
 
 (** 
 To control the duration of rotation, the program inserts a delay between
@@ -102,13 +102,13 @@ Hence delRes will be instantiated with 1000000.
 However, we choose to make our program and proofs generic over that value.
 *)
 
-Variable delRes : Z⁺.
+Context {delRes : Z⁺}.
 
 (** The meaning of the 2 parameters below will be explained while explaining 
 the program. *)
 
-Variable  delEps  : Qpos.
-Variable  delay  : Qpos.
+Context { delEps  : Qpos}.
+Context { delay  : Qpos}.
 Definition R2QPrec : Qpos := simpleApproximateErr delRes delEps.
 
 Close Scope Q_scope.
@@ -285,8 +285,6 @@ In the above message sequence diagram, events are denoted by either a start
 or an end of a slanted arrow. Such slanted arrows denote flight of messages.
 *)
 
-Context (minGap : Q).
- (* `{etype : @EventType _ _ _ Event RosLoc minGap tdeq}. *)
 
 (**
 Using the [Context] keyword, we assumed the type [Event] which denotes
@@ -303,11 +301,11 @@ should take it to its definition), or see Sec. 3 of the
 (**
 *** Hardware Agent
 *)
-Variable reacTime : QTime.
+Context {reacTime : QTime}.
 (** It is more sensible to change the type to [QNonNeg]
     as the value certainly does not represent time.
     However, the coercion QT2Q does not work then *)
-Variable motorPrec : Polar2D Q → Polar2D QTime.
+Context {motorPrec : Polar2D Q → Polar2D QTime}.
 
 Hypothesis motorPrec0 : motorPrec {| rad :=0 ; θ :=0 |} ≡ {| rad :=0 ; θ :=0 |}.
 
@@ -323,8 +321,8 @@ Definition PureSwProgram: PureProcWDelay TARGETPOS VELOCITY:=
 Definition SwProcess : Process Message (list Message):= 
   mkPureProcess (delayedLift2Mesg (PureSwProgram)).
 
-Variable procTime : QTime.
-Variable sendTimeAcc : Qpos.
+Context {procTime : QTime}.
+Context {sendTimeAcc : Qpos}.
 Require Export CoRN.model.metric2.Qmetric.
 
 
@@ -335,7 +333,7 @@ Definition ControllerNode : RosSwNode :=
 (**
 *** External Agent
 *)
-Variable target : Cart2D Q.
+Context {target : Cart2D Q}.
 
 
 Definition externalCmdSemantics
@@ -356,10 +354,9 @@ match rl with
 | EXTERNALCMD  => externalCmdSemantics
 end.
 
-Variable expectedDelivDelay : Qpos.
-Variable delivDelayVar : Qpos.
-Variable iminGap : Q.
-Hypothesis iminGapPos : (0 < iminGap)%Q.
+Context {expectedDelivDelay : Qpos}.
+Context {delivDelayVar : Qpos}.
+Context {iminGap : Q} {iminGapPos : (0 < iminGap)%Q}.
 
 
 Global Instance icreateMoveToLoc : @CPS PhysicalModel Topic _ _ RosLoc ldeq.

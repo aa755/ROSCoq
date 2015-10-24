@@ -49,7 +49,7 @@ We also assume that message delivery is reliable.
 
 Typeclasses eauto := 1.
 (** This is the arbitrary execution that we will be considering *)
-Variable cpsExec:(CPSExecution minGap).
+Variable cpsExec:(CPSExecution ).
 
 Notation Event := (CPSEvent cpsExec).
 
