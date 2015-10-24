@@ -342,8 +342,6 @@ e.g. the NIC. Hence, it has to be specified while defining the CPS
 
 End DeviceAndLoc.
 
-Set Implicit Arguments.
-
 
 Arguments well_founded {A} P.
 
@@ -414,6 +412,7 @@ Class EventOrdering
     causalWf : well_founded  causedBy
 }.
 
+Set Implicit Arguments.
 Definition PossibleSendRecvPair
   {Topic Event Loc PhysicalEnvType : Type}
   {tdeq : DecEq Topic}
@@ -431,7 +430,7 @@ Definition PossibleSendRecvPair
    /\ (accDelDelay  (eLoc Es) (eLoc Er) (eTime Er - eTime Es)).
 
 
-Record EOReliableDelivery (minGap:Q)
+Record EOReliableDelivery
   {Topic Event Loc PhysicalEnvType: Type}
   {tdeq : DecEq Topic}
   {edeq : DecEq Event}
@@ -470,7 +469,7 @@ Record EOReliableDelivery (minGap:Q)
 
 Section Global.
 
-Context  (minGap:Q)
+Context
   {Topic Loc PhysicalEvType: Type}
   {tdeq : DecEq Topic}
   {ldeq : DecEq Loc}

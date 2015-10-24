@@ -8,7 +8,9 @@ Require Import CPS.
 
 
 Lemma assertTrueAuto : assert true.
-reflexivity. Qed.
+Proof.
+reflexivity. 
+Qed.
 
 Hint Resolve assertTrueAuto.
 
@@ -134,14 +136,15 @@ Proof.
   apply Q.Qlt_lt_of_nat_inject_Z.
   pose proof (minGapPos).
   apply Qlt_shift_div_l; auto.
-  ring_simplify. lra.
+  simpl. unfold inject_Z.
+  lra.
 
 - unfold searchBound.
   apply Q.Qlt_lt_of_nat_inject_Z.
   pose proof (minGapPos).
   apply Qlt_shift_div_l; auto.
   symmetry in Heqn.
-  pose proof (@localIndexDense _ _ _ _ _ _ _ _ _ loc (S n) ev n) as Hd.
+  pose proof (localIndexDense loc (S n) ev n) as Hd.
   DestImp Hd; [| auto].
   DestImp Hd; [| auto].
   destruct Hd as [evp Hd].
@@ -155,7 +158,8 @@ Proof.
   rewrite Heqn in Hti.
   rewrite <- Hdr in Hti.
   DestImp Hti;[|auto].
-  rewrite Q.Qabs_Qminus, Qabs_pos in Hspr;
+Typeclasses eauto :=5.
+  rewrite Q.Qabs_Qminus,Qabs_pos in Hspr;
   [ |clear H Hspl Hspr; lra].
   (* remember (QT2Q (eTime evp)) as qp.
    remember (QT2Q (eTime ev)) as q. 
@@ -182,7 +186,8 @@ Proof.
   lra.
 Qed.
 
-  
+  Typeclasses eauto :=1.
+
 
 Lemma numPrevEvtsSpec:
   forall loc qt,
@@ -242,11 +247,15 @@ Proof.
   intros  ? ?  Hl Hlt.
   pose proof (proj2 ( eventSpacing ev1 ev2) Hl) as Ht.
   apply timeIndexConsistent in Hlt.
+Typeclasses eauto := 4.
   rewrite Q.Qabs_Qminus in Ht.
   remember ((QT2Q(eTime ev2))) as qt2.
   remember ((QT2Q(eTime ev1))) as qt1.
   rewrite Qabs.Qabs_pos in Ht; lra.
 Qed.
+
+
+Typeclasses eauto := 1.
 
 Lemma numPrevEvtsEtime:
   forall (ev: Event) loc ,
@@ -267,12 +276,14 @@ Proof.
   apply (Qlt_irrefl (eTime ev)).
   apply Hsl. omega.
 - symmetry in Hin.
-  pose proof (@localIndexDense _ _ _ _ _ _ _ _ _  _ _ ev enp 
+  pose proof (localIndexDense _ _ ev enp 
     (conj Hl Hin) (lt_n_Sn enp)) as Hld.
   destruct Hld as [evp Hld].
   repnd. symmetry in Hldr.
   specialize (Hind _ Hldr Hldl).
   pose proof (numPrevEvtsSpec loc (eTime ev) evp Hldl) as Hs.
+Typeclasses eauto := 3.
+
   rewrite <- timeIndexConsistent in Hs.
   rewrite <- Hldr in Hs.
   apply proj2  in Hs.
@@ -290,6 +301,7 @@ Proof.
   apply Hs.
 Qed.
 
+Typeclasses eauto := 1.
 
 
 
@@ -761,14 +773,16 @@ Set Implicit Arguments.
 
 
 Section EOProps.
-Context  (minGap:Q)
+Context 
   {Topic Event Loc PhysicalEvType: Type}
   {tdeq : DecEq Topic}
   {edeq : DecEq Event}
   {ldeq : DecEq Loc}
   {rtopic : @TopicClass Topic tdeq} 
   {etype : @EventType Topic tdeq rtopic Event edeq} 
-  {eo : @EventOrdering Topic Event Loc minGap tdeq rtopic edeq etype}.
+  {cps : @CPS PhysicalEvType Topic tdeq rtopic  Loc ldeq}
+  {eo : @EventOrdering PhysicalEvType Topic Event Loc tdeq edeq ldeq rtopic etype cps}.
+
 
 Lemma  sameELoc : forall loc nd ns ed es,
   localEvts loc nd = Some ed 
@@ -819,7 +833,7 @@ Definition holdsUptoNextEvent (prp : Time -> ℝ -> Prop)
 
 Section ReliableDeliveryProps.
 Context {rlct : @CPS PhysicalEvType Topic tdeq rtopic  Loc ldeq}
-   {e : @EOReliableDelivery minGap Topic Event Loc PhysicalEvType 
+   {e : @EOReliableDelivery Topic Event Loc PhysicalEvType 
    tdeq _ ldeq rtopic _ _ _}.
 
 Lemma noDuplicateDelivery : NoDuplicateDelivery.
@@ -839,6 +853,7 @@ Proof.
   omega.
 Qed.
 
+Typeclasses eauto := 2.
 Lemma orderRespectingDeliverySR:  ∀ (evs1 evs2 evr1 evr2 : Event),
       (eLoc evs1 = eLoc evs2)
       → (eLoc evr1 = eLoc evr2)
