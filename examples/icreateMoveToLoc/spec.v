@@ -345,6 +345,24 @@ Definition externalCmdSemantics
   ∧ (getSentPayloadOp TARGETPOS (evs 0) ≡ Some target)
               ∧ ∀ n : nat, (evs (S n)) ≡ None.
 
+(**
+*** The network model.
+To specify a CPS, we need to specify its network model
+In this example, we assume that the network reliably delivers messages.
+*)
+
+Context {expectedDelivDelay : Qpos}.
+Context {delivDelayVar : Qpos}.
+
+(* TODO : move the definition of locTopics to here *)
+Global Instance lcon : @Connectivity Topic RosLoc.
+constructor.
+- exact locTopics.
+- exact (λ _ _ t , ball delivDelayVar t (QposAsQ expectedDelivDelay)).
+Defined.
+
+Definition networkModel : NetworkModel RosLoc :=
+fun Event  _ _ _ => @EOReliableDelivery  Topic Event RosLoc _ _ _ _ _ _. 
 
 (**
 *** Putting it all together. *)
@@ -356,17 +374,10 @@ match rl with
 | EXTERNALCMD  => externalCmdSemantics
 end.
 
-Context {expectedDelivDelay : Qpos}.
-Context {delivDelayVar : Qpos}.
 
-Global Instance lcon : @Connectivity Topic RosLoc.
-constructor.
-- exact locTopics.
-- exact (λ _ _ t , ball delivDelayVar t (QposAsQ expectedDelivDelay)).
-Defined.
 
 Global Instance icreateMoveToLoc : @CPS PhysicalModel Topic _ _ RosLoc ldeq _ :=
-Build_CPS _ _ _ locNode.
+Build_CPS _ _ _ locNode networkModel.
 
 
 

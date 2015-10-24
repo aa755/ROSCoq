@@ -18,11 +18,13 @@ This field for a send event denotes the index of the head of [ls] in [la].
 }.
 
 (* 
-In future, received messages are enqued in a mailbox
+In future, received messages will enqued in a mailbox
 and then dequeued when its turn comes. There could be different queuing disciplines.
 Currently, a [deqEvt] denotes the start of processing of a received event.
 Queuing time at the destination is included in message delivery time of a message
- *)
+
+TODO : rename deqEvt to recvEvt
+*)
 Inductive EventKind : Set := 
   | sendEvt (inf : SendEvtInfo) 
   | deqEvt.
@@ -35,10 +37,7 @@ Close Scope Q_scope.
 
 
 (** [Event] could just be a record type. However, over the time, we might need to
-   extend it with more information. Hence, using a typeclass.
-   Between different executions of the same CpS, the definition of the
-   type [Event] is not supposed to change. However, different executions of a 
-   CPS may correspond to different [EventOrdering], as defined below. *)
+   extend it with more information. Hence, using a typeclass. *)
 Class EventType (Event: Type) 
       (* minimum time diff between events *)
       {tdeq: DecEq Event}  := {
@@ -49,9 +48,14 @@ Class EventType (Event: Type)
     eTime a = eTime b
     -> a = b;
 (** 
-The minimum gap between two events is constrained by the speed of the hardware,
-e.g. the NIC. 
+Even some basic functionality, like finding the latest event before some timestamp,
+we need to assume a positive lower bound on the time gap between any 2 events at a location.
+Note that events at different locations can happen simultaneously.
+
+This value is typically  constrained by the speed of the hardware, e.g. the NIC. 
+The network model of a CPS can put additional constraints on this value.
 *)
+
 (*Ideally this should be a part of the definition of a CPS. 
 But having it here is more convenient, because it saves one extra parameter in contexts
 where a CPS instance is not available.
@@ -84,6 +88,73 @@ Definition Device  (PhysQ : Type ) : Type := forall {Event:Type}
                   -> Prop.
 
 End Event.
+
+Close Scope Q_scope.
+Arguments well_founded {A} P.
+
+Class EventOrdering 
+{Topic Event Loc  : Type}
+  {tdeq : DecEq Topic}
+  {edeq : DecEq Event}
+  {rtopic : @TopicClass Topic tdeq} 
+  {etype : @EventType Topic tdeq rtopic Event edeq} 
+(* assuming a whole CPS just to get this [minGap] value can cause circularity issues*)
+  :=
+{
+  eLoc : Event ->  Loc;
+
+  eLocIndex : Event -> nat;
+
+  indexDistinct : forall (a b : Event), 
+    eLoc a = eLoc b
+    -> eLocIndex a = eLocIndex b
+    -> a = b;
+  timeIndexConsistent : forall (a b : Event),
+    eLocIndex a < eLocIndex b
+    <-> (eTime a < eTime b)%Q;
+
+  localEvts : Loc -> (nat -> option Event);
+
+  locEvtIndex : forall (l: Loc) n t,
+    ((eLoc t) = l /\ (eLocIndex t) = n)
+    <-> localEvts l n = Some t;
+
+  localIndexDense : ∀ (l: Loc) n t (m : nat),
+    ((eLoc t) = l /\ (eLocIndex t) = n)
+    -> m <n 
+    -> {tm : Event | ((eLoc tm) = l /\ (eLocIndex tm) = m)};
+
+  eventSpacing :  forall (e1 e2 : Event),
+    (eTime e1 >  minGap)%Q
+    /\ (eLoc e1 = eLoc e2 
+        -> minGap <= (Qabs ((eTime e1) - (eTime e2))))%Q;
+
+  (* While this definitely a sensible property, is it needed anywhere? *)
+  uniqueSendInfo :
+    ∀ (si : SendEvtInfo) ev1 ev2,
+      eLoc ev1 = eLoc ev2
+      → eKind ev1 = sendEvt si
+      → eKind ev2 = sendEvt si
+      → ev1=ev2;
+
+    causedBy : Event -> Event -> Prop;
+
+    (* causalTrans : transitive _ causedBy; *)
+
+    localCausal : forall (e1 e2 : Event),
+        (eLoc e1) = (eLoc e2)
+        -> (causedBy e1 e2 <-> eLocIndex e1 < eLocIndex e2);
+
+    globalCausal : forall (e1 e2 : Event),
+        causedBy e1 e2
+        -> (eTime e1 < eTime e2)%Q;
+
+    (* the properties below can probably be
+      derived from the ones above *)
+
+    causalWf : well_founded  causedBy
+}.
+
 
 Section EvtProps.
 
@@ -278,6 +349,8 @@ End EvtProps.
 
 Close Scope Q_scope.
 
+
+
 Section DeviceAndLoc.
 (** [PhysicalEvolutionType] would typically represent how the relevant physical
     quantities like temperature, position, velocity
@@ -329,92 +402,32 @@ Record MessageDeliveryParams :=
 Class Connectivity (RosLoc: Type) :=
 {
    validTopics : RosLoc -> (@TopicInfo RosTopic);
+(* TODO : make this a parementer of ReliableDelivery *)
    accDelDelay : RosLoc -> RosLoc -> Q -> Prop
 }.
+
 (* 
-An advantage to using a typeclass instead of the desugared record is that
-[minGap] gets automatically resolved to the CPS instance in scope,
-thus promoting brevity.
+If in future a spec. of a network model needs an event to have more info,
+just add additional fields to the [EventType] typeclass.
 *)
+Definition NetworkModel (RosLoc: Type) {ltop: Connectivity RosLoc} :=
+  ∀ {Event : Type} {edeq : DecEq Event}
+  {etype : @EventType RosTopic deq rtopic Event edeq}
+  {eo : @EventOrdering RosTopic Event RosLoc deq edeq rtopic etype}, Type.
+
 Class CPS (RosLoc: Type) 
      {rldeq : DecEq RosLoc} {ltop: Connectivity RosLoc}:=
 {
 (* TODO : rename to nodeSemantics *)
-   locNode: RosLoc -> NodeSemantics
+   locNode: RosLoc -> NodeSemantics;
+   nwmodel : NetworkModel RosLoc
 }.
 
 
 End DeviceAndLoc.
 
 
-Arguments well_founded {A} P.
 
-(* 
-Currently, all we need from the CPS instance is the value of minGap.
-In future, a definition of CPS might put addiditonal consraints on the event ordering
-*)
-Class EventOrdering 
-{Topic Event Loc  : Type}
-  {tdeq : DecEq Topic}
-  {edeq : DecEq Event}
-  {rtopic : @TopicClass Topic tdeq} 
-  {etype : @EventType Topic tdeq rtopic Event edeq} 
-(* assuming a whole CPS just to get this [minGap] value can cause circularity issues*)
-  :=
-{
-  eLoc : Event ->  Loc;
-
-  eLocIndex : Event -> nat;
-
-  indexDistinct : forall (a b : Event), 
-    eLoc a = eLoc b
-    -> eLocIndex a = eLocIndex b
-    -> a = b;
-  timeIndexConsistent : forall (a b : Event),
-    eLocIndex a < eLocIndex b
-    <-> (eTime a < eTime b)%Q;
-
-  localEvts : Loc -> (nat -> option Event);
-
-  locEvtIndex : forall (l: Loc) n t,
-    ((eLoc t) = l /\ (eLocIndex t) = n)
-    <-> localEvts l n = Some t;
-
-  localIndexDense : ∀ (l: Loc) n t (m : nat),
-    ((eLoc t) = l /\ (eLocIndex t) = n)
-    -> m <n 
-    -> {tm : Event | ((eLoc tm) = l /\ (eLocIndex tm) = m)};
-
-  eventSpacing :  forall (e1 e2 : Event),
-    (eTime e1 >  minGap)%Q
-    /\ (eLoc e1 = eLoc e2 
-        -> minGap <= (Qabs ((eTime e1) - (eTime e2))))%Q;
-
-  (* While this definitely a sensible property, is it needed anywhere? *)
-  uniqueSendInfo :
-    ∀ (si : SendEvtInfo) ev1 ev2,
-      eLoc ev1 = eLoc ev2
-      → eKind ev1 = sendEvt si
-      → eKind ev2 = sendEvt si
-      → ev1=ev2;
-
-    causedBy : Event -> Event -> Prop;
-
-    (* causalTrans : transitive _ causedBy; *)
-
-    localCausal : forall (e1 e2 : Event),
-        (eLoc e1) = (eLoc e2)
-        -> (causedBy e1 e2 <-> eLocIndex e1 < eLocIndex e2);
-
-    globalCausal : forall (e1 e2 : Event),
-        causedBy e1 e2
-        -> (eTime e1 < eTime e2)%Q;
-
-    (* the properties below can probably be
-      derived from the ones above *)
-
-    causalWf : well_founded  causedBy
-}.
 
 Set Implicit Arguments.
 Definition PossibleSendRecvPair
