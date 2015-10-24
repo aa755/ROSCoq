@@ -47,7 +47,18 @@ Class EventType (Event: Type)
   eTime : Event -> QTime;
   timeDistinct : forall (a b : Event), 
     eTime a = eTime b
-    -> a = b
+    -> a = b;
+(** 
+The minimum gap between two events is constrained by the speed of the hardware,
+e.g. the NIC. 
+*)
+(*Ideally this should be a part of the definition of a CPS. 
+But having it here is more convenient, because it saves one extra parameter in contexts
+where a CPS instance is not available.
+*)
+  minGap : Q;
+  (* remove this and change the type of [minGap] to [Qpos] *)
+  minGapPos : (0 < minGap)%Q
  }.
 
 
@@ -329,17 +340,7 @@ Class CPS (RosLoc: Type)
      {rldeq : DecEq RosLoc} {ltop: Connectivity RosLoc}:=
 {
 (* TODO : rename to nodeSemantics *)
-   locNode: RosLoc -> NodeSemantics;
-
-
-(** 
-The minimum gap between two events is constrained by the speed of the hardware,
-e.g. the NIC. Hence, it has to be specified while defining the CPS 
-*)
-  minGap : Q;
-  (* remove this and change the type of [minGap] to [Qpos] *)
-  minGapPos : (0 < minGap)%Q
-
+   locNode: RosLoc -> NodeSemantics
 }.
 
 
@@ -359,7 +360,7 @@ Class EventOrdering
   {rtopic : @TopicClass Topic tdeq} 
   {etype : @EventType Topic tdeq rtopic Event edeq} 
 (* assuming a whole CPS just to get this [minGap] value can cause circularity issues*)
-  {minGap:Q} :=
+  :=
 {
   eLoc : Event ->  Loc;
 
@@ -422,8 +423,7 @@ Definition PossibleSendRecvPair
   {edeq : DecEq Event}
   {rtopic : @TopicClass Topic tdeq} 
   {etype : @EventType Topic tdeq rtopic Event edeq}
-  {minGap:Q}
-  {eo : @EventOrdering Topic Event Loc tdeq edeq rtopic  etype minGap}
+  {eo : @EventOrdering Topic Event Loc tdeq edeq rtopic  etype}
   {ltop : Connectivity Loc}
   (Es  Er : Event) : Prop
  :=
@@ -439,8 +439,7 @@ Record EOReliableDelivery
   {edeq : DecEq Event}
   {rtopic : @TopicClass Topic tdeq} 
   {etype : @EventType Topic tdeq rtopic Event edeq} 
-  {minGap:Q}
-  {eo : @EventOrdering Topic Event Loc  tdeq edeq rtopic  etype minGap}
+  {eo : @EventOrdering Topic Event Loc  tdeq edeq rtopic  etype}
   {ltop : Connectivity Loc}
  :=
 {
@@ -496,7 +495,7 @@ Record CPSExecution  := {
   CPSEvent : Type;
   CPSedeq : DecEq CPSEvent;
   CPSetype : @EventType Topic tdeq rtopic CPSEvent CPSedeq;
-  CPSEventOrdering : @EventOrdering Topic CPSEvent Loc tdeq CPSedeq rtopic CPSetype minGap;
+  CPSEventOrdering : @EventOrdering Topic CPSEvent Loc tdeq CPSedeq rtopic CPSetype;
   CPSAgentSpecsHold : ∀l:Loc, (locNode l) CPSEvent CPSedeq CPSetype physicsEvolution (localEvts l)
 }.
 
@@ -512,7 +511,7 @@ Global Instance EventTypeInstanceCPSEvent : @EventType Topic tdeq
    rtopic (CPSEvent ce) (CPSedeq ce) 
   := CPSetype  ce.
 Global Instance EventOrderingnInstanceCPSEvent : 
-  @EventOrdering Topic (CPSEvent ce) Loc tdeq (CPSedeq ce)  rtopic (CPSetype ce) minGap
+  @EventOrdering Topic (CPSEvent ce) Loc tdeq (CPSedeq ce)  rtopic (CPSetype ce)
   := CPSEventOrdering  ce.
 
 End CPSExecutionTypeclasses.

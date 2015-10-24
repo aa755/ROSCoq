@@ -34,6 +34,8 @@ Require Import MathClasses.interfaces.canonical_names.
 Require Import MCInstances.
 Require Import CartCR.
 
+Set Implicit Arguments.
+
 Instance ProjectionFst_instance_sig 
    (A : Type) (P: A → Prop):  
     ProjectionFst (sig P) A := (@proj1_sig A P) .
@@ -309,7 +311,7 @@ Context {motorPrec : Polar2D Q → Polar2D QTime}.
 
 Hypothesis motorPrec0 : motorPrec {| rad :=0 ; θ :=0 |} ≡ {| rad :=0 ; θ :=0 |}.
 
-Definition HwAgent : Device PhysicalModel := HwAgent VELOCITY eq_refl reacTime motorPrec minGap.
+Definition HwAgent : Device PhysicalModel := HwAgent VELOCITY eq_refl reacTime motorPrec.
 
 
 (**
@@ -356,16 +358,16 @@ end.
 
 Context {expectedDelivDelay : Qpos}.
 Context {delivDelayVar : Qpos}.
-Context {iminGap : Q} {iminGapPos : (0 < iminGap)%Q}.
 
-
-Global Instance icreateMoveToLoc : @CPS PhysicalModel Topic _ _ RosLoc ldeq.
-  eapply (Build_CPS).
-  - exact locNode.
-  - exact locTopics.
-  - exact (λ _ _ t , ball delivDelayVar t (QposAsQ expectedDelivDelay)).
-  - exact iminGapPos.
+Global Instance lcon : @Connectivity Topic RosLoc.
+constructor.
+- exact locTopics.
+- exact (λ _ _ t , ball delivDelayVar t (QposAsQ expectedDelivDelay)).
 Defined.
+
+Global Instance icreateMoveToLoc : @CPS PhysicalModel Topic _ _ RosLoc ldeq _ :=
+Build_CPS _ _ _ locNode.
+
 
 
 End RobotProgam.

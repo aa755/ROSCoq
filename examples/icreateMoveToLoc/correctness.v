@@ -47,13 +47,19 @@ So, we consider an arbitrary execution, and prove the desired property about it.
 We also assume that message delivery is reliable.
 *)
 
-Typeclasses eauto := 1.
+Typeclasses eauto := 3.
+Section Proof.
 (** This is the arbitrary execution that we will be considering *)
-Variable cpsExec:(CPSExecution ).
+Context `{cpsExec:CPSExecution (@icreateMoveToLoc rotspeed linspeed delRes delEps del reacTime
+motorPrec sprocTime sendTimeAcc
+target expectedDelivDelay delivDelayVar)}.
 
 Notation Event := (CPSEvent cpsExec).
 
-Variable reliableDel : @EOReliableDelivery minGap Topic Event _ PhysicalModel _ _ _ _ _ _ _.
+Variable reliableDel : @EOReliableDelivery  Topic Event RosLoc _ _ _ _ _ 
+  (@lcon expectedDelivDelay delivDelayVar)
+
+Add an instance of Connectivity, which is obtained by projecting an CPS instance.
 
 Definition ic : iCreate := physicsEvolution cpsExec.
 

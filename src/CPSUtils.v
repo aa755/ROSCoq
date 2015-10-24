@@ -97,8 +97,7 @@ Qed.
 
 Typeclasses eauto := 1.
 Context 
-{minGap:Q} {minGapPos:(0<minGap)%Q}
-{eo : @EventOrdering Topic Event Loc tdeq edeq rtopic etype minGap}.
+{eo : @EventOrdering Topic Event Loc tdeq edeq rtopic etype}.
 
 
 Definition locEvtIndexRW :=
@@ -778,8 +777,7 @@ Context
   {edeq : DecEq Event}
   {rtopic : @TopicClass Topic tdeq} 
   {etype : @EventType Topic tdeq rtopic Event edeq} 
-  {minGap:Q} {minGapPos:(0<minGap)%Q}
-  {eo : @EventOrdering Topic Event Loc tdeq edeq rtopic etype minGap}.
+  {eo : @EventOrdering Topic Event Loc tdeq edeq rtopic etype}.
 
 
 Lemma  sameELoc : forall loc nd ns ed es,
@@ -834,7 +832,7 @@ Typeclasses eauto := 3.
 Context 
   {lcon : Connectivity Loc}
    {e : @EOReliableDelivery Topic Event Loc 
-   tdeq edeq rtopic etype minGap eo lcon}.
+   tdeq edeq rtopic etype eo lcon}.
 
 Lemma noDuplicateDelivery : NoDuplicateDelivery.
 Proof.
