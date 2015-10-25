@@ -365,10 +365,13 @@ Proof.
   remember (eKind ev) as evk.
   destruct evk; simpl in Hex; try contra; try tauto.
   clear Hex.
-  symmetry in Heqevk. apply isDeqEvtIf in Heqevk.
+  symmetry in Heqevk. 
+Typeclasses eauto :=5.
+  setoid_rewrite Heqevk.
+Typeclasses eauto :=3.
+  apply isDeqEvtIf in Heqevk.
   apply locEvtIndex in Heqoev. repnd.
   apply  SwRecv in Heqevk  ; auto.
-  (* start fixing from here *)
 Qed.
 
 Local  Notation π₂ := snd.
@@ -376,7 +379,7 @@ Local  Notation π₂ := snd.
 (* Nice warm up proof.
     Got many mistakes in definitions corrected *)
 Lemma SwEventsSn :
-  let resp := PureSwProgram target in
+  let resp := @PureSwProgram rotspeed linspeed  delRes delEps delay target in
   ∀ n: nat, 
       n < 4
       → {ev : Event | eLocIndex ev ≡ S n ∧ eLoc ev ≡ SWNODE
@@ -395,11 +398,11 @@ Proof.
   simpl.
   destruct (SwEvents0) as [ev0 Hind]. simpl.
   repnd.
-  pose proof (corrNodes eo SWNODE) as Hex.
-  simpl in Hex. intros n Hlt.
-  apply DelayedPureProcDeqSendPair with (nd:=0) (pl:=target) (n:=n)
+  pose proof (CPSAgentSpecsHold cpsExec SWNODE) as Hex.
+  simpl in Hex. intros n Hlt. unfold SwSemantics in Hex.
+  apply (@DelayedPureProcDeqSendPair Topic Event) with (nd:=0) (pl:=target) (n:=n) (TI:=TARGETPOS) (TO:=VELOCITY)
       in Hex; eauto;
-  [|rewrite (locEvtIndexRW ev0); auto; fail].
+  [|setoid_rewrite (locEvtIndexRW ev0); auto; fail].
   simpl in Hex. destruct Hex as [evs Hex]. repnd.
   exists evs.
   apply locEvtIndex in Hexl. repnd.
@@ -408,10 +411,8 @@ Qed.
 
 Lemma eCmdEv0Loc :  eLoc eCmdEv0 ≡ EXTERNALCMD.
 Proof.
-  pose proof (corrNodes eo EXTERNALCMD) as Hc.
-  simpl in Hc. unfold externalCmdSemantics in Hc.
-  repnd. apply locEvtIndex in Hcl. repnd.
-  assumption.
+  pose proof eCmdEv0Spec as Hc. repnd.
+  apply locEvtIndex in Hcrl. tauto.
 Qed.
 
 Lemma SwRecvDeqOnly0 : ∀ ev:Event,
@@ -424,40 +425,67 @@ Proof.
   repnd.
   destruct SwEvents0 as [ev0 Hev0].
   repnd. pose proof eCmdEv0Loc.
-  pose proof (noDuplicateDelivery eo) as Hh.
+  pose proof ((CPSNetworkModelHolds cpsExec)) as Hh.
+  simpl in Hh. unfold networkModel in Hh.
+  apply (@noDuplicateDelivery Topic Event RosLoc) in Hh.
   unfold NoDuplicateDelivery in Hh.
-  eapply Hh with (evr2:=ev0) in Hdr; eauto;
-    try congruence.
+Typeclasses eauto :=4.
+  eapply Hh with (evr2:=ev0) in Hdr; eauto.
+  - subst. assumption.
+(* why has rewrite stopped working? *)
+  - setoid_rewrite Hl. setoid_rewrite eCmdEv0Loc. congruence.
+  - setoid_rewrite Hl. setoid_rewrite Hev0rl. congruence.
 Qed.
 
 
+Typeclasses eauto :=3.
 
+(** 
+Shadow the original definitions with  more specific ones for this context.
+Typeclass resolution is often failing to find these specific arguments
+ *)
+Definition localEvts : RosLoc → nat → EventOp := @localEvts Topic Event _ _ _ _ _ _.
+(*
+Definition eKind  := @eKind Topic _ _ Event _ _ .
+*)
 Lemma SwEventsOnly5 :
   ∀ n : nat, 4 < n -> (localEvts SWNODE n) ≡ None.
 Proof.
+  unfold localEvts.
   intros n Hlt.
   remember (localEvts SWNODE n) as oevn.
-  destruct oevn as [evn|]; [| reflexivity].
+  unfold localEvts in Heqoevn.
+  destruct oevn as [evn|]; [| congruence].
   provefalse.
   remember (eKind evn) as evnk.
   destruct evnk.
-- pose proof (corrNodes eo SWNODE n) as Hex.
+- pose proof (CPSAgentSpecsHold cpsExec SWNODE n) as Hex.
   apply fst in Hex.
   unfold isSendEvt in Hex.
   symmetry in Heqoevn. apply locEvtIndex in Heqoevn.
   rewrite  (locEvtIndexRW evn) in Hex; [| assumption].
   simpl in Hex. unfold isSendEvt in Hex.
-  rewrite <- Heqevnk in Hex; auto.
+Typeclasses eauto :=4.
+  setoid_rewrite <- Heqevnk in Hex; auto.
   specialize (Hex eq_refl).
   destruct Hex as [nd Hex].
   destruct Hex as [si Hex].
   (* pose proof Hex as Hltt.
    apply possibleDeqSendOncePair2_index in Hltt. *)
   unfold possibleDeqSendOncePair2 in Hex.
-  remember (localEvts SWNODE nd) as oed.
-  destruct oed as [ed |];[| contradiction].
+  remember (CPS.localEvts SWNODE nd) as oed.
+  destruct oed as [ed |]; [| contradiction].
   apply locEvtIndex in Heqoevn.
-  rewrite Heqoevn in Hex.
+  fold (localEvts SWNODE n) in Hex.
+  
+  TODO : do this using autounfold. Can we avoid using the typeclass instances altogether
+  by shadowing the common definitions?
+  
+  unfold DecEqInstanceCPSEvent, EventTypeInstanceCPSEvent, 
+    EventTypeInstanceCPSEvent,
+    EventOrderingnInstanceCPSEvent in Heqoevn.
+  simpl in Heqoevn. 
+  rewrite  Heqoevn in Hex.
   remember (eKind ed) as edk.
   destruct edk;[contradiction|].
   rewrite <- Heqevnk in Hex.
