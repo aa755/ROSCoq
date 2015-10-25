@@ -77,6 +77,9 @@ Definition ic : iCreate := physicsEvolution cpsExec.
 
 Notation EventOp := (option (CPSEvent cpsExec)).
 
+Hint Resolve cpsExec: typeclass_instances.
+
+
 Definition eCmdEv0WSpec : {ev:Event| getSentPayload TARGETPOS ev ≡ Some target
 /\ localEvts EXTERNALCMD 0 ≡ Some ev /\ isSendEvt ev
 }.
@@ -345,7 +348,7 @@ Qed.
 
 Open Scope nat_scope.
 
-Typeclasses eauto :=5.
+Typeclasses eauto :=3.
 Lemma SwEvents0 :
   {ev | eLocIndex ev ≡ 0 ∧ eLoc ev ≡ SWNODE ∧
        (getRecdPayload TARGETPOS ev ≡ Some target) 
@@ -429,16 +432,16 @@ Proof.
   simpl in Hh. unfold networkModel in Hh.
   apply (@noDuplicateDelivery Topic Event RosLoc) in Hh.
   unfold NoDuplicateDelivery in Hh.
-Typeclasses eauto :=4.
-  eapply Hh with (evr2:=ev0) in Hdr; eauto.
+Typeclasses eauto :=3.
+  eapply Hh with (evr2:=ev0) in Hdr; eauto; try congruence.
   - subst. assumption.
 (* why has rewrite stopped working? *)
-  - setoid_rewrite Hl. setoid_rewrite eCmdEv0Loc. congruence.
-  - setoid_rewrite Hl. setoid_rewrite Hev0rl. congruence.
+Typeclasses eauto :=3.
+  - rewrite Hl. setoid_rewrite Hev0rl. congruence.
 Qed.
 
 
-Typeclasses eauto :=3.
+Typeclasses eauto :=2.
 
 (** 
 Shadow the original definitions with  more specific ones for this context.
@@ -467,6 +470,7 @@ Proof.
   simpl in Hex. unfold isSendEvt in Hex.
 Typeclasses eauto :=4.
   setoid_rewrite <- Heqevnk in Hex; auto.
+Typeclasses eauto :=2.
   specialize (Hex eq_refl).
   destruct Hex as [nd Hex].
   destruct Hex as [si Hex].
@@ -476,15 +480,6 @@ Typeclasses eauto :=4.
   remember (CPS.localEvts SWNODE nd) as oed.
   destruct oed as [ed |]; [| contradiction].
   apply locEvtIndex in Heqoevn.
-  fold (localEvts SWNODE n) in Hex.
-  
-  TODO : do this using autounfold. Can we avoid using the typeclass instances altogether
-  by shadowing the common definitions?
-  
-  unfold DecEqInstanceCPSEvent, EventTypeInstanceCPSEvent, 
-    EventTypeInstanceCPSEvent,
-    EventOrderingnInstanceCPSEvent in Heqoevn.
-  simpl in Heqoevn. 
   rewrite  Heqoevn in Hex.
   remember (eKind ed) as edk.
   destruct edk;[contradiction|].
@@ -527,9 +522,10 @@ Notation "{ a , b : T | P }" :=
   {a : T | {b : T | P} }
     (at level 0, a at level 99, b at level 99).
 
-Lemma SwMotorPrevSend : ∀ Es Er ern,
+Typeclasses eauto :=2.
+Lemma SwMotorPrevSend : ∀ (Es Er : Event) (ern:nat),
   ern < eLocIndex Er
-  → causedBy eo Es Er
+  → causedBy Es Er
   → eLoc Er ≡ MOVABLEBASE
   → eLoc Es ≡ SWNODE 
   → isSendEvt Es 
@@ -540,12 +536,15 @@ Lemma SwMotorPrevSend : ∀ Es Er ern,
                           ∧ isRecvEvt Erp
                           ∧ eLocIndex Esp < eLocIndex Es
                           ∧ eLocIndex Erp ≡ ern
-                          ∧ causedBy eo Esp Erp}.
+                          ∧ causedBy Esp Erp}.
 Proof.
   intros ? ? ? Hlt Hsendrl Hmot Hswsrl Hswsrrl Hsendrr.
   pose proof Hlt as Hltb.
   eapply localIndexDense in Hlt; eauto.
   destruct Hlt as [Erp  Hevp]. exists Erp.
+  
+  Start fixing from here.
+  
   pose proof (corrNodes eo MOVABLEBASE) as Hb.
   simpl in Hb. apply proj2 in Hb.
   specialize (Hb ern).

@@ -514,22 +514,23 @@ Record CPSExecution  := {
   CPSAgentSpecsHold : ∀l:Loc, (locNode l) CPSEvent CPSedeq CPSetype physicsEvolution (localEvts l)
 }.
 
-(** 
-Adding typeclass instances corresponding to the fields of the record type [CPSExecution]
-*)
-
-Section CPSExecutionTypeclasses.
-Variable ce : CPSExecution.
-
-Global Instance DecEqInstanceCPSEvent : DecEq (CPSEvent ce) := CPSedeq ce.
-Global Instance EventTypeInstanceCPSEvent : @EventType Topic tdeq 
-   rtopic (CPSEvent ce) (CPSedeq ce) 
-  := CPSetype  ce.
-Global Instance EventOrderingnInstanceCPSEvent : 
-  @EventOrdering Topic (CPSEvent ce) Loc tdeq (CPSedeq ce)  rtopic (CPSetype ce)
-  := CPSEventOrdering  ce.
-
-End CPSExecutionTypeclasses.
-
 
 End Global.
+
+(** 
+For brevity, we dont want to explicity specify arguments such as the [EventType] 
+and [EventOrdering] instances when using functions such as [eLoc].
+When a CPS execution is in scope, we want those instances to be automatically inferred
+using Coq's typeclass inference mechanism.
+This is partly achieved partly by the command below.
+*)
+
+Hint Resolve  CPSedeq CPSetype CPSEventOrdering : typeclass_instances.
+
+(**
+When considering a specific [CPSExecution] (say [cpsexec]), the user needs
+to add it to the hint database for typeclass resolution using the following command
+[[
+Hint Resolve  cpsexec : typeclass_instances.
+]]
+*)
