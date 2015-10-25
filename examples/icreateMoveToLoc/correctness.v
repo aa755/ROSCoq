@@ -59,6 +59,9 @@ motorPrec procTime sendTimeAcc
 target expectedDelivDelay delivDelayVar).
 
 Existing Instance icreateMoveToLocC.
+Print Instances Connectivity.
+Hint Resolve (@lcon expectedDelivDelay delivDelayVar) : typeclass_instances.
+
 
 (** This is the arbitrary execution that we will be considering *)
 Context `{cpsExec:CPSExecution icreateMoveToLocC}.
@@ -315,8 +318,8 @@ Proof.
   inverts Hcrl.
   apply proj1 in Hsendl.
   unfold getPayload. simpl. simpl in Hsendl.
-Typeclasses eauto :=4.
-  setoid_rewrite <- Hsendl.
+Typeclasses eauto :=2.
+  rewrite <- Hsendl.
   dands; try assumption.
   pose proof  (getSentPayloadSpecMsg TARGETPOS eCmdEv0) as H.
   apply H in Hcl. clear H.
@@ -369,9 +372,6 @@ Proof.
   destruct evk; simpl in Hex; try contra; try tauto.
   clear Hex.
   symmetry in Heqevk. 
-Typeclasses eauto :=5.
-  setoid_rewrite Heqevk.
-Typeclasses eauto :=3.
   apply isDeqEvtIf in Heqevk.
   apply locEvtIndex in Heqoev. repnd.
   apply  SwRecv in Heqevk  ; auto.
@@ -403,9 +403,12 @@ Proof.
   repnd.
   pose proof (CPSAgentSpecsHold cpsExec SWNODE) as Hex.
   simpl in Hex. intros n Hlt. unfold SwSemantics in Hex.
+Typeclasses eauto :=2.
+
   apply (@DelayedPureProcDeqSendPair Topic Event) with (nd:=0) (pl:=target) (n:=n) (TI:=TARGETPOS) (TO:=VELOCITY)
       in Hex; eauto;
-  [|setoid_rewrite (locEvtIndexRW ev0); auto; fail].
+  [|rewrite (locEvtIndexRW ev0); auto; fail].
+Typeclasses eauto :=2.
   simpl in Hex. destruct Hex as [evs Hex]. repnd.
   exists evs.
   apply locEvtIndex in Hexl. repnd.
@@ -432,12 +435,7 @@ Proof.
   simpl in Hh. unfold networkModel in Hh.
   apply (@noDuplicateDelivery Topic Event RosLoc) in Hh.
   unfold NoDuplicateDelivery in Hh.
-Typeclasses eauto :=3.
   eapply Hh with (evr2:=ev0) in Hdr; eauto; try congruence.
-  - subst. assumption.
-(* why has rewrite stopped working? *)
-Typeclasses eauto :=3.
-  - rewrite Hl. setoid_rewrite Hev0rl. congruence.
 Qed.
 
 
@@ -468,9 +466,7 @@ Proof.
   symmetry in Heqoevn. apply locEvtIndex in Heqoevn.
   rewrite  (locEvtIndexRW evn) in Hex; [| assumption].
   simpl in Hex. unfold isSendEvt in Hex.
-Typeclasses eauto :=4.
-  setoid_rewrite <- Heqevnk in Hex; auto.
-Typeclasses eauto :=2.
+  rewrite <- Heqevnk in Hex; auto.
   specialize (Hex eq_refl).
   destruct Hex as [nd Hex].
   destruct Hex as [si Hex].
@@ -523,6 +519,9 @@ Notation "{ a , b : T | P }" :=
     (at level 0, a at level 99, b at level 99).
 
 Typeclasses eauto :=2.
+
+Definition eoreliable : EOReliableDelivery := (CPSNetworkModelHolds cpsExec).
+
 Lemma SwMotorPrevSend : ∀ (Es Er : Event) (ern:nat),
   ern < eLocIndex Er
   → causedBy Es Er
@@ -540,25 +539,24 @@ Lemma SwMotorPrevSend : ∀ (Es Er : Event) (ern:nat),
 Proof.
   intros ? ? ? Hlt Hsendrl Hmot Hswsrl Hswsrrl Hsendrr.
   pose proof Hlt as Hltb.
-  eapply localIndexDense in Hlt; eauto.
+Typeclasses eauto :=3.
+  eapply localIndexDense in Hlt; eauto;[].
+Typeclasses eauto :=2.
   destruct Hlt as [Erp  Hevp]. exists Erp.
-  
-  Start fixing from here.
-  
-  pose proof (corrNodes eo MOVABLEBASE) as Hb.
+  pose proof (CPSAgentSpecsHold cpsExec MOVABLEBASE) as Hb.
   simpl in Hb. apply proj2 in Hb.
   specialize (Hb ern).
   rewrite (locEvtIndexRW Erp) in Hb; [| assumption].
   simpl in Hb.
-  pose proof (recvSend eo Erp Hb) as Hsend.
+  pose proof (recvSend eoreliable Erp Hb) as Hsend.
   destruct Hsend as [Esp Hsend]. exists Esp.
   repnd. apply MotorOnlyReceivesFromSw in Hsendl; eauto.
   assert (eLocIndex Erp < eLocIndex Er) as Hlt by omega.
-  eapply orderRespectingDeliveryRS with (evs1:=Esp) (evs2:=Es) in Hlt; eauto;
-  try congruence. dands; auto.
+  apply (@orderRespectingDeliveryRS _ _ _ _ _ _ _ _ _ eoreliable  Esp Es) in Hlt; auto; try congruence.
+   dands; auto.
 Qed.
 
-Lemma SwEv0IsNotASend: ∀ Esp,
+Lemma SwEv0IsNotASend: ∀ (Esp : Event),
     eLocIndex Esp ≡ 0 
     → (eLoc Esp ≡ SWNODE)
     → ~ (isSendEvt Esp).
@@ -567,7 +565,11 @@ Proof.
   destruct SwEvents0 as [Esp' H0s]. repnd.
   assert (Esp ≡ Esp') by
     (eapply indexDistinct; eauto; try congruence).
-  subst. pose proof (getRecdPayloadSpecDeq TARGETPOS) as Hpp.
+  subst.
+  
+  Start fixing from here.
+  
+   pose proof (getRecdPayloadSpecDeq TARGETPOS) as Hpp.
   simpl in Hpp. apply Hpp in H0srrl.
   apply DeqNotSend in H0srrl. assumption.
 Qed.

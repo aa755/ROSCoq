@@ -36,9 +36,6 @@ Proof.
   destruct (eKind ev); try congruence.
 Qed.
 
-Global Instance CPSProjectConnectivity
-  `{_:@CPS PE _ _ _ Loc ldeq lcon} : @Connectivity Topic Loc := lcon.
-
 
 Lemma isDeqEvtImplies : forall ev,
   isDeqEvt ev -> eKind ev = deqEvt.
