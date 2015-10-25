@@ -36,6 +36,8 @@ Proof.
   destruct (eKind ev); try congruence.
 Qed.
 
+Global Instance CPSProjectConnectivity
+  `{_:@CPS PE _ _ _ Loc ldeq lcon} : @Connectivity Topic Loc := lcon.
 
 
 Lemma isDeqEvtImplies : forall ev,
@@ -755,7 +757,6 @@ match eKind ev with
 end.
 
 
-
 End EventProps.
 (*
 Definition isSendOnTopic
@@ -826,6 +827,7 @@ Definition holdsUptoNextEvent (prp : Time -> ℝ -> Prop)
       forall t: Time,  (Tintvl) t -> prp t (phys t)
   | None => True
   end.
+
 
 Section ReliableDeliveryProps.
 Typeclasses eauto := 3.

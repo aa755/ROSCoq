@@ -355,7 +355,9 @@ Context {expectedDelivDelay : Qpos}.
 Context {delivDelayVar : Qpos}.
 
 (* TODO : move the definition of locTopics to here *)
-Global Instance lcon : @Connectivity Topic RosLoc.
+(* making this instance global is of no use because there are arguments in the context
+which need to be instantiated *)
+Instance lcon : @Connectivity Topic RosLoc.
 constructor.
 - exact locTopics.
 - exact (λ _ _ t , ball delivDelayVar t (QposAsQ expectedDelivDelay)).

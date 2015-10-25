@@ -420,7 +420,7 @@ Class CPS (RosLoc: Type)
 {
 (* TODO : rename to nodeSemantics *)
    locNode: RosLoc -> NodeSemantics;
-   nwmodel : NetworkModel RosLoc
+   networkModel : NetworkModel RosLoc
 }.
 
 
@@ -471,6 +471,7 @@ Record EOReliableDelivery
       isDeqEvt ev -> validRecvMesg (validTopics (eLoc ev)) (eMesg ev);
       (* In future, change above to [isEnqEvt] *)
 
+(** [orderRespectingDelivery] also implies that a message sent by A to B will not be received twice by B.*)
     orderRespectingDelivery : ∀ evs1 evs2 evr1 evr2,
       (eLoc evs1 = eLoc evs2)
       → (eLoc evr1 = eLoc evr2) (* multicast is allowed*)
@@ -509,6 +510,7 @@ Record CPSExecution  := {
   CPSedeq : DecEq CPSEvent;
   CPSetype : @EventType Topic tdeq rtopic CPSEvent CPSedeq;
   CPSEventOrdering : @EventOrdering Topic CPSEvent Loc tdeq CPSedeq rtopic CPSetype;
+  CPSNetworkModelHolds : networkModel _ _ _ CPSEventOrdering;
   CPSAgentSpecsHold : ∀l:Loc, (locNode l) CPSEvent CPSedeq CPSetype physicsEvolution (localEvts l)
 }.
 

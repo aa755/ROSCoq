@@ -48,17 +48,30 @@ So, we consider an arbitrary execution, and prove the desired property about it.
 
 Typeclasses eauto := 3.
 Section Proof.
+(** Reintroduce the parameters of the CPS specification into the current context *)
+Variables (rotspeed linspeed : Qpos) (delRes : Z⁺) (delEps delay : Qpos) (reacTime : QTime)
+(motorPrec : Polar2D Q → Polar2D QTime) (procTime : QTime) (sendTimeAcc : Qpos) 
+(target : Cart2D Q) (expectedDelivDelay delivDelayVar : Qpos).
+
+Definition icreateMoveToLocC  : CPS RosLoc :=
+(@icreateMoveToLoc rotspeed linspeed delRes delEps delay reacTime
+motorPrec procTime sendTimeAcc
+target expectedDelivDelay delivDelayVar).
+
+Existing Instance icreateMoveToLocC.
+
 (** This is the arbitrary execution that we will be considering *)
-Context `{cpsExec:CPSExecution (@icreateMoveToLoc rotspeed linspeed delRes delEps del reacTime
-motorPrec sprocTime sendTimeAcc
-target expectedDelivDelay delivDelayVar)}.
+Context `{cpsExec:CPSExecution icreateMoveToLocC}.
+
 
 Notation Event := (CPSEvent cpsExec).
 
+(*
 Variable reliableDel : @EOReliableDelivery  Topic Event RosLoc _ _ _ _ _ 
   (@lcon expectedDelivDelay delivDelayVar)
 
 Add an instance of Connectivity, which is obtained by projecting an CPS instance.
+*)
 
 Definition ic : iCreate := physicsEvolution cpsExec.
 
@@ -116,6 +129,7 @@ Ltac contra :=
   end.
 
 
+Typeclasses eauto := 3.
 
 (* 
 No Change at All from the train proof.
@@ -283,7 +297,7 @@ Lemma SwRecv : ∀ ev:Event,
             ∧ causedBy eCmdEv0 ev).
 Proof.
   intros ev Hl Heqevk.
-  pose proof (recvSend  reliableDel _ Heqevk) as Hsend.
+  pose proof (recvSend  (CPSNetworkModelHolds cpsExec) _ Heqevk) as Hsend.
   destruct Hsend as [Es Hsend].
   repnd. pose proof (globalCausal _ _ Hsendrl) as Htlt.
   pose proof (SwOnlyReceivesFromExt _ _  Hsendrr Heqevk Hsendl Hl) as Hex.
@@ -292,33 +306,35 @@ Proof.
   remember (eLocIndex Es) as esn.
   destruct esn;
     [|specialize (Hs esn);
-      rewrite (locEvtIndexRW minGap Es) in Hs; eauto; inversion Hs].
+      rewrite (locEvtIndexRW  Es) in Hs; eauto; inversion Hs].
   pose proof (eCmdEv0Spec) as Hc. repnd.
-  rewrite (locEvtIndexRW minGap Es) in Hcrl; eauto.
+  rewrite (locEvtIndexRW Es) in Hcrl; eauto.
   inverts Hcrl.
   apply proj1 in Hsendl.
-  unfold getPayload.
-  rewrite <- Hsendl.
+  unfold getPayload. simpl. simpl in Hsendl.
+Typeclasses eauto :=4.
+  setoid_rewrite <- Hsendl.
   dands; try assumption.
   pose proof  (getSentPayloadSpecMsg TARGETPOS eCmdEv0) as H.
   apply H in Hcl. clear H.
   exact Hcl.
 Qed.
 
+Typeclasses eauto :=2.
 
 Lemma SwLiveness : notNone ((localEvts SWNODE 0):EventOp).
 Proof.
   pose proof (eCmdEv0Spec) as Hc.
   repnd. 
-  pose proof (eventualDelivery reliableDel _ Hcrr) as Hsend.
+  pose proof (eventualDelivery (CPSNetworkModelHolds cpsExec) _ Hcrr) as Hsend.
   destruct Hsend as [Er  Hsend]. repnd.
   apply locEvtIndex in Hcrl.
   repnd.
   apply ExCMDOnlySendsToSw in Hsendl; auto.
   remember (eLocIndex Er) as ern.
   destruct ern.
-  - unfold notNone. rewrite (locEvtIndexRW minGap Er); auto.
-  - pose proof (localIndexDense  0 (conj Hsendl eq_refl)) as Hx.
+  - unfold notNone. rewrite (locEvtIndexRW Er); auto.
+  - pose proof (localIndexDense _ _ _ 0 (conj Hsendl eq_refl)) as Hx.
     rewrite <- Heqern in Hx.
     clear Heqern.
     lapply Hx; [clear Hx; intro Hx |omega].
@@ -329,10 +345,12 @@ Qed.
 
 Open Scope nat_scope.
 
+Typeclasses eauto :=5.
 Lemma SwEvents0 :
   {ev | eLocIndex ev ≡ 0 ∧ eLoc ev ≡ SWNODE ∧
        (getRecdPayload TARGETPOS ev ≡ Some target) 
-             ∧ causedBy eo eCmdEv0 ev}.
+             ∧ causedBy eCmdEv0 ev}.
+Typeclasses eauto :=2.
 Proof.
   unfold getRecdPayload, deqMesg. 
   pose proof SwLiveness as Hlive.
@@ -340,7 +358,7 @@ Proof.
   destruct oev as [ev |]; inversion Hlive.
   clear Hlive. exists ev.
   symmetry in Heqoev. 
-  pose proof (corrNodes eo SWNODE) as Hex.
+  pose proof (CPSAgentSpecsHold cpsExec SWNODE) as Hex.
   simpl in Hex.
   apply SwFirstMessageIsNotASend with (ev0:=ev) in Hex;[|eauto 4 with ROSCOQ].
   unfold isSendEvt in Hex.
@@ -350,7 +368,9 @@ Proof.
   symmetry in Heqevk. apply isDeqEvtIf in Heqevk.
   apply locEvtIndex in Heqoev. repnd.
   apply  SwRecv in Heqevk  ; auto.
+  (* start fixing from here *)
 Qed.
+
 Local  Notation π₂ := snd.
 
 (* Nice warm up proof.
