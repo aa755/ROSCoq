@@ -522,6 +522,8 @@ Typeclasses eauto :=2.
 
 Definition eoreliable : EOReliableDelivery := (CPSNetworkModelHolds cpsExec).
 
+Definition   orderRespectingDeliveryRS := (@orderRespectingDeliveryRS Topic Event RosLoc _ _ _ _ _ _ eoreliable).
+
 Lemma SwMotorPrevSend : ∀ (Es Er : Event) (ern:nat),
   ern < eLocIndex Er
   → causedBy Es Er
@@ -552,9 +554,13 @@ Typeclasses eauto :=2.
   destruct Hsend as [Esp Hsend]. exists Esp.
   repnd. apply MotorOnlyReceivesFromSw in Hsendl; eauto.
   assert (eLocIndex Erp < eLocIndex Er) as Hlt by omega.
-  apply (@orderRespectingDeliveryRS _ _ _ _ _ _ _ _ _ eoreliable  Esp Es) in Hlt; auto; try congruence.
+  apply (orderRespectingDeliveryRS  Esp Es) in Hlt; auto; try congruence.
    dands; auto.
 Qed.
+
+Definition getRecdPayloadSpecDeq :
+ ∀ (tp : Topic) (ev : Event) (tv : topicType tp), getRecdPayload tp ev ≡ Some tv → assert (isDeqEvt ev)
+:= (@getRecdPayloadSpecDeq Topic Event _ _ _ _).
 
 Lemma SwEv0IsNotASend: ∀ (Esp : Event),
     eLocIndex Esp ≡ 0 
@@ -566,20 +572,30 @@ Proof.
   assert (Esp ≡ Esp') by
     (eapply indexDistinct; eauto; try congruence).
   subst.
-  
-  Start fixing from here.
-  
    pose proof (getRecdPayloadSpecDeq TARGETPOS) as Hpp.
   simpl in Hpp. apply Hpp in H0srrl.
   apply DeqNotSend in H0srrl. assumption.
 Qed.
+
+Definition noDuplicateDelivery : EOReliableDelivery → NoDuplicateDelivery
+:= (@noDuplicateDelivery Topic Event RosLoc _ _ _ _ _ _).
+
+
+Definition   orderRespectingDeliverySR :
+∀ evs1 evs2 evr1 evr2 : Event,
+       eLoc evs1 ≡ eLoc evs2
+       → eLoc evr1 ≡ eLoc evr2
+         → eLoc evs1 ≠ eLoc evr1
+           → causedBy evs1 evr1
+             → causedBy evs2 evr2 → eLocIndex evs1 < eLocIndex evs2 → eLocIndex evr1 < eLocIndex evr2
+             := (@orderRespectingDeliverySR Topic Event RosLoc _ _ _ _ _ _ eoreliable).
 
 
 Lemma MotorEventsCausal:
   ∀ (n: nat) (p:n < 4),
       {Er : Event | let Es := (SwRecvEventsNth n p) in
               PossibleSendRecvPair Es Er 
-              ∧ causedBy eo Es Er 
+              ∧ causedBy Es Er 
               ∧ isRecvEvt Er
               ∧ eLoc Er ≡ MOVABLEBASE
               ∧  eLocIndex Er ≡ n }.
@@ -589,7 +605,7 @@ Proof.
 - unfold SwRecvEventsNth.
   destruct (SwEventsSn 0 p) as [Es Hsws]. simpl. 
   repnd. clear Hswsrrrr Hswsrrrl.
-  pose proof (eventualDelivery eo _ Hswsrrl) as Hsend.
+  pose proof (eventualDelivery  eoreliable _ Hswsrrl) as Hsend.
   destruct Hsend as [Er  Hsend]. repnd. exists Er.
   pose proof  Hsendl as Hmot.
   eapply SWOnlySendsToMotor in Hmot; eauto.
@@ -604,10 +620,11 @@ Proof.
   assert (eLocIndex Esp ≡ 0) as Hs0 by omega.
   apply SwEv0IsNotASend in Hs0; auto.
 
+
 - unfold SwRecvEventsNth.
   destruct (SwEventsSn _ p) as [Es Hsws]. simpl. 
   repnd. clear Hswsrrrr Hswsrrrl.
-  pose proof (eventualDelivery eo _ Hswsrrl) as Hsend.
+  pose proof (eventualDelivery eoreliable _ Hswsrrl) as Hsend.
   destruct Hsend as [Er  Hsend]. repnd. exists Er.
   pose proof  Hsendl as Hmot.
   eapply SWOnlySendsToMotor in Hmot; eauto.
@@ -625,9 +642,11 @@ Proof.
     destruct Hind as [Erp Hind].
     repnd. apply indexDistinct in Hindrrrr; try congruence.
     subst. 
-    assert (eLocIndex Esp <eLocIndex Es) as Hlt by omega.
-    eapply orderRespectingDeliverySR with (evr1:=Er) (evr2:=Er) in Hlt; eauto;
+    assert (eLocIndex Esp <eLocIndex Es) as Hlt by omega.    
+    apply orderRespectingDeliverySR
+     with (evr1:=Er) (evr2:=Er) in Hlt; eauto;
     try congruence. omega.
+    
   + apply SwMotorPrevSend with (Es:=Es) in Htric; try assumption.
     destruct Htric as [Erp Hlt].
     destruct Hlt as [Esp Hlt]. repnd.
@@ -647,7 +666,7 @@ Proof.
     subst.
     destruct Hind as [Erpp Hind].
     repnd.
-    pose proof (noDuplicateDelivery eo) as Hh.
+    pose proof (noDuplicateDelivery eoreliable) as Hh.
     unfold NoDuplicateDelivery in Hh.
     eapply Hh with (evr2:=Erp) in Hindrl; eauto;
     try congruence. clear dependent Esp.
@@ -657,6 +676,7 @@ Qed.
 
 Require Import Psatz.
 
+Definition PureSwProgram := @PureSwProgram rotspeed linspeed  delRes delEps delay.
 
 Lemma MotorEvents:
   let resp := PureSwProgram target in
@@ -712,6 +732,10 @@ Proof.
   remember (QT2Q (eTime Er)) as Ert.
   remember (QT2Q (eTime Es)) as Est.
   clear HeqErt HeqEst.
+  unfold Qball, AbsSmall in H1q. simpl in H1q.
+
+  Start Fixing from here.
+  
   apply Q.Qabs_diff_Qle in H1q.
   apply Q.Qabs_diff_Qle in H2q.
   apply Q.Qabs_diff_Qle.
