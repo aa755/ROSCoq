@@ -62,6 +62,9 @@ Existing Instance icreateMoveToLocC.
 Print Instances Connectivity.
 Hint Resolve (@lcon expectedDelivDelay delivDelayVar) : typeclass_instances.
 
+(*TODO : make this a part of the icreate spec *)
+Hypothesis motorPrec0 : motorPrec {| rad :=0 ; θ :=0 |} ≡ {| rad :=0 ; θ :=0 |}.
+
 
 (** This is the arbitrary execution that we will be considering *)
 Context `{cpsExec:CPSExecution icreateMoveToLocC}.
@@ -727,19 +730,23 @@ Proof.
   end.
   clear Heqsdt Heqest.
   revert Ht Hrrr. clear.
-  repeat (rewrite Qball_Qabs).
+Typeclasses eauto :=4.
+(* 
+replacing the next 3 lines by repeat makes it less roboust,
+as we need to enforce that rewriting succeeded 3 times.
+*)
+  rewrite Qball_Qabs.
+  rewrite Qball_Qabs.
+  rewrite Qball_Qabs.
   intros H1q H2q.
   remember (QT2Q (eTime Er)) as Ert.
   remember (QT2Q (eTime Es)) as Est.
   clear HeqErt HeqEst.
-  unfold Qball, AbsSmall in H1q. simpl in H1q.
-
-  Start Fixing from here.
-  
   apply Q.Qabs_diff_Qle in H1q.
   apply Q.Qabs_diff_Qle in H2q.
   apply Q.Qabs_diff_Qle.
   destruct sendTimeAcc as [tAcc ?].
+  clear dependent cpsExec.
   destruct expectedDelivDelay  as [expD ?].
   destruct delivDelayVar   as [maxVar ?].
   simpl.
@@ -890,7 +897,7 @@ Lemma correctVelTill0:
   let t0 : QTime := MotorEventsNthTime 0 (decAuto (0<4)%nat I) in
     correctVelDuring initialVel (mkQTime 0 I) t0 ic.
 Proof.
-  intros. pose proof (corrNodes eo MOVABLEBASE) as Hc.
+  intros. pose proof (CPSAgentSpecsHold cpsExec MOVABLEBASE) as Hc.
   simpl in Hc.
   unfold DeviceSemantics, HwAgent in Hc.
   apply proj1 in Hc.
@@ -1002,7 +1009,7 @@ Lemma correctVel0to1:
        θ := polarθSign target * rotspeed |} in
   correctVelDuring requestedVel mt0 mt1 ic.
 Proof.
-  intros. pose proof (corrNodes eo MOVABLEBASE) as Hc.
+  intros. pose proof (CPSAgentSpecsHold cpsExec MOVABLEBASE) as Hc.
   simpl in Hc.
   unfold DeviceSemantics, HwAgent in Hc.
   apply proj1 in Hc.
@@ -1234,6 +1241,7 @@ Proof.
   destruct rotspeed.
   simpl.
   assert ((/ x * x) ==1)%Q as Heq by (field; lra).
+Typeclasses eauto :=5.  
   rewrite Heq.
   prepareForCRRing.
   ring.
@@ -1257,6 +1265,8 @@ Lemma simpleApproximateAbsSmallIR: ∀ (r:CR) (res : Z⁺) (eps : Qpos),
   rewrite IRasCRasIR_id in Hball.
   exact Hball.
 Qed.
+
+Definition R2QPrec := @R2QPrec delRes delEps.
 
 Lemma ThetaAtEV1 :
      (|{theta ic} mt1 - optimalTurnAngle|) ≤ 
@@ -1520,7 +1530,7 @@ Lemma correctVel1to2:
   let requestedVel : Polar2D Q := {|rad := 0;θ := 0|} in
   correctVelDuring requestedVel t1 t2 ic.
 Proof.
-  intros. pose proof (corrNodes eo MOVABLEBASE) as Hc.
+  intros. pose proof (CPSAgentSpecsHold cpsExec MOVABLEBASE) as Hc.
   simpl in Hc.
   unfold DeviceSemantics, HwAgent in Hc.
   apply proj1 in Hc.
@@ -1734,7 +1744,7 @@ Lemma correctVel2to3:
   let requestedVel : Polar2D Q := {|rad:= QposAsQ linspeed ; θ := 0 |} in
   correctVelDuring requestedVel t1 t2 ic.
 Proof.
-  intros. pose proof (corrNodes eo MOVABLEBASE) as Hc.
+  intros. pose proof (CPSAgentSpecsHold cpsExec MOVABLEBASE) as Hc.
   simpl in Hc.
   unfold DeviceSemantics, HwAgent in Hc.
   apply proj1 in Hc.
@@ -1947,6 +1957,7 @@ Defined.
 
 Definition distTraveled : IR := Cintegral Ev2To3Interval (transVel ic).
 
+Start fixing from here.
 
 Add Ring cart2dir : Cart2DIRRing.
 
