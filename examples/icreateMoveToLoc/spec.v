@@ -56,7 +56,7 @@ This programs forms will be a software agent in a distributed system
 consisting of 3 agents, as shown in the figure:
 
 
-#<img src="icreateMoveToLoc.svg"/>#
+#<img src="msgSeqDiagram.svg"/>#
 
 The hardware agent represents the iRobot create hardware and its ROS drivers.
 It was defined in the previous chapter.

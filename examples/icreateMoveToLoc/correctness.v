@@ -44,6 +44,11 @@ We need to prove that in ALL POSSIBLE EXECUTIONS
 of this cyber-physical system, the robot will end up to some place
 close where it is asked to go by the esternal agent.
 So, we consider an arbitrary execution, and prove the desired property about it.
+
+(Ideally, we should also show that
+there is at least one possible
+[CPSExecution].
+This can be done by constructing a member of the [CPSExecution] type, and will ensure that the specification of the cyber-physical system is not inconsistent.)
 *)
 
 Typeclasses eauto := 3.
