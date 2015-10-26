@@ -1,5 +1,5 @@
 
-Require Export icreateMoveToLoc.
+Require Import spec.
 
 Definition rotSpeedRadPerSec : Qpos := QposMake 1 2.
 
@@ -13,8 +13,9 @@ Definition delEpsSec : Qpos := QposMake 1  delResSecInv.
 
 Definition initDelayLin : Qpos := QposMake 1 1.
 
+Require Import message.
 Definition robotProgramInstance (delayLinSec : Qpos) :  PureProcWDelay TARGETPOS VELOCITY :=
-  robotPureProgam 
+  @robotPureProgam 
           rotSpeedRadPerSec 
           linSpeedMetresPerSec
           delResSecInv
@@ -37,8 +38,8 @@ Require Import ExtrHaskellBasic.
 Require Import RoshaskImpl.
 Require Import RoshaskTypes.
 
+Require Import Vector.
 Require Import Ros.Geometry_msgs.Vector3.
-
 
 Definition toVector3  (x:Q) (y:Q) : Vector3 :=
   {| _x := toRoshaskFloat x ; _y := toRoshaskFloat y; _z:= toRoshaskFloat 0|}.
@@ -90,7 +91,7 @@ apply Build_RosHaskImplementable with  (topicImplType := fun _:Topic => ROS_Geom
   Close Scope string_scope.
 Defined.
  *)
-
+Require Import MCInstances.
 Require Import RoshaskNodeMonad.
 Definition icreateRoshaskSwNode : Node unit :=
   let prf := decAuto (0 < Datatypes.length (fst (locTopics SWNODE)))%nat I in
