@@ -21,6 +21,11 @@ coqdoc:
 	cp SConstruct.backup SConstruct
 	cp msgSeqDiagram.svg coqdoc/
 	cd coqdoc; ../../../scripts/patchNoCache.sh
+
+coqdocweb:
+	rm -rf ~/homepage/MyWeb/ROSCoq/coqdocnew/
+	cp -r coqdoc ~/homepage/MyWeb/ROSCoq/coqdocnew
+	
 	
 clean:
 	rm icreateMoveToLocExt.vo  *.hs *.o *.hi
