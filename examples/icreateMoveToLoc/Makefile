@@ -9,6 +9,18 @@ icreateMoveToLoc.hs : haskellExtraction.v
 icreateMoveToLoc : icreateMoveToLoc.hs
 	ghc $^ -main-is IcreateMoveToLoc -o  $@
 
+proof:
+	scons --site-dir ../../site_scons/ correctness.vo
 
+coqdoc:
+	scons --site-dir ../../site_scons/ -j4 -k
+	rm -rf coqdoc
+	cp SConstruct SConstruct.backup
+	cat SConstruct.coqdoc >> SConstruct
+	scons --site-dir ../../site_scons/ coqdoc
+	cp SConstruct.backup SConstruct
+	cp msgSeqDiagram.svg coqdoc/
+	cd coqdoc; ../../../scripts/patchNoCache.sh
+	
 clean:
 	rm icreateMoveToLocExt.vo  *.hs *.o *.hi
