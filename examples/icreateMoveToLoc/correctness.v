@@ -1957,9 +1957,9 @@ Defined.
 
 Definition distTraveled : IR := Cintegral Ev2To3Interval (transVel ic).
 
-Start fixing from here.
-
+Typeclasses eauto :=10.
 Add Ring cart2dir : Cart2DIRRing.
+
 
 Variable nztp : ([0] [<] normIR (' target)).
 
@@ -2979,4 +2979,4 @@ Proof.
   reflexivity.
 Qed.
 
-End RobotProgam.
+End Proof.
