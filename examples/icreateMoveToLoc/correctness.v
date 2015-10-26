@@ -48,42 +48,61 @@ So, we consider an arbitrary execution, and prove the desired property about it.
 
 Typeclasses eauto := 3.
 Section Proof.
+
 (** Reintroduce the parameters of the CPS specification into the current context *)
+
 Variables (rotspeed linspeed : Qpos) (delRes : Z⁺) (delEps delay : Qpos) (reacTime : QTime)
 (motorPrec : Polar2D Q → Polar2D QTime) (procTime : QTime) (sendTimeAcc : Qpos) 
 (target : Cart2D Q) (expectedDelivDelay delivDelayVar : Qpos).
+
+(**
+A shorter way to refer to the CPS we defined in spec.v
+*)
 
 Definition icreateMoveToLocC  : CPS RosLoc :=
 (@icreateMoveToLoc rotspeed linspeed delRes delEps delay reacTime
 motorPrec procTime sendTimeAcc
 target expectedDelivDelay delivDelayVar).
 
-Existing Instance icreateMoveToLocC.
-Print Instances Connectivity.
-Hint Resolve (@lcon expectedDelivDelay delivDelayVar) : typeclass_instances.
 
 (*TODO : make this a part of the icreate spec *)
 Hypothesis motorPrec0 : motorPrec {| rad :=0 ; θ :=0 |} ≡ {| rad :=0 ; θ :=0 |}.
 
 
-(** This is the arbitrary execution that we will be considering *)
+(** This is the arbitrary execution that we will be considering. *)
+
 Context `{cpsExec:CPSExecution icreateMoveToLocC}.
 
 
 Notation Event := (CPSEvent cpsExec).
 
-(*
-Variable reliableDel : @EOReliableDelivery  Topic Event RosLoc _ _ _ _ _ 
-  (@lcon expectedDelivDelay delivDelayVar)
-
-Add an instance of Connectivity, which is obtained by projecting an CPS instance.
-*)
 
 Definition ic : iCreate := physicsEvolution cpsExec.
 
 Notation EventOp := (option (CPSEvent cpsExec)).
 
+(** 
+Below, when we invoke functions like [eLoc], [eTime], and [causedBy], we will 
+be talking about the execution [cpsExec], without mentioning it explicitly.
+This technique for brevity which is common in natural language proofs can
+carry over to the world of machine checked proofs using Coq's typeclass inference mechanism.
+
+The next 3 lines add hints for Coq's typeclass inference mechanism to resolve
+many implicit parameters correctly.
+Without these 3 lines, the statements below would be much more verbose.
+You can always ask Coq to show all statements in gory details by saying
+[[
+Set Printing All.
+]]
+*)
+
 Hint Resolve cpsExec: typeclass_instances.
+Existing Instance icreateMoveToLocC.
+Hint Resolve (@lcon expectedDelivDelay delivDelayVar) : typeclass_instances.
+
+(**
+* Characterizing the messages received by the hardware agent.
+*)
 
 
 Definition eCmdEv0WSpec : {ev:Event| getSentPayload TARGETPOS ev ≡ Some target
@@ -636,7 +655,7 @@ Proof.
   destruct Htric as[Htric| Htric];
     [ destruct Htric as[Htric| Htric]|]; [|assumption|]; provefalse.
   + assert (eLocIndex Er  < 4) as Hpp by omega.
-    (** we show that a message of index [eLocIndex Er] was already
+    (* we show that a message of index [eLocIndex Er] was already
         received due to a previous send *)
     specialize (Hind _ Htric  Hpp). unfold SwRecvEventsNth in Hind.
     destruct (SwEventsSn _ Hpp) as [Esp Hsws].
@@ -818,7 +837,10 @@ Defined.
 Definition MotorEventsNthTime (n:nat) (p :  n < 4) : QTime :=
   (eTime (MotorEventsNth n p)).
 
-
+(**
+Now that we have proved that 4 events must have happened at the hardware agent,
+we name them for convenience.
+*)
 Definition  mt0 : QTime 
   := MotorEventsNthTime 0 (decAuto (0<4)%nat I).
 
@@ -886,7 +908,19 @@ Qed.
 
 Close Scope nat_scope.
 
-(** Also, this is the way 0 is defined for CR *)
+(* Also, this is the way 0 is defined for CR *)
+
+(**
+* Characterizing the motion of the robot
+
+Now that we know that the hardware agent received 4 messages, respectively to turn, stop, move forward and stop,
+we will use the specification of the hardware agent to prove bounds on where it will be at the
+last event. We will condider the messages one by one and chain through the motion caused
+by each message.
+The received message contains the requested linear and angular velocity.
+By integrating over those velocities, while also considering the actuation errors, we
+get bounds on the movement of the robot.
+*)
 
 Instance Zero_Instace_IR_better : Zero IR := inj_Q IR 0.
 Hint Unfold Zero_Instace_IR_better : IRMC.
@@ -1191,7 +1225,7 @@ Proof.
   exact Hg.
 Qed.
 
-(** This could be made an assumption of the motor spec.
+(* This could be made an assumption of the motor spec.
   One will have to prove this and only then
   they can assume correct behaviour of motor.
     In this case, it should be provable becuase
@@ -1425,8 +1459,8 @@ Proof.
   apply MotorEv01Gap4.
 Qed.
   
-(** rearrange the above to show relation to rotspeed 
-    first line of errors is proportional to rotspeed
+(** rearrange the above to show relation to  [rotspeed] 
+    first line of errors is proportional to [rotspeed]
     second is independent,
     third is inversly proportional.
  *)
@@ -2431,7 +2465,7 @@ Proof.
 Qed.
 
 
-(** trivial simplification *)
+(* trivial simplification *)
 Lemma YDerivEv2To3_1 : ∀ (t:QTime), 
   mt2 ≤ t ≤ mt3 
   → AbsIR ({Y'Deriv} t [-] [0]) 
@@ -2460,7 +2494,7 @@ Proof.
   ring.
 Qed.
 
-(** While this spec is totally in terms of the parameters,
+(* While this spec is totally in terms of the parameters,
     it does not clarify how ttanslation speed matters, because 
     [Ev23TimeGapUB] has terms that depend on speed.
     So does [θErrTrans]. 
