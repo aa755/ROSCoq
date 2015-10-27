@@ -9,9 +9,6 @@ Note that we are using our fork of the original roshask. Our fork generates Coq 
      iCreateMoveToLoc
   </description>
   <author>Abhishek Anand</author>
-  <license>BSD</license>
-  <review status="unreviewed" notes=""/>
-  <url>http://ros.org/wiki/Turtle</url>
   <depend package="std_msgs"/>
   <depend package="geometry_msgs"/>
 
