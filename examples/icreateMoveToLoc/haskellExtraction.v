@@ -68,8 +68,8 @@ may be written in other langaues such as C, as is often the case foe hardware ag
 
 The driver for our iRobot Create received messages of type
 Ros.Geometry_msgs.Vector3. 
-See: <a href="http://docs.ros.org/api/geometry_msgs/html/msg/Vector3.html">
-http://docs.ros.org/api/geometry_msgs/html/msg/Vector3.html</a>
+See: #<a href="http://docs.ros.org/api/geometry_msgs/html/msg/Vector3.html">
+http://docs.ros.org/api/geometry_msgs/html/msg/Vector3.html</a>#
 We have already generated the Coq type for this message : [Ros.Geometry_msgs.Vector3]
 See the ROSCoq wiki to find out how to generate Coq message types for types used by the
 Robot Operating System.
