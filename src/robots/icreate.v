@@ -181,28 +181,44 @@ Hypothesis motorPrec0 : motorPrec {| rad :=0 ; θ :=0 |} ≡ {| rad :=0 ; θ :=0
   
 Close Scope Q_scope.
 
+(**
+The definition below is the key ingredient of the specification of the device driver.
+Suppose the driver receives a payload [cmd] of type [Polar2D Q] at time [tm].
+Consider some later time instant [t] such that no other messages were received between
+[tm] and [t].
+[correctVelDuring] specified how the robot's linear and angular velocity must have
+evolved from time [tm] to [t].
+The first conjunct specifies the evolution of the linear velocity, and the second one
+which is similar,  specifies the evolution of the angular velocity.
+To understand a conjunct, we hanve to understand the definition of [changesTo]
+(click it to jump to its definition).
+
+The figure below illustrates it pictorially.
+#<img src="hwAgentSpec.svg"/>#
+
+*)
 
 Definition correctVelDuring
-  (lastVelCmd : (Polar2D Q)) 
+  (cmd : (Polar2D Q)) 
   (tm: QTime)
-  (uptoTime : QTime) 
+  (t : QTime) 
   (ic: iCreate) :=
 
   changesTo 
     (transVel ic) 
     tm
-    uptoTime 
-    (rad lastVelCmd) 
+    t 
+    (rad cmd) 
     reacTime 
-    (rad  (motorPrec lastVelCmd))
+    (rad  (motorPrec cmd))
   ∧ 
   changesTo 
     (omega ic) 
     tm 
-    uptoTime 
-    (θ lastVelCmd) 
+    t 
+    (θ cmd) 
     reacTime 
-    (θ (motorPrec lastVelCmd)).
+    (θ (motorPrec cmd)).
 
 Section LastVelocityMessage.
 
@@ -211,19 +227,39 @@ Context `{etype : @EventType _ _ _ Event  tdeq}.
 
 Typeclasses eauto :=2.
 
+(**
+Given [evs], the  sequence of events that happened at the hardware agent,
+and any time [t],
+the function below computes the latest velocity message received before time [t],
+and the time when it was received.
+*)
+
 Definition latestVelPayloadAndTime
   (evs : nat -> option Event) (t : QTime) : ((Polar2D Q) × QTime) :=
 (@transport _ _ _ (λ t, t -> t ** QTime) VelTOPICType 
    (lastPayloadAndTime VELOCITY evs t)) initialVel.
 
+(**
+Now we just consider any time instant [t] and enforce that the velocity
+evolved correctly, as explained above, from the time instant the latest message
+before [t] was received and till [t].
+*)
+
 Definition corrSinceLastVel
   (evs : nat -> option Event)
-  (uptoTime : QTime)
-  (robot: iCreate) :=
-let (lastVel, lastTime) := latestVelPayloadAndTime evs uptoTime in
-correctVelDuring lastVel lastTime uptoTime robot.
+  (t : QTime)
+  (ic: iCreate) :=
+let (cmd, tm) := latestVelPayloadAndTime evs t in
+correctVelDuring cmd tm t ic.
 
 End LastVelocityMessage.
+
+(**
+The final specification of the hardware agent just enforces the above for all 
+(rational) time instants. Ideally, one might want to enforce it for even the irrational
+time instants. However, because velocity is assumed to be a continuous function,
+the specification at rational time instants is sufficient. 
+*)
 
 Definition HwAgent  : Device iCreate :=
 λ (Event:Type) 
@@ -231,7 +267,11 @@ Definition HwAgent  : Device iCreate :=
   (∀ t: QTime, corrSinceLastVel evs t robot)
   ∧ ∀ n:nat, isDeqEvtOp (evs n).
 
-
+(**
+See #<a href="http://www.cs.cornell.edu/~aa755/ROSCoq/coqdocnew/ICreateMoveToLoc.spec.html">examples/icreateMoveToLoc/spec.v</a># 
+for an example of using  the definitions
+in this file while specifiying a CpS.
+*)
 
 (* partial simplified definition shown in the paper : 
 Definition eeev  a b : Q  :=
@@ -282,4 +322,5 @@ Proof.
   exact H.
 Qed.
 *)
+
 End HardwareAgents.
