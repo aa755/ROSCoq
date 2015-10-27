@@ -5,9 +5,10 @@ Require Import RoshaskTopic.
 
 
 
-(** To run a ROSCoq CPS using roshask, one has to provide some 
+(** 
+To run a ROSCoq CPS using roshask, one has to provide some 
    ROS(hask) specific implementation details.
-   One has to map the ROSCoq topic types to actual ROS message types whose
+   One has to map the payload types for ROSCoq topics to actual ROS message types whose
    Haskell and Coq files have already been generated using the roshask utility.
    Ideally, if one directly used ROS message types in ROSCoq, this mapping will be
    an identity function. However, one may wish to reason about a simplified datatype
@@ -16,8 +17,6 @@ Require Import RoshaskTopic.
    
    One also has to map each topic to the string that represents the 
    fully qualified name of the actual ROS topic.
-
-   To avoid confusion, perhaps we should drop the prefix ROS from names of types used in reasoning.
   
 *)
 
