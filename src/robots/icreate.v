@@ -42,13 +42,50 @@ Notation FSin:= CFSine.
 Notation FCos:= CFCos.
 
 
+(**
+* Specifying robots.
+*)
+
+(**
+A cyber-physical system (CpS) typicall consistes of one or more robots (broadly interpreted), and 
+one or more software agents (controllers).
+
+We want to be able to specify a CpS by composing the specifications 
+of its robots and other software components.
+As explained in the 
+#<a href="http://www.cs.cornell.edu/~aa755/ROSCoq/ROSCOQ.pdf">ROSCoq paper</a>#,
+a specification CpS involved a specification of its physical
+specification of its physical model and mutually independent specifications of each of its agents. 
+Our goal here is to specify the physical model of the robot and its hardware agents which represent
+its device-drivers. We do this in a general way so that it can be instantiated in the specification
+of various CpSes.
+*)
+
+(**
+* The physical model of iRobot Create
+*)
+
+(**
+As described in Sec. 2 of the 
+#<a href="http://www.cs.cornell.edu/~aa755/ROSCoq/ROSCOQ.pdf">ROSCoq paper</a>#,
+a physical model is a type that specifies how each relevant physical
+quantities evolved over time, and the physical laws governing that evolution.
+Hence, a physical model of a CpS would typically be a product of the physical models 
+of each component robots.
+
+Below is the specification of the physical model of the iCreate robot.
+This specification is explained as an example in
+Sec. 2 of the 
+#<a href="http://www.cs.cornell.edu/~aa755/ROSCoq/ROSCOQ.pdf">ROSCoq paper</a>#
+
+*)
 Record iCreate : Type := {
   position :> Cart2D TContR;          (* x, y co-ordinates*)
   theta : TContR;                       (* orientation *)
   transVel : TContR;             (* translation vel (along [theta]) *)
   omega : TContR;
 
-  (** derivatives *)
+  (** differential equations *)
   derivRot : isDerivativeOf omega theta;
   derivX : isDerivativeOf (transVel * (FCos theta)) (X position);
   derivY : isDerivativeOf (transVel * (FSin theta)) (Y position);
@@ -73,19 +110,72 @@ Record iCreate : Type := {
 
 Section HardwareAgents.
 
+(**
+* Specifying the hardware agents (device-drivers)
+*)
+
+(**
+The Robot Operating System (ROS) typically provides drivers 
+for robots. These are typically represented as agents (nodes) of a distributed system.
+These nodes communicate on designated topics,
+e.g. to subscribe to actuation commands, or to publish sensed values.
+To reason about such robots, one can specify them as ROSCoq hardware agents.
+We want the specification to be general enough so that these agents can be used
+in a wide range of CpSes. So we parametrize the specification with an arbitrary
+type for topics, and arbitrary members denoting the designated topics.
+
+Below, we illustrate this method with a specification of the driver of an iCreate robot,
+as explained in Sec. 4.1 of the 
+#<a href="http://www.cs.cornell.edu/~aa755/ROSCoq/ROSCOQ.pdf">ROSCoq paper</a>#
+
+We assume an arbitrary type for topics.
+*)
+
+
 Context 
   `{rtopic : TopicClass RosTopic} 
   `{dteq : Deq RosTopic}.
-  
+
+(**
+We assume a designated topic which the driver subscribes to, to receive velocity commands
+*)
+
 Variable VELOCITY : RosTopic.
+
+(**
+We assume that the payload type of the above topic is [Polar2D Q].
+Members of [Polar2D Q] are pairs of rationals. For example, for rationals
+[a] and [b], [{| rad :=a ; θ :=b |}] is a member of [Polar2D Q].
+The [rad] component denotes the requested linear velocity, and the
+[θ] component denotes the requested angular velocity.
+*)
+
 Hypothesis VelTOPICType : (topicType VELOCITY ≡ Polar2D Q).
 
+(**
+A bound on the time the robot takes to nearly achieve a requested velocity.
+This can be understood as a bound on the width of the vertical green
+rectangle below.
+*)
 
 Variable reacTime : QTime.
-(** It is more sensible to change the type to [QNonNeg]
+
+(* It is more sensible to change the type to [QNonNeg]
     as the value certainly does not represent time.
     However, the coercion QT2Q does not work then *)
-Variable motorPrec : Polar2D Q → Polar2D QTime.
+
+Local Notation QNonNegative := QTime.
+
+(**
+Bound on actuation error for given liner and angular velocities.
+This is related to the height of the horizontal rectangle in the figure below.
+*)
+
+Variable motorPrec : Polar2D Q → Polar2D QNonNegative.
+
+(**
+The robot eventually comes to a complete stop when requested to do so.
+*)
 
 Hypothesis motorPrec0 : motorPrec {| rad :=0 ; θ :=0 |} ≡ {| rad :=0 ; θ :=0 |}.
   
@@ -94,25 +184,26 @@ Close Scope Q_scope.
 
 Definition correctVelDuring
   (lastVelCmd : (Polar2D Q)) 
-  (lastTime: QTime)
+  (tm: QTime)
   (uptoTime : QTime) 
-  (robot: iCreate) :=
+  (ic: iCreate) :=
 
   changesTo 
-    (transVel robot) 
-    lastTime uptoTime 
+    (transVel ic) 
+    tm
+    uptoTime 
     (rad lastVelCmd) 
     reacTime 
     (rad  (motorPrec lastVelCmd))
   ∧ 
   changesTo 
-    (omega robot) 
-    lastTime uptoTime 
+    (omega ic) 
+    tm 
+    uptoTime 
     (θ lastVelCmd) 
     reacTime 
     (θ (motorPrec lastVelCmd)).
 
-Variable minGap :Q.
 Section LastVelocityMessage.
 
 Context `{etype : @EventType _ _ _ Event  tdeq}.
