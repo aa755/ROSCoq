@@ -1,0 +1,20 @@
+<!-- The only use of this file is to generate Coq and Haskell types for ROS message types exported by the dependencies. 
+In particular, we need the message types exported in geometry_msgs.
+Because of this file, "roshask dep" will generate and compile those message types.
+Note that we are using our fork of the original roshask. Our fork generates Coq types as well, along with the Haskell types.
+ -->
+<package>
+  <description brief="Turtle">
+
+     iCreateMoveToLoc
+  </description>
+  <author>Abhishek Anand</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/Turtle</url>
+  <depend package="std_msgs"/>
+  <depend package="geometry_msgs"/>
+
+</package>
+
+
