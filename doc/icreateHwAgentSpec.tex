@@ -1,0 +1,194 @@
+\documentclass[tikz]{standalone}
+%\usetikzlibrary{...}% tikz package already loaded by 'tikz' option
+\usetikzlibrary{calc,decorations.pathmorphing,patterns}
+\usepackage{hyperref}
+\usepackage[color]{coqdoc}
+
+\usepackage{xcolor}
+\newcommand{\hilight}[1]{\colorbox{yellow}{#1}}
+\newcommand{\hilightGreen}[1]{\colorbox{green}{#1}}
+\usepackage[normalem]{ulem}
+
+
+\newcommand{\coqRefInductive}[2]
+{\coqref{#1.#2}{\coqdocinductive{#2}}}
+\newcommand{\coqRefDefn}[2]
+{\coqref{#1.#2}{\coqdocdefinition{#2}}}
+\newcommand{\coqRefConstr}[2]
+{\coqref{#1.#2}{\coqdocconstructor{#2}}}
+
+\newcommand{\coqERefInductive}[2]
+{\coqnref{#1}{#2}{\coqdocinductive{#2}}}
+\newcommand{\coqERefDefn}[2]
+{\coqnref{#1}{#2}{\coqdocdefinition{#2}}}
+\newcommand{\coqERefConstr}[2]
+{\coqnref{#1}{#2}{\coqdocconstructor{#2}}}
+\newcommand{\coqERefKw}[2]
+{\coqnref{#1}{#2}{\coqdockw{#2}}}
+
+\begin{document}
+
+% Graphic for TeX using PGF
+% Title: C:\Users\Abhishek\Desktop\PhDWork\papers\Buridan\MotorSpec2.dia
+% Creator: Dia v0.97.2
+% CreationDate: Sat Mar 07 18:24:25 2015
+% For: Abhishek
+% \usepackage{tikz}
+% The following commands are not supported in PSTricks at present
+% We define them conditionally, so when they are implemented,
+% this pgf file will use them.
+\ifx\du\undefined
+  \newlength{\du}
+\fi
+\setlength{\du}{9\unitlength}
+\begin{tikzpicture}
+\pgftransformxscale{1.000000}
+\pgftransformyscale{-1.000000}
+\definecolor{dialinecolor}{rgb}{0.000000, 0.000000, 0.000000}
+\pgfsetstrokecolor{dialinecolor}
+\definecolor{dialinecolor}{rgb}{1.000000, 1.000000, 1.000000}
+\pgfsetfillcolor{dialinecolor}
+\pgfsetlinewidth{0.100000\du}
+\pgfsetdash{}{0pt}
+\pgfsetdash{}{0pt}
+\pgfsetbuttcap
+{
+\definecolor{dialinecolor}{rgb}{0.000000, 0.000000, 0.000000}
+\pgfsetfillcolor{dialinecolor}
+% was here!!!
+\pgfsetarrowsend{to}
+\definecolor{dialinecolor}{rgb}{0.000000, 0.000000, 0.000000}
+\pgfsetstrokecolor{dialinecolor}
+\draw (27.000000\du,19.000000\du)--(27.000000\du,8.000000\du);
+}
+\pgfsetlinewidth{0.100000\du}
+\pgfsetdash{}{0pt}
+\pgfsetdash{}{0pt}
+\pgfsetbuttcap
+{
+\definecolor{dialinecolor}{rgb}{0.000000, 0.000000, 0.000000}
+\pgfsetfillcolor{dialinecolor}
+% was here!!!
+\pgfsetarrowsend{to}
+\definecolor{dialinecolor}{rgb}{0.000000, 0.000000, 0.000000}
+\pgfsetstrokecolor{dialinecolor}
+\draw (27.000000\du,18.900000\du)--(37.000000\du,19.000000\du);
+}
+% setfont left to latex
+\definecolor{dialinecolor}{rgb}{0.000000, 0.000000, 0.000000}
+\pgfsetstrokecolor{dialinecolor}
+\node[anchor=west] at (30.000000\du,20.000000\du){\coqERefDefn{ROSCOQ.core}{Time}};
+% setfont left to latex
+\definecolor{dialinecolor}{rgb}{0.000000, 0.000000, 0.000000}
+\pgfsetstrokecolor{dialinecolor}
+\node[anchor=west] at (22.250000\du,13.850000\du){\coqRefDefn{ROSCOQ.icreate}{linVel} \coqdocvar{ic}};
+\pgfsetlinewidth{2.200000\du}
+\pgfsetdash{}{0pt}
+\pgfsetdash{}{0pt}
+\pgfsetbuttcap
+{
+\definecolor{dialinecolor}{rgb}{0.000000, 1.000000, 0.000000}
+\pgfsetfillcolor{dialinecolor}
+% was here!!!
+\definecolor{dialinecolor}{rgb}{0.000000, 1.000000, 0.000000}
+\pgfsetstrokecolor{dialinecolor}
+\draw (30.100000\du,9.200000\du)--(30.100000\du,16.450000\du);
+}
+\pgfsetlinewidth{1.700000\du}
+\pgfsetdash{}{0pt}
+\pgfsetdash{}{0pt}
+\pgfsetbuttcap
+{
+\definecolor{dialinecolor}{rgb}{0.000000, 1.000000, 0.000000}
+\pgfsetfillcolor{dialinecolor}
+% was here!!!
+\definecolor{dialinecolor}{rgb}{0.000000, 1.000000, 0.000000}
+\pgfsetstrokecolor{dialinecolor}
+\draw (30.000000\du,10.000000\du)--(36.200000\du,10.000000\du);
+}
+\pgfsetlinewidth{0.100000\du}
+\pgfsetdash{}{0pt}
+\pgfsetdash{}{0pt}
+\pgfsetbuttcap
+{
+\definecolor{dialinecolor}{rgb}{0.000000, 0.000000, 0.000000}
+\pgfsetfillcolor{dialinecolor}
+% was here!!!
+\definecolor{dialinecolor}{rgb}{0.000000, 0.000000, 0.000000}
+\pgfsetstrokecolor{dialinecolor}
+\draw (26.000000\du,10.000000\du)--(28.000000\du,10.000000\du);
+}
+\pgfsetlinewidth{0.100000\du}
+\pgfsetdash{{\pgflinewidth}{0.200000\du}}{0cm}
+\pgfsetdash{{\pgflinewidth}{0.200000\du}}{0cm}
+\pgfsetmiterjoin
+\pgfsetbuttcap
+{
+\definecolor{dialinecolor}{rgb}{0.000000, 0.000000, 0.000000}
+\pgfsetfillcolor{dialinecolor}
+% was here!!!
+\definecolor{dialinecolor}{rgb}{0.000000, 0.000000, 0.000000}
+\pgfsetstrokecolor{dialinecolor}
+\pgfpathmoveto{\pgfpoint{26.750000\du}{16.200000\du}}
+\pgfpathcurveto{\pgfpoint{29.700000\du}{16.500000\du}}{\pgfpoint{30.000000\du}{17.000000\du}}{\pgfpoint{30.000000\du}{12.000000\du}}
+\pgfpathcurveto{\pgfpoint{30.000000\du}{7.000000\du}}{\pgfpoint{31.350000\du}{11.250000\du}}{\pgfpoint{36.350000\du}{10.250000\du}}
+\pgfusepath{stroke}
+}
+\pgfsetlinewidth{0.100000\du}
+\pgfsetdash{}{0pt}
+\pgfsetdash{}{0pt}
+\pgfsetbuttcap
+{
+\definecolor{dialinecolor}{rgb}{0.000000, 0.000000, 0.000000}
+\pgfsetfillcolor{dialinecolor}
+% was here!!!
+\definecolor{dialinecolor}{rgb}{0.000000, 0.000000, 0.000000}
+\pgfsetstrokecolor{dialinecolor}
+\draw (29.050000\du,18.700000\du)--(29.000000\du,19.200000\du);
+}
+\pgfsetlinewidth{0.100000\du}
+\pgfsetdash{}{0pt}
+\pgfsetdash{}{0pt}
+\pgfsetbuttcap
+{
+\definecolor{dialinecolor}{rgb}{0.000000, 0.000000, 0.000000}
+\pgfsetfillcolor{dialinecolor}
+% was here!!!
+\definecolor{dialinecolor}{rgb}{0.000000, 0.000000, 0.000000}
+\pgfsetstrokecolor{dialinecolor}
+\draw (31.400000\du,18.550000\du)--(31.400000\du,18.978000\du);
+\draw (36.200000\du,18.550000\du)--(36.200000\du,18.978000\du);
+}
+% setfont left to latex
+\definecolor{dialinecolor}{rgb}{0.000000, 0.000000, 0.000000}
+\pgfsetstrokecolor{dialinecolor}
+\node[anchor=west] at (28.350000\du,18.250000\du){\coqdocvar{$t_m$}};
+% setfont left to latex
+\definecolor{dialinecolor}{rgb}{0.000000, 0.000000, 0.000000}
+\pgfsetstrokecolor{dialinecolor}
+\node[anchor=west] at (31.500000\du,18.250000\du){\coqdocvar{$t_r$}};
+\node[anchor=west] at (36.100000\du,18.250000\du){\coqdocvar{$t$}};
+% setfont left to latex
+\definecolor{dialinecolor}{rgb}{0.000000, 0.000000, 0.000000}
+\pgfsetstrokecolor{dialinecolor}
+\node[anchor=west] at (24.250000\du,9.650000\du){\coqdocvar{a}};
+\pgfsetlinewidth{0.100000\du}
+\pgfsetdash{{\pgflinewidth}{0.200000\du}}{0cm}
+\pgfsetdash{{\pgflinewidth}{0.200000\du}}{0cm}
+\pgfsetbuttcap
+{
+\definecolor{dialinecolor}{rgb}{0.000000, 0.000000, 0.000000}
+\pgfsetfillcolor{dialinecolor}
+% was here!!!
+\pgfsetarrowsstart{to}
+\pgfsetarrowsend{to}
+\definecolor{dialinecolor}{rgb}{0.000000, 0.000000, 0.000000}
+\pgfsetstrokecolor{dialinecolor}
+\draw (37.300000\du,8.900000\du)--(37.350000\du,10.150000\du);
+}
+% setfont left to latex
+\definecolor{dialinecolor}{rgb}{0.000000, 0.000000, 0.000000}
+\pgfsetstrokecolor{dialinecolor}
+\node[anchor=west] at (37.750000\du,9.750000\du){\small {\coqdocdefinition{rad}(\coqdocdefinition{motorPrec} \coqdocvar{cmd})} };
+\end{tikzpicture}
+\end{document}

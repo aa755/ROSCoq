@@ -13,6 +13,7 @@ proof:
 	scons --site-dir ../../site_scons/ correctness.vo
 
 coqdoc:
+#	cd ../../ ; scons -j5 -k
 	scons --site-dir ../../site_scons/ -j4 -k
 	rm -rf coqdoc
 	cp SConstruct SConstruct.backup
