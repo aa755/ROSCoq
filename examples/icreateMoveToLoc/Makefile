@@ -21,6 +21,7 @@ coqdoc:
 	scons --site-dir ../../site_scons/ coqdoc
 	cp SConstruct.backup SConstruct
 	cp msgSeqDiagram.svg coqdoc/
+	cp ../../src/robots/icreateHwAgentSpec.svg coqdoc/
 	cd coqdoc; ../../../scripts/patchNoCache.sh
 
 coqdocweb:

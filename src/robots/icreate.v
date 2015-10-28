@@ -186,7 +186,14 @@ To understand a conjunct, we hanve to understand the definition of [changesTo]
 (click it to jump to its definition).
 
 The figure below illustrates it pictorially.
+There must exist a time instant [tr] by which
+the linear velocity of the robot becomes close to [rad cmd], which is the requested linear velocity.
+As explained above, the parameter [reacTime] is
+an upper bound on [tr - tm].
+After [tr], the linear velocity remains close enough (as specified by [motorPrec]) to [rad cmd].
+
 #<img src="icreateHwAgentSpec.svg"/>#
+
 *)
 
 Definition correctVelDuring
