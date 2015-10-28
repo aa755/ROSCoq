@@ -100,14 +100,6 @@ Record iCreate : Type := {
 
 
 
-(** Robot is asked to go to the  [target] relative to current position.
-    This function defines the list of messages that the robot will send to
-    the motor so that it will go to the target position.
-    [X] axis of target points towards the direction that robot will move
-    and [Y] points to its left side. it might be better to make Y
-    point in robot's direction. Then add 90 in cartesian <-> polar conversion. *)
-
-
 Section HardwareAgents.
 
 (**
@@ -194,8 +186,7 @@ To understand a conjunct, we hanve to understand the definition of [changesTo]
 (click it to jump to its definition).
 
 The figure below illustrates it pictorially.
-#<img src="hwAgentSpec.svg"/>#
-
+#<img src="icreateHwAgentSpec.svg"/>#
 *)
 
 Definition correctVelDuring
