@@ -38,6 +38,7 @@ Notation FCos:= CFCos.
 
 (** [TContR] is a type of continuous functions from [Time] to reals ([R])
 It denotes how a physical quantity evolved over time *)
+
 Local Notation "Time -c-> R" := TContR (at level 100).
 
 
@@ -45,8 +46,23 @@ Local Notation "Time -c-> R" := TContR (at level 100).
 * #<a href="https://en.wikipedia.org/wiki/Ackermann_steering_geometry">Ackermann Steering</a>#
 *)
 
+Section Robot.
 
-Record AckermannCar (length : Q) (width :Q) : Type := {
+(** length of the car *)
+
+Variable length : Q.
+
+(** width of the car *)
+
+Variable width :Q.
+
+(** because of the limited range of the steering wheel, 
+turn radius cannot be made arbitrary small. This is the bound*)
+
+Variable minTurnRadius : Qpos.
+
+
+Record AckermannCar  : Type := {
 (** position of the midpoint of the 2 rear wheels *)
 
   position :> Cart2D (Time -c-> R);
@@ -59,11 +75,18 @@ Record AckermannCar (length : Q) (width :Q) : Type := {
   linVel : (Time -c-> R);
 
 
-(** distance of the turning center from the midpoint of the 2 rear wheels *)
-  turnCenterDist : (Time -c-> R);
+(** position of the turning center.
+We know that it lies on the line joining the 2 rear wheels.
+This value (at time [t]) is the displacement from the midpoint from the 2 wheels, along that line.
+A positive value indicates that the turn center is on the right side*)
+  turnCenter : (Time -c-> R);
 
-(** especially needed to make the devision below in [derivRot]  well-typed *)
-  turnCenterDistPos : forall t:Time, 0 [<] ({turnCenterDist} t);
+(** apart from capturing a physical constraint, it is implies
+the non-zerohood of [turnCenter] at all times, which is needed for
+the division below in [derivRot] to be well-typed.
+*)
+
+  turnCenterNonZero : forall t:Time, (Q2R minTurnRadius) ≤ |{turnCenter} t|;
   
 (** differential equations *)
 
@@ -75,3 +98,4 @@ Record AckermannCar (length : Q) (width :Q) : Type := {
 
 }.
 
+End Robot.
