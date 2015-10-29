@@ -16,11 +16,7 @@ Require Export LibTactics.
 (** printing IR $\mathbb{R}$ #IR# *)
 (** printing CR $\mathbb{R}$ #CR# *)
 (** printing tr $t_r$ #tr# *)
-(** printing θErrTurn $\theta ErrTurn$ #θErrTurn# *)
 (** remove printing * *)
-(** printing θErrTrans $\theta ErrTrans$ #θErrTrans# *)
-(** printing polarθSign $polar \theta Sign$ #polarθSign# *)
-(** printing idealθ $ideal \theta$ #idealθ# *)
 
 (** printing ' $ $ #'# *)
 
@@ -80,17 +76,30 @@ Sec. 2 of the
 
 *)
 Record iCreate : Type := {
-  position :> Cart2D TContR;          (* x, y co-ordinates*)
-  theta : TContR;                       (* orientation *)
-  transVel : TContR;             (* translation vel (along [theta]) *)
+(** x, y co-ordinates  of the center of the robot *)
+
+  position :> Cart2D TContR;
+
+(** the angle with X axis made by the line joining the center of the robot to the front tip *)
+
+  theta : TContR;
+
+(** velocity of the center of the robot *)
+
+  transVel : TContR;
+
+(** angular velocity (rate of turn) of the robot, in radians per unit time *)
+
   omega : TContR;
 
-  (** differential equations *)
+(** differential equations *)
+
   derivRot : isDerivativeOf omega theta;
   derivX : isDerivativeOf (transVel * (FCos theta)) (X position);
   derivY : isDerivativeOf (transVel * (FSin theta)) (Y position);
 
-  (** Initial (at time:=0) Conditions *)  
+(** Initial (at time:=0) Conditions *)  
+(* Todo: generalize over 0 *)
 
   initPos:  ({X position} 0) ≡ 0 ∧ ({Y position} 0) ≡ 0;
   initTheta:  ({theta} 0) ≡ 0;
