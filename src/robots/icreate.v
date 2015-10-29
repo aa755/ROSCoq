@@ -92,7 +92,7 @@ Record iCreate : Type := {
 
 (** velocity of the center of the robot *)
 
-  transVel : Time -c-> R;
+  linVel : Time -c-> R;
 
 (** angular velocity (rate of turn) of the robot, in radians per unit time *)
 
@@ -101,15 +101,15 @@ Record iCreate : Type := {
 (** differential equations *)
 
   derivRot : isDerivativeOf omega theta;
-  derivX : isDerivativeOf (transVel * (FCos theta)) (X position);
-  derivY : isDerivativeOf (transVel * (FSin theta)) (Y position);
+  derivX : isDerivativeOf (linVel * (FCos theta)) (X position);
+  derivY : isDerivativeOf (linVel * (FSin theta)) (Y position);
 
 (** Initial (at time:=0) Conditions *)  
 (* Todo: generalize over 0 *)
 
   initPos:  ({X position} 0) ≡ 0 ∧ ({Y position} 0) ≡ 0;
   initTheta:  ({theta} 0) ≡ 0;
-  initTransVel : ({transVel} 0) ≡ (rad initialVel);
+  initTransVel : ({linVel} 0) ≡ (rad initialVel);
   initOmega : ({omega} 0) ≡ (θ initialVel)
 }.
 
@@ -218,7 +218,7 @@ Definition correctVelDuring
   (ic: iCreate) :=
 
   changesTo 
-    (transVel ic) 
+    (linVel ic) 
     tm
     t 
     (rad cmd) 
@@ -300,9 +300,9 @@ onlyRecvEvts evs ∧ ∀ t: QTime,
   let b : Q := θ (lastCmd) in
   ∃ tr : QTime, (tm ≤ tr ≤ tm + reacTime)
     ∧ (∀ t' : QTime, (tm ≤ t' ≤ tr) 
-        → (Min ({transVel ic} tm) (a - eeev a b) 
-            ≤ {transVel ic} t' ≤ Max ({transVel ic} tm) (a+ eeev a b)))
-    ∧ (∀ t' : QTime, (tr ≤ t' ≤ t) → |{transVel ic} t' - a | ≤ Q2R (eeev a b)).
+        → (Min ({linVel ic} tm) (a - eeev a b) 
+            ≤ {linVel ic} t' ≤ Max ({linVel ic} tm) (a+ eeev a b)))
+    ∧ (∀ t' : QTime, (tr ≤ t' ≤ t) → |{linVel ic} t' - a | ≤ Q2R (eeev a b)).
 
 Lemma HwAgentPCorr1 :
   ∀ icr evs,

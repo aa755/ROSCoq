@@ -135,11 +135,11 @@ Proof.
 Qed.
 
 
-Lemma derivXNoMC : ∀ icr, isDerivativeOf (transVel icr[*] (CFCos (theta icr))) (X (position icr)).
+Lemma derivXNoMC : ∀ icr, isDerivativeOf (linVel icr[*] (CFCos (theta icr))) (X (position icr)).
   exact derivX.
 Qed.
 
-Lemma derivYNoMC : ∀ icr, isDerivativeOf (transVel icr[*] (CFSine (theta icr))) (Y (position icr)).
+Lemma derivYNoMC : ∀ icr, isDerivativeOf (linVel icr[*] (CFSine (theta icr))) (Y (position icr)).
   exact derivY.
 Qed.
 
@@ -993,7 +993,7 @@ Qed.
 Lemma TransVelPosAtEV0 :
   let t0 : QTime := MotorEventsNthTime 0 (decAuto (0<4)%nat I) in
   ∀ (t : QTime),  t ≤ t0
-      → ({transVel ic} t = 0 ∧ (posAtTime t) = (posAtTime 0)).
+      → ({linVel ic} t = 0 ∧ (posAtTime t) = (posAtTime 0)).
 Proof.
   intros ? ? Hle.
   unfold zero, Zero_instance_IR, Zero_instance_Time.
@@ -1022,7 +1022,7 @@ Local Opaque getF mkQTime.
   split.
 Local Transparent mkQTime.
 - apply TDerivativeEqQ0 with 
-    (F':=(transVel ic[*]CFCos (theta ic)));
+    (F':=(linVel ic[*]CFCos (theta ic)));
     eauto with ICR.
   intros tq Hbw. simpl in Hbw.
   rewrite IContRMultAp, Hd0;[| lra].
@@ -1031,7 +1031,7 @@ Local Transparent mkQTime.
   rewrite inj_Q_Zero. reflexivity.
 
 - apply TDerivativeEqQ0 with 
-    (F':=(transVel ic[*]CFSine (theta ic)));
+    (F':=(linVel ic[*]CFSine (theta ic)));
     eauto with ICR.
   intros tq Hbw. simpl in Hbw.
   rewrite IContRMultAp, Hd0; [| lra].
@@ -1741,8 +1741,8 @@ Qed.
 
 Local Opaque Q2R.
 
-Lemma transVelAtEv2 : let t2 := MotorEventsNthTime 2 (decAuto (2 < 4)%nat I) in
-    {transVel ic} t2 = 0.
+Lemma linVelAtEv2 : let t2 := MotorEventsNthTime 2 (decAuto (2 < 4)%nat I) in
+    {linVel ic} t2 = 0.
 Proof.
   intro. pose proof correctVel1to2 as H0c.
   simpl in H0c.
@@ -1994,7 +1994,7 @@ Definition Ev2To3Interval : TIntgBnds.
   omega.
 Defined.
 
-Definition distTraveled : IR := Cintegral Ev2To3Interval (transVel ic).
+Definition distTraveled : IR := Cintegral Ev2To3Interval (linVel ic).
 
 Typeclasses eauto :=10.
 Add Ring cart2dir : Cart2DIRRing.
@@ -2007,10 +2007,10 @@ Definition rotOrigininPos : Cart2D TContR:=
 
 
 Definition Y'Deriv : TContR :=
-(transVel ic) * (FSin (theta ic - FConst optimalTurnAngle)).
+(linVel ic) * (FSin (theta ic - FConst optimalTurnAngle)).
 
 Definition X'Deriv : TContR :=
-(transVel ic) * (FCos (theta ic - FConst optimalTurnAngle)).
+(linVel ic) * (FCos (theta ic - FConst optimalTurnAngle)).
 
 Lemma DerivRotOriginTowardsTargetPos : 
   (isDerivativeOf X'Deriv (X rotOrigininPos)
@@ -2028,7 +2028,7 @@ Hint Unfold Mult_instance_TContR Plus_instance_TContR
 
 Lemma YDerivAtTime : ∀ (t: Time),
   {Y'Deriv} t 
-  = {transVel ic} t[*]Sin ({theta ic} t[-]optimalTurnAngle).
+  = {linVel ic} t[*]Sin ({theta ic} t[-]optimalTurnAngle).
 Proof.
   intros ?.
   unfold Y'Deriv.
@@ -2040,7 +2040,7 @@ Qed.
 
 Lemma XDerivAtTime : ∀ (t: Time),
   {X'Deriv} t 
-  = {transVel ic} t[*]Cos ({theta ic} t[-]optimalTurnAngle).
+  = {linVel ic} t[*]Cos ({theta ic} t[-]optimalTurnAngle).
 Proof.
   intros ?.
   unfold X'Deriv.
@@ -2093,7 +2093,7 @@ Definition rotDerivAtTime (t : Time) : Cart2D IR:=
 
  
 Lemma RotXYDerivLeSpeed : ∀ (t : Time) (ub : IR),
-  AbsIR ({transVel ic} t) ≤ ub
+  AbsIR ({linVel ic} t) ≤ ub
   → XYAbs (rotDerivAtTime t) ≤ {|X:=ub; Y:=ub|} .
 Proof.
   intros ? ? Hb.
@@ -2132,7 +2132,7 @@ Qed.
 
 Lemma LeRotIntegSpeed : ∀ (a b : QTime) (ub : IR),
    a ≤ b
-  → (∀ (t:QTime), a ≤ t ≤ b → AbsIR ({transVel ic} t) ≤ ub)
+  → (∀ (t:QTime), a ≤ t ≤ b → AbsIR ({linVel ic} t) ≤ ub)
   → XYAbs (rotOrgPosAtTime b - rotOrgPosAtTime a) 
       ≤ {|X:=ub* (b-a)%Q; Y:=ub* (b-a)%Q|} .
 Proof.
@@ -2145,7 +2145,7 @@ Qed.
 Lemma LeRotIntegSpeed2 : ∀ (a b : QTime) (tub : IR) (ub : IR),
    a ≤ b
   → Q2R (b - a)%Q ≤ tub
-  → (∀ (t:QTime), a ≤ t ≤ b → AbsIR ({transVel ic} t) ≤ ub)
+  → (∀ (t:QTime), a ≤ t ≤ b → AbsIR ({linVel ic} t) ≤ ub)
   → XYAbs (rotOrgPosAtTime b - rotOrgPosAtTime a) 
       ≤ {|X:=ub* tub%Q; Y:=ub* tub%Q|} .
 Proof.
@@ -2161,7 +2161,7 @@ Qed.
 
 Lemma XYDerivEv0To1 : ∀ (t:QTime), 
   mt0 ≤ t ≤ mt1 
-  → AbsIR ({transVel ic} t) ≤ QT2Q transErrRot.
+  → AbsIR ({linVel ic} t) ≤ QT2Q transErrRot.
 Proof.
   intros ? Hb.
   pose proof correctVel0to1 as H01.
@@ -2238,9 +2238,9 @@ Qed.
 Lemma SpeedEv1To2: 
   ∃ qtrans : QTime, (mt1 ≤ qtrans ≤ mt1 + reacTime) ∧
   (∀ t : QTime,
-       mt1 ≤ t ≤ qtrans → AbsIR ({transVel ic} t) ≤ QT2Q transErrRot)
+       mt1 ≤ t ≤ qtrans → AbsIR ({linVel ic} t) ≤ QT2Q transErrRot)
   ∧ (∀ t:QTime, qtrans ≤ t ≤ mt2 
-        → AbsIR ({transVel ic} t) ≤ 0).
+        → AbsIR ({linVel ic} t) ≤ 0).
 Proof.  
   pose proof correctVel1to2 as Hc.
   fold mt1 mt2 in Hc.
@@ -2397,7 +2397,7 @@ Lemma SpeedUbEv2To3 : ∀ (t:QTime),
   let t3 : QTime := MotorEventsNthTime 3 (decAuto (3<4)%nat I) in
   let t2 : QTime := MotorEventsNthTime 2 (decAuto (2<4)%nat I) in
   t2 ≤ t ≤ t3 
-  -> AbsIR ({transVel ic} t)[<=](linspeed + transErrTrans)%Q.
+  -> AbsIR ({linVel ic} t)[<=](linspeed + transErrTrans)%Q.
 Proof.
   intros ? ? ? Hb.
   pose proof correctVel2to3 as Hc.
@@ -2408,7 +2408,7 @@ Proof.
   fold (transErrTrans) in Hc.
   destruct Hc as [qtrans Hc].
   repnd.
-  pose proof transVelAtEv2 as ht.
+  pose proof linVelAtEv2 as ht.
   fold t2 in ht.
   cbv zeta in ht.
   unfold between in Hcrr.
@@ -2744,9 +2744,9 @@ Qed.
 
 Lemma SpeedLbEv2To3 :
   ∃ qtrans : QTime, (mt2 <= qtrans <= mt2 + reacTime)%Q ∧
-  (∀ t:QTime, mt2 ≤ t ≤ qtrans →  0 ≤ ({transVel ic} t))
+  (∀ t:QTime, mt2 ≤ t ≤ qtrans →  0 ≤ ({linVel ic} t))
   ∧ (∀ t:QTime, qtrans ≤ t ≤ mt3 →
-        Q2R (linspeed - transErrTrans)%Q [<=] ({transVel ic} t)).
+        Q2R (linspeed - transErrTrans)%Q [<=] ({linVel ic} t)).
 Proof.
   pose proof correctVel2to3 as Hc.
   fold mt2 mt3 in Hc.
@@ -2762,7 +2762,7 @@ Proof.
 - apply Hcrr in Hb.
   unfold between in Hb.
   apply proj1 in Hb.
-  rewrite transVelAtEv2 in Hb.
+  rewrite linVelAtEv2 in Hb.
   rewrite leEq_imp_Min_is_lft in Hb;[assumption|].
   autorewrite with QSimpl. apply inj_Q_leEq.
   simpl. assumption.

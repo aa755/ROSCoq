@@ -662,8 +662,8 @@ Qed.
 (*
 Lemma ThetaConstFunSin :  IContREqInIntvl 
                           Ev2To3Interval
-                            ((transVel icreate)[*]CFSine (theta icreate))
-                            ((ContConstFun _ _ (Sin θ2)) [*] (transVel icreate)).
+                            ((linVel icreate)[*]CFSine (theta icreate))
+                            ((ContConstFun _ _ (Sin θ2)) [*] (linVel icreate)).
 Proof.
   intros t Hb.
   rewrite TContRMult, TContRMult, CFSineAp.
@@ -679,8 +679,8 @@ Qed.
 
 Lemma ThetaConstFunCos :  IContREqInIntvl 
                           Ev2To3Interval
-                            ((transVel icreate)[*]CFCos (theta icreate))
-                            ((ContConstFun _ _ (Cos θ2)) [*] (transVel icreate)).
+                            ((linVel icreate)[*]CFCos (theta icreate))
+                            ((ContConstFun _ _ (Cos θ2)) [*] (linVel icreate)).
 Proof.
   intros t Hb.
   rewrite TContRMult, TContRMult, CFCosAp.
