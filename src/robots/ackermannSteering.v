@@ -60,7 +60,18 @@ Record AckermannCar (length : Q) (width :Q) : Type := {
 
 
 (** distance of the turning center from the midpoint of the 2 rear wheels *)
-  turnCenterDist : (Time -c-> R)
+  turnCenterDist : (Time -c-> R);
+
+(** especially needed to make the devision below in [derivRot]  well-typed *)
+  turnCenterDistPos : forall t:Time, 0 [<] ({turnCenterDist} t);
+  
+(** differential equations *)
+
+  derivX : isDerivativeOf (linVel * (FCos theta)) (X position);
+  derivY : isDerivativeOf (linVel * (FSin theta)) (Y position);
+
+(** w = v/r *)
+  derivRot : isDerivativeOf (linVel (*/turnCenterDist *)) theta
 
 }.
 
