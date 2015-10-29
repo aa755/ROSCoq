@@ -75,22 +75,28 @@ Sec. 2 of the
 #<a href="http://www.cs.cornell.edu/~aa755/ROSCoq/ROSCOQ.pdf">ROSCoq paper</a>#
 
 *)
+
+
+(** [TContR] is a type of continuous functions from [Time] to reals ([R])
+It denotes how a physical quantity evolved over time *)
+Local Notation "Time -c-> R" := TContR (at level 100).
+
 Record iCreate : Type := {
 (** x, y co-ordinates  of the center of the robot *)
 
-  position :> Cart2D TContR;
+  position :> Cart2D (Time -c-> R);
 
 (** the angle with X axis made by the line joining the center of the robot to the front tip *)
 
-  theta : TContR;
+  theta : Time -c-> R;
 
 (** velocity of the center of the robot *)
 
-  transVel : TContR;
+  transVel : Time -c-> R;
 
 (** angular velocity (rate of turn) of the robot, in radians per unit time *)
 
-  omega : TContR;
+  omega : Time -c-> R;
 
 (** differential equations *)
 

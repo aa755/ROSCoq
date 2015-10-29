@@ -36,6 +36,10 @@ Notation FConst := ConstTContR.
 Notation FSin:= CFSine.
 Notation FCos:= CFCos.
 
+(** [TContR] is a type of continuous functions from [Time] to reals ([R])
+It denotes how a physical quantity evolved over time *)
+Local Notation "Time -c-> R" := TContR (at level 100).
+
 
 (**
 * #<a href="https://en.wikipedia.org/wiki/Ackermann_steering_geometry">Ackermann Steering</a>#
@@ -45,18 +49,18 @@ Notation FCos:= CFCos.
 Record AckermannCar (length : Q) (width :Q) : Type := {
 (** position of the midpoint of the 2 rear wheels *)
 
-  position :> Cart2D TContR;
+  position :> Cart2D (Time -c-> R);
 
 (** orientation of line joining the left (driver side) rear wheel to the right rear wheel *)
 
-  theta : TContR;
+  theta : (Time -c-> R);
 
 (** instantaneous linear veloccity of the midpoint of the 2 rear wheels *)
-  linVel : TContR;
+  linVel : (Time -c-> R);
 
 
 (** distance of the turning center from the midpoint of the 2 rear wheels *)
-  turnCenterDist : TContR
+  turnCenterDist : (Time -c-> R)
 
 }.
 
