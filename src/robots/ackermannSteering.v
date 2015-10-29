@@ -44,6 +44,8 @@ Local Notation "Time -c-> R" := TContR (at level 100).
 
 (**
 * #<a href="https://en.wikipedia.org/wiki/Ackermann_steering_geometry">Ackermann Steering</a>#
+
+This file is highly experimental.
 *)
 
 Section Robot.
@@ -72,6 +74,7 @@ Record AckermannCar  : Type := {
   theta : (Time -c-> R);
 
 (** instantaneous linear veloccity of the midpoint of the 2 rear wheels *)
+
   linVel : (Time -c-> R);
 
 
@@ -79,6 +82,17 @@ Record AckermannCar  : Type := {
 We know that it lies on the line joining the 2 rear wheels.
 This value (at time [t]) is the displacement from the midpoint from the 2 wheels, along that line.
 A positive value indicates that the turn center is on the right side*)
+
+(*
+This turn radius is a poorly behaved function. When one moves the
+steering wheel from a little left of the midpoint to a little right, the
+turn radious goes from a very large negative value, undefined, 
+to a very large positive value.
+
+It's reciprocal, which is "curvature", seems to be much better.
+During the above process,
+It goes continuously from a small negative value to 0 to a small negative value.
+*)
   turnCenter : (Time -c-> R);
 
 (** apart from capturing a physical constraint, it is implies
