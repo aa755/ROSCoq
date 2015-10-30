@@ -50,6 +50,7 @@ This file is highly experimental.
 
 Section Robot.
 
+
 (** length of the car *)
 
 Variable length : Q.
@@ -58,12 +59,14 @@ Variable length : Q.
 
 Variable width :Q.
 
+
 (** Because of the limited range of the steering wheel, 
 turn radius cannot be made arbitrary small. 
 Thus, the turn curvature, which is its inverse cannot be made arbitrary large*)
 
 Variable maxTurnCurvature : Qpos.
 
+Set Implicit Arguments.
 
 Record AckermannCar  : Type := {
 (** position of the midpoint of the 2 rear wheels *)
@@ -77,7 +80,6 @@ Record AckermannCar  : Type := {
 (** instantaneous linear veloccity of the midpoint of the 2 rear wheels *)
 
   linVel : (Time -c-> R);
-
 
 (** We also need to model the 
 position of the turning center.
