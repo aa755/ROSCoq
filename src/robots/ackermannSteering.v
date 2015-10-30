@@ -58,10 +58,11 @@ Variable length : Q.
 
 Variable width :Q.
 
-(** because of the limited range of the steering wheel, 
-turn radius cannot be made arbitrary small. This is the bound*)
+(** Because of the limited range of the steering wheel, 
+turn radius cannot be made arbitrary small. 
+Thus, the turn curvature, which is its inverse cannot be made arbitrary large*)
 
-Variable minTurnRadius : Qpos.
+Variable maxTurnCurvature : Qpos.
 
 
 Record AckermannCar  : Type := {
@@ -78,37 +79,43 @@ Record AckermannCar  : Type := {
   linVel : (Time -c-> R);
 
 
-(** position of the turning center.
+(** We also need to model the 
+position of the turning center.
 We know that it lies on the line joining the 2 rear wheels.
-This value (at time [t]) is the displacement from the midpoint from the 2 wheels, along that line.
-A positive value indicates that the turn center is on the right side*)
+One way to model it is to have a physical quantity denoting
+the turn radius (at time [t]), 
+which is the  displacement from the midpoint from the 2 wheels, along that line.
+A positive value indicates that the turn center is on the right side. 
 
-(*
-This turn radius is a poorly behaved function. When one moves the
+However, this turn radius is a poorly behaved function. When one moves the
 steering wheel from a little left of the midpoint to a little right, the
-turn radious goes from a very large negative value, undefined, 
+turn radious goes discontinuously from a very large negative value, to undefined, 
 to a very large positive value.
 
-It's reciprocal, which is "curvature", seems to be much better.
+Note that the turn radious is always larger than a positive quantity,
+because of physical constraints.
+Hence, we can model its (multiplicative) inverse, which can be understood as "curvature".
+Curvature is much more well-behaved.
 During the above process,
-It goes continuously from a small negative value to 0 to a small negative value.
+it goes continuously from a small negative value to 0 to a small positive value.
 *)
-  turnCenter : (Time -c-> R);
+
+  turnCurvature : (Time -c-> R);
 
 (** apart from capturing a physical constraint, it is implies
 the non-zerohood of [turnCenter] at all times, which is needed for
 the division below in [derivRot] to be well-typed.
 *)
 
-  turnCenterNonZero : forall t:Time, (Q2R minTurnRadius) ≤ |{turnCenter} t|;
+  turnCurvatureUB : forall t:Time, |{turnCurvature} t| ≤ (Q2R maxTurnCurvature);
   
 (** differential equations *)
 
   derivX : isDerivativeOf (linVel * (FCos theta)) (X position);
   derivY : isDerivativeOf (linVel * (FSin theta)) (Y position);
 
-(** w = v/r *)
-  derivRot : isDerivativeOf (linVel (*/turnCenterDist *)) theta
+(** w = v/r. Recall that curvature = 1/r *)
+  derivRot : isDerivativeOf (linVel * turnCurvature) theta
 
 }.
 
