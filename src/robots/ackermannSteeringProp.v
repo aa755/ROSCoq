@@ -50,17 +50,39 @@ at a particular fixed turn curvature.
 Ideally, we should let both of them vary a bit (upto some epsilon) during the process.
 *)
 
+(* TODO : Move, and also delete from examples//correctness.v *)
+Hint Unfold Mult_instance_TContR Plus_instance_TContR
+  Negate_instance_TContR : TContR.
 
 Section FixedSpeedFixedCurv.
   Variable tstart : QTime.
   Variable tend : QTime.
 
+  Hypothesis tstartEnd : (tstart <= tend)%Q.
+
   Variable lv : IR.
   Variable tc : IR.
 
-  Hypothesis fixed : forall (t :QTime), {linVel acs} t = lv /\ {turnCurvature acs} t = tc.
+  Hypothesis fixed : forall (t :QTime), 
+    (tstart <= t <= tend)%Q  -> {linVel acs} t = lv /\ {turnCurvature acs} t = tc.
   
+  (** [theta] at time [t] is also needed obtain position at time [t] by integration *)
+  Lemma fixedCurvTheta : forall (t :QTime), (tstart <= t <= tend)%Q  ->
+    ({theta acs} t - {theta acs} tstart) = lv * tc * (Q2R (t - tstart)).
+  Proof.
+    intros ? Hb.  
+    eapply TDerivativeEqQ; eauto using derivRot;[lra|].
+    intros tb Hbb.
+    assert (tstart <= tb <= tend)%Q as Hbbb by lra.
+    clear Hb Hbb. rename Hbbb into Hb.
+    apply fixed in Hb. repnd.
+    autounfold with TContRMC.
+    autounfold with IRMC.
+    autorewrite with IContRApDown.
+    rewrite Hbl, Hbr. reflexivity.
+  Qed.
 
+    
 End FixedSpeedFixedCurv.
 
 End Props.
