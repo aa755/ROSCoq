@@ -1574,3 +1574,48 @@ Qed.
 
 
 Notation "Z⁺" := positive.
+
+Definition mkIntBndQ {a b : QTime} 
+(p : a <= b%Q) : IntgBnds (closel [0]).
+  exists (QT2T a, QT2T b). simpl.
+  rewrite <- QT2T_Q2R, <- QT2T_Q2R.
+  apply inj_Q_leEq.
+  exact p.
+Defined.
+
+
+Lemma TBarrowQ : ∀ (F F': TContR)
+         (der : isIDerivativeOf F' F) (a b : QTime)
+          (p: a <= b%Q),
+       {F} b [-] {F} a [=] Cintegral (mkIntBndQ  p) F'.
+Proof.
+  intros. symmetry.
+  apply TBarrow. assumption.
+Qed.
+
+Lemma TBarrowQScale : ∀ (F F' G': TContR)
+         (der : isIDerivativeOf F' F) (a b : QTime) (c:IR)
+          (p: a <= b%Q),
+       (forall t:QTime, (a<=t<=b)%Q -> {F'} t [=] c [*] ({G'} t))
+       -> {F} b [-] {F} a [=] c [*] (Cintegral (mkIntBndQ  p) G').
+Proof.
+  intros ? ? ? ? ? ? ? ? Hc.
+  rewrite (TBarrowQ _ _ der a b p).
+  rewrite <- CIntegral_scale.
+  apply Cintegral_wd2. 
+  unfold IContREqInIntvl.
+  simpl. fold (Time).
+  assert (Hcc : ∀ t : QTime, a <= t ∧ t <= b → {F' [-] (ContConstFun _ _ c) [*] G' } t [=] 0).
+    intros.     autorewrite with IContRApDown. apply Hc in H. rewrite H. unfold cg_minus.
+    unfold Q2R. rewrite -> inj_Q_Zero. ring.
+  clear Hc.
+  pose proof  (TContRR2QCompactIntEq2 _ _  _ _ Hcc).
+  intros z Hb. unfold inBounds in Hb. simpl in Hb.
+  rewrite <- QT2T_Q2R, <- QT2T_Q2R in Hb.
+  apply H in Hb.
+  autorewrite with IContRApDown in Hb.
+  unfold Q2R in Hb. rewrite  inj_Q_Zero in Hb.
+  assert ({F'} z [-] c [*] {G'} z [+] c [*] {G'} z [=] [0] [+] c [*] {G'} z) as Hr.
+    rewrite Hb. IRRing.
+  clear Hb. unfold cg_minus in Hr. ring_simplify in Hr. assumption.
+Qed.

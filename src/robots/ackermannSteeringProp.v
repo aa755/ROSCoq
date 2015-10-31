@@ -82,6 +82,15 @@ Section FixedSpeedFixedCurv.
     rewrite Hbl, Hbr. reflexivity.
   Qed.
 
+
+  (** [theta] at time [t] is also needed obtain position at time [t] by integration *)
+  Lemma fixedCurvX : forall (t :QTime), (tstart <= t <= tend)%Q  ->
+    ({X (position acs)} t - {X (position acs)} tstart) = 0 (* temporary placeholder *).
+  Proof.
+    intros ? Hb.
+    pose proof (TBarrowQScale _ _ (FCos (theta acs)) (derivX acs) tstart t lv (proj1 Hb)) as Dx.
+  Abort.
+
     
 End FixedSpeedFixedCurv.
 
