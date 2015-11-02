@@ -1029,13 +1029,34 @@ Proof.
   simpl. apply pfwdef. reflexivity.
 Qed.
 
+SearchAbout maps_compacts_into maps_compacts_into_weak.
+
+Lemma IContRDerivativeComposeGeneral:  ∀ (I J : interval) (pI : proper I) (pJ : proper J)
+  (G G' : IContR J pJ) (F F' : IContR I pI)
+  (mp: maps_compacts_into I J (toPart F)),
+  let mpw := maps_compacts_into_strict_imp_weak I J (toPart F) mp in
+  isIDerivativeOf F' F
+  → isIDerivativeOf G' G
+  → isIDerivativeOf  ((composeIContR G' F mpw) [*] F') (composeIContR G  F mpw).
+Proof.
+  unfold isIDerivativeOf.
+  intros.
+  eapply Derivative_wdr; [
+    apply toPartMultIContR|].
+  unfold composeIContR. simpl.
+  eapply Derivative_wdl. apply toFromPartId.
+  eapply Derivative_wdr.
+  apply Feq_mult;[apply toFromPartId | apply Feq_reflexive; apply included_refl].
+  eapply Derivative_comp; eauto.
+Qed.
+
 Lemma TContRDerivativeCompose:  ∀ (I : interval) (pI : proper I) 
   (F F' : IContR I pI) (G G' : IContR realline  Coq.Init.Logic.I),
   isIDerivativeOf F' F
   → isIDerivativeOf G' G
   → isIDerivativeOf  ((G'[∘] F) [*] F') (G [∘] F).
 Proof.
-  
-Abort.
+  intros. apply IContRDerivativeComposeGeneral; eauto.
+Qed.
 
 Hint Rewrite CFCosAp IContRConstAp IContRInvAp CFSineAp IContRPlusAp IContRMultAp IContRMinusAp : IContRApDown.
