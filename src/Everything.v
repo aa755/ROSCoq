@@ -1,7 +1,5 @@
 Require Export CoRN.ode.FromMetric2.
-Require Export CoRN.ode.AbstractIntegration.
 Require Export CoRN.ode.BanachFixpoint.
-Require Export CoRN.ode.Picard.
 Require Export CoRN.ode.metric.
 Require Export CoRN.ode.SimpleIntegration.
 Require Export CoRN.classes.Qposclasses.
@@ -37,7 +35,6 @@ Require Export CoRN.metric2.DistanceMetricSpace.
 Require Export CoRN.metric2.FinEnum.
 Require Export CoRN.metric2.Compact.
 Require Export CoRN.metric2.Graph.
-Require Export CoRN.metric2.CompletePointFree.
 Require Export CoRN.order.PartialOrder.
 Require Export CoRN.order.TotalOrder.
 Require Export CoRN.order.SemiLattice.
@@ -73,7 +70,6 @@ Require Export CoRN.reals.iso_CReals.
 Require Export CoRN.reals.CSumsReals.
 Require Export CoRN.reals.CauchySeq.
 Require Export CoRN.reals.Q_in_CReals.
-Require Export CoRN.reals.fast.Plot.
 Require Export CoRN.reals.fast.CRGeometricSum.
 Require Export CoRN.reals.fast.CRpi_fast.
 Require Export CoRN.reals.fast.CRsum.
@@ -94,16 +90,13 @@ Require Export CoRN.reals.fast.CRpi.
 Require Export CoRN.reals.fast.CRpower.
 Require Export CoRN.reals.fast.CRconst.
 Require Export CoRN.reals.fast.CRball.
-Require Export CoRN.reals.fast.RasterQ.
 Require Export CoRN.reals.fast.Interval.
 Require Export CoRN.reals.fast.CRarctan.
 Require Export CoRN.reals.fast.CRexp.
-Require Export CoRN.reals.fast.Integration.
 Require Export CoRN.reals.fast.Compress.
 Require Export CoRN.reals.fast.CRsin.
 Require Export CoRN.reals.fast.CRroot.
 Require Export CoRN.reals.fast.CRtrans.
-Require Export CoRN.reals.fast.RasterizeQ.
 Require Export CoRN.reals.fast.CRIR.
 Require Export CoRN.reals.fast.PowerBound.
 Require Export CoRN.reals.fast.CRsign.
@@ -121,20 +114,12 @@ Require Export CoRN.reals.CPoly_Contin.
 Require Export CoRN.reals.Q_dense.
 Require Export CoRN.reals.faster.ApproximateRationals.
 Require Export CoRN.reals.faster.ARArith.
-Require Export CoRN.reals.faster.ARarctan.
 Require Export CoRN.reals.faster.ARAlternatingSum.
 Require Export CoRN.reals.faster.ARexp.
-Require Export CoRN.reals.faster.ARcos.
-Require Export CoRN.reals.faster.ARpi.
 Require Export CoRN.reals.faster.ARbigD.
 Require Export CoRN.reals.faster.AQmetric.
-Require Export CoRN.reals.faster.ARbigQ.
-Require Export CoRN.reals.faster.ARtrans.
-Require Export CoRN.reals.faster.ARarctan_small.
 Require Export CoRN.reals.faster.ARsign.
-Require Export CoRN.reals.faster.ARQ.
 Require Export CoRN.reals.faster.ARroot.
-Require Export CoRN.reals.faster.ARsin.
 Require Export CoRN.reals.RealCount.
 Require Export CoRN.reals.R_morphism.
 Require Export CoRN.reals.NRootIR.
@@ -142,7 +127,6 @@ Require Export CoRN.reals.IVT.
 Require Export CoRN.reals.Cesaro.
 Require Export CoRN.reals.Max_AbsIR.
 Require Export CoRN.reals.CReals.
-Require Export CoRN.raster.Raster.
 Require Export CoRN.model.Zmod.ZDivides.
 Require Export CoRN.model.Zmod.ZGcd.
 Require Export CoRN.model.Zmod.Zm.
@@ -166,7 +150,6 @@ Require Export CoRN.model.fields.CRfield.
 Require Export CoRN.model.metric2.IntegrableFunction.
 Require Export CoRN.model.metric2.CRmetric.
 Require Export CoRN.model.metric2.LinfMetricMonad.
-Require Export CoRN.model.metric2.LinfDistMonad.
 Require Export CoRN.model.metric2.LinfMetric.
 Require Export CoRN.model.metric2.L1metric.
 Require Export CoRN.model.metric2.Qmetric.
@@ -337,7 +320,6 @@ Require Export MathClasses.theory.ua_packed.
 Require Export MathClasses.theory.quote_monoid.
 Require Export MathClasses.theory.ua_transference.
 Require Export MathClasses.theory.fields.
-Require Export MathClasses.theory.ua_term_monad.
 Require Export MathClasses.theory.rationals.
 Require Export MathClasses.theory.strong_setoids.
 Require Export MathClasses.theory.ua_subalgebra.
@@ -348,7 +330,6 @@ Require Export MathClasses.theory.series.
 Require Export MathClasses.theory.int_to_nat.
 Require Export MathClasses.theory.abs.
 Require Export MathClasses.theory.shiftl.
-Require Export MathClasses.theory.monads.
 Require Export MathClasses.theory.integers.
 Require Export MathClasses.theory.int_pow.
 Require Export MathClasses.theory.rings.
@@ -369,7 +350,6 @@ Require Export MathClasses.theory.ua_products.
 Require Export MathClasses.theory.ua_mapped_operations.
 Require Export MathClasses.theory.groups.
 Require Export MathClasses.theory.functors.
-Require Export MathClasses.theory.adjunctions.
 Require Export MathClasses.theory.streams.
 Require Export MathClasses.theory.naturals.
 Require Export MathClasses.implementations.ne_list.
@@ -386,7 +366,6 @@ Require Export MathClasses.implementations.stdlib_binary_integers.
 Require Export MathClasses.implementations.peano_naturals.
 Require Export MathClasses.implementations.fast_naturals.
 Require Export MathClasses.implementations.fast_integers.
-Require Export MathClasses.implementations.option.
 Require Export MathClasses.implementations.dyadics.
 Require Export MathClasses.implementations.stdlib_binary_naturals.
 Require Export MathClasses.implementations.bool.
@@ -429,3 +408,4 @@ Require Export MathClasses.varieties.open_terms.
 Require Export MathClasses.varieties.semigroups.
 Require Export MathClasses.varieties.groups.
 Require Export MathClasses.varieties.monoids.
+
