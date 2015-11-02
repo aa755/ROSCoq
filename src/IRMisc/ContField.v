@@ -301,31 +301,27 @@ Notation "{ f }" := (getF f).
 (* Continuous_Sin Continuous_com *)
 Require Export CoRN.transc.Trigonometric.
 
-Definition CFSine (theta : IContR) : IContR.
+Unset Implicit Arguments.
+Definition composeTContR F (theta : IContR) (cn : Continuous realline F) : IContR.
   pose proof (scs_prf _ _  theta) as Hc.
   simpl in Hc.
   pose proof (fun mw => Continuous_comp itvl 
-            realline (toPart theta) Sine mw Hc) as Hcomp.
+            realline (toPart theta) F mw Hc) as Hcomp.
   apply Continuous_imp_maps_compacts_into in Hc.
   apply maps_compacts_into_strict_imp_weak in Hc.
-  specialize (Hcomp Hc Continuous_Sin).
-  exists (fromPart (Sine[o]toPart theta) (fst Hcomp)).
+  specialize (Hcomp Hc cn).
+  exists (fromPart (F[o]toPart theta) (fst Hcomp)).
   eapply Continuous_wd; eauto.
   apply toFromPartId.
 Defined.
 
-Definition CFCos (theta : IContR) : IContR.
-  pose proof (scs_prf _ _  theta) as Hc.
-  simpl in Hc.
-  pose proof (fun mw => Continuous_comp itvl 
-            realline (toPart theta) Cosine mw Hc) as Hcomp.
-  apply Continuous_imp_maps_compacts_into in Hc.
-  apply maps_compacts_into_strict_imp_weak in Hc.
-  specialize (Hcomp Hc Continuous_Cos).
-  exists (fromPart (Cosine[o]toPart theta) (fst Hcomp)).
-  eapply Continuous_wd; eauto.
-  apply toFromPartId.
-Defined.
+Set Implicit Arguments.
+Definition CFSine (theta : IContR) : IContR := 
+  composeTContR Sine theta Continuous_Sin.
+
+
+Definition CFCos (theta : IContR) : IContR:=
+  composeTContR Cosine theta Continuous_Cos.
 
 Local Opaque Sine.
 
@@ -655,6 +651,17 @@ Proof.
   apply Derivative_const.
 Qed.
 
+(** Derivative I _ F F' means that F' is the derivative of F in the proper interval I. 
+Note that [isIDerivativeOf] uses
+the opposite order*)
+Lemma TContRDerivativeCompose:
+  ∀ (F F' : IContR) G G' (cg' : Continuous realline G') (cg : Continuous realline G),
+  isIDerivativeOf F' F
+  → (∀ H : proper realline, Derivative realline H G G')
+  → isIDerivativeOf  ((composeTContR G' F cg') [*] F') (composeTContR G F cg).
+Proof.
+Abort.
+
 Require Import Ring. 
 Require Import CoRN.tactics.CornTac.
 Require Import CoRN.algebra.CRing_as_Ring.
@@ -947,6 +954,7 @@ Proof.
   simpl. reflexivity.
 Qed.
 End CIntegralProps.
+
 
 
 

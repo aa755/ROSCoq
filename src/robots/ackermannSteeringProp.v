@@ -85,10 +85,24 @@ Section FixedSpeedFixedCurv.
 
   (** [theta] at time [t] is also needed obtain position at time [t] by integration *)
   Lemma fixedCurvX : forall (t :QTime), (tstart <= t <= tend)%Q  ->
-    ({X (position acs)} t - {X (position acs)} tstart) = 0 (* temporary placeholder *).
+    ({X (position acs)} t - {X (position acs)} tstart) = lv * 0 (* temporary placeholder *).
   Proof.
     intros ? Hb.
     pose proof (TBarrowQScale _ _ (FCos (theta acs)) (derivX acs) tstart t lv (proj1 Hb)) as Dx.
+    rewrite Dx;
+    [ |intros tb Hbb; autounfold with TContRMC; autorewrite with IContRApDown;
+       apply mult_wdl; apply fixed; lra].
+    apply mult_wdr.
+    rewrite Cintegral_wd2.
+    Focus 2.
+    Print Cintegral.
+    Print CFSine.
+    SearchAbout integral Sine.
+    intros tx HH. simpl in HH.
+    SearchAbout Sine.    
+    Print TBarrowQ.
+    SearchAbout isIDerivativeOf.
+    SearchAbout Integral.
   Abort.
 
     
