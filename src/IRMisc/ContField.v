@@ -309,6 +309,11 @@ Definition ContConstFun (v : IR) : IContR.
 Defined.
 
   
+Definition IContRId : IContR.
+ eexists.
+ eapply Continuous_wd;[apply toFromPartId|]. apply Continuous_id.
+ Unshelve. intros ? ? . simpl. auto.
+Defined.
 
 
 Notation "{ f }" := (getF f).
@@ -342,6 +347,12 @@ Proof.
   reflexivity.
 Qed.
 
+Lemma IContRIdAp : ∀ t,
+  {IContRId} t [=] t.
+Proof.
+  intros. simpl.
+  reflexivity.
+Qed.
 
 Lemma IContRMultAp : ∀ (F G: IContR) t,
   {F [*] G} t [=] {F} t [*] {G} t.
@@ -865,6 +876,14 @@ Proof.
 Qed.
 End CIntegralProps.
 
+ 
+Lemma IsDerivativeOne : isIDerivativeOf [1] (IContRId).
+Proof.
+  unfold isIDerivativeOf, IContRId. simpl.
+  eapply Derivative_wdl;[apply toFromPartId |].
+  eapply Derivative_wdr;[apply toPartConst |].
+  apply Derivative_id.
+Qed.
 
 
 
@@ -1044,13 +1063,13 @@ Proof.
   eapply Derivative_wdr; [
     apply toPartMultIContR|].
   unfold composeIContR. simpl.
-  eapply Derivative_wdl. apply toFromPartId.
-  eapply Derivative_wdr.
-  apply Feq_mult;[apply toFromPartId | apply Feq_reflexive; apply included_refl].
+  eapply Derivative_wdl;[apply toFromPartId |].
+  eapply Derivative_wdr;[
+    apply Feq_mult;[apply toFromPartId | apply Feq_reflexive; apply included_refl]|].
   eapply Derivative_comp; eauto.
 Qed.
 
-Lemma TContRDerivativeCompose:  ∀ (I : interval) (pI : proper I) 
+Lemma IContRDerivativeCompose:  ∀ (I : interval) (pI : proper I) 
   (F F' : IContR I pI) (G G' : IContR realline  Coq.Init.Logic.I),
   isIDerivativeOf F' F
   → isIDerivativeOf G' G
@@ -1059,4 +1078,43 @@ Proof.
   intros. apply IContRDerivativeComposeGeneral; eauto.
 Qed.
 
-Hint Rewrite CFCosAp IContRConstAp IContRInvAp CFSineAp IContRPlusAp IContRMultAp IContRMinusAp : IContRApDown.
+
+Lemma IsDerivativeCos : isIDerivativeOf CCos CSine.
+Proof.
+  unfold isIDerivativeOf, CCos, CSine. simpl.
+  eapply Derivative_wdl;[apply toFromPartId |].
+  eapply Derivative_wdr;[apply toFromPartId |].
+  apply Derivative_Sin.
+Qed.
+
+Lemma IsDerivativeSin : isIDerivativeOf ([--]CSine) CCos.
+Proof.
+  unfold isIDerivativeOf, CCos, CSine. simpl.
+  eapply Derivative_wdl;[apply toFromPartId |].
+  eapply Derivative_wdr;[apply toPartInv |].
+  eapply Derivative_wdr;[apply Feq_inv; apply toFromPartId|].
+  apply Derivative_Cos.
+Qed.
+
+(*
+Lemma IContRDerivativeCos:  ∀ (I : interval) (pI : proper I) 
+  (F F' : IContR I pI),
+  isIDerivativeOf F' F
+  → isIDerivativeOf  ((([--]CSine) [∘] F) [*] F') (CCos [∘] F).
+Proof.
+  intros. apply IContRDerivativeCompose; auto.
+  apply IsDerivativeSin.
+Qed.
+
+Lemma TContRDerivativeSin:  ∀ (I : interval) (pI : proper I) 
+  (F F' : IContR I pI),
+  isIDerivativeOf F' F
+  → isIDerivativeOf  (((CCos) [∘] F) [*] F') (CSine [∘] F).
+Proof.
+  intros. apply IContRDerivativeCompose; auto.
+  apply IsDerivativeCos.
+Qed.
+*)
+
+
+Hint Rewrite CFCosAp IContRConstAp IContRInvAp CFSineAp IContRPlusAp IContRMultAp IContRMinusAp IContRIdAp: IContRApDown.

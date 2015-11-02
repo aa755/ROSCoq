@@ -66,6 +66,8 @@ Section FixedSpeedFixedCurv.
   Hypothesis fixed : forall (t :QTime), 
     (tstart <= t <= tend)%Q  -> {linVel acs} t = lv /\ {turnCurvature acs} t = tc.
   
+  Local Definition θ0 := {theta acs} tstart.
+
   (** [theta] at time [t] is also needed obtain position at time [t] by integration *)
   Lemma fixedCurvTheta : forall (t :QTime), (tstart <= t <= tend)%Q  ->
     ({theta acs} t - {theta acs} tstart) = lv * tc * (Q2R (t - tstart)).
@@ -77,11 +79,28 @@ Section FixedSpeedFixedCurv.
     clear Hb Hbb. rename Hbbb into Hb.
     apply fixed in Hb. repnd.
     autounfold with TContRMC.
-    autounfold with IRMC.
-    autorewrite with IContRApDown.
+    autounfold with IRMC. simpl.
     rewrite Hbl, Hbr. reflexivity.
   Qed.
 
+Add Ring RisaRing: (CRing_Ring IR).
+
+  (** put the above in a form that is more convenient for integrating it
+      while computing the X and Y coordinates at a given time *)
+  Lemma fixedCurvTheta2 : forall (t :QTime), (tstart <= t <= tend)%Q  ->
+    ({theta acs} t) =  {ContConstFun _ _ (θ0 - lv * tc * (Q2R tstart)) 
+                          + ContConstFun  _ _ (lv * tc) * IContRId _ _} t.
+  Proof.
+    intros ? H. autounfold with TContRMC. autounfold with IRMC.
+    simpl.
+    apply fixedCurvTheta in H.
+    rewrite <- (realCancel _  ({theta acs} t) θ0).
+    fold θ0. rewrite H.
+    unfold Q2R. autorewrite with InjQDown.
+    unfold cg_minus. rewrite <- QT2T_Q2R. simpl.
+    autounfold with IRMC.
+    ring.
+  Qed.
 
   (** [theta] at time [t] is also needed obtain position at time [t] by integration *)
   Lemma fixedCurvX : forall (t :QTime), (tstart <= t <= tend)%Q  ->
@@ -98,7 +117,7 @@ Section FixedSpeedFixedCurv.
     Print Cintegral.
     Print CFSine.
     SearchAbout integral Sine.
-    intros tx HH. simpl in HH.
+    intros tx HH. unfold inBounds in HH. simpl in HH.
     SearchAbout Sine.    
     Print TBarrowQ.
     SearchAbout isIDerivativeOf.

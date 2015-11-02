@@ -1593,6 +1593,23 @@ Proof.
   apply TBarrow. assumption.
 Qed.
 
+(** for continuous functions, equality at rational points suffices for all other points*)
+Lemma EqRationalCont : ∀ (F G: TContR) (a b : QTime) (p: a <= b%Q), 
+(forall t:QTime, (a<=t<=b)%Q -> {F} t [=] {G} t)
+-> IContREqInIntvl (mkIntBndQ p) F G.
+Proof.
+  intros ? ? ? ? ? Hq.
+  intros z Hb. unfold inBounds in Hb. simpl in Hb.
+  apply cg_inv_unique_2. rewrite <- IContRMinusAp.
+  rewrite <- QT2T_Q2R in Hb. rewrite <- QT2T_Q2R in Hb.
+  apply TContRR2QCompactIntEq2 with (ta:=a) (tb:=b); try assumption;[].
+  intros ? Hbb.
+  apply Hq in Hbb.
+  autorewrite with IContRApDown.
+  rewrite Hbb. unfold cg_minus. ring.
+Qed.
+
+
 Lemma TBarrowQScale : ∀ (F F' G': TContR)
          (der : isIDerivativeOf F' F) (a b : QTime) (c:IR)
           (p: a <= b%Q),
@@ -1604,18 +1621,8 @@ Proof.
   rewrite <- CIntegral_scale.
   apply Cintegral_wd2. 
   unfold IContREqInIntvl.
-  simpl. fold (Time).
-  assert (Hcc : ∀ t : QTime, a <= t ∧ t <= b → {F' [-] (ContConstFun _ _ c) [*] G' } t [=] 0).
-    intros.     autorewrite with IContRApDown. apply Hc in H. rewrite H. unfold cg_minus.
-    unfold Q2R. rewrite -> inj_Q_Zero. ring.
-  clear Hc.
-  pose proof  (TContRR2QCompactIntEq2 _ _  _ _ Hcc).
-  intros z Hb. unfold inBounds in Hb. simpl in Hb.
-  rewrite <- QT2T_Q2R, <- QT2T_Q2R in Hb.
-  apply H in Hb.
-  autorewrite with IContRApDown in Hb.
-  unfold Q2R in Hb. rewrite  inj_Q_Zero in Hb.
-  assert ({F'} z [-] c [*] {G'} z [+] c [*] {G'} z [=] [0] [+] c [*] {G'} z) as Hr.
-    rewrite Hb. IRRing.
-  clear Hb. unfold cg_minus in Hr. ring_simplify in Hr. assumption.
+  apply EqRationalCont.
+  intros ? Hb.
+  autorewrite with IContRApDown.
+  apply Hc. assumption.
 Qed.
