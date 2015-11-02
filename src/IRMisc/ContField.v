@@ -5,6 +5,21 @@ Require Export IRMisc.PointWiseRing.
 Set Implicit Arguments.
 Require Import Coq.Unicode.Utf8.
 
+(**
+CoRN has a rich theory of continuous functions.
+Continuous functions from Time to R 
+are heavily used ROSCoq
+to represent evolution of physical quntities.
+
+In this file, wrap CoRN's theory of continuous functions
+into a representation (IContR] where functions come bundled with
+a proof of their continuity.
+The main goal is to reduce verbosity and increase convenience,
+by hiding the manipulation of continuity proofs for most
+operations on continuous functions.
+We show that [IContR] has a ring structure.
+*)
+
 Lemma interval_convex:
   ∀ (a b : IR) (I : interval),
     I a → I b → included (clcr a b) I.
@@ -298,56 +313,6 @@ Defined.
 
 Notation "{ f }" := (getF f).
 
-(* Continuous_Sin Continuous_com *)
-Require Export CoRN.transc.Trigonometric.
-
-Unset Implicit Arguments.
-Definition composeTContR F (theta : IContR) (cn : Continuous realline F) : IContR.
-  pose proof (scs_prf _ _  theta) as Hc.
-  simpl in Hc.
-  pose proof (fun mw => Continuous_comp itvl 
-            realline (toPart theta) F mw Hc) as Hcomp.
-  apply Continuous_imp_maps_compacts_into in Hc.
-  apply maps_compacts_into_strict_imp_weak in Hc.
-  specialize (Hcomp Hc cn).
-  exists (fromPart (F[o]toPart theta) (fst Hcomp)).
-  eapply Continuous_wd; eauto.
-  apply toFromPartId.
-Defined.
-
-Set Implicit Arguments.
-Definition CFSine (theta : IContR) : IContR := 
-  composeTContR Sine theta Continuous_Sin.
-
-
-Definition CFCos (theta : IContR) : IContR:=
-  composeTContR Cosine theta Continuous_Cos.
-
-Local Opaque Sine.
-
-Lemma CFSineAp : ∀ (F : IContR) t,
-  {CFSine F} t [=] Sin ({F} t).
-Proof.
-  intros. unfold CFSine. destruct t, F. 
-  rewrite  extToPart2. simpl.
-  apply pfwdef.
-  apply FS_as_CSetoid_proper; try reflexivity.
-  simpl. reflexivity.
-Qed.
-  
-Local Opaque Cosine.
-
-
-Lemma CFCosAp : ∀ (F : IContR) t,
-  {CFCos F} t [=] Cos ({F} t).
-Proof.
-  intros. unfold CFCos. destruct t, F. 
-  rewrite  extToPart2. simpl.
-  apply pfwdef.
-  apply FS_as_CSetoid_proper; try reflexivity.
-  simpl. reflexivity.
-Qed.
-
 Lemma IContRPlusAp : ∀ (F G: IContR) t,
   {F [+] G} t [=] {F} t [+] {G} t.
 Proof.
@@ -385,7 +350,7 @@ Proof.
   reflexivity.
 Qed.
 
-Hint Rewrite IContRInvAp IContRConstAp CFCosAp CFSineAp IContRPlusAp IContRMultAp IContRMinusAp : IContRApDown.
+Hint Rewrite IContRInvAp IContRConstAp IContRPlusAp IContRMultAp IContRMinusAp : IContRApDown.
 
 Require Import CoRNMisc.
 
@@ -425,18 +390,6 @@ Proof.
   reflexivity.
 Qed.
 
-Lemma CosineCos : ∀ θ p, Cosine θ p [=] Cos θ.
-Proof.
-  intros. unfold Cos. simpl. apply pfwdef. reflexivity.
-Qed.
-
-Lemma SineSin : ∀ θ p, Sine θ p [=] Sin θ.
-Proof.
-  intros. unfold Sin. simpl. apply pfwdef. reflexivity.
-Qed.
-
-Local Opaque Sin Cos.
-Require Import IRMisc.IRTrig.
 
 Lemma ExtEqIContR : ∀ (F G : IContR),
   (∀ a, {F} a [=] {G} a) -> F [=] G.
@@ -447,38 +400,6 @@ Proof.
   exact Heq.
 Qed.
 
-Lemma CFCos_minus: ∀ x y : IContR, CFCos (x[-]y)
-    [=]CFCos x[*]CFCos y[+]CFSine x[*]CFSine y.
-Proof.
-  intros ? ?.
-  apply ExtEqIContR.
-  intros a.
-  autorewrite with IContRApDown.
-  apply Cos_minus.
-Qed.
-
-Lemma CFSine_minus: ∀ x y : IContR, CFSine (x[-]y)
-    [=]CFSine x[*]CFCos y[-]CFCos x[*]CFSine y.
-Proof.
-  intros ? ?.
-  apply ExtEqIContR.
-  intros a.
-  autorewrite with IContRApDown.
-  apply Sine_minus.
-Qed.
-
-Lemma CFCosConst : ∀ (θ : IR),
-   CFCos (ContConstFun θ) [=] ContConstFun (Cos θ).
-Proof.
-  intros. apply ExtEqIContR. intros.
-  simpl. apply pfwdef. reflexivity.
-Qed.
-Lemma CFCosSine : ∀ (θ : IR),
-   CFSine (ContConstFun θ) [=] ContConstFun (Sin θ).
-Proof.
-  intros. apply ExtEqIContR. intros.
-  simpl. apply pfwdef. reflexivity.
-Qed.
 
 
 Hint Resolve (scs_prf IR (itvl)) : CoRN.
@@ -650,17 +571,6 @@ Proof.
     apply toPartConst|].
   apply Derivative_const.
 Qed.
-
-(** Derivative I _ F F' means that F' is the derivative of F in the proper interval I. 
-Note that [isIDerivativeOf] uses
-the opposite order*)
-Lemma TContRDerivativeCompose:
-  ∀ (F F' : IContR) G G' (cg' : Continuous realline G') (cg : Continuous realline G),
-  isIDerivativeOf F' F
-  → (∀ H : proper realline, Derivative realline H G G')
-  → isIDerivativeOf  ((composeTContR G' F cg') [*] F') (composeTContR G F cg).
-Proof.
-Abort.
 
 Require Import Ring. 
 Require Import CoRN.tactics.CornTac.
@@ -973,5 +883,159 @@ Definition ContFRing : CRing.
 
 Definition ContField : CField.
 *)
+
+(** The definitions below talk about different intervals of continuity *)
+
+(* Continuous_Sin Continuous_com *)
+Require Export CoRN.transc.Trigonometric.
+
+(** Compose two conttinuous functions.
+This just ports the underlying composition function of CoRN
+to the IContR type where functions are bundled with their continuoity proofs *)
+
+Definition composeIContR 
+  (I J : interval) (pI : proper I) (pJ : proper J)
+  (F : IContR J pJ) (theta : IContR I pI)
+  (mp: maps_compacts_into_weak I J (toPart theta)) : IContR I pI.
+  pose proof (scs_prf _ _  theta) as Hc.
+  pose proof (scs_prf _ _  F) as Hf.
+  simpl in Hc, Hf.
+  pose proof (Continuous_comp I 
+            J (toPart theta) (toPart F) mp Hc Hf) as Hcomp.
+  exists (fromPart _  ((toPart F)[o](toPart theta)) (fst Hcomp)).
+  eapply Continuous_wd; eauto.
+  apply toFromPartId.
+Defined.
+
+(** specialize the above the common case where J is [realline].
+An advantage is that we get rid of an argument, and thus
+reduce the number of non inferable arguments to 2.
+This is handy while defining the binary composition notation below *)
+
+Definition composeRealLineIContR
+  (I : interval) (pI : proper I)
+  (F : IContR realline Coq.Init.Logic.I) (theta : IContR I pI)
+     : IContR I pI.
+  apply (composeIContR F theta).
+  apply maps_compacts_into_strict_imp_weak.
+  apply Continuous_imp_maps_compacts_into.
+  apply scs_prf.
+Defined.
+
+
+(** ∘ is already taken by MathClasses *)
+Notation "F [∘] G" := (composeRealLineIContR F G) (at level 100).
+
+Definition CSine : IContR realline I.
+  exists (fromPart _  Sine (fst Continuous_Sin)).
+  eapply Continuous_wd; eauto.
+  apply toFromPartId.
+  apply Continuous_Sin.
+Defined.
+
+Definition CCos : IContR realline I.
+  exists (fromPart _  Cosine (fst Continuous_Sin)).
+  eapply Continuous_wd; eauto.
+  apply toFromPartId.
+  apply Continuous_Cos.
+Defined.
+
+Definition CFSine 
+  (I : interval) (pI : proper I)
+  (theta : IContR I pI ) : IContR I pI := (CSine [∘] theta).
+
+Definition CFCos 
+  (I : interval) (pI : proper I)
+  (theta : IContR I pI ) : IContR I pI := (CCos [∘] theta).
+
+
+Local Opaque Sine.
+
+Notation "{ f }" := (getF f).
+
+Lemma CFSineAp : ∀ (I : interval) (pI : proper I) (F : IContR I pI ) t,
+  {CFSine F} t [=] Sin ({F} t).
+Proof.
+  intros. unfold CFSine, composeRealLineIContR, composeIContR, CSine. destruct t, F.
+  setoid_rewrite  extToPart2. simpl.
+  apply pfwdef.
+  apply FS_as_CSetoid_proper; try reflexivity.
+  simpl. reflexivity.
+Qed.
+  
+Local Opaque Cosine.
+
+
+Lemma CFCosAp : ∀  (I : interval) (pI : proper I) (F : IContR I pI ) t,
+  {CFCos F} t [=] Cos ({F} t).
+Proof.
+  intros. unfold CFCos. destruct t, F. 
+  setoid_rewrite  extToPart2. simpl.
+  apply pfwdef.
+  apply FS_as_CSetoid_proper; try reflexivity.
+  simpl. reflexivity.
+Qed.
+
+Hint Rewrite IContRInvAp IContRConstAp CFCosAp CFSineAp IContRPlusAp IContRMultAp IContRMinusAp : IContRApDown.
+
+Require Import IRMisc.IRTrig.
+
+(* TODO : Move to IRMisc.IRTrig *)
+Lemma CosineCos : ∀ θ p, Cosine θ p [=] Cos θ.
+Proof.
+  intros. unfold Cos. simpl. apply pfwdef. reflexivity.
+Qed.
+
+Lemma SineSin : ∀ θ p, Sine θ p [=] Sin θ.
+Proof.
+  intros. unfold Sin. simpl. apply pfwdef. reflexivity.
+Qed.
+
+Local Opaque Sin Cos.
+
+Lemma CFCos_minus: ∀ (I : interval) (pI : proper I)  (x y : IContR I pI),
+ CFCos (x[-]y)
+    [=]CFCos x[*]CFCos y[+]CFSine x[*]CFSine y.
+Proof.
+  intros ? ? ? ?.
+  apply ExtEqIContR.
+  intros a.
+  autorewrite with IContRApDown.
+  apply Cos_minus.
+Qed.
+
+Lemma CFSine_minus: ∀ (I : interval) (pI : proper I)  (x y : IContR I pI),
+  CFSine (x[-]y)
+    [=]CFSine x[*]CFCos y[-]CFCos x[*]CFSine y.
+Proof.
+  intros ? ? ? ?.
+  apply ExtEqIContR.
+  intros a.
+  autorewrite with IContRApDown.
+  apply Sine_minus.
+Qed.
+
+Lemma CFCosConst : ∀ (I : interval) (pI : proper I) (θ : IR),
+   CFCos (ContConstFun I pI θ) [=] ContConstFun I pI (Cos θ).
+Proof.
+  intros. apply ExtEqIContR. intros.
+  simpl. apply pfwdef. reflexivity.
+Qed.
+
+Lemma CFCosSine : ∀ (I : interval) (pI : proper I)  (θ : IR),
+   CFSine (ContConstFun I pI θ) [=] ContConstFun I pI (Sin θ).
+Proof.
+  intros. apply ExtEqIContR. intros.
+  simpl. apply pfwdef. reflexivity.
+Qed.
+
+Lemma TContRDerivativeCompose:  ∀ (I : interval) (pI : proper I) 
+  (F F' : IContR I pI) (G G' : IContR realline  Coq.Init.Logic.I),
+  isIDerivativeOf F' F
+  → isIDerivativeOf G' G
+  → isIDerivativeOf  ((G'[∘] F) [*] F') (G [∘] F).
+Proof.
+  
+Abort.
 
 Hint Rewrite CFCosAp IContRConstAp IContRInvAp CFSineAp IContRPlusAp IContRMultAp IContRMinusAp : IContRApDown.
