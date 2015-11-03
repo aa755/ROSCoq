@@ -120,6 +120,13 @@ Add Ring RisaRing: (CRing_Ring IR).
       intros tb Hbb. rewrite CFCosAp, CFCosAp.
       apply Cos_wd.
       apply fixedCurvTheta2. lra.
+      
+    unfold CFCos. setoid_rewrite IContRIntegLinearCos2.
+    unfold intgBndR, intgBndL. simpl fst. simpl snd.
+    autorewrite with IContRApDown.
+    (** rewrite does not work inside division*)
+    
+    simpl.
   Abort.
 
     

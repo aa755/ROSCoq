@@ -226,7 +226,6 @@ Proof.
   apply extToPart2.
 Qed.
 
-
 Lemma st_eq_Feq : forall (f g : RI_R),
   f [=] g
   -> Feq itvl (toPart f) (toPart g).
@@ -307,6 +306,13 @@ Definition ContConstFun (v : IR) : IContR.
     [apply (toPartConst v)|].
   apply Continuous_const; trivial.
 Defined.
+
+Global Instance ContConstFun_wd : Proper (@st_eq IR ==> @st_eq IContR) ContConstFun.
+Proof.
+  intros ? ? Heq z. simpl. exact Heq.
+Qed.
+ 
+
 
   
 Definition IContRId : IContR.
@@ -411,6 +417,11 @@ Proof.
   exact Heq.
 Qed.
 
+Lemma FConstMult : ∀ (a b: IR), (ContConstFun a) [*] (ContConstFun b) 
+                                  [=] (ContConstFun (a[*]b)).
+Proof.
+  intros a b x. simpl. reflexivity.
+Qed.
 
 
 Hint Resolve (scs_prf IR (itvl)) : CoRN.
@@ -929,7 +940,7 @@ Require Export CoRN.transc.Trigonometric.
 This just ports the underlying composition function of CoRN
 to the IContR type where functions are bundled with their continuoity proofs *)
 
-Definition composeIContR 
+Definition composeIContRGeneral 
   (I J : interval) (pI : proper I) (pJ : proper J)
   (F : IContR J pJ) (theta : IContR I pI)
   (mp: maps_compacts_into_weak I J (toPart theta)) : IContR I pI.
@@ -943,24 +954,44 @@ Definition composeIContR
   apply toFromPartId.
 Defined.
 
+Notation "{ f }" := (getF f).
+
 (** specialize the above the common case where J is [realline].
 An advantage is that we get rid of an argument, and thus
 reduce the number of non inferable arguments to 2.
 This is handy while defining the binary composition notation below *)
 
-Definition composeRealLineIContR
+Definition composeIContR
   (I : interval) (pI : proper I)
   (F : IContR realline Coq.Init.Logic.I) (theta : IContR I pI)
      : IContR I pI.
-  apply (composeIContR F theta).
+  apply (composeIContRGeneral F theta).
   apply maps_compacts_into_strict_imp_weak.
   apply Continuous_imp_maps_compacts_into.
   apply scs_prf.
 Defined.
 
-
 (** ∘ is already taken by MathClasses *)
-Notation "F [∘] G" := (composeRealLineIContR F G) (at level 100).
+Notation "F [∘] G" := (composeIContR F G) (at level 100).
+
+Local Definition toR {I : interval}  (ir : RInIntvl I) 
+    : RInIntvl realline. 
+exists (scs_elem _ _ ir). exact Coq.Init.Logic.I.
+Defined.
+
+(* Coercion toRealline : RInIntvl >-> RInIntvl. *)
+
+Lemma composeIContAp : ∀    (I : interval) (pI : proper I)
+  (F : IContR realline Coq.Init.Logic.I) (G : IContR I pI) t,
+  {F [∘] G} t [=] {F} {|scs_elem := ({G} t) ; scs_prf := Coq.Init.Logic.I |}.
+Proof.
+  intros ? ? ? ? ?. destruct t. simpl. unfold mkRIntvl. simpl.
+  apply TContRExt. simpl.
+  apply TContRExt. simpl.
+  reflexivity.
+Qed.
+
+
 
 Definition CSine : IContR realline I.
   exists (fromPart _  Sine (fst Continuous_Sin)).
@@ -987,12 +1018,11 @@ Definition CFCos
 
 Local Opaque Sine.
 
-Notation "{ f }" := (getF f).
 
 Lemma CFSineAp : ∀ (I : interval) (pI : proper I) (F : IContR I pI ) t,
   {CFSine F} t [=] Sin ({F} t).
 Proof.
-  intros. unfold CFSine, composeRealLineIContR, composeIContR, CSine. destruct t, F.
+  intros. unfold CFSine, composeIContR, composeIContR, CSine. destruct t, F.
   setoid_rewrite  extToPart2. simpl.
   apply pfwdef.
   apply FS_as_CSetoid_proper; try reflexivity.
@@ -1065,7 +1095,6 @@ Proof.
   simpl. apply pfwdef. reflexivity.
 Qed.
 
-SearchAbout maps_compacts_into maps_compacts_into_weak.
 
 Lemma IContRDerivativeComposeGeneral:  ∀ (I J : interval) (pI : proper I) (pJ : proper J)
   (G G' : IContR J pJ) (F F' : IContR I pI)
@@ -1073,7 +1102,7 @@ Lemma IContRDerivativeComposeGeneral:  ∀ (I J : interval) (pI : proper I) (pJ 
   let mpw := maps_compacts_into_strict_imp_weak I J (toPart F) mp in
   isIDerivativeOf F' F
   → isIDerivativeOf G' G
-  → isIDerivativeOf  ((composeIContR G' F mpw) [*] F') (composeIContR G  F mpw).
+  → isIDerivativeOf  ((composeIContRGeneral G' F mpw) [*] F') (composeIContRGeneral G  F mpw).
 Proof.
   unfold isIDerivativeOf.
   intros.
@@ -1114,19 +1143,82 @@ Proof.
   apply Derivative_Cos.
 Qed.
 
-(*
-Lemma IContRIntegComposeLinear:  ∀ (I : interval) (pI : proper I) 
-   (G G' : IContR realline  Coq.Init.Logic.I) (a b : IR) (p : 0 [#] a) ib,
+Lemma IContRDerivComposeLinear:  ∀ (I : interval) (pI : proper I) 
+   (G G' : IContR realline  Coq.Init.Logic.I) (a b : IR),
+   let Fl := (ContConstFun I pI b [+]
+            ContConstFun I pI a [*] IContRId I pI) in
   isIDerivativeOf G' G
--> Cintegral ib
-      (G' [∘]
-          (ContConstFun I pI b [+]
-            ContConstFun I pI a [*] IContRId I pI)) 
-  = {G} (intgBndR ib) - {G} (intgBndL ib).
+  → isIDerivativeOf
+        ((G'[∘] Fl) [*] (ContConstFun I pI a)) 
+        (G [∘] Fl).
 Proof.
-SearchAbout IntgBnds.
-Abort.
-*)
+  intros. apply IContRDerivativeCompose; [| assumption].
+  apply TContRDerivativeLinear.
+Qed.
+
+(** better suited for integration *)
+Lemma IContRDerivComposeLinear2:  ∀  (I : interval) (pI : proper I)
+   (G G' : IContR realline  Coq.Init.Logic.I) (a b : IR) (p : a [#] [0]),
+   let Fl := (ContConstFun I pI b [+]
+            ContConstFun I pI a [*] IContRId I pI) in
+  isIDerivativeOf G' G
+  → isIDerivativeOf  
+        (G'[∘] Fl) 
+        ((G [∘] Fl)[*] (ContConstFun I pI (f_rcpcl a p))).
+Proof.
+  intros  ? ? ? ? ? ? ? ? Hd.
+  apply IContRDerivComposeLinear with (pI:=pI) (a:=a) (b:=b) in Hd.
+  fold Fl in Hd.
+  apply TContRDerivativeMultConstR with (c:=(f_rcpcl a p)) in Hd.
+  eapply isIDerivativeOfWdl;[| apply Hd]. clear.
+  remember (G' [∘] Fl) as ss.
+  clear Heqss. rewrite <- mult_assoc, FConstMult.
+  rewrite field_mult_inv.
+  fold cr_one. destruct ss. simpl. intros ?. simpl. ring.
+Qed.
+
+ 
+Lemma IContRIntegComposeLinear:  ∀ (I : interval) (pI : proper I) 
+   (G G' : IContR realline  Coq.Init.Logic.I) (a b : IR) (p : a [#] [0]) ib,
+   let Fl := (ContConstFun I pI b [+]
+            ContConstFun I pI a [*] IContRId I pI) in
+  isIDerivativeOf G' G
+-> Cintegral ib (G' [∘] Fl) 
+   [=] (({G[∘] Fl} (intgBndR ib) [-] {G[∘] Fl} (intgBndL ib)) [/]a[//]p).
+Proof.
+  intros ? ? ? ? ? ? ? ? ? Hd.
+  rewrite TBarrowEta;[|apply IContRDerivComposeLinear2 with (p:=p); apply Hd].
+  fold Fl. destruct ib. unfold intgBndR, intgBndL. simpl snd. simpl fst.
+  unfold cg_minus. remember ((G [∘] Fl)) as gf. clear Heqgf Fl. 
+  autorewrite with IContRApDown. unfold cf_div. 
+   ring.
+Qed.
+
+Lemma IContRIntegLinearCos:  ∀ (I : interval) (pI : proper I) 
+   (a b : IR) (p : a [#] [0]) ib,
+   let Fl := (ContConstFun I pI b [+]
+            ContConstFun I pI a [*] IContRId I pI) in
+   Cintegral ib (CCos [∘] Fl) 
+   [=] (({CSine [∘] Fl} (intgBndR ib) [-] {CSine[∘] Fl} (intgBndL ib)) [/]a[//]p).
+Proof.
+  intros. apply IContRIntegComposeLinear.
+  apply IsDerivativeCos.
+Qed.
+
+Lemma IContRIntegLinearCos2:  ∀ (I : interval) (pI : proper I) 
+   (a b : IR) (p : a [#] [0]) ib,
+   let Fl := (ContConstFun I pI b [+]
+            ContConstFun I pI a [*] IContRId I pI) in
+   Cintegral ib (CCos [∘] Fl) 
+   [=] ((Sin ({Fl} (intgBndR ib))  [-] Sin ({Fl} (intgBndL ib))) [/]a[//]p).
+Proof.
+  intros. 
+  pose proof (@IContRIntegLinearCos I pI a b p ib) as XX.
+  fold Fl in XX. cbv zeta in XX. fold (CFSine Fl) in XX.
+  rewrite XX. apply div_wd;[| reflexivity]. clear.
+  rewrite CFSineAp, CFSineAp. reflexivity.
+Qed.
+
 
 (*
 Lemma IContRDerivativeCos:  ∀ (I : interval) (pI : proper I) 
