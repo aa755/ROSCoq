@@ -112,16 +112,14 @@ Add Ring RisaRing: (CRing_Ring IR).
     [ |intros tb Hbb; autounfold with TContRMC; autorewrite with IContRApDown;
        apply mult_wdl; apply fixed; lra].
     apply mult_wdr.
-    rewrite Cintegral_wd2.
+    rewrite (Cintegral_wd2).
+    instantiate (1 := FCos (ContConstFun _ _ (θ0 - lv * tc * (Q2R tstart)) 
+                          + ContConstFun  _ _ (lv * tc) * IContRId _ _)).
     Focus 2.
-    Print Cintegral.
-    Print CFSine.
-    SearchAbout integral Sine.
-    intros tx HH. unfold inBounds in HH. simpl in HH.
-    SearchAbout Sine.    
-    Print TBarrowQ.
-    SearchAbout isIDerivativeOf.
-    SearchAbout Integral.
+      apply EqRationalCont.
+      intros tb Hbb. rewrite CFCosAp, CFCosAp.
+      apply Cos_wd.
+      apply fixedCurvTheta2. lra.
   Abort.
 
     

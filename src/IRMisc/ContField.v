@@ -461,6 +461,10 @@ Definition CIntegral (l r : RInIntvl) (f : IContR) : IR :=
 Definition IntgBnds : CSetoid :=
   Build_SubCSetoid (ProdCSetoid RInIntvl RInIntvl) (fun p => fst p [<=] snd p).
 
+Definition intgBndL (ib : IntgBnds) : RInIntvl:=  (fst (scs_elem _ _ ib)).
+Definition intgBndR (ib : IntgBnds) : RInIntvl:=  (snd (scs_elem _ _ ib)).
+
+
 Definition Cintegral
     (lr : IntgBnds)
     (f : IContR) : IR :=
@@ -643,6 +647,28 @@ Proof.
   [apply TContRInvAsMult| ].
   apply TContRDerivativeMultConstL.
   assumption.
+Qed.
+
+
+Lemma IsDerivativeOne : isIDerivativeOf [1] (IContRId).
+Proof.
+  unfold isIDerivativeOf, IContRId. simpl.
+  eapply Derivative_wdl;[apply toFromPartId |].
+  eapply Derivative_wdr;[apply toPartConst |].
+  apply Derivative_id.
+Qed.
+
+Lemma TContRDerivativeLinear:
+  ∀ (a b : IR),
+  isIDerivativeOf  (ContConstFun a) 
+                  (ContConstFun b [+] ContConstFun a [*] IContRId).
+Proof.
+  intros  ? ?.
+  eapply isIDerivativeOfWdl;[ apply cm_lft_unit_unfolded |].
+  apply TContRDerivativePlus;[apply TContRDerivativeConst |].
+  eapply isIDerivativeOfWdl;[ apply mult_one |].
+  apply TContRDerivativeMultConstL.
+  apply IsDerivativeOne.
 Qed.
 
 Local Notation "2" := ([1] [+] [1]).
@@ -876,15 +902,6 @@ Proof.
 Qed.
 End CIntegralProps.
 
- 
-Lemma IsDerivativeOne : isIDerivativeOf [1] (IContRId).
-Proof.
-  unfold isIDerivativeOf, IContRId. simpl.
-  eapply Derivative_wdl;[apply toFromPartId |].
-  eapply Derivative_wdr;[apply toPartConst |].
-  apply Derivative_id.
-Qed.
-
 
 
 End ContFAlgebra.
@@ -1079,6 +1096,7 @@ Proof.
 Qed.
 
 
+
 Lemma IsDerivativeCos : isIDerivativeOf CCos CSine.
 Proof.
   unfold isIDerivativeOf, CCos, CSine. simpl.
@@ -1095,6 +1113,20 @@ Proof.
   eapply Derivative_wdr;[apply Feq_inv; apply toFromPartId|].
   apply Derivative_Cos.
 Qed.
+
+(*
+Lemma IContRIntegComposeLinear:  ∀ (I : interval) (pI : proper I) 
+   (G G' : IContR realline  Coq.Init.Logic.I) (a b : IR) (p : 0 [#] a) ib,
+  isIDerivativeOf G' G
+-> Cintegral ib
+      (G' [∘]
+          (ContConstFun I pI b [+]
+            ContConstFun I pI a [*] IContRId I pI)) 
+  = {G} (intgBndR ib) - {G} (intgBndL ib).
+Proof.
+SearchAbout IntgBnds.
+Abort.
+*)
 
 (*
 Lemma IContRDerivativeCos:  ∀ (I : interval) (pI : proper I) 
