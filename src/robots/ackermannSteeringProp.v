@@ -63,26 +63,10 @@ Section FixedSpeedFixedCurv.
   Variable lv : IR.
   Variable tc : IR.
 
-  (**Needed because [lv * tc] shows up as a denominator
-     during integration. The 0 case perhaps 
-    needs to be handled separately, and constructively!*)
-  Hypothesis lvtcNZ : (lv * tc [#] 0).
 
   Hypothesis fixed : forall (t :QTime), 
     (tstart <= t <= tend)%Q  -> {linVel acs} t = lv /\ {turnCurvature acs} t = tc.
   
-  Lemma tcNZ : (tc [#] 0).
-  Proof.
-    apply mult_cancel_ap_zero_rht in lvtcNZ.
-    exact lvtcNZ.
-  Qed.
-
-  Lemma lvNZ : (lv [#] 0).
-  Proof.
-    apply mult_cancel_ap_zero_lft in lvtcNZ.
-    exact lvtcNZ.
-  Qed.
-
   Local Definition θ0 := {theta acs} tstart.
 
   (** [theta] at time [t] is also needed obtain position at time [t] by integration *)
@@ -119,6 +103,22 @@ Add Ring RisaRing: (CRing_Ring IR).
     ring.
   Qed.
 
+  (**Needed because [lv * tc] shows up as a denominator
+     during integration below in [fixedCurvX]. The 0 case perhaps 
+    needs to be handled separately, and constructively!*)
+  Hypothesis lvtcNZ : (lv * tc [#] 0).
+  Lemma tcNZ : (tc [#] 0).
+  Proof.
+    apply mult_cancel_ap_zero_rht in lvtcNZ.
+    exact lvtcNZ.
+  Qed.
+
+  Lemma lvNZ : (lv [#] 0).
+  Proof.
+    apply mult_cancel_ap_zero_lft in lvtcNZ.
+    exact lvtcNZ.
+  Qed.
+
   (** [X] coordinate of the [position] at a given time. Note that in CoRN,
       division is a ternary operator. [a[/]b[//][bp]] denotes the real number [a]
       divided by the non-zero real number [b], where [bp] is the proof of non-zero-hood
@@ -126,7 +126,7 @@ Add Ring RisaRing: (CRing_Ring IR).
    *)
   Lemma fixedCurvX : forall (t :QTime), (tstart <= t <= tend)%Q  ->
     ({X (position acs)} t - {X (position acs)} tstart) =  
-        ((Sin ({theta acs} t) [-] Sin ({theta acs} tstart)) [/] tc [//] tcNZ) (* temporary placeholder *).
+        ((Sin ({theta acs} t) - Sin ({theta acs} tstart)) [/] tc [//] tcNZ).
   Proof.
     intros ? Hb.
     pose proof (TBarrowQScale _ _ (FCos (theta acs)) (derivX acs) tstart t lv (proj1 Hb)) as Dx.
@@ -154,7 +154,37 @@ Add Ring RisaRing: (CRing_Ring IR).
     setoid_rewrite <- fixedCurvTheta2;[ | lra | lra]. reflexivity.
 Qed.
 
-    
+  Lemma fixedCurvY : forall (t :QTime), (tstart <= t <= tend)%Q  ->
+    ({Y (position acs)} t - {Y (position acs)} tstart) =  
+        ((Cos ({theta acs} tstart) - Cos ({theta acs} t)) [/] tc [//] tcNZ).
+  Proof.
+    intros ? Hb.
+    pose proof (TBarrowQScale _ _ (FSin (theta acs)) (derivY acs) tstart t lv (proj1 Hb)) as Dx.
+    rewrite Dx;
+    [ |intros tb Hbb; autounfold with TContRMC; autorewrite with IContRApDown;
+       apply mult_wdl; apply fixed; lra].
+    rewrite (Cintegral_wd2).
+    instantiate (1 := FSin (ContConstFun _ _ (θ0 - lv * tc * (Q2R tstart)) 
+                          + ContConstFun  _ _ (lv * tc) * IContRId _ _)).
+    Focus 2.
+      apply EqRationalCont.
+      intros tb Hbb. rewrite CFSineAp, CFSineAp.
+      apply Sin_wd.
+      apply fixedCurvTheta2. lra.
+      
+    unfold CFSine. setoid_rewrite IContRIntegLinearSine2 with (p:=lvtcNZ).
+    match goal with 
+    [ |-  context [?l [-] ?r ]] => remember (l [-] r)
+    end. unfold cf_div.
+    setoid_rewrite f_rcpcl_mult with (y_ := lvNZ) (z_ := tcNZ).
+    assert (lv [*] (s [*] (f_rcpcl lv lvNZ [*] f_rcpcl tc tcNZ)) [=]
+                (lv [*]f_rcpcl lv lvNZ) [*] s [*] (f_rcpcl tc tcNZ)) as Hr by ring.
+    rewrite Hr. clear Hr. rewrite field_mult_inv. rewrite one_mult.
+    apply div_wd;[| reflexivity]. subst s.
+    setoid_rewrite <- fixedCurvTheta2;[ | lra | lra]. reflexivity.
+Qed.
+
+
 End FixedSpeedFixedCurv.
 
 End Props.

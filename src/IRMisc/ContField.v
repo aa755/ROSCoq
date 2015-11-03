@@ -5,6 +5,23 @@ Require Export IRMisc.PointWiseRing.
 Set Implicit Arguments.
 Require Import Coq.Unicode.Utf8.
 
+Lemma csg_op_wd : forall (C: CSemiGroup) (x1 y1 x2 y2:C), 
+  x1 [=] x2
+  -> y1 [=] y2
+  -> x1 [+] y1 [=] x2 [+] y2.
+Proof.
+  intros ? ? ? ? ? H1 H2.
+  rewrite H1, H2. reflexivity.
+Qed.
+
+Lemma cg_inv_wd : forall (C: CGroup) (x1 x2 :C), 
+  x1 [=] x2
+  -> [--] x1  [=] [--] x2.
+Proof.
+  intros ? ? ?  H1.
+  rewrite H1. reflexivity.
+Qed.
+
 (**
 CoRN has a rich theory of continuous functions.
 Continuous functions from Time to R 
@@ -914,6 +931,18 @@ Qed.
 End CIntegralProps.
 
 
+(** holds in general for groups. Move. *)
+Lemma invInvIContR : forall (r:IContR), [--][--]r [=] r.
+Proof.
+  intros  ?. ring.
+Qed.
+
+(** holds in general for groups. Move. *)
+Lemma invInvIR : forall (r:IR), [--][--]r [=] r.
+Proof.
+  intros  ?. ring.
+Qed.
+
 
 End ContFAlgebra.
 
@@ -1143,6 +1172,16 @@ Proof.
   apply Derivative_Cos.
 Qed.
 
+
+(** better suited for integration *)
+Lemma IsDerivativeSin2 : isIDerivativeOf CSine ([--]CCos).
+Proof.
+  eapply Derivative_wdr. apply (@IContR_st_eq_Feq realline I).
+   apply invInvIContR. 
+  apply TContRDerivativeOpp.
+  apply IsDerivativeSin.
+Qed.
+
 Lemma IContRDerivComposeLinear:  ∀ (I : interval) (pI : proper I) 
    (G G' : IContR realline  Coq.Init.Logic.I) (a b : IR),
    let Fl := (ContConstFun I pI b [+]
@@ -1217,6 +1256,46 @@ Proof.
   fold Fl in XX. cbv zeta in XX. fold (CFSine Fl) in XX.
   rewrite XX. apply div_wd;[| reflexivity]. clear.
   rewrite CFSineAp, CFSineAp. reflexivity.
+Qed.
+
+Lemma IContRIntegLinearSine:  ∀ (I : interval) (pI : proper I) 
+   (a b : IR) (p : a [#] [0]) ib,
+   let Fl := (ContConstFun I pI b [+]
+            ContConstFun I pI a [*] IContRId I pI) in
+   Cintegral ib (CSine [∘] Fl) 
+   [=] (({([--]CCos) [∘] Fl} (intgBndR ib) [-] {([--]CCos)[∘] Fl} (intgBndL ib)) [/]a[//]p).
+Proof.
+  intros. apply IContRIntegComposeLinear.
+  apply IsDerivativeSin2.
+Qed.
+
+
+Lemma pfwdef2
+     : ∀ (S : CSetoid) (F : PartFunct S) (x : S) (Hx : Dom F x) 
+       (Hy : Dom F x), F x Hx [=] F x Hy.
+Proof.
+  intros. apply pfwdef. reflexivity.
+Qed.
+
+
+Lemma IContRIntegLinearSine2:  ∀ (I : interval) (pI : proper I) 
+   (a b : IR) (p : a [#] [0]) ib,
+   let Fl := (ContConstFun I pI b [+]
+            ContConstFun I pI a [*] IContRId I pI) in
+   Cintegral ib (CSine [∘] Fl) 
+   [=] ((Cos ({Fl} (intgBndL ib))  [-] Cos ({Fl} (intgBndR ib))) [/]a[//]p).
+Proof.
+  intros. 
+  pose proof (@IContRIntegLinearSine I pI a b p ib) as XX.
+  fold Fl in XX. cbv zeta in XX.
+  rewrite XX. apply div_wd;[| reflexivity]. clear.
+  rewrite composeIContAp.
+  rewrite composeIContAp. simpl.
+  unfold cg_minus. rewrite invInvIR.
+  rewrite cag_commutes_unfolded. 
+Local Transparent Cos. unfold Cos. simpl. Local Opaque Cos.
+  apply csg_op_wd;[apply pfwdef2|].
+  apply cg_inv_wd. apply pfwdef2.
 Qed.
 
 
