@@ -104,10 +104,6 @@ it goes continuously from a small negative value to 0 to a small positive value.
 
   turnCurvature : (Time -c-> R);
 
-(** apart from capturing a physical constraint, it is implies
-the non-zerohood of [turnCenter] at all times, which is needed for
-the division below in [derivRot] to be well-typed.
-*)
 
   turnCurvatureUB : forall t:Time, |{turnCurvature} t| ≤ (Q2R maxTurnCurvature);
   
