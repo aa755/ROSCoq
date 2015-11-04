@@ -38,7 +38,9 @@ Require Export CartIR.
 
 This file is highly experimental.
 *)
-
+Definition posAtTime {maxTurnCurvature : Qpos} (ic : AckermannCar maxTurnCurvature) (t: Time) : Cart2D IR :=
+  {| X:= {X (position ic)} t ; Y := {Y (position ic)} t |}.
+  
 Section Props.
 Variable maxTurnCurvature : Qpos.
 Variable acs : AckermannCar maxTurnCurvature.
@@ -217,20 +219,51 @@ and it denotes the following motion :
   reverse steer
   reverse drive
 *)
-  Variable tstart : QTime.
-  Variable driveDuration : QTime.
+
+
+(** the start time of each of the above mentioned phases (r for reverse), 
+    and the end time of the whole wiggle motion*)
+  Variable tsteer : QTime.
+  Variable tdrive : QTime.
+  Variable trsteer : QTime.
+  Variable trdrive : QTime.
+  Variable tend : QTime.
 
 (** this is the time during which [turnCurvature] changes. any value will suffice *)
-  Variable steerDuration : QTime.
+  Variable timeInc : (tsteer <= tdrive <= trsteer)%Q /\   (trsteer <= trdrive <= tend)%Q.
  
-(** constant speed of the car while (reverse) driving *)
-  Variable lv : IR.
-  Hypothesis lvPos : 0[<]lv.
+(** constant linear speed of the car while driving *)
+  Variable lspeed : IR.
+  Hypothesis lspeedPos : 0[<]lspeed.
+
+(** constant linear speed of the car while reverse driving *)
+  Variable rlspeed : IR.
+  Hypothesis rlspeedPos : 0[<]rlspeed.
+
+
+  Definition driveDuration : Q := (trsteer - tdrive)%Q.
+  Definition rdriveDuration : Q := (tend - trdrive)%Q.
+  
+  Hypothesis equalDriveDistance : lspeed * driveDuration = rlspeed * rdriveDuration.
+
 (** constant curvature of the car after (reverse) steering *)
   Variable tc : IR.
   Hypothesis tcPos : 0[<]tc.
 
+(** Now we characterize the state of the controls during each of the 4 phases. First, the steering phase.
+   At the end of this phase, the state of the steering wheel should be such that the [turnCurvature]
+   is [tc]. Also, the position and orientation of the cars should not change, e.g. brakes firmly pressed.
+   Note that our eventual goal is to not just show that the car's final state is correct (paralle parked),
+   but also that it did not collide with other cars in the process, therefore, it is insufficient to
+   characterize the position and orientation at just the endpoint of this phase.
+ *)
+  Hypothesis steeringControls : ({turnCurvature acs} tdrive) = tc 
+      /\ forall (t:QTime), (tsteer <= t <= tdrive)%Q 
+          -> (posAtTime acs t = posAtTime acs tsteer) /\ {theta acs} t = {theta acs} tsteer.
+          
 
+  (** need to generalize the statement of [posFixedCurvX]. Because [linVel] is continuous,
+    we cannot assume that it immediately goes from [0] to [lspeed] at [tdrive] *)
 
 End Wriggle.
 
