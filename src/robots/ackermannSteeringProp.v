@@ -47,7 +47,9 @@ Variable acs : AckermannCar maxTurnCurvature.
 (** 
 We characterize the motion of a car at a particular fixed speed, and
 at a particular fixed turn curvature.
-Ideally, we should let both of them vary a bit (upto some epsilon) during the process.
+
+TODO: Ideally, we should let both of them vary a bit (upto some epsilon) during the process.
+This will SIGNIFICANTLY complicate the integrals.
 *)
 
 (* TODO : Move, and also delete from examples//correctness.v *)
@@ -55,6 +57,8 @@ Hint Unfold Mult_instance_TContR Plus_instance_TContR
   Negate_instance_TContR : TContR.
 
 Section FixedSpeedFixedCurv.
+(* TODO :  make these real valued too. For some maneuvers, the ideal duration might
+  be irrational *)
   Variable tstart : QTime.
   Variable tend : QTime.
 
@@ -103,6 +107,7 @@ Add Ring RisaRing: (CRing_Ring IR).
     ring.
   Qed.
 
+  Section Positive.
   (**Needed because [lv * tc] shows up as a denominator
      during integration below in [fixedCurvX]. The 0 case perhaps 
     needs to be handled separately, and constructively!*)
@@ -124,7 +129,7 @@ Add Ring RisaRing: (CRing_Ring IR).
       divided by the non-zero real number [b], where [bp] is the proof of non-zero-hood
       of [b].
    *)
-  Lemma fixedCurvX : forall (t :QTime), (tstart <= t <= tend)%Q  ->
+  Lemma posFixedCurvX : forall (t :QTime), (tstart <= t <= tend)%Q  ->
     ({X (position acs)} t - {X (position acs)} tstart) =  
         ((Sin ({theta acs} t) - Sin ({theta acs} tstart)) [/] tc [//] tcNZ).
   Proof.
@@ -152,9 +157,9 @@ Add Ring RisaRing: (CRing_Ring IR).
     rewrite Hr. clear Hr. rewrite field_mult_inv. rewrite one_mult.
     apply div_wd;[| reflexivity]. subst s.
     setoid_rewrite <- fixedCurvTheta2;[ | lra | lra]. reflexivity.
-Qed.
+  Qed.
 
-  Lemma fixedCurvY : forall (t :QTime), (tstart <= t <= tend)%Q  ->
+  Lemma posFixedCurvY : forall (t :QTime), (tstart <= t <= tend)%Q  ->
     ({Y (position acs)} t - {Y (position acs)} tstart) =  
         ((Cos ({theta acs} tstart) - Cos ({theta acs} t)) [/] tc [//] tcNZ).
   Proof.
@@ -182,9 +187,52 @@ Qed.
     rewrite Hr. clear Hr. rewrite field_mult_inv. rewrite one_mult.
     apply div_wd;[| reflexivity]. subst s.
     setoid_rewrite <- fixedCurvTheta2;[ | lra | lra]. reflexivity.
-Qed.
+  Qed.
+End Positive.
 
+(* Now, lets get ret rid of the assumption [lvtcNZ] 
+
+  Lemma fixedCurvX : forall (t :QTime), (tstart <= t <= tend)%Q  ->
+    ({X (position acs)} t - {X (position acs)} tstart) =  
+        lv * (Sin ({theta acs} tstart)).
+  Proof.
+  Abort.
+*)
+
+(* TODO : given the car's dimensions, confine the whole car within 
+  a "small, yet simple" region
+  during the above motion. *)
 
 End FixedSpeedFixedCurv.
+
+Section Wriggle.
+(** Now consider a 
+#<href="https://rigtriv.wordpress.com/2007/10/01/parallel-parking/">wiggle motion</a>#
+and characterize the the change in car's position and orientation caused
+by this motion. 
+The word "wriggle" was perhaps coinde by Nelson in his 1967 book Tensor analysis,
+and it denotes the following motion : 
+  steer (i.e rotate the steering wheel with brakes firmly pushed), 
+  drive (while keeping the steering wheel fixed),
+  reverse steer
+  reverse drive
+*)
+  Variable tstart : QTime.
+  Variable driveDuration : QTime.
+
+(** this is the time during which [turnCurvature] changes. any value will suffice *)
+  Variable steerDuration : QTime.
+ 
+(** constant speed of the car while (reverse) driving *)
+  Variable lv : IR.
+  Hypothesis lvPos : 0[<]lv.
+(** constant curvature of the car after (reverse) steering *)
+  Variable tc : IR.
+  Hypothesis tcPos : 0[<]tc.
+
+
+
+End Wriggle.
+
 
 End Props.
