@@ -1299,7 +1299,6 @@ Local Transparent Cos. unfold Cos. simpl. Local Opaque Cos.
 Qed.
 
 
-(*
 Lemma IContRDerivativeCos:  ∀ (I : interval) (pI : proper I) 
   (F F' : IContR I pI),
   isIDerivativeOf F' F
@@ -1317,7 +1316,6 @@ Proof.
   intros. apply IContRDerivativeCompose; auto.
   apply IsDerivativeCos.
 Qed.
-*)
 
 
 Hint Rewrite CFCosAp IContRConstAp IContRInvAp CFSineAp IContRPlusAp IContRMultAp IContRMinusAp IContRIdAp: IContRApDown.

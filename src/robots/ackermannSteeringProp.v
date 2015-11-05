@@ -47,10 +47,15 @@ Variable acs : AckermannCar maxTurnCurvature.
 
 
 (** 
-We characterize the motion of a car at a particular fixed speed, and
-at a particular fixed turn curvature.
+We characterize the motion of a car at a particular fixed turn curvature.
+The speed is not fixed, even though it seems like an enticing temporary simpilification.
+The assumption that [linSpeed] is continuous makes it impossible to assume
+that the car immediately achieves the desired velocity from a state of rest.
+Fortunately, the lack of constanthood assumption of [linSpeed] 
+does not complicate the integrals.
 
-TODO: Ideally, we should let both of them vary a bit (upto some epsilon) during the process.
+TODO: Ideally, we should let the turn curvature of them vary a bit 
+(upto some epsilon) during the process.
 This will SIGNIFICANTLY complicate the integrals.
 *)
 
@@ -59,137 +64,127 @@ Hint Unfold Mult_instance_TContR Plus_instance_TContR
   Negate_instance_TContR : TContR.
 
 Section FixedSpeedFixedCurv.
-(* TODO :  make these real valued too. For some maneuvers, the ideal duration might
-  be irrational *)
-  Variable tstart : QTime.
-  Variable tend : QTime.
 
-  Hypothesis tstartEnd : (tstart <= tend)%Q.
+  Variable tstart : Time.
+  Variable tend : Time.
 
-  Variable lv : IR.
+(* TODO : Move to MCInstances.v *)
+Global Instance Le_instance_Time : Le Time := fun x y => x [<=] y.
+
+  Hypothesis tstartEnd : (tstart ≤ tend).
+
   Variable tc : IR.
 
+Open Scope mc_scope.
 
-  Hypothesis fixed : forall (t :QTime), 
-    (tstart <= t <= tend)%Q  -> {linVel acs} t = lv /\ {turnCurvature acs} t = tc.
+(** TODO: It suffices to assume it for just rational times, because of continuity *)
+  Hypothesis fixed : forall (t :Time), 
+    (tstart ≤ t ≤ tend)  -> {turnCurvature acs} t = tc.
   
   Local Definition θ0 := {theta acs} tstart.
 
+  Local Notation  "∫" := Cintegral.
+
   (** [theta] at time [t] is also needed obtain position at time [t] by integration *)
-  Lemma fixedCurvTheta : forall (t :QTime), (tstart <= t <= tend)%Q  ->
-    ({theta acs} t - {theta acs} tstart) = lv * tc * (Q2R (t - tstart)).
+  Lemma fixedCurvTheta : forall (t :Time)  (p: tstart ≤ t ≤ tend),
+(* ib denotes the pair of numbers that goes at the bottom and at the top of ∫ *)
+    let ib := @mkIntBnd _ tstart t (proj1 p) in
+    ({theta acs} t - {theta acs} tstart) = tc* (∫ ib (linVel acs)).
   Proof.
-    intros ? Hb.  
-    eapply TDerivativeEqQ; eauto using derivRot;[lra|].
-    intros tb Hbb.
-    assert (tstart <= tb <= tend)%Q as Hbbb by lra.
-    clear Hb Hbb. rename Hbbb into Hb.
-    apply fixed in Hb. repnd.
-    autounfold with TContRMC.
-    autounfold with IRMC. simpl.
-    rewrite Hbl, Hbr. reflexivity.
+    intros ? Hb ?.
+    setoid_rewrite <- TBarrowScale;
+      [| apply (derivRot acs)|];[reflexivity|].
+    intros tb Hbb.  rewrite mult_comm.
+    simpl. apply mult_wd;[| reflexivity].
+    apply fixed. unfold intgBndL, intgBndR in Hbb.  simpl in Hbb.
+    repnd. autounfold with IRMC. unfold Le_instance_Time.
+    split; eauto 2 with CoRN.
   Qed.
 
 Add Ring RisaRing: (CRing_Ring IR).
 
-  (** put the above in a form that is more convenient for integrating it
-      while computing the X and Y coordinates at a given time *)
-  Lemma fixedCurvTheta2 : forall (t :QTime), (tstart <= t <= tend)%Q  ->
-    ({theta acs} t) =  {ContConstFun _ _ (θ0 - lv * tc * (Q2R tstart)) 
-                          + ContConstFun  _ _ (lv * tc) * IContRId _ _} t.
-  Proof.
-    intros ? H. autounfold with TContRMC. autounfold with IRMC.
-    simpl.
-    apply fixedCurvTheta in H.
-    rewrite <- (realCancel _  ({theta acs} t) θ0).
-    fold θ0. rewrite H.
-    unfold Q2R. autorewrite with InjQDown.
-    unfold cg_minus. rewrite <- QT2T_Q2R. simpl.
-    autounfold with IRMC.
-    ring.
-  Qed.
 
   Section Positive.
-  (**Needed because [lv * tc] shows up as a denominator
+  (**Needed because [tc] shows up as a denominator
      during integration below in [fixedCurvX]. The 0 case perhaps 
     needs to be handled separately, and constructively!*)
-  Hypothesis lvtcNZ : (lv * tc [#] 0).
-  Lemma tcNZ : (tc [#] 0).
-  Proof.
-    apply mult_cancel_ap_zero_rht in lvtcNZ.
-    exact lvtcNZ.
-  Qed.
-
-  Lemma lvNZ : (lv [#] 0).
-  Proof.
-    apply mult_cancel_ap_zero_lft in lvtcNZ.
-    exact lvtcNZ.
-  Qed.
+  Hypothesis tcNZ : (tc [#] 0).
 
   (** [X] coordinate of the [position] at a given time. Note that in CoRN,
       division is a ternary operator. [a[/]b[//][bp]] denotes the real number [a]
       divided by the non-zero real number [b], where [bp] is the proof of non-zero-hood
       of [b].
    *)
-  Lemma posFixedCurvX : forall (t :QTime), (tstart <= t <= tend)%Q  ->
+  Lemma posFixedCurvX : forall (t :Time) (_: tstart ≤ t ≤ tend),
     ({X (position acs)} t - {X (position acs)} tstart) =  
         ((Sin ({theta acs} t) - Sin ({theta acs} tstart)) [/] tc [//] tcNZ).
   Proof.
-    intros ? Hb.
-    pose proof (TBarrowQScale _ _ (FCos (theta acs)) (derivX acs) tstart t lv (proj1 Hb)) as Dx.
-    rewrite Dx;
-    [ |intros tb Hbb; autounfold with TContRMC; autorewrite with IContRApDown;
-       apply mult_wdl; apply fixed; lra].
-    rewrite (Cintegral_wd2).
-    instantiate (1 := FCos (ContConstFun _ _ (θ0 - lv * tc * (Q2R tstart)) 
-                          + ContConstFun  _ _ (lv * tc) * IContRId _ _)).
-    Focus 2.
-      apply EqRationalCont.
-      intros tb Hbb. rewrite CFCosAp, CFCosAp.
-      apply Cos_wd.
-      apply fixedCurvTheta2. lra.
-      
-    unfold CFCos. setoid_rewrite IContRIntegLinearCos2 with (p:=lvtcNZ).
-    match goal with 
-    [ |-  context [?l [-] ?r ]] => remember (l [-] r)
-    end. unfold cf_div.
-    setoid_rewrite f_rcpcl_mult with (y_ := lvNZ) (z_ := tcNZ).
-    assert (lv [*] (s [*] (f_rcpcl lv lvNZ [*] f_rcpcl tc tcNZ)) [=]
-                (lv [*]f_rcpcl lv lvNZ) [*] s [*] (f_rcpcl tc tcNZ)) as Hr by ring.
-    rewrite Hr. clear Hr. rewrite field_mult_inv. rewrite one_mult.
-    apply div_wd;[| reflexivity]. subst s.
-    setoid_rewrite <- fixedCurvTheta2;[ | lra | lra]. reflexivity.
+    intros  ? Hb.
+    setoid_rewrite <- TBarrow with (p:= proj1 Hb);[| apply (derivX acs)].
+    pose proof (@TContRDerivativeSin _ _ _ _ (derivRot acs)) as X.
+    apply mult_cancel_rht with (z:=tc);[exact tcNZ|].
+    rewrite div_1.
+    rewrite (@mult_commut_unfolded IR).
+    rewrite <- CIntegral_scale.
+    match type of X with
+      isIDerivativeOf ?l _ => rewrite (@Cintegral_wd2 _ _ _ _ l)
+    end.
+    - rewrite TBarrow;[| apply X]. fold (CFSine (theta acs)).
+      rewrite CFSineAp, CFSineAp. reflexivity.
+    - intros tb Hbb.
+      autounfold with IRMC in Hb.
+      unfold Le_instance_Time in Hb. 
+      autounfold with TContRMC.
+      fold (CFCos (theta acs)).   
+      autorewrite with IContRApDown.
+      rewrite fixed with (t:=tb); [ring |].
+      autounfold with IRMC.  unfold Le_instance_Time.
+      unfold inBounds in Hbb. simpl in Hbb. repnd.
+      split; eauto 2 with CoRN.
   Qed.
 
-  Lemma posFixedCurvY : forall (t :QTime), (tstart <= t <= tend)%Q  ->
+  Lemma tcnegNZ : - tc [#] 0.
+  Proof. 
+    apply inv_resp_ap_zero. exact tcNZ.
+  Qed.
+
+  Lemma posFixedCurvY : forall (t :Time) (_: tstart ≤ t ≤ tend),
     ({Y (position acs)} t - {Y (position acs)} tstart) =  
         ((Cos ({theta acs} tstart) - Cos ({theta acs} t)) [/] tc [//] tcNZ).
   Proof.
-    intros ? Hb.
-    pose proof (TBarrowQScale _ _ (FSin (theta acs)) (derivY acs) tstart t lv (proj1 Hb)) as Dx.
-    rewrite Dx;
-    [ |intros tb Hbb; autounfold with TContRMC; autorewrite with IContRApDown;
-       apply mult_wdl; apply fixed; lra].
-    rewrite (Cintegral_wd2).
-    instantiate (1 := FSin (ContConstFun _ _ (θ0 - lv * tc * (Q2R tstart)) 
-                          + ContConstFun  _ _ (lv * tc) * IContRId _ _)).
-    Focus 2.
-      apply EqRationalCont.
-      intros tb Hbb. rewrite CFSineAp, CFSineAp.
-      apply Sin_wd.
-      apply fixedCurvTheta2. lra.
-      
-    unfold CFSine. setoid_rewrite IContRIntegLinearSine2 with (p:=lvtcNZ).
-    match goal with 
-    [ |-  context [?l [-] ?r ]] => remember (l [-] r)
-    end. unfold cf_div.
-    setoid_rewrite f_rcpcl_mult with (y_ := lvNZ) (z_ := tcNZ).
-    assert (lv [*] (s [*] (f_rcpcl lv lvNZ [*] f_rcpcl tc tcNZ)) [=]
-                (lv [*]f_rcpcl lv lvNZ) [*] s [*] (f_rcpcl tc tcNZ)) as Hr by ring.
-    rewrite Hr. clear Hr. rewrite field_mult_inv. rewrite one_mult.
-    apply div_wd;[| reflexivity]. subst s.
-    setoid_rewrite <- fixedCurvTheta2;[ | lra | lra]. reflexivity.
+    intros  ? Hb.
+    setoid_rewrite <- TBarrow with (p:= proj1 Hb);[| apply (derivY acs)].
+    pose proof (@IContRDerivativeCos _ _ _ _ (derivRot acs)) as X.
+    apply mult_cancel_rht with (z:=-tc);[exact tcnegNZ|].
+    autounfold with IRMC.
+    symmetry. rewrite cring_inv_mult_lft. symmetry.
+    rewrite div_1.
+    rewrite (@mult_commut_unfolded IR).
+    rewrite <- CIntegral_scale.
+    match type of X with
+      isIDerivativeOf ?l _ => rewrite (@Cintegral_wd2 _ _ _ _ l)
+    end.
+    - rewrite TBarrow;[| apply X]. fold (CFCos (theta acs)).
+      rewrite CFCosAp, CFCosAp. unfold cg_minus.
+      autounfold with IRMC.
+      ring.
+    - intros tb Hbb.
+      autounfold with IRMC in Hb.
+      unfold Le_instance_Time in Hb. 
+      autounfold with TContRMC.
+      autorewrite with IContRApDown.
+      rewrite composeIContAp.
+Local Opaque CFSine.
+Local Opaque Sine.
+      simpl. symmetry.
+      pose proof (@pfwdef2 _ Sine ({theta acs} tb) (fst Continuous_Sin ({theta acs} tb) I) I) as Hr. 
+      rewrite Hr.
+      rewrite fixed with (t:=tb); [ring |].
+      autounfold with IRMC.  unfold Le_instance_Time.
+      unfold inBounds in Hbb. simpl in Hbb. repnd.
+      split; eauto 2 with CoRN.
   Qed.
+
 End Positive.
 
 (* Now, lets get ret rid of the assumption [lvtcNZ] 

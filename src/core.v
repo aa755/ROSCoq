@@ -1609,6 +1609,21 @@ Proof.
   rewrite Hbb. unfold cg_minus. ring.
 Qed.
 
+(* TODO : it should suffice to make Time be QTime in the last hypothesis *)
+Lemma TBarrowScale : ∀ (F F' G': TContR)
+         (der : isIDerivativeOf F' F) (ib : IntgBnds _) (c:IR),
+       (forall t:Time, ((intgBndL ib) [<=]t /\ t[<=](intgBndR ib)) -> {F'} t [=] c [*] ({G'} t))
+       -> {F} (intgBndR ib) [-] {F} (intgBndL ib) [=] c [*] (Cintegral ib G').
+Proof.
+  intros ? ? ? ? ?  ? Hc.
+  setoid_rewrite <- (@TBarrowEta _ _ _ _ der ib).
+  rewrite <- CIntegral_scale.
+  apply Cintegral_wd2. 
+  unfold IContREqInIntvl.
+  intros ? Hb.
+  autorewrite with IContRApDown.
+  apply Hc. exact Hb.
+Qed.
 
 Lemma TBarrowQScale : ∀ (F F' G': TContR)
          (der : isIDerivativeOf F' F) (a b : QTime) (c:IR)
