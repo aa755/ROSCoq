@@ -45,6 +45,7 @@ Section Props.
 Variable maxTurnCurvature : Qpos.
 Variable acs : AckermannCar maxTurnCurvature.
 
+  Local Notation  "∫" := Cintegral.
 
 (** 
 We characterize the motion of a car at a particular fixed turn curvature.
@@ -83,7 +84,6 @@ Open Scope mc_scope.
   
   Local Definition θ0 := {theta acs} tstart.
 
-  Local Notation  "∫" := Cintegral.
 
   (** [theta] at time [t] is also needed obtain position at time [t] by integration *)
   Lemma fixedCurvTheta : forall (t :Time)  (p: tstart ≤ t ≤ tend),
@@ -218,28 +218,14 @@ and it denotes the following motion :
 
 (** the start time of each of the above mentioned phases (r for reverse), 
     and the end time of the whole wiggle motion*)
-  Variable tsteer : QTime.
-  Variable tdrive : QTime.
-  Variable trsteer : QTime.
-  Variable trdrive : QTime.
-  Variable tend : QTime.
+  Variable tsteer : Time.
+  Variable tdrive : Time.
+  Variable trsteer : Time.
+  Variable trdrive : Time.
+  Variable tend : Time.
 
 (** this is the time during which [turnCurvature] changes. any value will suffice *)
-  Variable timeInc : (tsteer <= tdrive <= trsteer)%Q /\   (trsteer <= trdrive <= tend)%Q.
- 
-(** constant linear speed of the car while driving *)
-  Variable lspeed : IR.
-  Hypothesis lspeedPos : 0[<]lspeed.
-
-(** constant linear speed of the car while reverse driving *)
-  Variable rlspeed : IR.
-  Hypothesis rlspeedPos : 0[<]rlspeed.
-
-
-  Definition driveDuration : Q := (trsteer - tdrive)%Q.
-  Definition rdriveDuration : Q := (tend - trdrive)%Q.
-  
-  Hypothesis equalDriveDistance : lspeed * driveDuration = rlspeed * rdriveDuration.
+  Variable timeInc : (tsteer ≤ tdrive ≤ trsteer) /\   (trsteer ≤ trdrive ≤ tend).
 
 (** constant curvature of the car after (reverse) steering *)
   Variable tc : IR.
@@ -253,12 +239,30 @@ and it denotes the following motion :
    characterize the position and orientation at just the endpoint of this phase.
  *)
   Hypothesis steeringControls : ({turnCurvature acs} tdrive) = tc 
-      /\ forall (t:QTime), (tsteer <= t <= tdrive)%Q 
+      /\ forall (t:Time), (tsteer ≤ t ≤ tdrive) 
           -> (posAtTime acs t = posAtTime acs tsteer) /\ {theta acs} t = {theta acs} tsteer.
           
+  Hypothesis driveControls : forall (t:Time), (tdrive ≤ t ≤ trsteer) 
+          ->  {turnCurvature acs} t = {turnCurvature acs} tdrive.
 
-  (** need to generalize the statement of [posFixedCurvX]. Because [linVel] is continuous,
-    we cannot assume that it immediately goes from [0] to [lspeed] at [tdrive] *)
+  Definition driveIb := (@mkIntBnd _ tdrive trsteer (proj2 (proj1 timeInc))).
+  Definition driveDistance := ∫ driveIb (linVel acs).
+
+  Hypothesis rsteeringControls : ({turnCurvature acs} trdrive) = -tc 
+      /\ forall (t:Time), (trsteer ≤ t ≤ trdrive) 
+          -> (posAtTime acs t = posAtTime acs trsteer) /\ {theta acs} t = {theta acs} trsteer.
+
+  Definition rdriveIb := (@mkIntBnd _ trdrive tend (proj2 (proj2 timeInc))).
+  Definition rdriveDistance := ∫ driveIb (linVel acs).
+
+  Hypothesis rdriveControls : forall (t:Time), (trdrive ≤ t ≤ tend) 
+          ->  {turnCurvature acs} t = {turnCurvature acs} trdrive.
+
+(** the distance covered during driving and reverse driving is exactly the same.
+  TODO: let them be slightly different, e.g. upto epsilon
+ *)
+  Hypothesis driveDistanceSame : driveDistance = -rdriveDistance.
+
 
 End Wriggle.
 
