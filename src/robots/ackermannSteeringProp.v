@@ -281,13 +281,18 @@ split.
 - exact T.
 Qed.
 
+Ltac timeReasoning :=
+  let Hl := fresh "Hl" in
+  let Hr := fresh "Hr" in
+    autounfold with IRMC; unfold Le_instance_Time;
+      destruct timeInc as [Hl Hr]; destruct Hr; destruct Hl; eauto 2 with CoRN; fail.
+
 
   Lemma θAfterDrive : {theta acs} trsteer =  θs + tc * driveDistance.
   Proof.
     clear rsteeringControls rdriveControls.
     eapply  fixedCurvTheta with (t:= trsteer) in driveControls.
-    Unshelve. Focus 2. autounfold with IRMC. unfold Le_instance_Time.
-      destruct timeInc as [Hl Hr]. destruct Hl. eauto 2 with CoRN; fail.
+    Unshelve. Focus 2. timeReasoning.
     simpl in driveControls.
     rewrite Cintegral_wd in driveControls;[| | reflexivity].
     Focus 2. instantiate (1 := driveIb). simpl. split; reflexivity; fail.
@@ -295,23 +300,20 @@ Qed.
     rewrite <- driveControls. unfold θs.
     rewrite (fun p => proj2 ((proj2 steeringControls) tdrive p));
       [autounfold with IRMC; ring|].
-    autounfold with IRMC. unfold Le_instance_Time.
-      destruct timeInc as [Hl Hr]. destruct Hl. eauto 2 with CoRN; fail.
+    timeReasoning.
   Qed.
 
   Lemma θAfterRSteer : {theta acs} trdrive =  θs + tc * driveDistance.
   Proof.
     rewrite (fun p => proj2 ((proj2 rsteeringControls) trdrive p));[exact θAfterDrive|].
-    autounfold with IRMC. unfold Le_instance_Time.
-      destruct timeInc as [Hl Hr]. destruct Hr. eauto 2 with CoRN; fail.
+    timeReasoning.
   Qed.
   
       
   Lemma θAtEnd : {theta acs} tend =  θs + 2 * tc * driveDistance.
   Proof.
     eapply  fixedCurvTheta with (t:= tend) in rdriveControls.
-    Unshelve. Focus 2. autounfold with IRMC. unfold Le_instance_Time.
-      destruct timeInc as [Hl Hr]. destruct Hr. eauto 2 with CoRN; fail.
+    Unshelve. Focus 2. timeReasoning.
     simpl in rdriveControls.
     rewrite Cintegral_wd in rdriveControls;[| | reflexivity].
     Focus 2. instantiate (1 := rdriveIb). simpl. split; reflexivity; fail.
@@ -328,27 +330,72 @@ Qed.
   Lemma XAfterDrive : {X (position acs)} trsteer =  Xs +
         ((Sin (θs + tc * driveDistance) - Sin θs) [/] tc [//] tcNZ).
   Proof.
-    setoid_rewrite (proj1 steeringControls) in driveControls.
     pose proof driveControls as driveControlsb.
+    setoid_rewrite (proj1 steeringControls) in driveControlsb.
     eapply  posFixedCurvX with (t:= trsteer) (tcNZ:=tcNZ) in driveControlsb.
-    Unshelve. Focus 2. autounfold with IRMC. unfold Le_instance_Time.
-      destruct timeInc as [Hl Hr]. destruct Hl. eauto 2 with CoRN; fail.
-(*    rewrite θAfterDrive in driveControlsb.
-    rewrite <- (fun p => proj2 ((proj2 steeringControls) tdrive p));
-      [autounfold with IRMC; ring|].
-     
-    setoid_rewrite <- driveControls.
-    simpl in driveControls.
-    rewrite Cintegral_wd in driveControls;[| | reflexivity].
-    Focus 2. instantiate (1 := driveIb). simpl. split; reflexivity; fail.
-    rewrite (proj1 steeringControls) in driveControls.
-    rewrite <- driveControls. unfold θs.
-    rewrite (fun p => proj2 ((proj2 steeringControls) tdrive p));
-      [autounfold with IRMC; ring|].
-    autounfold with IRMC. unfold Le_instance_Time.
-      destruct timeInc as [Hl Hr]. destruct Hl. eauto 2 with CoRN; fail.
-     *)
-     Abort.
+    Unshelve. Focus 2. timeReasoning.
+    unfold cf_div in driveControlsb.
+    rewrite θAfterDrive in driveControlsb.
+    rewrite  (fun p => proj2 ((proj2 steeringControls) tdrive p)) in driveControlsb;
+      [|timeReasoning].
+    setoid_rewrite <- driveControlsb.
+    autounfold with IRMC. unfold Xs.
+    unfold posAtTime in steeringControls.
+    unfold equiv, EquivCart in steeringControls.
+    simpl in steeringControls.
+    setoid_rewrite 
+      (fun p =>  proj1 (proj1 ((proj2 steeringControls) tdrive p)));
+      [simpl; ring |].
+    timeReasoning.
+  Qed.
+
+(* TODO : Move *)
+Lemma reciprocalNeg : forall (C: CField) (x: C) (xp : x [#] [0]) (nxp : ([--]x) [#] [0]),
+   f_rcpcl ([--]x) nxp = [--] (f_rcpcl x xp).
+Proof.
+  intros ? ? ? ?.
+  apply mult_cancel_lft with (z:=[--]x);[exact nxp|].
+  rewrite field_mult_inv.
+  rewrite inv_mult_invol.
+  rewrite field_mult_inv.
+  reflexivity.
+Qed.
+
+Hint Unfold One_instance_IR : IRMC.
+
+  Lemma XAtEnd : {X (position acs)} tend =  Xs +
+        ((2* Sin (θs + tc * driveDistance) 
+            - Sin (θs + 2 * tc * driveDistance)  - Sin θs) [/] tc [//] tcNZ).
+  Proof.
+    pose proof rdriveControls as driveControlsb.
+    setoid_rewrite (proj1 rsteeringControls) in driveControlsb.
+    eapply  posFixedCurvX with (t:= tend) (tcNZ:=tcnegNZ _ tcNZ) in driveControlsb.
+    Unshelve. Focus 2. timeReasoning.
+    unfold cf_div in driveControlsb.
+    rewrite θAtEnd in driveControlsb.
+    rewrite reciprocalNeg with (xp:=tcNZ) in driveControlsb.
+    rewrite cring_inv_mult_lft in driveControlsb.
+    rewrite <- cring_inv_mult_rht in driveControlsb.
+    setoid_rewrite minusInvR in driveControlsb.
+    rewrite θAfterRSteer in driveControlsb.
+    pose proof (csg_op_wd _ _ _ _ _ XAfterDrive driveControlsb) as Hadd.
+    clear driveControlsb.
+    autounfold with IRMC in Hadd.
+    unfold posAtTime in rsteeringControls.
+    unfold equiv, EquivCart in rsteeringControls.
+    simpl in rsteeringControls.
+    setoid_rewrite 
+        (fun p =>  proj1 (proj1 ((proj2 rsteeringControls) trdrive p))) in Hadd;
+      [|timeReasoning].
+    match type of Hadd with 
+    _ [=] ?r => remember r as rr
+    end. 
+    simpl in Hadd.
+    ring_simplify in Hadd.
+    rewrite Hadd. clear Hadd.  subst rr.
+    autounfold with IRMC.
+    unfold cf_div. unfold cg_minus. ring.
+  Qed.
 
 End Wriggle.
 
