@@ -284,7 +284,7 @@ Qed.
 
   Lemma θAfterDrive : {theta acs} trsteer =  θs + tc * ∫ driveIb (linVel acs).
   Proof.
-    clear rsteeringControls rdriveControls rdriveControls.
+    clear rsteeringControls rdriveControls.
     eapply  fixedCurvTheta with (t:= trsteer) in driveControls.
     Unshelve. Focus 2. autounfold with IRMC. unfold Le_instance_Time.
       destruct timeInc as [Hl Hr]. destruct Hl. eauto 2 with CoRN; fail.
@@ -299,11 +299,25 @@ Qed.
       destruct timeInc as [Hl Hr]. destruct Hl. eauto 2 with CoRN; fail.
   Qed.
 
-
-  Lemma θAtEnd : {theta acs} tend =  θs.
-  Proof. Abort.
-
-
+  Lemma θAfterRSteer : {theta acs} trdrive =  θs + tc * ∫ driveIb (linVel acs).
+  Proof.
+    rewrite (fun p => proj2 ((proj2 rsteeringControls) trdrive p));[exact θAfterDrive|].
+    autounfold with IRMC. unfold Le_instance_Time.
+      destruct timeInc as [Hl Hr]. destruct Hr. eauto 2 with CoRN; fail.
+  Qed.
+  
+      
+  Lemma θAtEnd : {theta acs} tend =  θs + 2 * tc * ∫ driveIb (linVel acs).
+  Proof.
+    eapply  fixedCurvTheta with (t:= tend) in rdriveControls.
+    Unshelve. Focus 2. autounfold with IRMC. unfold Le_instance_Time.
+      destruct timeInc as [Hl Hr]. destruct Hr. eauto 2 with CoRN; fail.
+    simpl in rdriveControls.
+    rewrite Cintegral_wd in rdriveControls;[| | reflexivity].
+    Focus 2. instantiate (1 := rdriveIb). simpl. split; reflexivity; fail.
+    rewrite (proj1 rsteeringControls) in rdriveControls.
+    rewrite θAfterRSteer in rdriveControls. 
+    Abort.
 
 End Wriggle.
 
