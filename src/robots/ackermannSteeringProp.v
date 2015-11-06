@@ -253,7 +253,7 @@ and it denotes the following motion :
           -> (posAtTime acs t = posAtTime acs trsteer) /\ {theta acs} t = {theta acs} trsteer.
 
   Definition rdriveIb := (@mkIntBnd _ trdrive tend (proj2 (proj2 timeInc))).
-  Definition rdriveDistance := ∫ driveIb (linVel acs).
+  Definition rdriveDistance := ∫ rdriveIb (linVel acs).
 
   Hypothesis rdriveControls : forall (t:Time), (trdrive ≤ t ≤ tend) 
           ->  {turnCurvature acs} t = {turnCurvature acs} trdrive.
@@ -263,8 +263,62 @@ and it denotes the following motion :
  *)
   Hypothesis driveDistanceSame : driveDistance = -rdriveDistance.
 
+  (** Now, we characterize the position and orientation at endpoints of each phase*)
+  Local Definition θs := {theta acs} tsteer.
+  Local Definition Xs := {X (position acs)} tsteer.
+  Local Definition Ys := {Y (position acs)} tsteer.
+
+
+(* TODO : move to MCInstance *)
+Global Instance Equivalence_instance_Subcseteq  
+  (S : CSetoid) (P : S → CProp) : 
+      @Equivalence (subcsetoid_crr S P) (subcsetoid_eq S P).
+pose proof (subcsetoid_equiv S P) as X. destruct X as [R  ST].
+destruct ST as [T Sym].
+split.
+- exact R.
+- exact Sym.
+- exact T.
+Qed.
+
+
+  Lemma θAfterDrive : {theta acs} trsteer =  θs + tc * ∫ driveIb (linVel acs).
+  Proof.
+    clear rsteeringControls rdriveControls rdriveControls.
+    eapply  fixedCurvTheta with (t:= trsteer) in driveControls.
+    Unshelve. Focus 2. autounfold with IRMC. unfold Le_instance_Time.
+      destruct timeInc as [Hl Hr]. destruct Hl. eauto 2 with CoRN; fail.
+    simpl in driveControls.
+    rewrite Cintegral_wd in driveControls;[| | reflexivity].
+    Focus 2. instantiate (1 := driveIb). simpl. split; reflexivity; fail.
+    rewrite (proj1 steeringControls) in driveControls.
+    rewrite <- driveControls. unfold θs.
+    rewrite (fun p => proj2 ((proj2 steeringControls) tdrive p));
+      [autounfold with IRMC; ring|].
+    autounfold with IRMC. unfold Le_instance_Time.
+      destruct timeInc as [Hl Hr]. destruct Hl. eauto 2 with CoRN; fail.
+  Qed.
+
+
+  Lemma θAtEnd : {theta acs} tend =  θs.
+  Proof. Abort.
+
+
 
 End Wriggle.
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 End Props.
