@@ -937,16 +937,76 @@ Definition changesTo (f : TContR)
   that receiving a request to set velocity to the
   current value is a no-op *)
 
+Instance TContR_properR (f : TContR) :
+  Proper ((fun (x y : Time) => @st_eq IR x y) ==>  (@st_eq IR))  (fun (q : Time) => {f} q).
+Proof.
+  intros ? ? Heq. apply  csf_fun_wd. unfold Basics.flip in Heq.
+  destruct x,y. simpl. simpl in Heq.  exact Heq.
+Qed.
+
 
 Instance TContR_proper (f : TContR) :
   Proper ((fun (x y : QTime) => Qeq x y) ==> (@st_eq IR)) (fun (q : QTime) => {f} q).
 Proof.
-  intros ? ? Heq. apply  csf_fun_wd. unfold Basics.flip in Heq.
-  destruct x,y. simpl. simpl in Heq. apply inj_Q_wd. exact Heq.
+  intros ? ? Heq. apply TContR_properR. simpl. destruct x. destruct y. simpl.
+  simpl in Heq. apply inj_Q_wd.
+    exact Heq.
+Qed.
+
+Hint Rewrite Max_id  Min_id cring_mult_zero_op : CoRN.
+
+Lemma TDerivativeEqAux :forall (F F' : TContR)
+   (ta tb : Time) (Hab : ta [<] tb) (c : ℝ),
+   isDerivativeOf F' F
+   -> (forall (t:Time), ta [<=] t /\ t [<=] tb -> ({F'} t) [=] c)
+   -> ({F} tb[-] {F} ta)[=]c[*](tb[-]ta).
+Proof.
+  intros ? ? ? ? ? ? Hder Hub.
+  apply leEq_imp_eq;
+    [apply (@TDerivativeUB _ _ _ _ Hab c Hder) | apply (@TDerivativeLB _ _ _ _ Hab c Hder)];
+    intros ? Hbw Hd; unfold compact in Hbw; pose proof (conj (fst Hbw) (snd Hbw)) as Hbp;
+    rewrite <- extToPart2; rewrite (Hub (mkRIntvl (closel [0]) x Hd) Hbp);
+    apply leEq_reflexive.
+Qed.
+
+(** use a double negation trick to weaken the assumptuin [ta [<] tb] to [ta [<=] tb]*)
+Lemma TDerivativeEq :forall (F F' : TContR)
+   (ta tb : Time) (Hab : ta [<=] tb) (c : ℝ),
+   isDerivativeOf F' F
+   -> (forall (t:Time), ta [<=] t /\ t [<=] tb -> ({F'} t) [=] c)
+   -> ({F} tb[-] {F} ta)[=]c[*](tb[-]ta).
+Proof.
+  intros ? ? ? ? ? ? Hder Hub.
+  apply not_ap_imp_eq.
+  apply leEq_less_or_equal in Hab. rename Hab into Hd.
+  intro Hc.
+  apply Hd.
+  clear Hd. intro Hd.
+  apply ap_tight in Hc;[contradiction|]. clear H Hc.
+  destruct Hd as [Hd | Hd];
+    [eapply TDerivativeEqAux; eauto|].
+  rewrite Hd.
+  rewrite (@TContR_properR  F ta tb Hd).
+  unfold cg_minus. ring.
 Qed.
 
 
-Hint Rewrite Max_id  Min_id cring_mult_zero_op : CoRN.
+(** use a double negation trick to weaken the assumptuin [ta [<] tb] to [ta [<=] tb]*)
+Lemma TDerivativeEq0 :forall (F F' : TContR)
+   (ta tb : Time) (Hab : ta [<=] tb),
+   isDerivativeOf F' F
+   -> (forall (t:Time), ta [<=] t /\ t [<=] tb -> ({F'} t) [=] [0])
+   -> {F} tb [=] {F} ta.
+Proof.
+  intros ? ?  ? ? ? Hder Hub.
+  eapply TDerivativeEq in Hub; eauto.
+  rewrite cring_mult_zero_op in Hub.
+  remember ({F} ta) as fta.
+  remember ({F} tb) as ftb.
+  assert (fta[=]fta [+] [0]) as H by ring.
+  rewrite H.
+  rewrite <- Hub. unfold cg_minus. ring.
+Qed.
 
 Lemma TDerivativeEqQ :forall (F F' : TContR)
    (ta tb : QTime) (Hab : ta <= tb) (c : ℝ),
