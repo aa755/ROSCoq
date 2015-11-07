@@ -20,6 +20,19 @@ Proof.
   - apply less_leEq. trivial.
 Defined.
 
+
+Lemma reciprocalNeg : forall (C: CField) (x: C) (xp : x [#] [0]) (nxp : ([--]x) [#] [0]),
+   f_rcpcl ([--]x) nxp [=] [--] (f_rcpcl x xp).
+Proof.
+  intros ? ? ? ?.
+  apply mult_cancel_lft with (z:=[--]x);[exact nxp|].
+  rewrite field_mult_inv.
+  rewrite inv_mult_invol.
+  rewrite field_mult_inv.
+  reflexivity.
+Qed.
+
+
 Lemma inDomDerRight : 
 forall {F F': PartFunct IR} {a b : IR} {Hab : a[<]b},
 Derivative_I Hab F F'

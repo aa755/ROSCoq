@@ -69,13 +69,6 @@ Variable maxTurnCurvature : Qpos.
 Set Implicit Arguments.
 
 Record AckermannCar  : Type := {
-(** position of the midpoint of the 2 rear wheels *)
-
-  position :> Cart2D (Time -c-> R);
-
-(** orientation of line joining the left (driver side) rear wheel to the right rear wheel *)
-
-  theta : (Time -c-> R);
 
 (** instantaneous linear veloccity of the midpoint of the 2 rear wheels *)
 
@@ -105,7 +98,23 @@ it goes continuously from a small negative value to 0 to a small positive value.
   turnCurvature : (Time -c-> R);
 
 
+
+(** 
+The above two physical quantities are the only controllable ones for the car.
+[linVel] is controlled via the gears, gas pedal and the brake pedal.
+[turnCurvature] is coltrolled via the steering wheel. *)
+
   turnCurvatureUB : forall t:Time, |{turnCurvature} t| ≤ (Q2R maxTurnCurvature);
+
+
+(** Position of the midpoint of the 2 rear wheels *)
+
+  position :> Cart2D (Time -c-> R);
+
+(** orientation of line joining the left (driver side) rear wheel to the right rear wheel *)
+
+  theta : (Time -c-> R);
+
   
 (** differential equations *)
 

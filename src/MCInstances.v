@@ -64,13 +64,13 @@ Instance Proper_CRasIR : Proper (@st_eq CR ==> @st_eq IR) CRasIR.
 Proof.
   exact CRasIR_wd.
 Qed.
-Hint Unfold Le_instance_IR  Plus_instance_IR Negate_instance_IR 
-    Mult_instance_IR: IRMC.
+
 Hint Unfold π₁ ProjectionFst_instance_prod : π₁.
 
-Hint Unfold Le_instance_IR  Plus_instance_IR Negate_instance_IR : IRMC.
 Hint Unfold canonical_names.negate
   canonical_names.negate
+  Le_instance_IR  
+  Plus_instance_IR 
   plus
   one zero
   equiv  mult
@@ -79,9 +79,21 @@ Hint Unfold canonical_names.negate
   le
   lt
   canonical_names.negate
-  Negate_instance_IR : 
- IRMC.
-Hint Unfold Mult_instance_IR  : IRMC.
+  Negate_instance_IR 
+  Mult_instance_IR : IRMC.
+
 Hint Unfold mult plus one zero Mult_instance_TContR Plus_instance_TContR One_instance_TContR
-    Zero_instance_TContR : TContRMC.
-Hint Unfold Negate_instance_TContR : TContRMC.
+    Zero_instance_TContR Negate_instance_TContR : TContRMC.
+
+Global Instance Le_instance_Time : Le Time := fun x y => x [<=] y.
+
+Global Instance Equivalence_instance_Subcseteq  
+  (S : CSetoid) (P : S → CProp) : 
+      @Equivalence (subcsetoid_crr S P) (subcsetoid_eq S P).
+pose proof (subcsetoid_equiv S P) as X. destruct X as [R  ST].
+destruct ST as [T Sym].
+split.
+- exact R.
+- exact Sym.
+- exact T.
+Qed.

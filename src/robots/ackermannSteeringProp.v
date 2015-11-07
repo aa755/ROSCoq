@@ -29,6 +29,7 @@ Require Import MCInstances.
 Require Import CartCR.
 Require Export ackermannSteering.
 
+  Add Ring RisaRing: (CRing_Ring IR).
 
 Require Export CartIR.
 
@@ -60,33 +61,30 @@ TODO: Ideally, we should let the turn curvature of them vary a bit
 This will SIGNIFICANTLY complicate the integrals.
 *)
 
-(* TODO : Move, and also delete from examples//correctness.v *)
-Hint Unfold Mult_instance_TContR Plus_instance_TContR
-  Negate_instance_TContR : TContR.
 
-Section FixedSpeedFixedCurv.
+Section Cases.
 
   Variable tstart : Time.
   Variable tend : Time.
 
-(* TODO : Move to MCInstances.v *)
-Global Instance Le_instance_Time : Le Time := fun x y => x [<=] y.
-
   Hypothesis tstartEnd : (tstart ≤ tend).
 
+  Local Definition θ0 := {theta acs} tstart.
+  
+  (** we will consider 2 classes of motions between [tstart] and [tend]. These classes suffice for our purpose
+    1) move with fixed steering wheel ([turnCurvature])
+    2) rotate the steering wheel while remaining stationary.
+  *)
+
+  Section FixedSteeringWheel.
   Variable tc : IR.
 
-Open Scope mc_scope.
-
-(** TODO: It suffices to assume it for just rational times, because of continuity *)
+(* TODO: It suffices to assume it for just rational times, because of continuity *)  
   Hypothesis fixed : forall (t :Time), 
     (tstart ≤ t ≤ tend)  -> {turnCurvature acs} t = tc.
-  
-  Local Definition θ0 := {theta acs} tstart.
-
 
   (** [theta] at time [t] is also needed obtain position at time [t] by integration *)
-  Lemma fixedCurvTheta : forall (t :Time)  (p: tstart ≤ t ≤ tend),
+  Lemma fixedSteeringTheta : forall (t :Time)  (p: tstart ≤ t ≤ tend),
 (* ib denotes the pair of numbers that goes at the bottom and at the top of ∫ *)
     let ib := @mkIntBnd _ tstart t (proj1 p) in
     ({theta acs} t - {theta acs} tstart) = tc* (∫ ib (linVel acs)).
@@ -101,21 +99,24 @@ Open Scope mc_scope.
     split; eauto 2 with CoRN.
   Qed.
 
-Add Ring RisaRing: (CRing_Ring IR).
 
+  (** we consider 2 subcases. First the case when the front wheels are not straight, i.e. the 
+      turn curvature is nonzero. Due to "divide by 0" issues, integration has to be done differently
+      in these cases*)
 
-  Section Positive.
+  Section TCNZ.
   (**Needed because [tc] shows up as a denominator
      during integration below in [fixedCurvX]. The 0 case perhaps 
     needs to be handled separately, and constructively!*)
   Hypothesis tcNZ : (tc [#] 0).
+
 
   (** [X] coordinate of the [position] at a given time. Note that in CoRN,
       division is a ternary operator. [a[/]b[//][bp]] denotes the real number [a]
       divided by the non-zero real number [b], where [bp] is the proof of non-zero-hood
       of [b].
    *)
-  Lemma posFixedCurvX : forall (t :Time) (_: tstart ≤ t ≤ tend),
+  Lemma fixedSteeeringX : forall (t :Time) (_: tstart ≤ t ≤ tend),
     ({X (position acs)} t - {X (position acs)} tstart) =  
         ((Sin ({theta acs} t) - Sin ({theta acs} tstart)) [/] tc [//] tcNZ).
   Proof.
@@ -148,7 +149,7 @@ Add Ring RisaRing: (CRing_Ring IR).
     apply inv_resp_ap_zero. exact tcNZ.
   Qed.
 
-  Lemma posFixedCurvY : forall (t :Time) (_: tstart ≤ t ≤ tend),
+  Lemma fixedSteeeringY : forall (t :Time) (_: tstart ≤ t ≤ tend),
     ({Y (position acs)} t - {Y (position acs)} tstart) =  
         ((Cos ({theta acs} tstart) - Cos ({theta acs} t)) [/] tc [//] tcNZ).
   Proof.
@@ -185,22 +186,161 @@ Local Opaque Sine.
       split; eauto 2 with CoRN.
   Qed.
 
-End Positive.
+  End TCNZ.
 
-(* Now, lets get ret rid of the assumption [lvtcNZ] 
+  Section TC0.
+  (** now consider the case when the front wheels are exactly straight *)
+  Hypothesis tcNZ : (tc = 0).
 
-  Lemma fixedCurvX : forall (t :QTime), (tstart <= t <= tend)%Q  ->
-    ({X (position acs)} t - {X (position acs)} tstart) =  
-        lv * (Sin ({theta acs} tstart)).
+  Lemma fixedStraightSteeringTheta : forall (t :Time)  (p: tstart ≤ t ≤ tend),
+      {theta acs} t = {theta acs} tstart.
   Proof.
   Abort.
-*)
 
+
+  Lemma fixedStraightSteeeringX : forall (t :Time) (p: tstart ≤ t ≤ tend),
+    let ib := @mkIntBnd _ tstart t (proj1 p) in
+    ({X (position acs)} t - {X (position acs)} tstart) =  (∫ ib (linVel acs)) * Cos ({theta acs} tstart).
+  Proof.
+  Abort.
+
+  Lemma fixedStraightSteeeringY : forall (t :Time) (p: tstart ≤ t ≤ tend),
+    let ib := @mkIntBnd _ tstart t (proj1 p) in
+    ({Y (position acs)} t - {Y (position acs)} tstart) =  (∫ ib (linVel acs)) * Cos ({theta acs} tstart).
+  Proof.
+  Abort.
+
+  
+  End TC0.
+  
+  End FixedSteeringWheel.
+  Hint Unfold Le_instance_Time : IRMC.
+  Section LinVel0.
+  (** Now consider the second case where the steering wheel may move, but the car remains stationary *)
+    Hypothesis lv0 :  forall (t :Time), 
+      (tstart ≤ t ≤ tend)  -> {linVel acs} t = 0.
+
+    Lemma LV0Theta : forall (t :Time)  (p: tstart ≤ t ≤ tend),
+        {theta acs} t = {theta acs} tstart.
+    Proof.
+      intros. eapply TDerivativeEq0;[tauto | apply derivRot|].
+      intros tt Hb. simpl. rewrite lv0;autounfold with IRMC; [ring|].
+      repnd. split; eauto 2 with CoRN.
+    Qed.
+
+ Local Opaque FCos.
+    Lemma LV0X : forall (t :Time) (p: tstart ≤ t ≤ tend),
+      {X (position acs)} t = {X (position acs)} tstart .
+    Proof.
+      intros. eapply TDerivativeEq0;[tauto | apply derivX|].
+      intros tt Hb.
+      simpl. rewrite lv0;autounfold with IRMC; [ring|].
+      repnd. split; eauto 2 with CoRN.
+    Qed.
+
+    Lemma LV0Y : forall (t :Time) (p: tstart ≤ t ≤ tend),
+      {Y (position acs)} t = {Y (position acs)} tstart .
+    Proof.
+      intros. eapply TDerivativeEq0;[tauto | apply derivY|].
+      intros tt Hb.
+      simpl. rewrite lv0;autounfold with IRMC; [ring|].
+      repnd. split; eauto 2 with CoRN.
+    Qed.
+
+
+  End LinVel0.
+  
 (* TODO : given the car's dimensions, confine the whole car within 
   a "small, yet simple" region
   during the above motion. *)
 
-End FixedSpeedFixedCurv.
+End Cases.
+
+Section AtomicMove.
+(** We will build complex manueuvers out of the following bacic move :
+turn the steering wheel so that the turnCurvature has a particular value ([tc]),
+and then drive for a particular distance ([distance]).
+Note that both [tc] and [distance] are signed -- the turn center can be on the either side,
+and one can drive both forward and backward *)
+  Record AtomicMove := mkAtomicMove
+  {
+     am_tc : IR;
+     am_tcNZ : am_tc[#]0;
+     am_distance : IR
+  }.
+  
+  Variable am : AtomicMove.
+  
+  Variable tstart : Time.
+  Variable tend : Time.
+  
+  Variable tdrive : Time.
+  Hypothesis timeInc : (tstart ≤ tdrive ≤ tend).
+  Local Notation tc := (am_tc am).
+  Local Notation tcNZ := (am_tcNZ am).
+  Local Notation distance := (am_distance am).
+
+  (** From time [tsteer] to [drive], the steerring wheel moves to attain a configuration 
+    with turn curvature [tc]. The brakes are firmly placed pressed.*)
+  Hypothesis steeringControls : ({turnCurvature acs} tdrive) = tc 
+      /\ forall (t:Time), (tstart ≤ t ≤ tdrive) 
+          -> {linVel acs} t = 0.
+
+  (** From time [tdrive] to [tend], the steering wheel is held fixed*)
+  Hypothesis driveControls : forall (t:Time), (tdrive ≤ t ≤ tend) 
+          ->  {turnCurvature acs} t = {turnCurvature acs} tdrive.
+
+
+  Definition driveIb := (@mkIntBnd _ tdrive tend (proj2 (timeInc))).
+  Hypothesis driveDistance : distance = ∫ driveIb (linVel acs).
+
+  (** Now, we characterize the position and orientation at [tdrive] and [tend] *)
+  Local Definition θs := {theta acs} tstart.
+  Local Definition Xs := {X (position acs)} tstart.
+  Local Definition Ys := {Y (position acs)} tstart.
+
+
+
+  Ltac timeReasoning :=
+    autounfold with IRMC; unfold Le_instance_Time;
+      destruct timeInc; eauto 2 with CoRN; fail.
+
+
+  Lemma AtomicMoveθ : {theta acs} tend =  θs + tc * distance.
+  Proof.
+    eapply  fixedSteeringTheta with (t:= tend) in driveControls.
+    Unshelve. Focus 2. timeReasoning.
+    simpl in driveControls.
+    rewrite Cintegral_wd in driveControls;[| | reflexivity].
+    Focus 2. instantiate (1 := driveIb). simpl. split; reflexivity; fail.
+    rewrite (proj1 steeringControls) in driveControls.
+    rewrite (fun p => LV0Theta tstart tdrive p tdrive) in driveControls;[| apply (proj2 steeringControls) 
+        | timeReasoning ].
+    rewrite <- driveDistance in driveControls.
+    unfold θs. rewrite <- driveControls.
+    autounfold with IRMC. ring. 
+  Qed.
+
+  Lemma AtomicMoveX : {X (position acs)} tend =  Xs +
+        ((Sin (θs + tc * distance) - Sin θs) [/] tc [//] tcNZ).
+  Proof.
+    pose proof driveControls as driveControlsb.
+    setoid_rewrite (proj1 steeringControls) in driveControlsb.
+    eapply  fixedSteeeringX with (t:= tend) (tcNZ:=tcNZ) in driveControlsb.
+    Unshelve. Focus 2. timeReasoning.
+    unfold cf_div in driveControlsb.
+    rewrite AtomicMoveθ in driveControlsb.
+    rewrite (fun p => LV0X tstart tdrive p tdrive) in driveControlsb;[| apply (proj2 steeringControls) 
+        | timeReasoning ].
+    rewrite (fun p => LV0Theta tstart tdrive p tdrive) in driveControlsb;[| apply (proj2 steeringControls) 
+        | timeReasoning ].
+    setoid_rewrite <- driveControlsb. simpl. unfold Xs. autounfold with IRMC. simpl. ring.
+  Qed.
+
+End AtomicMove.
+
+
+Section CompositionOfAtomicMoves.
 
 Section Wriggle.
 (** Now consider a 
@@ -269,17 +409,6 @@ and it denotes the following motion :
   Local Definition Ys := {Y (position acs)} tsteer.
 
 
-(* TODO : move to MCInstance *)
-Global Instance Equivalence_instance_Subcseteq  
-  (S : CSetoid) (P : S → CProp) : 
-      @Equivalence (subcsetoid_crr S P) (subcsetoid_eq S P).
-pose proof (subcsetoid_equiv S P) as X. destruct X as [R  ST].
-destruct ST as [T Sym].
-split.
-- exact R.
-- exact Sym.
-- exact T.
-Qed.
 
 Ltac timeReasoning :=
   let Hl := fresh "Hl" in
@@ -288,26 +417,6 @@ Ltac timeReasoning :=
       destruct timeInc as [Hl Hr]; destruct Hr; destruct Hl; eauto 2 with CoRN; fail.
 
 
-  Lemma θAfterDrive : {theta acs} trsteer =  θs + tc * driveDistance.
-  Proof.
-    clear rsteeringControls rdriveControls.
-    eapply  fixedCurvTheta with (t:= trsteer) in driveControls.
-    Unshelve. Focus 2. timeReasoning.
-    simpl in driveControls.
-    rewrite Cintegral_wd in driveControls;[| | reflexivity].
-    Focus 2. instantiate (1 := driveIb). simpl. split; reflexivity; fail.
-    rewrite (proj1 steeringControls) in driveControls.
-    rewrite <- driveControls. unfold θs.
-    rewrite (fun p => proj2 ((proj2 steeringControls) tdrive p));
-      [autounfold with IRMC; ring|].
-    timeReasoning.
-  Qed.
-
-  Lemma θAfterRSteer : {theta acs} trdrive =  θs + tc * driveDistance.
-  Proof.
-    rewrite (fun p => proj2 ((proj2 rsteeringControls) trdrive p));[exact θAfterDrive|].
-    timeReasoning.
-  Qed.
   
       
   Lemma θAtEnd : {theta acs} tend =  θs + 2 * tc * driveDistance.
@@ -349,7 +458,7 @@ Ltac timeReasoning :=
     timeReasoning.
   Qed.
 
-(* TODO : Move *)
+(* TODO : delete *)
 Lemma reciprocalNeg : forall (C: CField) (x: C) (xp : x [#] [0]) (nxp : ([--]x) [#] [0]),
    f_rcpcl ([--]x) nxp = [--] (f_rcpcl x xp).
 Proof.
