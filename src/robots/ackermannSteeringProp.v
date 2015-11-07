@@ -69,7 +69,7 @@ Section Cases.
 
   Hypothesis tstartEnd : (tstart ≤ tend).
 
-  Local Definition θ0 := {theta acs} tstart.
+  Local Notation θ0 := ({theta acs} tstart).
   
   (** we will consider 2 classes of motions between [tstart] and [tend]. These classes suffice for our purpose
     1) move with fixed steering wheel ([turnCurvature])
@@ -268,31 +268,67 @@ and one can drive both forward and backward *)
      am_tcNZ : am_tc[#]0;
      am_distance : IR
   }.
-  
-  Variable am : AtomicMove.
-  
+
+
   Variable tstart : Time.
   Variable tend : Time.
+  Variable am : AtomicMove.
   
-  Variable tdrive : Time.
-  Hypothesis timeInc : (tstart ≤ tdrive ≤ tend).
+  
+  Inductive Truncate (T:Type) : Prop :=
+  | truncate : T -> Truncate T.
+  
+  (** The typeclass [Lt] is defined in the Prop universe. It cannot have constructive content.*)
+  Global Instance Lt_instance_Time : Lt Time := fun x y => Truncate (x [<] y).
+
+  Lemma timeLtWeaken : forall {a b: Time}, a < b  -> a ≤ b.
+  Proof.
+    intros ? ? H.
+    destruct H as [X].
+    (* autounfold with IRMC. unfold Le_instance_Time.
+       info_eauto 2 with CoRN. *)
+    apply less_leEq. exact X.
+    Qed.
+
+  
+  (** what it means for the car's controls to follow the atomic move [am] during time [tstart] to [tend] *)
+  Record AtomicMoveControls :=
+  {
+    am_tdrive : Time;
+    am_timeInc : (tstart < am_tdrive < tend);
+ 
+    am_steeringControls : ({turnCurvature acs} am_tdrive) = (am_tc am) 
+      /\ forall (t:Time), (tstart ≤ t ≤ am_tdrive) 
+          -> {linVel acs} t = 0;
+
+ 
+  (** From time [tdrive] to [tend], the steering wheel is held fixed*)
+    am_driveControls : forall (t:Time), (am_tdrive ≤ t ≤ tend) 
+          ->  {turnCurvature acs} t = {turnCurvature acs} am_tdrive;
+          
+   am_driveDistance : 
+      let pf := (timeLtWeaken (proj2 (am_timeInc))) in 
+      let driveIb := (@mkIntBnd _ am_tdrive tend pf) in 
+          (am_distance am) = ∫ driveIb (linVel acs)
+  }.
+  
+  Hypothesis amc : AtomicMoveControls.
+  
   Local Notation tc := (am_tc am).
   Local Notation tcNZ := (am_tcNZ am).
   Local Notation distance := (am_distance am).
+  Local Notation tdrive := (am_tdrive amc).
+  
+  Lemma am_timeIncWeaken : (tstart ≤ tdrive ≤ tend).
+    pose proof (am_timeInc amc).
+    split; apply timeLtWeaken; tauto.
+  Qed.
+
+
+  Local Notation timeInc := am_timeIncWeaken.
 
   (** From time [tsteer] to [drive], the steerring wheel moves to attain a configuration 
     with turn curvature [tc]. The brakes are firmly placed pressed.*)
-  Hypothesis steeringControls : ({turnCurvature acs} tdrive) = tc 
-      /\ forall (t:Time), (tstart ≤ t ≤ tdrive) 
-          -> {linVel acs} t = 0.
-
-  (** From time [tdrive] to [tend], the steering wheel is held fixed*)
-  Hypothesis driveControls : forall (t:Time), (tdrive ≤ t ≤ tend) 
-          ->  {turnCurvature acs} t = {turnCurvature acs} tdrive.
-
-
-  Definition driveIb := (@mkIntBnd _ tdrive tend (proj2 (timeInc))).
-  Hypothesis driveDistance : distance = ∫ driveIb (linVel acs).
 
   (** Now, we characterize the position and orientation at [tdrive] and [tend] *)
   Local Definition θs := {theta acs} tstart.
@@ -308,15 +344,19 @@ and one can drive both forward and backward *)
 
   Lemma AtomicMoveθ : {theta acs} tend =  θs + tc * distance.
   Proof.
+    pose proof (am_driveControls amc) as driveControls.
     eapply  fixedSteeringTheta with (t:= tend) in driveControls.
     Unshelve. Focus 2. timeReasoning.
     simpl in driveControls.
     rewrite Cintegral_wd in driveControls;[| | reflexivity].
-    Focus 2. instantiate (1 := driveIb). simpl. split; reflexivity; fail.
+    Focus 2. instantiate (1 := let pf := (timeLtWeaken (proj2 (am_timeInc amc))) in 
+                (@mkIntBnd _ tdrive tend pf)).
+     simpl. split; reflexivity; fail.
+    pose proof (am_steeringControls amc) as steeringControls.
     rewrite (proj1 steeringControls) in driveControls.
     rewrite (fun p => LV0Theta tstart tdrive p tdrive) in driveControls;[| apply (proj2 steeringControls) 
         | timeReasoning ].
-    rewrite <- driveDistance in driveControls.
+    rewrite <- (am_driveDistance amc) in driveControls.
     unfold θs. rewrite <- driveControls.
     autounfold with IRMC. ring. 
   Qed.
@@ -324,7 +364,8 @@ and one can drive both forward and backward *)
   Lemma AtomicMoveX : {X (position acs)} tend =  Xs +
         ((Sin (θs + tc * distance) - Sin θs) [/] tc [//] tcNZ).
   Proof.
-    pose proof driveControls as driveControlsb.
+    pose proof (am_driveControls amc) as driveControlsb.
+    pose proof (am_steeringControls amc) as steeringControls.
     setoid_rewrite (proj1 steeringControls) in driveControlsb.
     eapply  fixedSteeeringX with (t:= tend) (tcNZ:=tcNZ) in driveControlsb.
     Unshelve. Focus 2. timeReasoning.
@@ -341,6 +382,7 @@ End AtomicMove.
 
 
 Section CompositionOfAtomicMoves.
+
 
 Section Wriggle.
 (** Now consider a 
