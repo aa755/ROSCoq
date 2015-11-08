@@ -264,15 +264,16 @@ Note that both [tc] and [distance] are signed -- the turn center can be on the e
 and one can drive both forward and backward *)
   Record AtomicMove := mkAtomicMove
   {
-     am_tc : IR;
-     am_tcNZ : am_tc[#]0;
-     am_distance : IR
+     am_distance : IR;
+     am_tc : IR
   }.
 
-
+  Variable am : AtomicMove.
+  Definition amTurn := (am_tc am) [#] 0.
+  Definition amNoTurn := (am_tc am) = 0.
+  
   Variable tstart : Time.
   Variable tend : Time.
-  Variable am : AtomicMove.
   
   
   Inductive Truncate (T:Type) : Prop :=
@@ -290,11 +291,15 @@ and one can drive both forward and backward *)
     apply less_leEq. exact X.
     Qed.
 
-  
+  Set Implicit Arguments.
   (** what it means for the car's controls to follow the atomic move [am] during time [tstart] to [tend] *)
-  Record AtomicMoveControls :=
+  Record AtomicMoveControls (p: tstart < tend):=
   {
     am_tdrive : Time;
+
+    (**strict inequalityes prevents impossilities like covering non-zero distance in 0 time.
+      Note that [linVel] and [turnCurvature] evolve continuously.
+     *)
     am_timeInc : (tstart < am_tdrive < tend);
  
     am_steeringControls : ({turnCurvature acs} am_tdrive) = (am_tc am) 
@@ -312,10 +317,10 @@ and one can drive both forward and backward *)
           (am_distance am) = ∫ driveIb (linVel acs)
   }.
   
-  Hypothesis amc : AtomicMoveControls.
+  Hypothesis pr : tstart < tend.
+  Hypothesis amc : AtomicMoveControls pr.
   
   Local Notation tc := (am_tc am).
-  Local Notation tcNZ := (am_tcNZ am).
   Local Notation distance := (am_distance am).
   Local Notation tdrive := (am_tdrive amc).
   
@@ -331,9 +336,9 @@ and one can drive both forward and backward *)
     with turn curvature [tc]. The brakes are firmly placed pressed.*)
 
   (** Now, we characterize the position and orientation at [tdrive] and [tend] *)
-  Local Definition θs := {theta acs} tstart.
-  Local Definition Xs := {X (position acs)} tstart.
-  Local Definition Ys := {Y (position acs)} tstart.
+  Local Notation θs := ({theta acs} tstart).
+  Local Notation Xs := ({X (position acs)} tstart).
+  Local Notation Ys := ({Y (position acs)} tstart).
 
 
 
@@ -357,195 +362,146 @@ and one can drive both forward and backward *)
     rewrite (fun p => LV0Theta tstart tdrive p tdrive) in driveControls;[| apply (proj2 steeringControls) 
         | timeReasoning ].
     rewrite <- (am_driveDistance amc) in driveControls.
-    unfold θs. rewrite <- driveControls.
-    autounfold with IRMC. ring. 
+    rewrite <- driveControls. simpl.
+    autounfold with IRMC. simpl. ring. 
   Qed.
 
-  Lemma AtomicMoveX : {X (position acs)} tend =  Xs +
-        ((Sin (θs + tc * distance) - Sin θs) [/] tc [//] tcNZ).
-  Proof.
-    pose proof (am_driveControls amc) as driveControlsb.
-    pose proof (am_steeringControls amc) as steeringControls.
-    setoid_rewrite (proj1 steeringControls) in driveControlsb.
-    eapply  fixedSteeeringX with (t:= tend) (tcNZ:=tcNZ) in driveControlsb.
-    Unshelve. Focus 2. timeReasoning.
-    unfold cf_div in driveControlsb.
-    rewrite AtomicMoveθ in driveControlsb.
-    rewrite (fun p => LV0X tstart tdrive p tdrive) in driveControlsb;[| apply (proj2 steeringControls) 
-        | timeReasoning ].
-    rewrite (fun p => LV0Theta tstart tdrive p tdrive) in driveControlsb;[| apply (proj2 steeringControls) 
-        | timeReasoning ].
-    setoid_rewrite <- driveControlsb. simpl. unfold Xs. autounfold with IRMC. simpl. ring.
-  Qed.
+  (** Again, 2 cases based on whether the steering wheel is perfectly straight before driving *)
+  Section TCNZ.
+  Hypothesis (tcNZ : amTurn).
+  
+    Lemma AtomicMoveXT : {X (position acs)} tend =  Xs +
+          ((Sin ({theta acs} tend) - Sin θs) [/] tc [//] tcNZ).
+    Proof.
+      pose proof (am_driveControls amc) as driveControlsb.
+      pose proof (am_steeringControls amc) as steeringControls.
+      setoid_rewrite (proj1 steeringControls) in driveControlsb.
+      eapply  fixedSteeeringX with (t:= tend) (tcNZ:=tcNZ) in driveControlsb.
+      Unshelve. Focus 2. timeReasoning.
+      unfold cf_div in driveControlsb.
+      rewrite (fun p => LV0X tstart tdrive p tdrive) in driveControlsb;[| apply (proj2 steeringControls) 
+          | timeReasoning ].
+      rewrite (fun p => LV0Theta tstart tdrive p tdrive) in driveControlsb;[| apply (proj2 steeringControls) 
+          | timeReasoning ].
+      setoid_rewrite <- driveControlsb. simpl. autounfold with IRMC. simpl. ring.
+    Qed.
+
+    Lemma AtomicMoveX : {X (position acs)} tend =  Xs +
+          ((Sin (θs + tc * distance) - Sin θs) [/] tc [//] tcNZ).
+    Proof.
+      unfold cf_div. rewrite <- AtomicMoveθ.
+      exact AtomicMoveXT.
+    Qed.
+  End TCNZ.
+
+  Section TCZ.
+  Hypothesis (tcNZ : amNoTurn).
+  
+    Lemma AtomicMoveX : {X (position acs)} tend =  Xs + distance * (Cos θs).
+    Proof.
+    Abort.
+  End TCZ.
 
 End AtomicMove.
 
 
-Section CompositionOfAtomicMoves.
-
+  Definition AtomicMoves := list AtomicMove.
+  
+  (** May need to prove that [AtomicMovesControls] is well-defined over different proofs of [Le] *)
+  Inductive AtomicMovesControls : AtomicMoves -> forall (tstart tend : Time),  (tstart ≤ tend) -> Prop :=
+  | amscNil : forall (t:Time) (p: t≤t), AtomicMovesControls [] t t p
+  | amscCons : forall (tstart tmid tend:Time) (pl : tstart < tmid) (pr : tmid ≤ tend) (p : tstart ≤ tend)
+      (h: AtomicMove) (tl : AtomicMoves), 
+      @AtomicMoveControls h tstart tmid pl
+      -> AtomicMovesControls tl tmid tend pr
+      -> AtomicMovesControls (h::tl) tstart tend p.
 
 Section Wriggle.
 (** Now consider a 
 #<href="https://rigtriv.wordpress.com/2007/10/01/parallel-parking/">wiggle motion</a>#
 and characterize the the change in car's position and orientation caused
 by this motion. 
-The word "wriggle" was perhaps coinde by Nelson in his 1967 book Tensor analysis,
-and it denotes the following motion : 
+The word "wriggle" was perhaps coinde by Nelson in his 1967 book Tensor analysis.
+Informally it denotes the following motion : 
   steer (i.e rotate the steering wheel with brakes firmly pushed), 
   drive (while keeping the steering wheel fixed),
   reverse steer
   reverse drive
-*)
 
-
-(** the start time of each of the above mentioned phases (r for reverse), 
-    and the end time of the whole wiggle motion*)
-  Variable tsteer : Time.
-  Variable tdrive : Time.
-  Variable trsteer : Time.
-  Variable trdrive : Time.
-  Variable tend : Time.
-
-(** this is the time during which [turnCurvature] changes. any value will suffice *)
-  Variable timeInc : (tsteer ≤ tdrive ≤ trsteer) /\   (trsteer ≤ trdrive ≤ tend).
-
-(** constant curvature of the car after steering *)
+  Wiggle is parametrized by a nonzero [turnCurvature] and a drive distance,
+  both of which may be signed.
+  *)
   Variable tc : IR.
   Hypothesis tcNZ : tc[#]0.
+  Variable distance : IR.
+  
 
-(** Now we characterize the state of the controls during each of the 4 phases. First, the steering phase.
-   At the end of this phase, the state of the steering wheel should be such that the [turnCurvature]
-   is [tc]. Also, the position and orientation of the cars should not change, e.g. brakes firmly pressed.
-   Note that our eventual goal is to not just show that the car's final state is correct (paralle parked),
-   but also that it did not collide with other cars in the process, therefore, it is insufficient to
-   characterize the position and orientation at just the endpoint of this phase.
- *)
-  Hypothesis steeringControls : ({turnCurvature acs} tdrive) = tc 
-      /\ forall (t:Time), (tsteer ≤ t ≤ tdrive) 
-          -> (posAtTime acs t = posAtTime acs tsteer) /\ {theta acs} t = {theta acs} tsteer.
-          
-  Hypothesis driveControls : forall (t:Time), (tdrive ≤ t ≤ trsteer) 
-          ->  {turnCurvature acs} t = {turnCurvature acs} tdrive.
+(** In our formalism, wriggle is a composition of 2 atomic moves.
+  *)
+  
+  Definition steerAndDrive : AtomicMove
+    := {|am_tc := tc; am_distance := distance |}.
+  Definition revSteerAndrevDrive : AtomicMove
+    := {|am_tc := -tc; am_distance := -distance |}.
 
-  Definition driveIb := (@mkIntBnd _ tdrive trsteer (proj2 (proj1 timeInc))).
-  Definition driveDistance := ∫ driveIb (linVel acs).
-
-  Hypothesis rsteeringControls : ({turnCurvature acs} trdrive) = -tc 
-      /\ forall (t:Time), (trsteer ≤ t ≤ trdrive) 
-          -> (posAtTime acs t = posAtTime acs trsteer) /\ {theta acs} t = {theta acs} trsteer.
-
-  Definition rdriveIb := (@mkIntBnd _ trdrive tend (proj2 (proj2 timeInc))).
-  Definition rdriveDistance := ∫ rdriveIb (linVel acs).
-
-  Hypothesis rdriveControls : forall (t:Time), (trdrive ≤ t ≤ tend) 
-          ->  {turnCurvature acs} t = {turnCurvature acs} trdrive.
-
-(** the distance covered during driving and reverse driving is exactly the same.
+(* the distance covered during driving and reverse driving is exactly the same.
   TODO: let them be slightly different, e.g. upto epsilon
  *)
-  Hypothesis driveDistanceSame : driveDistance = -rdriveDistance.
-
+  Definition Wriggle : AtomicMoves 
+    :=  [steerAndDrive; revSteerAndrevDrive].
+  
+  Variable tstart : Time.
+  Variable tend : Time.
+  Hypothesis timeInc : tstart < tend.
+  
+  Hypothesis amsc : AtomicMovesControls Wriggle tstart tend 
+                      (timeLtWeaken timeInc).
+  
+  
   (** Now, we characterize the position and orientation at endpoints of each phase*)
-  Local Definition θs := {theta acs} tsteer.
-  Local Definition Xs := {X (position acs)} tsteer.
-  Local Definition Ys := {Y (position acs)} tsteer.
-
-
-
-Ltac timeReasoning :=
-  let Hl := fresh "Hl" in
-  let Hr := fresh "Hr" in
-    autounfold with IRMC; unfold Le_instance_Time;
-      destruct timeInc as [Hl Hr]; destruct Hr; destruct Hl; eauto 2 with CoRN; fail.
-
+  Local Notation θs := ({theta acs} tstart).
+  Local Notation Xs := ({X (position acs)} tstart).
+  Local Notation Ys := ({Y (position acs)} tstart).
 
   
+  Hint Unfold One_instance_IR : IRMC.
       
-  Lemma θAtEnd : {theta acs} tend =  θs + 2 * tc * driveDistance.
+  Lemma Wriggleθ : {theta acs} tend =  θs + 2 * tc * distance.
   Proof.
-    eapply  fixedCurvTheta with (t:= tend) in rdriveControls.
-    Unshelve. Focus 2. timeReasoning.
-    simpl in rdriveControls.
-    rewrite Cintegral_wd in rdriveControls;[| | reflexivity].
-    Focus 2. instantiate (1 := rdriveIb). simpl. split; reflexivity; fail.
-    rewrite (proj1 rsteeringControls) in rdriveControls.
-    rewrite θAfterRSteer in rdriveControls.
-    fold (rdriveDistance) in rdriveControls.
-    rewrite cg_cancel_mixed with (y:= (θs + tc * driveDistance)).
-    setoid_rewrite rdriveControls.
-    setoid_rewrite  driveDistanceSame. autounfold with IRMC. unfold One_instance_IR.
-    ring.
-    Qed.
-    
-    
-  Lemma XAfterDrive : {X (position acs)} trsteer =  Xs +
-        ((Sin (θs + tc * driveDistance) - Sin θs) [/] tc [//] tcNZ).
-  Proof.
-    pose proof driveControls as driveControlsb.
-    setoid_rewrite (proj1 steeringControls) in driveControlsb.
-    eapply  posFixedCurvX with (t:= trsteer) (tcNZ:=tcNZ) in driveControlsb.
-    Unshelve. Focus 2. timeReasoning.
-    unfold cf_div in driveControlsb.
-    rewrite θAfterDrive in driveControlsb.
-    rewrite  (fun p => proj2 ((proj2 steeringControls) tdrive p)) in driveControlsb;
-      [|timeReasoning].
-    setoid_rewrite <- driveControlsb.
-    autounfold with IRMC. unfold Xs.
-    unfold posAtTime in steeringControls.
-    unfold equiv, EquivCart in steeringControls.
-    simpl in steeringControls.
-    setoid_rewrite 
-      (fun p =>  proj1 (proj1 ((proj2 steeringControls) tdrive p)));
-      [simpl; ring |].
-    timeReasoning.
+    inverts amsc as Hl Hr.
+    inverts Hr as Hrr Hn.  inverts Hn as H1 H3. clear H1 H3.
+    apply AtomicMoveθ in Hl.
+    apply AtomicMoveθ in Hrr.
+    simpl in Hl, Hrr.
+    rewrite Hrr. rewrite Hl.
+    autounfold with IRMC. ring.    
   Qed.
 
-(* TODO : delete *)
-Lemma reciprocalNeg : forall (C: CField) (x: C) (xp : x [#] [0]) (nxp : ([--]x) [#] [0]),
-   f_rcpcl ([--]x) nxp = [--] (f_rcpcl x xp).
-Proof.
-  intros ? ? ? ?.
-  apply mult_cancel_lft with (z:=[--]x);[exact nxp|].
-  rewrite field_mult_inv.
-  rewrite inv_mult_invol.
-  rewrite field_mult_inv.
-  reflexivity.
-Qed.
 
-Hint Unfold One_instance_IR : IRMC.
-
-  Lemma XAtEnd : {X (position acs)} tend =  Xs +
-        ((2* Sin (θs + tc * driveDistance) 
-            - Sin (θs + 2 * tc * driveDistance)  - Sin θs) [/] tc [//] tcNZ).
+  Lemma WriggleX : {X (position acs)} tend =  Xs +
+        ((2* Sin (θs + tc * distance) 
+            - Sin (θs + 2 * tc * distance)  - Sin θs) [/] tc [//] tcNZ).
   Proof.
-    pose proof rdriveControls as driveControlsb.
-    setoid_rewrite (proj1 rsteeringControls) in driveControlsb.
-    eapply  posFixedCurvX with (t:= tend) (tcNZ:=tcnegNZ _ tcNZ) in driveControlsb.
-    Unshelve. Focus 2. timeReasoning.
-    unfold cf_div in driveControlsb.
-    rewrite θAtEnd in driveControlsb.
-    rewrite reciprocalNeg with (xp:=tcNZ) in driveControlsb.
-    rewrite cring_inv_mult_lft in driveControlsb.
-    rewrite <- cring_inv_mult_rht in driveControlsb.
-    setoid_rewrite minusInvR in driveControlsb.
-    rewrite θAfterRSteer in driveControlsb.
-    pose proof (csg_op_wd _ _ _ _ _ XAfterDrive driveControlsb) as Hadd.
-    clear driveControlsb.
-    autounfold with IRMC in Hadd.
-    unfold posAtTime in rsteeringControls.
-    unfold equiv, EquivCart in rsteeringControls.
-    simpl in rsteeringControls.
-    setoid_rewrite 
-        (fun p =>  proj1 (proj1 ((proj2 rsteeringControls) trdrive p))) in Hadd;
-      [|timeReasoning].
-    match type of Hadd with 
-    _ [=] ?r => remember r as rr
-    end. 
-    simpl in Hadd.
-    ring_simplify in Hadd.
-    rewrite Hadd. clear Hadd.  subst rr.
-    autounfold with IRMC.
-    unfold cf_div. unfold cg_minus. ring.
+    pose proof Wriggleθ as XX.
+    inverts amsc as Hl Hr.
+    inverts Hr as Hrr Hn.  inverts Hn as H1 H3. clear H1 H3.
+    pose proof Hl as Hlt.
+    apply AtomicMoveθ in Hlt.
+    apply AtomicMoveX with (tcNZ:= tcNZ) in Hl.
+    apply AtomicMoveXT with (tcNZ:= tcnegNZ _ tcNZ) in Hrr.
+    Local Opaque Cos Sin.
+    simpl in Hl, Hrr, Hlt.
+    unfold cf_div in Hrr.
+    rewrite XX in Hrr.
+    rewrite Hrr. rewrite Hl.
+    autounfold with IRMC. unfold cf_div.
+    rewrite reciprocalNeg with (xp:=tcNZ).
+    rewrite cring_inv_mult_lft.
+    rewrite <- cring_inv_mult_rht.
+    setoid_rewrite minusInvR.
+    rewrite Hlt.
+    autounfold with IRMC. unfold cg_minus. simpl.
+     ring.
   Qed.
 
 End Wriggle.
