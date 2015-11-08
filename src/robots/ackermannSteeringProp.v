@@ -33,6 +33,12 @@ Require Export ackermannSteering.
 
 Require Export CartIR.
 
+Local Opaque CSine.
+Local Opaque CCos.
+Local Opaque Sine.
+Local Opaque Cosine.
+Local Opaque Sin.
+Local Opaque Cos.
 
 (** 
 * Characterizing the motion under Ackermann steering.
@@ -175,11 +181,12 @@ Section Cases.
       autounfold with TContRMC.
       autorewrite with IContRApDown.
       rewrite composeIContAp.
-Local Opaque CFSine.
-Local Opaque Sine.
       simpl. symmetry.
       pose proof (@pfwdef2 _ Sine ({theta acs} tb) (fst Continuous_Sin ({theta acs} tb) I) I) as Hr. 
       rewrite Hr.
+      Local Transparent Sin.
+      unfold Sin. simpl.
+      Local Opaque Sin.
       rewrite fixed with (t:=tb); [ring |].
       autounfold with IRMC.  unfold Le_instance_Time.
       unfold inBounds in Hbb. simpl in Hbb. repnd.
@@ -407,7 +414,10 @@ End AtomicMove.
 
   Definition AtomicMoves := list AtomicMove.
   
-  (** May need to prove that [AtomicMovesControls] is well-defined over different proofs of [Le] *)
+  (* May need to prove that [AtomicMovesControls] is well-defined over different proofs of [Le] *)
+  
+  (** This predicate defines what it means for a car to follow 
+    a list of atomic moves.*)
   Inductive AtomicMovesControls : AtomicMoves -> forall (tstart tend : Time),  (tstart ≤ tend) -> Prop :=
   | amscNil : forall (t:Time) (p: t≤t), AtomicMovesControls [] t t p
   | amscCons : forall (tstart tmid tend:Time) (pl : tstart < tmid) (pr : tmid ≤ tend) (p : tstart ≤ tend)
@@ -507,16 +517,40 @@ Informally it denotes the following motion :
 End Wriggle.
 
 
+Section Invertability.
+(** It turns out that any Wriggle move is reversible (invertible).
+We will prove it using 2 even more basic lemmas:
+1) Every atomic move is inverible : keep the steering wheel at
+the same position as before and then drive the same amount in 
+the opposite direction.
+2) The inverse of a list of atomic moves is the reverse of
+the list of iverses of those atomic moves.
 
+First we define what it means for a move to be an inverse of another.
+*)
+Definition MovesIdentity (ams : AtomicMoves) :=
+  forall (tstart tend : Time)  (p: tstart ≤ tend),
+    AtomicMovesControls ams tstart tend p
+    -> (posAtTime acs tstart = posAtTime acs tend 
+        /\ {theta acs} tstart = {theta acs} tend).
+        
+Definition AtomicMoveInv (m : AtomicMove) : AtomicMove
+    := {|am_tc := am_tc m; am_distance := -(am_distance m) |}.
 
+Definition AtomicMovesInv (ms : AtomicMoves) : AtomicMoves
+    := rev (List.map AtomicMoveInv ms).
 
+Lemma atomicMoveInvertible :
+  forall (m : AtomicMove), MovesIdentity [m; AtomicMoveInv m].
+Proof.
+Abort.
 
+Lemma atomicMovesInvertible :
+  forall (m : AtomicMoves), MovesIdentity (m ++ AtomicMovesInv m).
+Proof.
+Abort.
 
-
-
-
-
-
+End Invertability.
 
 
 
