@@ -663,6 +663,21 @@ First we define what it means for a move to be an inverse of another.
       AtomicMovesControls ams tstart tend p
       -> (posAtTime acs tstart = posAtTime acs tend 
           /\ {theta acs} tstart = {theta acs} tend).
+
+  (** [MovesIsInverse ams amsr] implies [MovesIdentity (ams ++ amsr)],
+    but the other direction many not be true 
+    TODO : quantify over [acs] *)
+  Definition MovesInverse (ams amsr : AtomicMoves) :=
+    forall 
+      (tstart tend : Time)  (p: tstart ≤ tend)
+      (tstartr tendr : Time)  (pr: tstartr ≤ tendr),
+      AtomicMovesControls ams tstart tend p
+      -> AtomicMovesControls amsr tstartr tendr pr
+      -> {theta acs} tstartr = {theta acs} tend 
+      -> (posAtTime acs tend - posAtTime acs tstart
+          = posAtTime acs tstartr - posAtTime acs tendr
+          /\ {theta acs} tstartr = {theta acs} tend).
+
         
   Definition AtomicMoveInv (m : AtomicMove) : AtomicMove
       := {|am_tc := am_tc m; am_distance := -(am_distance m) |}.
@@ -671,17 +686,20 @@ First we define what it means for a move to be an inverse of another.
       := rev (List.map AtomicMoveInv ms).
 
   Lemma atomicMoveInvertibleθ :
-    forall (m : AtomicMove)(tstart tend : Time)  (p: tstart ≤ tend),
-    AtomicMovesControls [m; AtomicMoveInv m] tstart tend p
-    ->  {theta acs} tstart = {theta acs} tend.
+    forall m
+      (tstart tend : Time)  (p: tstart < tend)
+      (tstartr tendr : Time)  (pr: tstartr < tendr),
+      AtomicMoveControls m  p
+      -> AtomicMoveControls (AtomicMoveInv m)  pr
+      -> {theta acs} tstartr = {theta acs} tend 
+      -> ({theta acs} tstart = {theta acs} tendr).
   Proof.
-    intros m ? ? ? amsc.
-    invertAtomicMoves.
+    intros m ? ? ? ? ? ? amscl amscrl Ht.
     apply AtomicMoveθ in amscl.
     apply AtomicMoveθ in amscrl.
     simpl in amscl, amscrl.
-    rewrite amscrl, amscl.
-    autounfold with IRMC. ring.
+    rewrite amscrl, Ht, amscl.
+    IRring.
   Qed.
 
   Lemma decideEdDN : ∀ (x y : IR), Not (Not (x [=] y or x [#] y)).
@@ -704,14 +722,18 @@ First we define what it means for a move to be an inverse of another.
   (** The equations for X coordinate are different, based on whether the steering wheel is perfectly
       straight or not. The double negation trick works while proving equality *)
   Lemma atomicMoveInvertibleX :
-    forall (m : AtomicMove)(tstart tend : Time)  (p: tstart ≤ tend),
-    AtomicMovesControls [m; AtomicMoveInv m] tstart tend p
-    ->  {X (position acs)} tstart = {X (position acs)} tend.
+    forall m
+      (tstart tend : Time)  (p: tstart < tend)
+      (tstartr tendr : Time)  (pr: tstartr < tendr),
+      AtomicMoveControls m  p
+      -> AtomicMoveControls (AtomicMoveInv m)  pr
+      -> {theta acs} tstartr = {theta acs} tend 
+      -> ({X (position acs)} tend - {X (position acs)} tstart 
+              = {X (position acs)} tstartr - {X (position acs)} tendr).
   Proof.
-    intros m ? ? ? amsc.
-    pose proof amsc as Htt.
-    apply atomicMoveInvertibleθ in Htt.
-    invertAtomicMoves.
+    intros m ? ? ? ? ? ? amscl amscrl Hte.
+    pose proof amscl as Htt.
+    eapply atomicMoveInvertibleθ in Htt; eauto.
     apply not_ap_imp_eq.
     pose proof (decideEdDN (am_tc m) [0]) as Hd.
     intro Hc.
@@ -721,14 +743,14 @@ First we define what it means for a move to be an inverse of another.
     pose proof amscl as Ht.
     apply AtomicMoveθ in Ht.
     destruct Hd as [Hd | Hd].
-    - apply AtomicMoveZX with (pr := pl) in amscl;
+    - apply AtomicMoveZX with (pr := p) in amscl;
         [| exact Hd].
-      apply AtomicMoveZX with (pr := pl0) in amscrl;
+      apply AtomicMoveZX with (pr := pr) in amscrl;
         [| exact Hd].
       simpl in amscl, amscrl, Ht.
       rewrite Hd in Ht.
       autounfold with IRMC in Ht. ring_simplify in Ht.
-      rewrite amscrl, amscl, Ht.
+      rewrite amscrl, Hte, amscl, Ht.
       IRring.
     - apply AtomicMoveXT with (tcNZ:= Hd) in amscl.
       eapply AtomicMoveXT  in amscrl.
@@ -736,19 +758,22 @@ First we define what it means for a move to be an inverse of another.
       simpl in amscl, amscrl.
       unfold cf_div in amscl.
       unfold cf_div in amscrl.
-      rewrite Htt in amscl.
-      rewrite amscrl, amscl. IRring.
+      rewrite amscrl, Hte, amscl, Htt. IRring.
     Qed.
   (** just replace X by Y in the proof above *)
   Lemma atomicMoveInvertibleY :
-    forall (m : AtomicMove)(tstart tend : Time)  (p: tstart ≤ tend),
-    AtomicMovesControls [m; AtomicMoveInv m] tstart tend p
-    ->  {Y (position acs)} tstart = {Y (position acs)} tend.
+    forall m
+      (tstart tend : Time)  (p: tstart < tend)
+      (tstartr tendr : Time)  (pr: tstartr < tendr),
+      AtomicMoveControls m  p
+      -> AtomicMoveControls (AtomicMoveInv m)  pr
+      -> {theta acs} tstartr = {theta acs} tend 
+      -> ({Y (position acs)} tend - {Y (position acs)} tstart 
+              = {Y (position acs)} tstartr - {Y (position acs)} tendr).
   Proof.
-    intros m ? ? ? amsc.
-    pose proof amsc as Htt.
-    apply atomicMoveInvertibleθ in Htt.
-    invertAtomicMoves.
+    intros m ? ? ? ? ? ? amscl amscrl Hte.
+    pose proof amscl as Htt.
+    eapply atomicMoveInvertibleθ in Htt; eauto.
     apply not_ap_imp_eq.
     pose proof (decideEdDN (am_tc m) [0]) as Hd.
     intro Hc.
@@ -758,14 +783,14 @@ First we define what it means for a move to be an inverse of another.
     pose proof amscl as Ht.
     apply AtomicMoveθ in Ht.
     destruct Hd as [Hd | Hd].
-    - apply AtomicMoveZY with (pr := pl) in amscl;
+    - apply AtomicMoveZY with (pr := p) in amscl;
         [| exact Hd].
-      apply AtomicMoveZY with (pr := pl0) in amscrl;
+      apply AtomicMoveZY with (pr := pr) in amscrl;
         [| exact Hd].
       simpl in amscl, amscrl, Ht.
       rewrite Hd in Ht.
       autounfold with IRMC in Ht. ring_simplify in Ht.
-      rewrite amscrl, amscl, Ht.
+      rewrite amscrl, Hte, amscl, Ht.
       IRring.
     - apply AtomicMoveYT with (tcNZ:= Hd) in amscl.
       eapply AtomicMoveYT  in amscrl.
@@ -773,22 +798,24 @@ First we define what it means for a move to be an inverse of another.
       simpl in amscl, amscrl.
       unfold cf_div in amscl.
       unfold cf_div in amscrl.
-      rewrite Htt in amscl.
-      rewrite amscrl, amscl. IRring.
+      rewrite amscrl, Hte, amscl, Htt. IRring.
     Qed.
 
   Lemma atomicMoveInvertible :
-    forall (m : AtomicMove), MovesIdentity [m; AtomicMoveInv m].
+    forall (m : AtomicMove), MovesInverse [m] [AtomicMoveInv m].
   Proof.
-    intros m ? ? ? Hmc.
-    split; [split |];
-       [eapply atomicMoveInvertibleX 
-        | eapply atomicMoveInvertibleY
-        | eapply atomicMoveInvertibleθ]; eauto.
+    intros m ? ? ? ? ? ? ?.
+    invertAtomicMoves.
+    intros ? ?.    
+    invertAtomicMoves.
+    split; [split |].
+    - eapply atomicMoveInvertibleX; eauto.
+    - eapply atomicMoveInvertibleY; eauto.
+    - eapply atomicMoveInvertibleθ in Hl0; eauto.
   Qed.
 
 Lemma atomicMovesInvertible :
-  forall (m : AtomicMoves), MovesIdentity (m ++ AtomicMovesInv m).
+  forall (m : AtomicMoves), MovesInverse m (AtomicMovesInv m).
 Proof.
 Abort.
 
