@@ -293,13 +293,6 @@ and one can drive both forward and backward *)
   Variable tstart : Time.
   Variable tend : Time.
   
-  
-  Inductive Truncate (T:Type) : Prop :=
-  | truncate : T -> Truncate T.
-  
-  (** The typeclass [Lt] is defined in the Prop universe. It cannot have constructive content.*)
-  Global Instance Lt_instance_Time : Lt Time := fun x y => Truncate (x [<] y).
-
   Lemma timeLtWeaken : forall {a b: Time}, a < b  -> a ≤ b.
   Proof.
     intros ? ? H.
@@ -367,8 +360,6 @@ and one can drive both forward and backward *)
            (pr:= proj2 am_timeIncWeaken).
     pose proof (am_steeringControls amc) as steeringControls.
     apply proj2 in steeringControls.
-    SearchAbout Cintegral.
-    SearchAbout isIDerivativeOf.
     rewrite (@Cintegral_wd2  _ _ _ _ [0]).
     Focus 2.
       intros x Hb. simpl. destruct Hb as [Hbl Hbr].
@@ -700,22 +691,6 @@ First we define what it means for a move to be an inverse of another.
     simpl in amscl, amscrl.
     rewrite amscrl, Ht, amscl.
     IRring.
-  Qed.
-
-  Lemma decideEdDN : ∀ (x y : IR), Not (Not (x [=] y or x [#] y)).
-  Proof.
-    intros ? ?.
-    pose proof (AbsIR_nonneg (x[-]y)) as Hd.
-    apply leEq_less_or_equal in Hd.
-    intro Hc.
-    apply Hd.
-    clear Hd. intro Hd. apply Hc.
-    destruct Hd as [Hd | Hd];[right | left].
-    - apply pos_ap_zero in Hd.
-      apply AbsIR_cancel_ap_zero in Hd.
-      apply zero_minus_apart.  exact Hd.
-    - symmetry in Hd. apply AbsIR_eq_zero in Hd.
-      apply cg_inv_unique_2. exact Hd.
   Qed.
 
     

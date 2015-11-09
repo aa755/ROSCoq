@@ -14,6 +14,9 @@ while nodes:
   if (node.endswith('.v')
    and not node.endswith('CRMisc/ContField.v')
    and not node.endswith('CRMisc/PointWiseRing.v')
+   and not node.endswith('CRMisc/OldMetricAsNew.v')
+   and not node.endswith('CartAR.v')
+   and not node.endswith('ProbTh.v')
    and not node.endswith('shim/oldJavaShim/icreateConcrete.v')
    and not node.endswith('Everything.v')
    and not node.endswith('trash.v')):

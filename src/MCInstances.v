@@ -97,3 +97,6 @@ split.
 - exact Sym.
 - exact T.
 Qed.
+  
+  (** The typeclass [Lt] is defined in the Prop universe. It cannot have constructive content.*)
+Global Instance Lt_instance_Time : Lt Time := fun x y => Truncate (x [<] y).

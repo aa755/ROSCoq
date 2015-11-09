@@ -285,3 +285,6 @@ Proof.
     assert (c = b ∨ c < b) as Hd by omega.
     destruct Hd; try congruence.
 Qed.
+
+Inductive Truncate (T:Type) : Prop :=
+| truncate : T -> Truncate T.

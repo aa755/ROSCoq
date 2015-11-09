@@ -60,7 +60,6 @@ Proof.
   destruct fb as [b bp].
   simpl in Heq. simpl.
   subst.
-  Print eq_existsT.
   apply eq_existsT with (ea := eq_refl).
   remember (lt_dec b n); destruct s; destruct ap, bp; auto.
 Qed.

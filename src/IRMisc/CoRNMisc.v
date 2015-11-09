@@ -857,4 +857,20 @@ Proof.
   apply eq_reflexive.
 Qed.
 
+Lemma decideEdDN : ∀ (x y : IR), Not (Not (x [=] y or x [#] y)).
+Proof.
+    intros ? ?.
+    pose proof (AbsIR_nonneg (x[-]y)) as Hd.
+    apply leEq_less_or_equal in Hd.
+    intro Hc.
+    apply Hd.
+    clear Hd. intro Hd. apply Hc.
+    destruct Hd as [Hd | Hd];[right | left].
+    - apply pos_ap_zero in Hd.
+      apply AbsIR_cancel_ap_zero in Hd.
+      apply zero_minus_apart.  exact Hd.
+    - symmetry in Hd. apply AbsIR_eq_zero in Hd.
+      apply cg_inv_unique_2. exact Hd.
+Qed.
+
 Hint Rewrite cg_inv_zero : CoRN.
