@@ -814,10 +814,30 @@ First we define what it means for a move to be an inverse of another.
     - eapply atomicMoveInvertibleθ in Hl0; eauto.
   Qed.
 
-Lemma atomicMovesInvertible :
-  forall (m : AtomicMoves), MovesInverse m (AtomicMovesInv m).
-Proof.
-Abort.
+
+Ltac invertAtomicMoves :=
+  repeat match goal with
+    [ H: AtomicMovesControls (_::_) _ _ ?p |- _] =>
+      let Hl := fresh H "l" in
+      let Hr := fresh H "r" in
+      let pl := fresh p "l" in
+      let pr := fresh p "r" in
+      inverts H as Hl Hr pl pr
+  | [ H: AtomicMovesControls ([]) _ _ ?p |- _] =>
+      let Hl := fresh H "l" in
+      let Hr := fresh H "r" in
+      inverts H as Hl Hr p; clear Hl; clear Hr; clear p
+  end.
+
+  Lemma atomicMovesInvertible :
+    forall (m : AtomicMoves), MovesInverse m (AtomicMovesInv m).
+  Proof.
+    induction m as [| t tl Hind]; intros ? ? ? ? ? ? Hm Hrm Ht;
+      unfold AtomicMovesInv in Hrm; simpl in Hrm.
+    - invertAtomicMoves. rewrite Ht. split;[split; simpl | reflexivity];
+      repeat rewrite plus_negate_r; reflexivity.
+    - invertAtomicMoves. inverts Hrm as Hl Hr pl pr. Focus 2.
+  Abort.
 
 End Invertability.
 
