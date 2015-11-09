@@ -615,7 +615,8 @@ Informally it denotes the following motion :
     autounfold with IRMC. ring.    
   Qed.
 
-
+  (** just to illustrate that the car doesn't end up to the initial position after wriggle.
+     This equation is not needed for anything else. *)
   Lemma WriggleX : {X (position acs)} tend =  Xs +
         ((2* Sin (θs + tc * distance) 
             - Sin (θs + 2 * tc * distance)  - Sin θs) [/] tc [//] tcNZ).
@@ -657,27 +658,134 @@ the list of iverses of those atomic moves.
 
 First we define what it means for a move to be an inverse of another.
 *)
-Definition MovesIdentity (ams : AtomicMoves) :=
-  forall (tstart tend : Time)  (p: tstart ≤ tend),
-    AtomicMovesControls ams tstart tend p
-    -> (posAtTime acs tstart = posAtTime acs tend 
-        /\ {theta acs} tstart = {theta acs} tend).
+  Definition MovesIdentity (ams : AtomicMoves) :=
+    forall (tstart tend : Time)  (p: tstart ≤ tend),
+      AtomicMovesControls ams tstart tend p
+      -> (posAtTime acs tstart = posAtTime acs tend 
+          /\ {theta acs} tstart = {theta acs} tend).
         
-Definition AtomicMoveInv (m : AtomicMove) : AtomicMove
-    := {|am_tc := am_tc m; am_distance := -(am_distance m) |}.
+  Definition AtomicMoveInv (m : AtomicMove) : AtomicMove
+      := {|am_tc := am_tc m; am_distance := -(am_distance m) |}.
 
-Definition AtomicMovesInv (ms : AtomicMoves) : AtomicMoves
-    := rev (List.map AtomicMoveInv ms).
+  Definition AtomicMovesInv (ms : AtomicMoves) : AtomicMoves
+      := rev (List.map AtomicMoveInv ms).
 
-Lemma atomicMoveInvertible :
-  forall (m : AtomicMove), MovesIdentity [m; AtomicMoveInv m].
-Proof.
-  intros m ? ? ? Hmc.
-  invertAtomicMoves.
+  Lemma atomicMoveInvertibleθ :
+    forall (m : AtomicMove)(tstart tend : Time)  (p: tstart ≤ tend),
+    AtomicMovesControls [m; AtomicMoveInv m] tstart tend p
+    ->  {theta acs} tstart = {theta acs} tend.
+  Proof.
+    intros m ? ? ? amsc.
+    invertAtomicMoves.
+    apply AtomicMoveθ in amscl.
+    apply AtomicMoveθ in amscrl.
+    simpl in amscl, amscrl.
+    rewrite amscrl, amscl.
+    autounfold with IRMC. ring.
+  Qed.
 
+  Lemma decideEdDN : ∀ (x y : IR), Not (Not (x [=] y or x [#] y)).
+  Proof.
+    intros ? ?.
+    pose proof (AbsIR_nonneg (x[-]y)) as Hd.
+    apply leEq_less_or_equal in Hd.
+    intro Hc.
+    apply Hd.
+    clear Hd. intro Hd. apply Hc.
+    destruct Hd as [Hd | Hd];[right | left].
+    - apply pos_ap_zero in Hd.
+      apply AbsIR_cancel_ap_zero in Hd.
+      apply zero_minus_apart.  exact Hd.
+    - symmetry in Hd. apply AbsIR_eq_zero in Hd.
+      apply cg_inv_unique_2. exact Hd.
+  Qed.
 
     
-Abort.
+  (** The equations for X coordinate are different, based on whether the steering wheel is perfectly
+      straight or not. The double negation trick works while proving equality *)
+  Lemma atomicMoveInvertibleX :
+    forall (m : AtomicMove)(tstart tend : Time)  (p: tstart ≤ tend),
+    AtomicMovesControls [m; AtomicMoveInv m] tstart tend p
+    ->  {X (position acs)} tstart = {X (position acs)} tend.
+  Proof.
+    intros m ? ? ? amsc.
+    pose proof amsc as Htt.
+    apply atomicMoveInvertibleθ in Htt.
+    invertAtomicMoves.
+    apply not_ap_imp_eq.
+    pose proof (decideEdDN (am_tc m) [0]) as Hd.
+    intro Hc.
+    apply Hd.
+    clear Hd. intro Hd.
+    apply ap_tight in Hc;[contradiction|]. clear H Hc.
+    pose proof amscl as Ht.
+    apply AtomicMoveθ in Ht.
+    destruct Hd as [Hd | Hd].
+    - apply AtomicMoveZX with (pr := pl) in amscl;
+        [| exact Hd].
+      apply AtomicMoveZX with (pr := pl0) in amscrl;
+        [| exact Hd].
+      simpl in amscl, amscrl, Ht.
+      rewrite Hd in Ht.
+      autounfold with IRMC in Ht. ring_simplify in Ht.
+      rewrite amscrl, amscl, Ht.
+      IRring.
+    - apply AtomicMoveXT with (tcNZ:= Hd) in amscl.
+      eapply AtomicMoveXT  in amscrl.
+      Unshelve. Focus 2. apply Hd.
+      simpl in amscl, amscrl.
+      unfold cf_div in amscl.
+      unfold cf_div in amscrl.
+      rewrite Htt in amscl.
+      rewrite amscrl, amscl. IRring.
+    Qed.
+  (** just replace X by Y in the proof above *)
+  Lemma atomicMoveInvertibleY :
+    forall (m : AtomicMove)(tstart tend : Time)  (p: tstart ≤ tend),
+    AtomicMovesControls [m; AtomicMoveInv m] tstart tend p
+    ->  {Y (position acs)} tstart = {Y (position acs)} tend.
+  Proof.
+    intros m ? ? ? amsc.
+    pose proof amsc as Htt.
+    apply atomicMoveInvertibleθ in Htt.
+    invertAtomicMoves.
+    apply not_ap_imp_eq.
+    pose proof (decideEdDN (am_tc m) [0]) as Hd.
+    intro Hc.
+    apply Hd.
+    clear Hd. intro Hd.
+    apply ap_tight in Hc;[contradiction|]. clear H Hc.
+    pose proof amscl as Ht.
+    apply AtomicMoveθ in Ht.
+    destruct Hd as [Hd | Hd].
+    - apply AtomicMoveZY with (pr := pl) in amscl;
+        [| exact Hd].
+      apply AtomicMoveZY with (pr := pl0) in amscrl;
+        [| exact Hd].
+      simpl in amscl, amscrl, Ht.
+      rewrite Hd in Ht.
+      autounfold with IRMC in Ht. ring_simplify in Ht.
+      rewrite amscrl, amscl, Ht.
+      IRring.
+    - apply AtomicMoveYT with (tcNZ:= Hd) in amscl.
+      eapply AtomicMoveYT  in amscrl.
+      Unshelve. Focus 2. apply Hd.
+      simpl in amscl, amscrl.
+      unfold cf_div in amscl.
+      unfold cf_div in amscrl.
+      rewrite Htt in amscl.
+      rewrite amscrl, amscl. IRring.
+    Qed.
+
+  Lemma atomicMoveInvertible :
+    forall (m : AtomicMove), MovesIdentity [m; AtomicMoveInv m].
+  Proof.
+    intros m ? ? ? Hmc.
+    split; [split |];
+       [eapply atomicMoveInvertibleX 
+        | eapply atomicMoveInvertibleY
+        | eapply atomicMoveInvertibleθ]; eauto.
+  Qed.
 
 Lemma atomicMovesInvertible :
   forall (m : AtomicMoves), MovesIdentity (m ++ AtomicMovesInv m).
