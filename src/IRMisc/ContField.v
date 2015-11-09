@@ -909,8 +909,43 @@ End CIntegralArith.
 
 Section CIntegralProps.
 Context {a b : RInIntvl} (p : a [<=] b).
-Variable (F G : IContR).
 
+(* Can be proved using TBarrow and isIderivative props.*)
+Lemma CintegralConst : forall (c: IR),
+   Cintegral (mkIntBnd p) (ContConstFun c) [=] c [*] (b [-] a).
+Proof.
+  intros ?.
+  unfold Cintegral. simpl.
+  rewrite <- integral_const.
+  apply integral_wd.
+  apply Feq_symmetric.
+  eapply included_Feq;
+    [apply intvlIncludedCompact |].
+  apply toPartConst.
+  Grab Existential Variables.
+  apply Continuous_I_const.
+Qed.
+
+Lemma CintegralZero : 
+   Cintegral (mkIntBnd p) [0] [=] [0].
+Proof.
+  setoid_rewrite CintegralConst.
+  ring.
+Qed.
+
+Variable (F : IContR).
+Lemma CintegralSplit : forall (c:RInIntvl)
+   (pl : a [<=] c) (pr : c [<=] b),
+   Cintegral (mkIntBnd p) F [=] Cintegral (mkIntBnd pl) F 
+                                [+] Cintegral (mkIntBnd pr) F.
+Proof.
+  intros ? ? ?.
+  unfold Cintegral.
+  simpl. symmetry. apply integral_plus_integral. 
+Qed.
+
+
+Variable (G : IContR).
 
 Lemma IntegralMonotone : 
    (forall (r: RInIntvl), (clcr (TMin a b) (TMax a b) r) -> {F} r[<=] {G} r)
@@ -928,6 +963,8 @@ Proof.
   erewrite csf_fun_wd;[ apply leEq_reflexive | ].
   simpl. reflexivity.
 Qed.
+
+
 End CIntegralProps.
 
 

@@ -33,6 +33,17 @@ Require Export ackermannSteering.
 
 Require Export CartIR.
 
+Ltac IRring := autounfold with IRMC; unfold cg_minus; try ring;
+                simpl; ring.
+
+Lemma leftShiftEqIR : forall (a b c : IR),
+  a [=] b [+] c <-> a [-] b [=] c.
+Proof.
+  intros; split ; intro H.
+  - rewrite H. IRring.
+  - rewrite <- H. IRring.
+Qed.
+  
 Local Opaque CSine.
 Local Opaque CCos.
 Local Opaque Sine.
@@ -336,8 +347,42 @@ and one can drive both forward and backward *)
     split; apply timeLtWeaken; tauto.
   Qed.
 
-
   Local Notation timeInc := am_timeIncWeaken.
+  Ltac timeReasoning :=
+    autounfold with IRMC; unfold Le_instance_Time;
+      destruct timeInc; eauto 2 with CoRN; fail.
+
+  Lemma am_timeStartEnd : (tstart  ≤ tend).
+    pose proof (am_timeIncWeaken).
+    repnd.  timeReasoning.
+  Qed.
+
+   Lemma am_driveDistanceFull : 
+      let driveIb := (@mkIntBnd _ tstart tend am_timeStartEnd) in 
+          (am_distance am) = ∫ driveIb (linVel acs).
+   Proof.
+    simpl. 
+    rewrite CintegralSplit 
+      with (pl:= proj1 am_timeIncWeaken)
+           (pr:= proj2 am_timeIncWeaken).
+    pose proof (am_steeringControls amc) as steeringControls.
+    apply proj2 in steeringControls.
+    SearchAbout Cintegral.
+    SearchAbout isIDerivativeOf.
+    rewrite (@Cintegral_wd2  _ _ _ _ [0]).
+    Focus 2.
+      intros x Hb. simpl. destruct Hb as [Hbl Hbr].
+      simpl in Hbl, Hbr. apply steeringControls.
+      split; timeReasoning.
+    rewrite CintegralZero.
+    autounfold with IRMC.
+    ring_simplify.
+    rewrite (am_driveDistance).
+    apply Cintegral_wd;[| reflexivity].
+    simpl. split;
+    reflexivity.
+  Qed.
+
 
   (** From time [tsteer] to [drive], the steerring wheel moves to attain a configuration 
     with turn curvature [tc]. The brakes are firmly placed pressed.*)
@@ -349,9 +394,6 @@ and one can drive both forward and backward *)
 
 
 
-  Ltac timeReasoning :=
-    autounfold with IRMC; unfold Le_instance_Time;
-      destruct timeInc; eauto 2 with CoRN; fail.
 
 
   Lemma AtomicMoveθ : {theta acs} tend =  θs + tc * distance.
@@ -399,14 +441,92 @@ and one can drive both forward and backward *)
       unfold cf_div. rewrite <- AtomicMoveθ.
       exact AtomicMoveXT.
     Qed.
-  End TCNZ.
 
-  Section TCZ.
-  Hypothesis (tcNZ : amNoTurn).
-  
-    Lemma AtomicMoveX : {X (position acs)} tend =  Xs + distance * (Cos θs).
+    Lemma AtomicMoveYT : {Y (position acs)} tend =  Ys +
+          ((Cos θs - Cos ({theta acs} tend)) [/] tc [//] tcNZ).
     Proof.
-    Abort.
+      pose proof (am_driveControls amc) as driveControlsb.
+      pose proof (am_steeringControls amc) as steeringControls.
+      setoid_rewrite (proj1 steeringControls) in driveControlsb.
+      eapply  fixedSteeeringY with (t:= tend) (tcNZ:=tcNZ) in driveControlsb.
+      Unshelve. Focus 2. timeReasoning.
+      unfold cf_div in driveControlsb.
+      rewrite (fun p => LV0Y tstart tdrive p tdrive) in driveControlsb;[| apply (proj2 steeringControls) 
+          | timeReasoning ].
+      rewrite (fun p => LV0Theta tstart tdrive p tdrive) in driveControlsb;[| apply (proj2 steeringControls) 
+          | timeReasoning ].
+      setoid_rewrite <- driveControlsb. simpl. autounfold with IRMC. simpl. ring.
+    Qed.
+
+
+    Lemma AtomicMoveY : {Y (position acs)} tend =  Ys +
+          ((Cos θs - Cos (θs + tc * distance)) [/] tc [//] tcNZ).
+    Proof.
+      unfold cf_div. rewrite <- AtomicMoveθ.
+      exact AtomicMoveYT.
+    Qed.
+
+  End TCNZ.
+              
+  Section TCZ.
+  Hypothesis (tcZ : amNoTurn).
+  
+    Lemma AtomicMoveZθ : forall t:Time, tstart ≤ t ≤ tend
+    -> {theta acs} t =  θs.
+    Proof.
+      intros ? Hb. eapply TDerivativeEq0;[tauto | apply derivRot|].
+      intros tt Hbb.
+      apply not_ap_imp_eq.
+      pose proof (leEq_or_leEq _ tt tdrive) as Hd.
+      intro Hc.
+      apply Hd.
+      clear Hd. intro Hd.
+      apply ap_tight in Hc;[contradiction|]. clear H Hc.
+      simpl.
+      pose proof (am_steeringControls amc) as steeringControls.
+      pose proof (am_driveControls amc) as driveControls.
+      destruct Hd as [Hd | Hd].
+      - rewrite (proj2 steeringControls);[  IRring | ]. 
+        repnd. split; timeReasoning.
+      - unfold amNoTurn in tcZ. rewrite (driveControls);
+         [rewrite (proj1 steeringControls), tcZ; IRring | ]. 
+         repnd. split; timeReasoning.
+    Qed.
+
+    Lemma AtomicMoveZX : {X (position acs)} tend =  Xs + distance * (Cos θs).
+    Proof.
+      apply leftShiftEqIR.
+      rewrite mult_comm.
+      rewrite  (am_driveDistanceFull).
+      eapply TBarrowScale with (ib := (mkIntBnd am_timeStartEnd));
+        [apply derivX | ].
+      intros t Hb. unfold mkIntBnd, intgBndL, intgBndR in Hb. simpl in Hb.
+      rewrite mult_comm at 1.
+      autounfold with TContRMC.
+      rewrite IContRMultAp.
+      rewrite CFCosAp.
+      apply mult_wd;[| reflexivity].
+      apply Cos_wd.
+      apply AtomicMoveZθ.  exact Hb.
+   Qed.
+
+    Lemma AtomicMoveZY : {Y (position acs)} tend =  Ys + distance * (Sin θs).
+    Proof.
+      apply leftShiftEqIR.
+      rewrite mult_comm.
+      rewrite  (am_driveDistanceFull).
+      eapply TBarrowScale with (ib := (mkIntBnd am_timeStartEnd));
+        [apply derivY | ].
+      intros t Hb. unfold mkIntBnd, intgBndL, intgBndR in Hb. simpl in Hb.
+      rewrite mult_comm at 1.
+      autounfold with TContRMC.
+      rewrite IContRMultAp.
+      rewrite CFSineAp.
+      apply mult_wd;[| reflexivity].
+      apply Sin_wd.
+      apply AtomicMoveZθ.  exact Hb.
+   Qed.
+
   End TCZ.
 
 End AtomicMove.
@@ -425,6 +545,13 @@ End AtomicMove.
       @AtomicMoveControls h tstart tmid pl
       -> AtomicMovesControls tl tmid tend pr
       -> AtomicMovesControls (h::tl) tstart tend p.
+Ltac invertAtomicMoves :=
+  repeat match goal with
+  [ H: AtomicMovesControls _ _ _ _ |- _] =>
+    let Hl := fresh H "l" in
+    let Hr := fresh H "r" in
+      inverts H as Hl Hr
+      end; clears_last; clears_last.
 
 Section Wriggle.
 (** Now consider a 
@@ -476,14 +603,15 @@ Informally it denotes the following motion :
   
   Hint Unfold One_instance_IR : IRMC.
       
+
   Lemma Wriggleθ : {theta acs} tend =  θs + 2 * tc * distance.
   Proof.
-    inverts amsc as Hl Hr.
-    inverts Hr as Hrr Hn.  inverts Hn as H1 H3. clear H1 H3.
-    apply AtomicMoveθ in Hl.
-    apply AtomicMoveθ in Hrr.
-    simpl in Hl, Hrr.
-    rewrite Hrr. rewrite Hl.
+  
+  invertAtomicMoves. 
+    apply AtomicMoveθ in amscl.
+    apply AtomicMoveθ in amscrl.
+    simpl in amscl, amscrl.
+    rewrite amscrl, amscl.
     autounfold with IRMC. ring.    
   Qed.
 
@@ -493,8 +621,9 @@ Informally it denotes the following motion :
             - Sin (θs + 2 * tc * distance)  - Sin θs) [/] tc [//] tcNZ).
   Proof.
     pose proof Wriggleθ as XX.
-    inverts amsc as Hl Hr.
-    inverts Hr as Hrr Hn.  inverts Hn as H1 H3. clear H1 H3.
+    invertAtomicMoves.
+    rename amscl into Hl.
+    rename amscrl into Hrr.
     pose proof Hl as Hlt.
     apply AtomicMoveθ in Hlt.
     apply AtomicMoveX with (tcNZ:= tcNZ) in Hl.
@@ -543,6 +672,11 @@ Definition AtomicMovesInv (ms : AtomicMoves) : AtomicMoves
 Lemma atomicMoveInvertible :
   forall (m : AtomicMove), MovesIdentity [m; AtomicMoveInv m].
 Proof.
+  intros m ? ? ? Hmc.
+  invertAtomicMoves.
+
+
+    
 Abort.
 
 Lemma atomicMovesInvertible :
