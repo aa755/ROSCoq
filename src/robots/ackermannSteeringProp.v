@@ -1103,20 +1103,29 @@ to where we started.
   Hypothesis amsc : AtomicMovesControls SlideAux tstart tend 
                       (timeLtWeaken timeInc).
   Local Notation θs := ({theta acs} tstart).
-  Local Notation Xs := ({X (position acs)} tstart).
-  Local Notation Ys := ({Y (position acs)} tstart).
+  Local Notation ps := (posAtTime acs tstart).
 
   (** The car's orientation at the end is same as that at the start.*)
-  Lemma SlideAuxθ : {theta acs} tend =  θs.
+  Lemma SlideAuxState : {theta acs} tend =  θs /\
+    let θw := θs + 2 * tc * wdistance in 
+    posAtTime acs tend 
+      = ps + {|X:= ddistance * Cos θw; Y:= ddistance * Sin θw|}.
   Proof.
-  Abort.
-
-  Lemma SlideAuxX : {X (position acs)} tend =  
-      Xs + ddistance * (Cos (θs + 2 * tc * wdistance)).
-  Abort.
-
-  Lemma SlideAuxY : {Y (position acs)} tend =  
-      Ys + ddistance * (Sin (θs + 2 * tc * wdistance)).
+    unfold SlideAux in amsc.
+    apply movesControlsApp in amsc.
+    destruct amsc as [tds Hams]. (* ds for drive straight *)
+    clear amsc.
+    destruct Hams as [pds Hams].
+    repnd. rename Hamsl into Hw. (* w for wiggle *)
+    apply movesControlsApp in Hamsr.
+    destruct Hamsr as [twr Hamsr]. (* ds for drive straight *)
+    destruct Hamsr as [pwr Hams]. repnd.
+    rename Hamsl into Hds.
+    rename Hamsr into Hwr.
+    pose proof Hw as Hwb. (** needed for θw *)
+    eapply atomicMovesInvertible in Hw; eauto.
+    specialize (Hw Hwr). clear Hwr.
+    invertAtomicMoves.
   Abort.
   
 End Slide.
