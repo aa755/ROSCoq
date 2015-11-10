@@ -600,23 +600,6 @@ End AtomicMove.
       -> AtomicMovesControls tl tmid tend pr
       -> AtomicMovesControls (h::tl) tstart tend p.
       
-      (*
-  Lemma AtomicMovesControls_wd :
-    forall ml mr tstartl tstartr tendl tendr 
-      (pl :tstartl ≤ tendl) (pr :tstartr ≤ tendr),
-    tstartl = tstartr
-    -> tendl = tendr
-    -> AtomicMovesControls ml _ _ pl
-    -> ml = mr
-    -> AtomicMovesControls mr _ _ pr.
-  Proof.
-   intros ? ? ? ? ? ? ? ? ? ? Hl meq.
-   induction meq.
-   - rewrite Hl. subst. constructor. 
-  Global Instance AtomicMovesControls_ProperM (tstart tend : Time)  (p :tstart ≤ tend) :
-    (equiv ==> iff) (fun m => AtomicMovesControls tstart tend p).
-    *)
-
   Instance Equivalence_instance_AtomicMove : @Equivalence (AtomicMove) equiv.
   unfold equiv, Equiv_AtomicMove. split.
   - intros x. destruct x. simpl. split; auto with *.
@@ -689,7 +672,34 @@ Ltac invertAtomicMoves :=
     intros? ? ? ? Ha.
     inverts Ha.
   *)
+    Lemma AtomicMovesControls_wd :
+    forall ml mr,
+         ml = mr
+ -> forall tstartl tstartr tendl tendr 
+      (pl :tstartl ≤ tendl) (pr :tstartr ≤ tendr),
+    tstartl = tstartr
+    -> tendl = tendr
+    -> AtomicMovesControls ml _ _ pl
+    -> AtomicMovesControls mr _ _ pr.
+  Proof.
+   intros ? ? meq.
+   induction meq; intros ? ? ? ? ? ? ? ? Hl.
+   - inverts Hl. constructor. rewrite <- H, pe. assumption.
+   - inverts Hl as Hl1 Hl2.
+    eapply IHmeq in Hl2; eauto; [| reflexivity].
+     eapply AtomicMoveControls_wd in Hl1; eauto; [| reflexivity].
+    econstructor; eauto.
+    Unshelve. Focus 2. rewrite <- H1. assumption.
+    rewrite <- H0. assumption.
+  Qed.
     
+  Global Instance AtomicMovesControls_ProperM (tstart tend : Time)  (p :tstart ≤ tend) :
+    Proper (equiv ==> iff) (fun m => AtomicMovesControls m tstart tend p).
+  Proof.
+    intros ? ? ?. split; apply AtomicMovesControls_wd; 
+    eauto 1 with relations.
+  Qed.
+
   
 
 Section Wriggle.
@@ -817,6 +827,34 @@ First we define what it means for a move to be an inverse of another.
           = posAtTime acs tstartr - posAtTime acs tendr
           /\ {theta acs} tstartr = {theta acs} tend).
 
+  Definition AtomicMovesControlsAux  
+      (tstart tend : Time)  (p: tstart ≤ tend) m
+       := AtomicMovesControls m tstart tend p .
+  
+   Lemma foldForProperAM : ∀ m 
+      (tstart tend : Time)  (p: tstart ≤ tend),
+      AtomicMovesControls m tstart tend p ≡
+      AtomicMovesControlsAux tstart tend p m.
+   Proof. reflexivity. Qed.
+
+  Global Instance AtomicMovesControlsAux_Proper (tstart tend : Time)  (p :tstart ≤ tend) :
+    Proper (equiv ==> iff) (AtomicMovesControlsAux tstart tend p).
+  Proof.
+    apply AtomicMovesControls_ProperM.
+  Qed.
+
+  Global Instance MovesInverseProper : Proper 
+    (equiv ==> equiv ==> iff)  MovesInverse.
+  Proof.
+    intros ? ? ? ? ? ?. unfold MovesInverse.
+    setoid_rewrite (foldForProperAM x).
+    setoid_rewrite (foldForProperAM x0).
+    setoid_rewrite  H.
+    setoid_rewrite  H0.
+    tauto.
+  Qed.
+      
+
         
   Definition AtomicMoveInv (m : AtomicMove) : AtomicMove
       := {|am_tc := am_tc m; am_distance := -(am_distance m) |}.
@@ -943,9 +981,8 @@ First we define what it means for a move to be an inverse of another.
     intros m.
     destruct m. unfold AtomicMoveInv, equiv, Equiv_AtomicMove. simpl.
     split; [| reflexivity]. apply negate_involutive.
-  Qed.    
-    
-    
+  Qed.
+
   Lemma movesControlsApp : ∀ (l r : AtomicMoves) (tstart tend: Time)
     (pr : tstart ≤ tend),
     AtomicMovesControls (l++r) _ _ pr
@@ -953,25 +990,59 @@ First we define what it means for a move to be an inverse of another.
          AtomicMovesControls l tstart tmid (proj1 p)
         /\ AtomicMovesControls r tmid tend (proj2 p).
   Proof.
-  Admitted.
+    induction l; intros.
+    - exists tstart. eexists. split; auto;[constructor; reflexivity| ].
+      simpl in H.
+      Unshelve. Focus 2. split;[apply leEq_reflexive | exact pr].
+      eapply AtomicMovesControls_wd; eauto; reflexivity.
+    - simpl in H.
+      invertAtomicMoves.
+      eapply IHl in Hr; eauto.
+      destruct Hr as [tmmid  Hr]. 
+      destruct Hr as [pm Hr].
+      repnd.
+      exists tmmid. eexists.
+      split; eauto.
+      Focus 2.
+        eapply AtomicMovesControls_wd; eauto; reflexivity.
+      econstructor; eauto.
+      Unshelve.
+      split; eauto 2 with CoRN.
+      autounfold with IRMC. unfold Le_instance_Time.
+       clear Hl.
+      apply timeLtWeaken in pl.
+      eauto 3 with CoRN.
+  Qed.
+  
+  Lemma atomicMoveInvertibleRev :
+    ∀ (m : AtomicMove), MovesInverse  [AtomicMoveInv m] [m].
+  Proof.
+    intros m. remember [AtomicMoveInv m].
+    setoid_rewrite <- MoveInvInvolutive.
+    subst.
+    apply atomicMoveInvertible.
+  Qed.
+    
+    
   
   Lemma MovesControlsSingle : ∀ (m : AtomicMove) (tstart tend: Time)
     (pr : tstart < tend),
     @AtomicMoveControls m tstart tend pr
     -> AtomicMovesControls [m] tstart tend (timeLtWeaken pr).
   Proof.
-    intros. econstructor; eauto. econstructor.
+    intros. econstructor; eauto. econstructor. reflexivity.
     Unshelve. apply leEq_reflexive.
   Qed.
 
 
-
+  
   Lemma atomicMovesInvertibleAux :
     ∀ (m : AtomicMoves), MovesInverse (AtomicMovesInv m) m.
   Proof.
     induction m as [| h tl Hind]; intros ? ? ? ? ? ? Hm Hrm Ht;
       unfold AtomicMovesInv in Hrm; simpl in Hrm.
-    - invertAtomicMoves. rewrite Ht. split;[split; simpl | reflexivity];
+    - invertAtomicMoves. unfold posAtTime.
+      rewrite Ht, Hml, Hrml. split;[split; simpl | reflexivity];
       repeat rewrite plus_negate_r; reflexivity.
     - invertAtomicMoves. rename tmid into tmidr.
       unfold AtomicMovesInv in Hm.
@@ -982,9 +1053,9 @@ First we define what it means for a move to be an inverse of another.
       destruct Hl as [prr Hl].
       repnd.
       apply MovesControlsSingle in Hrml.
-      eapply atomicMoveInvertible in Hrml; eauto.
-      specialize (Hrml Hlr).
-      eapply Hind in Hrml; eauto.
+      eapply atomicMoveInvertibleRev in Hrml; eauto.
+      specialize (Hrml Ht).
+      eapply Hind in Hrmr; eauto.
       
 End Invertability.
 

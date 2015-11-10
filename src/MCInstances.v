@@ -117,7 +117,31 @@ Inductive pointWiseRelated {A:Type} (R : A-> A -> Prop): (list A) -> (list A) ->
   R hl hr
   -> pointWiseRelated R tl tr
   -> pointWiseRelated R (hl::tl) (hr::tr).
+  
 
 (** same size and elements must be point-wise equal (upto [equiv])*)
 Global Instance Equiv_List `{Equiv A} :  Equiv (list A) :=
   (pointWiseRelated equiv).
+
+Global Instance Equivalence_List  `{Equiv A} `{@Equivalence A equiv} :
+    @Equivalence (list A) equiv.
+Proof.
+  split.
+  - intros l. induction l; constructor; eauto with relations.
+  - intros l. induction l; intros ? Heq; inversion Heq;  constructor; 
+    eauto with relations.
+    apply IHl. eauto with relations.
+  - intros l. induction l; intros ?  ? H1eq. inversion H1eq; subst.
+    tauto.
+    inversion H1eq.  subst. intros H2eq.
+    inversion H2eq. subst.  constructor; 
+    eauto with relations.
+    eapply IHl; eauto with relations.
+Qed.
+
+Global Instance Equiv_List_Cons  `{Equiv A}  :
+   Proper (equiv ==> equiv ==> equiv) cons.
+Proof.
+  intros ? ? ? ? ? ? .
+  constructor; assumption.
+Qed.
