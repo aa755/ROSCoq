@@ -1034,8 +1034,10 @@ First we define what it means for a move to be an inverse of another.
     Unshelve. apply leEq_reflexive.
   Qed.
 
+   Add Ring cart2dir : Cart2DIRRing.
+   
+   
 
-  
   Lemma atomicMovesInvertibleAux :
     ∀ (m : AtomicMoves), MovesInverse (AtomicMovesInv m) m.
   Proof.
@@ -1058,9 +1060,38 @@ First we define what it means for a move to be an inverse of another.
       specialize (Hrml Ht). repnd.
       eapply Hind in Hrmr; eauto.
       symmetry in Hrmlr.
-      specialize (Hrmr Hrmlr). repnd.
-  Abort.
-      
+      specialize (Hrmr Hrmlr). repnd. clear Hrmlr.
+      split; [clear Hrmrr | exact Hrmrr].
+      pose proof (@sg_op_proper _ _ plus  _ _ _ Hrmll _ _ Hrmrl) as Hadd.
+      clear Hrmll  Hrmrl.
+      unfold sg_op in Hadd.
+      ring_simplify in Hadd.
+      exact Hadd.
+  Qed.
+  
+  Lemma MovesInvInvolutive : ∀ (m : AtomicMoves), 
+    AtomicMovesInv (AtomicMovesInv m) = m.
+  Proof.
+    induction m;[reflexivity |].
+    unfold AtomicMovesInv. simpl.
+    rewrite map_app.
+    rewrite map_cons.
+    rewrite rev_app_distr.
+    simpl.
+    rewrite MoveInvInvolutive.
+    constructor; auto.
+  Qed.
+
+
+  Lemma atomicMovesInvertible :
+  ∀ (m : AtomicMoves), MovesInverse m (AtomicMovesInv m).
+  Proof.
+    intros m. remember (AtomicMovesInv m).
+    setoid_rewrite <- (MovesInvInvolutive m).
+    subst.
+    apply atomicMovesInvertibleAux.
+  Qed.
+  
 End Invertability.
 
 
