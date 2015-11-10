@@ -1072,8 +1072,8 @@ Section Slide.
 ([SlideAux])
 will get us to the sliding move. After [SlideAux],
 as we will prove,
-the car is parallel to its original state, but
-it has shifted a bit.
+the car's orientation is same as that in the original state, but
+it's position has shifted a bit.
 [SlideAux] is just a straight-drive move inserted between
 a wriggle and its inverse.
 Note that without this insertion, we would have been back
@@ -1085,11 +1085,40 @@ to where we started.
   Variable ddistance : IR.
   
   Local Notation SWriggle := (Wriggle tc wdistance).
-  Local Notation SWriggleInv := (Wriggle tc wdistance).
+  Local Notation SWriggleInv := (AtomicMovesInv SWriggle).
+  (** Drive a distance of [ddistance]
+    with front wheels perfectly straight.*)  
+  Local Notation DriveStraight := (mkAtomicMove 0 ddistance).
 
   Definition SlideAux : AtomicMoves 
-    := SWriggle ++ [mkAtomicMove 0 ddistance] ++ SWriggle.
+    := SWriggle ++ [DriveStraight] ++ SWriggleInv.
 
+  Variable tstart : Time.
+  Variable tend : Time.
+  Hypothesis timeInc : tstart < tend.
+  
+  (** As usual, we assume that the car executed the [SlideAux] move
+  from [tstart] to [tend], and then characterize the car's 
+  state at [tend] in terms of [tstart].*)
+  Hypothesis amsc : AtomicMovesControls SlideAux tstart tend 
+                      (timeLtWeaken timeInc).
+  Local Notation θs := ({theta acs} tstart).
+  Local Notation Xs := ({X (position acs)} tstart).
+  Local Notation Ys := ({Y (position acs)} tstart).
+
+  (** The car's orientation at the end is same as that at the start.*)
+  Lemma SlideAuxθ : {theta acs} tend =  θs.
+  Proof.
+  Abort.
+
+  Lemma SlideAuxX : {X (position acs)} tend =  
+      Xs + ddistance * (Cos (θs + 2 * tc * wdistance)).
+  Abort.
+
+  Lemma SlideAuxY : {Y (position acs)} tend =  
+      Ys + ddistance * (Sin (θs + 2 * tc * wdistance)).
+  Abort.
+  
 End Slide.
 
 End Props.
