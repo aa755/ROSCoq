@@ -145,3 +145,34 @@ Proof.
   intros ? ? ? ? ? ? .
   constructor; assumption.
 Qed.
+
+
+Global Instance LeTimeWd : Proper (equiv ==> equiv ==> iff) 
+  (@canonical_names.le Time _).
+Proof.
+  intros x y H x0 y0 H0.
+  autounfold with IRMC.
+  autounfold with IRMC in H, H0.
+  destruct x. destruct y.
+  destruct x0. destruct y0.
+  simpl in H, H0.
+  unfold Le_instance_Time. simpl.
+  rewrite H0, H. tauto. 
+Qed.
+
+Global Instance LtTimeWd : Proper (equiv ==> equiv ==> iff) (@lt Time _).
+Proof.
+  intros x y H x0 y0 H0.
+  autounfold with IRMC.
+  autounfold with IRMC in H, H0.
+  destruct x. destruct y.
+  destruct x0. destruct y0.
+  simpl in H, H0.
+  unfold Lt_instance_Time. simpl. 
+  split; intros Hh; simpl in Hh;
+  destruct Hh;  apply truncate;
+  eauto using less_wdl, less_wdr.
+  symmetry in H, H0.
+  eauto using less_wdl, less_wdr.
+Qed.
+

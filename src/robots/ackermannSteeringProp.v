@@ -287,13 +287,30 @@ and one can drive both forward and backward *)
      am_tc : IR
   }.
 
-  (** Needed because, equality on reals (IR) is different from syntactic equality 
+  (** Needed because equality on reals (IR) is different 
+      from syntactic equality 
       ([≡]). *)
-  
+      
   Global Instance Equiv_AtomicMove : Equiv AtomicMove :=
     fun (ml mr : AtomicMove) => (am_distance ml = am_distance mr) 
           /\ (am_tc ml = am_tc mr).
-     
+
+  (** To make tactics like [reflexivity] work, we needs to show
+  that the above defined custom defined equality on [AtomicMove] 
+  is an equivalence relation.*)
+  Global Instance Equivalence_instance_AtomicMove 
+    : @Equivalence (AtomicMove) equiv.
+  unfold equiv, Equiv_AtomicMove. split.
+  - intros x. destruct x. simpl. split; auto with *.
+  - intros x y. destruct x,y. simpl. intros Hd; destruct Hd;
+      split; auto with relations.
+
+  - intros x y z. destruct x,y,z. simpl. intros H0 H1.
+    repnd.
+    split; eauto 10
+    with relations.
+  Qed.
+
   Variable am : AtomicMove.
   Definition amTurn := (am_tc am) [#] 0.
   Definition amNoTurn := (am_tc am) = 0.
@@ -308,7 +325,7 @@ and one can drive both forward and backward *)
   {
     am_tdrive : Time;
 
-    (**strict inequalityes prevents impossilities like covering non-zero distance in 0 time.
+    (**strict inequalities prevents impossilities like covering non-zero distance in 0 time.
       Note that [linVel] and [turnCurvature] evolve continuously.
      *)
     am_timeInc : (tstart < am_tdrive < tend);
@@ -322,6 +339,8 @@ and one can drive both forward and backward *)
     am_driveControls : forall (t:Time), (am_tdrive ≤ t ≤ tend) 
           ->  {turnCurvature acs} t = {turnCurvature acs} am_tdrive;
           
+  (** From time [tsteer] to [drive], the steerring wheel rotates to attain a configuration 
+    with turn curvature [tc]. The brakes are firmly placed pressed.*)
    am_driveDistance : 
       let pf := (timeLtWeaken (proj2 (am_timeInc))) in 
       let driveIb := (@mkIntBnd _ am_tdrive tend pf) in 
@@ -374,17 +393,10 @@ and one can drive both forward and backward *)
     reflexivity.
   Qed.
 
-
-  (** From time [tsteer] to [drive], the steerring wheel moves to attain a configuration 
-    with turn curvature [tc]. The brakes are firmly placed pressed.*)
-
   (** Now, we characterize the position and orientation at [tdrive] and [tend] *)
   Local Notation θs := ({theta acs} tstart).
   Local Notation Xs := ({X (position acs)} tstart).
   Local Notation Ys := ({Y (position acs)} tstart).
-
-
-
 
 
   Lemma AtomicMoveθ : {theta acs} tend =  θs + tc * distance.
@@ -522,43 +534,6 @@ and one can drive both forward and backward *)
 
 End AtomicMove.
 
-  (* TODO: Move!! *)
-  Global Instance LeTimeWd : Proper (equiv ==> equiv ==> iff) 
-    (@canonical_names.le Time _).
-  Proof.
-    intros ? ? ? ? ? ?.
-    autounfold with IRMC.
-    autounfold with IRMC in H.
-    autounfold with IRMC in H0.
-    destruct x.
-    destruct y.
-    destruct x0.
-    destruct y0.
-    simpl in H, H0.
-    unfold Le_instance_Time. simpl.
-    rewrite H0, H. tauto. 
-  Qed.    
-
-  (* TODO: Move!! *)
-  Global Instance LtTimeWd : Proper (equiv ==> equiv ==> iff) (@lt Time _).
-  Proof.
-    intros ? ? ? ? ? ?.
-    autounfold with IRMC.
-    autounfold with IRMC in H.
-    autounfold with IRMC in H0.
-    destruct x.
-    destruct y.
-    destruct x0.
-    destruct y0.
-    simpl in H, H0.
-    unfold Lt_instance_Time. simpl. 
-     split; intros Hh; simpl in Hh;
-       destruct Hh;  apply truncate;
-    eauto using less_wdl, less_wdr.
-    symmetry in H, H0.
-    eauto using less_wdl, less_wdr.
-  Qed.
-
   Lemma AtomicMoveControls_wd :
   forall ml mr tstartl tstartr tendl tendr 
       (pl :tstartl < tendl) (pr :tstartr < tendr),
@@ -585,34 +560,8 @@ End AtomicMove.
    rewrite <- tr. assumption.
   Qed.
   
-  Definition AtomicMoves := list AtomicMove.
   
-  (* May need to prove that [AtomicMovesControls] is well-defined over different proofs of [Le] *)
-  
-  (** This predicate defines what it means for a car to follow 
-    a list of atomic moves.*)
-  Inductive AtomicMovesControls : AtomicMoves -> forall (tstart tend : Time),  (tstart ≤ tend) -> Prop :=
-  | amscNil : forall (tl tr:Time) (pe : tl = tr)(p: tl≤tr), 
-        AtomicMovesControls [] tl tr p
-  | amscCons : forall (tstart tmid tend:Time) (pl : tstart < tmid) (pr : tmid ≤ tend) (p : tstart ≤ tend)
-      (h: AtomicMove) (tl : AtomicMoves), 
-      @AtomicMoveControls h tstart tmid pl
-      -> AtomicMovesControls tl tmid tend pr
-      -> AtomicMovesControls (h::tl) tstart tend p.
-      
-  Instance Equivalence_instance_AtomicMove : @Equivalence (AtomicMove) equiv.
-  unfold equiv, Equiv_AtomicMove. split.
-  - intros x. destruct x. simpl. split; auto with *.
-  - intros x y. destruct x,y. simpl. intros Hd; destruct Hd;
-      split; auto with relations.
-
-  - intros x y z. destruct x,y,z. simpl. intros H0 H1.
-    repnd.
-    split; eauto 10
-    with relations.
-  Qed.
-
-  Lemma AtomicMoveControls_wdtl :
+    Lemma AtomicMoveControls_wdtl :
   forall m tstartl tstartr tend 
       (pl :tstartl < tend) (pr :tstartr < tend),
     tstartl = tstartr
@@ -632,6 +581,20 @@ End AtomicMove.
   Proof.
     intros ? ? ? ? ? ? ? ?. eapply AtomicMoveControls_wd; eauto; reflexivity.
   Qed.
+
+  Definition AtomicMoves := list AtomicMove.
+  
+  
+  (** This predicate defines what it means for a car to follow 
+    a list of atomic moves.*)
+  Inductive AtomicMovesControls : AtomicMoves -> forall (tstart tend : Time),  (tstart ≤ tend) -> Prop :=
+  | amscNil : forall (tl tr:Time) (pe : tl = tr)(p: tl≤tr), 
+        AtomicMovesControls [] tl tr p
+  | amscCons : forall (tstart tmid tend:Time) (pl : tstart < tmid) (pr : tmid ≤ tend) (p : tstart ≤ tend)
+      (h: AtomicMove) (tl : AtomicMoves), 
+      @AtomicMoveControls h tstart tmid pl
+      -> AtomicMovesControls tl tmid tend pr
+      -> AtomicMovesControls (h::tl) tstart tend p.
 
 Ltac substAtomicMoves amscrrl :=
     let pll := fresh "pll" in 
@@ -798,7 +761,13 @@ End Wriggle.
 
 Section Invertability.
 (** It turns out that any Wriggle move is reversible (invertible).
-We will prove it using 2 even more basic lemmas:
+
+Wriggle-inverse is a part of the move we will study next.
+This moves comprises of 6 atomic moves and makes the car slide
+parallel to itself in little space.
+
+To define Wriggle-inverse, we study invertability of moves in general,
+and prove:
 1) Every atomic move is inverible : keep the steering wheel at
 the same position as before and then drive the same amount in 
 the opposite direction.
@@ -807,6 +776,7 @@ the list of iverses of those atomic moves.
 
 First we define what it means for a move to be an inverse of another.
 *)
+
   Definition MovesIdentity (ams : AtomicMoves) :=
     ∀ (tstart tend : Time)  (p: tstart ≤ tend),
       AtomicMovesControls ams tstart tend p
@@ -815,7 +785,9 @@ First we define what it means for a move to be an inverse of another.
 
   (** [MovesIsInverse ams amsr] implies [MovesIdentity (ams ++ amsr)],
     but the other direction many not be true 
-    TODO : quantify over [acs] *)
+    TODO : quantify over [acs]. This extra strength is useful because
+    in the slide move below, Wriggle-inverse does not immediately
+    follow the Wriggle-move. *)
   Definition MovesInverse (ams amsr : AtomicMoves) :=
     ∀ 
       (tstart tend : Time)  (p: tstart ≤ tend)
@@ -1094,6 +1066,30 @@ First we define what it means for a move to be an inverse of another.
   
 End Invertability.
 
+Section Slide.
 
+(** Adding just one atomic move to the following move 
+([SlideAux])
+will get us to the sliding move. After [SlideAux],
+as we will prove,
+the car is parallel to its original state, but
+it has shifted a bit.
+[SlideAux] is just a straight-drive move inserted between
+a wriggle and its inverse.
+Note that without this insertion, we would have been back
+to where we started.
+*)
+  Variable tc : IR.
+  Hypothesis tcNZ : tc[#]0.
+  Variable wdistance : IR.
+  Variable ddistance : IR.
+  
+  Local Notation SWriggle := (Wriggle tc wdistance).
+  Local Notation SWriggleInv := (Wriggle tc wdistance).
+
+  Definition SlideAux : AtomicMoves 
+    := SWriggle ++ [mkAtomicMove 0 ddistance] ++ SWriggle.
+
+End Slide.
 
 End Props.
