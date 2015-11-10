@@ -153,8 +153,9 @@ Section Cases.
       autounfold with IRMC in Hb.
       unfold Le_instance_Time in Hb. 
       autounfold with TContRMC.
-      fold (CFCos (theta acs)).   
-      autorewrite with IContRApDown.
+      fold (CFCos (theta acs)).
+      (* autorewrite with IContRApDown. *)
+      rewrite IContRMultAp,IContRMultAp,IContRMultAp,IContRMultAp, CFCosAp,IContRConstAp.
       rewrite fixed with (t:=tb); [ring |].
       autounfold with IRMC.  unfold Le_instance_Time.
       unfold inBounds in Hbb. simpl in Hbb. repnd.
@@ -190,7 +191,7 @@ Section Cases.
       autounfold with IRMC in Hb.
       unfold Le_instance_Time in Hb. 
       autounfold with TContRMC.
-      autorewrite with IContRApDown.
+      rewrite IContRMultAp,IContRMultAp,IContRMultAp,IContRMultAp, CFSineAp,IContRConstAp.
       rewrite composeIContAp.
       simpl. symmetry.
       pose proof (@pfwdef2 _ Sine ({theta acs} tb) (fst Continuous_Sin ({theta acs} tb) I) I) as Hr. 
@@ -286,6 +287,13 @@ and one can drive both forward and backward *)
      am_tc : IR
   }.
 
+  (** Needed because, equality on reals (IR) is different from syntactic equality 
+      ([≡]). *)
+  
+  Global Instance Equiv_AtomicMove : Equiv AtomicMove :=
+    fun (ml mr : AtomicMove) => (am_distance ml = am_distance mr) 
+          /\ (am_tc ml = am_tc mr).
+     
   Variable am : AtomicMove.
   Definition amTurn := (am_tc am) [#] 0.
   Definition amNoTurn := (am_tc am) = 0.
@@ -293,18 +301,10 @@ and one can drive both forward and backward *)
   Variable tstart : Time.
   Variable tend : Time.
   
-  Lemma timeLtWeaken : forall {a b: Time}, a < b  -> a ≤ b.
-  Proof.
-    intros ? ? H.
-    destruct H as [X].
-    (* autounfold with IRMC. unfold Le_instance_Time.
-       info_eauto 2 with CoRN. *)
-    apply less_leEq. exact X.
-    Qed.
 
   Set Implicit Arguments.
   (** what it means for the car's controls to follow the atomic move [am] during time [tstart] to [tend] *)
-  Record AtomicMoveControls (p: tstart < tend):=
+  Record AtomicMoveControls (p: tstart < tend) : Prop :=
   {
     am_tdrive : Time;
 
@@ -522,7 +522,69 @@ and one can drive both forward and backward *)
 
 End AtomicMove.
 
+  (* TODO: Move!! *)
+  Global Instance LeTimeWd : Proper (equiv ==> equiv ==> iff) 
+    (@canonical_names.le Time _).
+  Proof.
+    intros ? ? ? ? ? ?.
+    autounfold with IRMC.
+    autounfold with IRMC in H.
+    autounfold with IRMC in H0.
+    destruct x.
+    destruct y.
+    destruct x0.
+    destruct y0.
+    simpl in H, H0.
+    unfold Le_instance_Time. simpl.
+    rewrite H0, H. tauto. 
+  Qed.    
 
+  (* TODO: Move!! *)
+  Global Instance LtTimeWd : Proper (equiv ==> equiv ==> iff) (@lt Time _).
+  Proof.
+    intros ? ? ? ? ? ?.
+    autounfold with IRMC.
+    autounfold with IRMC in H.
+    autounfold with IRMC in H0.
+    destruct x.
+    destruct y.
+    destruct x0.
+    destruct y0.
+    simpl in H, H0.
+    unfold Lt_instance_Time. simpl. 
+     split; intros Hh; simpl in Hh;
+       destruct Hh;  apply truncate;
+    eauto using less_wdl, less_wdr.
+    symmetry in H, H0.
+    eauto using less_wdl, less_wdr.
+  Qed.
+
+  Lemma AtomicMoveControls_wd :
+  forall ml mr tstartl tstartr tendl tendr 
+      (pl :tstartl < tendl) (pr :tstartr < tendr),
+    tstartl = tstartr
+    -> tendl = tendr
+    -> AtomicMoveControls ml pl
+    -> ml = mr
+    -> AtomicMoveControls mr pr.
+  Proof.
+    intros ? ? ? ? ? ? ? ?  tl tr Hl Heq.
+    destruct Hl.
+    rewrite (proj2 Heq) in  am_steeringControls0.
+    simpl in am_driveDistance0.
+    setoid_rewrite tl in am_steeringControls0.
+    setoid_rewrite tr in am_driveControls0 .
+    setoid_rewrite (proj1 Heq) in am_driveDistance0.
+   econstructor; eauto. simpl.
+   rewrite am_driveDistance0.
+   apply Cintegral_wd;[| reflexivity].
+   simpl. rewrite tr.
+   split; reflexivity.
+   Unshelve.
+   rewrite <- tl.
+   rewrite <- tr. assumption.
+  Qed.
+  
   Definition AtomicMoves := list AtomicMove.
   
   (* May need to prove that [AtomicMovesControls] is well-defined over different proofs of [Le] *)
@@ -530,19 +592,55 @@ End AtomicMove.
   (** This predicate defines what it means for a car to follow 
     a list of atomic moves.*)
   Inductive AtomicMovesControls : AtomicMoves -> forall (tstart tend : Time),  (tstart ≤ tend) -> Prop :=
-  | amscNil : forall (t:Time) (p: t≤t), AtomicMovesControls [] t t p
+  | amscNil : forall (tl tr:Time) (pe : tl = tr)(p: tl≤tr), 
+        AtomicMovesControls [] tl tr p
   | amscCons : forall (tstart tmid tend:Time) (pl : tstart < tmid) (pr : tmid ≤ tend) (p : tstart ≤ tend)
       (h: AtomicMove) (tl : AtomicMoves), 
       @AtomicMoveControls h tstart tmid pl
       -> AtomicMovesControls tl tmid tend pr
       -> AtomicMovesControls (h::tl) tstart tend p.
+      
+      (*
+  Lemma AtomicMovesControls_wd :
+    forall ml mr tstartl tstartr tendl tendr 
+      (pl :tstartl ≤ tendl) (pr :tstartr ≤ tendr),
+    tstartl = tstartr
+    -> tendl = tendr
+    -> AtomicMovesControls ml _ _ pl
+    -> ml = mr
+    -> AtomicMovesControls mr _ _ pr.
+  Proof.
+   intros ? ? ? ? ? ? ? ? ? ? Hl meq.
+   induction meq.
+   - rewrite Hl. subst. constructor. 
+  Global Instance AtomicMovesControls_ProperM (tstart tend : Time)  (p :tstart ≤ tend) :
+    (equiv ==> iff) (fun m => AtomicMovesControls tstart tend p).
+    *)
+
 Ltac invertAtomicMoves :=
+  (repeat match goal with
+    [ H: AtomicMovesControls _ _ _ _ |- _] =>
+      let Hl := fresh H "l" in
+      let Hr := fresh H "r" in
+      let pl := fresh H "pl" in
+      let pr := fresh H "pr" in
+      (inverts H as Hl Hr pl pr;[]) 
+  (* invert only if only 1 case results. o/w inf. loop will result if there are fvars*)
+  end);
   repeat match goal with
-  [ H: AtomicMovesControls _ _ _ _ |- _] =>
-    let Hl := fresh H "l" in
-    let Hr := fresh H "r" in
-      inverts H as Hl Hr
-      end; clears_last; clears_last.
+    [ H: eq ?x ?x |- _] => clear H
+    | [ H: le ?x ?x |- _] => clear H
+  end.
+  
+  Lemma BetterInvertAtomicMovesControlsSingeton : 
+    forall (m:AtomicMove) (tstart tend : Time)  (p:tstart ≤ tend),
+    AtomicMovesControls [m] tstart tend p
+    ->  {pr : tstart < tend | AtomicMoveControls m pr}.
+  Proof.
+    intros? ? ? ? Ha.
+    inverts Ha.
+    
+  
 
 Section Wriggle.
 (** Now consider a 
@@ -594,14 +692,56 @@ Informally it denotes the following motion :
   
   Hint Unfold One_instance_IR : IRMC.
       
+      
+  Instance Equivalence_instance_AtomicMove : @Equivalence (AtomicMove) equiv.
+  unfold equiv, Equiv_AtomicMove. split.
+  - intros x. destruct x. simpl. split; auto with *.
+  - intros x y. destruct x,y. simpl. intros Hd; destruct Hd;
+      split; auto with relations.
 
-  Lemma Wriggleθ : {theta acs} tend =  θs + 2 * tc * distance.
+  - intros x y z. destruct x,y,z. simpl. intros H0 H1.
+    repnd.
+    split; eauto 10
+    with relations.
+  Qed.
+
+  Lemma AtomicMoveControls_wdtl :
+  forall m tstartl tstartr tend 
+      (pl :tstartl < tend) (pr :tstartr < tend),
+    tstartl = tstartr
+    -> AtomicMoveControls m pl
+    -> AtomicMoveControls m pr.
   Proof.
   
-  invertAtomicMoves. 
+    intros ? ? ? ? ? ? ? ?. eapply AtomicMoveControls_wd; eauto; reflexivity.
+  Qed.
+
+  Lemma AtomicMoveControls_wdtr :
+  forall m tstart tendl tendr 
+      (pl :tstart < tendl) (pr :tstart < tendr),
+    tendl = tendr
+    -> AtomicMoveControls m pl
+    -> AtomicMoveControls m pr.
+  Proof.
+    intros ? ? ? ? ? ? ? ?. eapply AtomicMoveControls_wd; eauto; reflexivity.
+  Qed.
+  
+  Lemma Wriggleθ : {theta acs} tend =  θs + 2 * tc * distance.
+  Proof.
+    invertAtomicMoves.
+    match type of amscrrl with
+    []
+    pose proof pl0 as pll.
+    rewrite amscrrl in pll.
+    pose proof (@AtomicMoveControls_wdtr _ _ _ _ pl0 pll amscrrl amscrl).
+    clear dependent tmid0.
+    
+    revert amscrl.
+    revert pl0.
+    simpl. rewrite amscrrl. clear pr0 amscrrl.
     apply AtomicMoveθ in amscl.
     apply AtomicMoveθ in amscrl.
-    simpl in amscl, amscrl.
+    simpl in amscl, amscrl. rewrite amscrrl in amscrl.
     rewrite amscrl, amscl.
     autounfold with IRMC. ring.    
   Qed.
@@ -650,7 +790,7 @@ the list of iverses of those atomic moves.
 First we define what it means for a move to be an inverse of another.
 *)
   Definition MovesIdentity (ams : AtomicMoves) :=
-    forall (tstart tend : Time)  (p: tstart ≤ tend),
+    ∀ (tstart tend : Time)  (p: tstart ≤ tend),
       AtomicMovesControls ams tstart tend p
       -> (posAtTime acs tstart = posAtTime acs tend 
           /\ {theta acs} tstart = {theta acs} tend).
@@ -659,7 +799,7 @@ First we define what it means for a move to be an inverse of another.
     but the other direction many not be true 
     TODO : quantify over [acs] *)
   Definition MovesInverse (ams amsr : AtomicMoves) :=
-    forall 
+    ∀ 
       (tstart tend : Time)  (p: tstart ≤ tend)
       (tstartr tendr : Time)  (pr: tstartr ≤ tendr),
       AtomicMovesControls ams tstart tend p
@@ -677,7 +817,7 @@ First we define what it means for a move to be an inverse of another.
       := rev (List.map AtomicMoveInv ms).
 
   Lemma atomicMoveInvertibleθ :
-    forall m
+    ∀ m
       (tstart tend : Time)  (p: tstart < tend)
       (tstartr tendr : Time)  (pr: tstartr < tendr),
       AtomicMoveControls m  p
@@ -697,7 +837,7 @@ First we define what it means for a move to be an inverse of another.
   (** The equations for X coordinate are different, based on whether the steering wheel is perfectly
       straight or not. The double negation trick works while proving equality *)
   Lemma atomicMoveInvertibleX :
-    forall m
+    ∀ m
       (tstart tend : Time)  (p: tstart < tend)
       (tstartr tendr : Time)  (pr: tstartr < tendr),
       AtomicMoveControls m  p
@@ -737,7 +877,7 @@ First we define what it means for a move to be an inverse of another.
     Qed.
   (** just replace X by Y in the proof above *)
   Lemma atomicMoveInvertibleY :
-    forall m
+    ∀ m
       (tstart tend : Time)  (p: tstart < tend)
       (tstartr tendr : Time)  (pr: tstartr < tendr),
       AtomicMoveControls m  p
@@ -777,7 +917,7 @@ First we define what it means for a move to be an inverse of another.
     Qed.
 
   Lemma atomicMoveInvertible :
-    forall (m : AtomicMove), MovesInverse [m] [AtomicMoveInv m].
+    ∀ (m : AtomicMove), MovesInverse [m] [AtomicMoveInv m].
   Proof.
     intros m ? ? ? ? ? ? ?.
     invertAtomicMoves.
@@ -789,31 +929,56 @@ First we define what it means for a move to be an inverse of another.
     - eapply atomicMoveInvertibleθ in Hl0; eauto.
   Qed.
 
-
-Ltac invertAtomicMoves :=
-  repeat match goal with
-    [ H: AtomicMovesControls (_::_) _ _ ?p |- _] =>
-      let Hl := fresh H "l" in
-      let Hr := fresh H "r" in
-      let pl := fresh p "l" in
-      let pr := fresh p "r" in
-      inverts H as Hl Hr pl pr
-  | [ H: AtomicMovesControls ([]) _ _ ?p |- _] =>
-      let Hl := fresh H "l" in
-      let Hr := fresh H "r" in
-      inverts H as Hl Hr p; clear Hl; clear Hr; clear p
-  end.
-
-  Lemma atomicMovesInvertible :
-    forall (m : AtomicMoves), MovesInverse m (AtomicMovesInv m).
+  Lemma MoveInvInvolutive : ∀ (m : AtomicMove), 
+    AtomicMoveInv (AtomicMoveInv m) = m.
   Proof.
-    induction m as [| t tl Hind]; intros ? ? ? ? ? ? Hm Hrm Ht;
+    intros m.
+    destruct m. unfold AtomicMoveInv, equiv, Equiv_AtomicMove. simpl.
+    split; [| reflexivity]. apply negate_involutive.
+  Qed.    
+    
+    Print Instances Equiv.
+    
+  Lemma movesControlsApp : ∀ (l r : AtomicMoves) (tstart tend: Time)
+    (pr : tstart ≤ tend),
+    AtomicMovesControls (l++r) _ _ pr
+    -> exists (tmid : Time), exists (p : tstart ≤ tmid ≤ tend),
+         AtomicMovesControls l tstart tmid (proj1 p)
+        /\ AtomicMovesControls r tmid tend (proj2 p).
+  Proof.
+  Admitted.
+  
+  Lemma MovesControlsSingle : ∀ (m : AtomicMove) (tstart tend: Time)
+    (pr : tstart < tend),
+    @AtomicMoveControls m tstart tend pr
+    -> AtomicMovesControls [m] tstart tend (timeLtWeaken pr).
+  Proof.
+    intros. econstructor; eauto. econstructor.
+    Unshelve. apply leEq_reflexive.
+  Qed.
+
+
+
+  Lemma atomicMovesInvertibleAux :
+    ∀ (m : AtomicMoves), MovesInverse (AtomicMovesInv m) m.
+  Proof.
+    induction m as [| h tl Hind]; intros ? ? ? ? ? ? Hm Hrm Ht;
       unfold AtomicMovesInv in Hrm; simpl in Hrm.
     - invertAtomicMoves. rewrite Ht. split;[split; simpl | reflexivity];
       repeat rewrite plus_negate_r; reflexivity.
-    - invertAtomicMoves. inverts Hrm as Hl Hr pl pr. Focus 2.
-  Abort.
-
+    - invertAtomicMoves. rename tmid into tmidr.
+      unfold AtomicMovesInv in Hm.
+      rename Hm into Hl.
+      simpl in Hl.
+      apply movesControlsApp in Hl.
+      destruct Hl as [tmid Hl].
+      destruct Hl as [prr Hl].
+      repnd.
+      apply MovesControlsSingle in Hrml.
+      eapply atomicMoveInvertible in Hrml; eauto.
+      specialize (Hrml Hlr).
+      eapply Hind in Hrml; eauto.
+      
 End Invertability.
 
 

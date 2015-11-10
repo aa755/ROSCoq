@@ -87,6 +87,18 @@ Hint Unfold mult plus one zero Mult_instance_TContR Plus_instance_TContR One_ins
 
 Global Instance Le_instance_Time : Le Time := fun x y => x [<=] y.
 
+  (** The typeclass [Lt] is defined in the Prop universe. It cannot have constructive content.*)
+Global Instance Lt_instance_Time : Lt Time := fun x y => Truncate (x [<] y).
+
+  Lemma timeLtWeaken : forall {a b: Time}, (a < b  -> a ≤ b)%mc.
+  Proof.
+    intros ? ? H.
+    destruct H as [X].
+    (* autounfold with IRMC. unfold Le_instance_Time.
+       info_eauto 2 with CoRN. *)
+    apply less_leEq. exact X.
+    Qed.
+
 Global Instance Equivalence_instance_Subcseteq  
   (S : CSetoid) (P : S → CProp) : 
       @Equivalence (subcsetoid_crr S P) (subcsetoid_eq S P).
@@ -98,5 +110,14 @@ split.
 - exact T.
 Qed.
   
-  (** The typeclass [Lt] is defined in the Prop universe. It cannot have constructive content.*)
-Global Instance Lt_instance_Time : Lt Time := fun x y => Truncate (x [<] y).
+
+Inductive pointWiseRelated {A:Type} (R : A-> A -> Prop): (list A) -> (list A) -> Prop :=
+| prnil : pointWiseRelated R nil nil
+| prcols : forall (hl hr : A) (tl tr : list A),
+  R hl hr
+  -> pointWiseRelated R tl tr
+  -> pointWiseRelated R (hl::tl) (hr::tr).
+
+(** same size and elements must be point-wise equal (upto [equiv])*)
+Global Instance Equiv_List `{Equiv A} :  Equiv (list A) :=
+  (pointWiseRelated equiv).
