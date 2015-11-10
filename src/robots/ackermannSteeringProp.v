@@ -825,7 +825,7 @@ First we define what it means for a move to be an inverse of another.
       -> {theta acs} tstartr = {theta acs} tend 
       -> (posAtTime acs tend - posAtTime acs tstart
           = posAtTime acs tstartr - posAtTime acs tendr
-          /\ {theta acs} tstartr = {theta acs} tend).
+          /\ {theta acs} tstart = {theta acs} tendr).
 
   Definition AtomicMovesControlsAux  
       (tstart tend : Time)  (p: tstart ≤ tend) m
@@ -1041,7 +1041,8 @@ First we define what it means for a move to be an inverse of another.
   Proof.
     induction m as [| h tl Hind]; intros ? ? ? ? ? ? Hm Hrm Ht;
       unfold AtomicMovesInv in Hrm; simpl in Hrm.
-    - invertAtomicMoves. unfold posAtTime.
+    - invertAtomicMoves. unfold posAtTime. rewrite <- Hml in Ht. 
+      rewrite Hrml in Ht.
       rewrite Ht, Hml, Hrml. split;[split; simpl | reflexivity];
       repeat rewrite plus_negate_r; reflexivity.
     - invertAtomicMoves. rename tmid into tmidr.
@@ -1054,8 +1055,11 @@ First we define what it means for a move to be an inverse of another.
       repnd.
       apply MovesControlsSingle in Hrml.
       eapply atomicMoveInvertibleRev in Hrml; eauto.
-      specialize (Hrml Ht).
+      specialize (Hrml Ht). repnd.
       eapply Hind in Hrmr; eauto.
+      symmetry in Hrmlr.
+      specialize (Hrmr Hrmlr). repnd.
+  Abort.
       
 End Invertability.
 
