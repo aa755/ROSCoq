@@ -304,7 +304,7 @@ and one can drive both forward and backward *)
 
   Set Implicit Arguments.
   (** what it means for the car's controls to follow the atomic move [am] during time [tstart] to [tend] *)
-  Record AtomicMoveControls (p: tstart < tend) : Prop :=
+  Record AtomicMoveControls (p: tstart < tend) : Type :=
   {
     am_tdrive : Time;
 
@@ -617,6 +617,53 @@ End AtomicMove.
     (equiv ==> iff) (fun m => AtomicMovesControls tstart tend p).
     *)
 
+  Instance Equivalence_instance_AtomicMove : @Equivalence (AtomicMove) equiv.
+  unfold equiv, Equiv_AtomicMove. split.
+  - intros x. destruct x. simpl. split; auto with *.
+  - intros x y. destruct x,y. simpl. intros Hd; destruct Hd;
+      split; auto with relations.
+
+  - intros x y z. destruct x,y,z. simpl. intros H0 H1.
+    repnd.
+    split; eauto 10
+    with relations.
+  Qed.
+
+  Lemma AtomicMoveControls_wdtl :
+  forall m tstartl tstartr tend 
+      (pl :tstartl < tend) (pr :tstartr < tend),
+    tstartl = tstartr
+    -> AtomicMoveControls m pl
+    -> AtomicMoveControls m pr.
+  Proof.
+  
+    intros ? ? ? ? ? ? ? ?. eapply AtomicMoveControls_wd; eauto; reflexivity.
+  Qed.
+
+  Lemma AtomicMoveControls_wdtr :
+  forall m tstart tendl tendr 
+      (pl :tstart < tendl) (pr :tstart < tendr),
+    tendl = tendr
+    -> AtomicMoveControls m pl
+    -> AtomicMoveControls m pr.
+  Proof.
+    intros ? ? ? ? ? ? ? ?. eapply AtomicMoveControls_wd; eauto; reflexivity.
+  Qed.
+
+Ltac substAtomicMoves amscrrl :=
+    let pll := fresh "pll" in 
+    let Hf := fresh "Hf" in 
+    match type of amscrrl with
+    ?l = _ => match goal with
+        [  amscrl: @AtomicMoveControls _ _ l ?pl0 |- _]
+        =>
+    pose proof pl0 as pll;
+    rewrite amscrrl in pll;
+    pose proof (@AtomicMoveControls_wdtr _ _ _ _ 
+      pl0 pll amscrrl amscrl) as Hf; clear dependent l
+      end
+      end.
+
 Ltac invertAtomicMoves :=
   (repeat match goal with
     [ H: AtomicMovesControls _ _ _ _ |- _] =>
@@ -624,7 +671,8 @@ Ltac invertAtomicMoves :=
       let Hr := fresh H "r" in
       let pl := fresh H "pl" in
       let pr := fresh H "pr" in
-      (inverts H as Hl Hr pl pr;[]) 
+      (inverts H as Hl Hr pl pr;[]);
+      try  substAtomicMoves Hl
   (* invert only if only 1 case results. o/w inf. loop will result if there are fvars*)
   end);
   repeat match goal with
@@ -632,6 +680,7 @@ Ltac invertAtomicMoves :=
     | [ H: le ?x ?x |- _] => clear H
   end.
   
+  (*
   Lemma BetterInvertAtomicMovesControlsSingeton : 
     forall (m:AtomicMove) (tstart tend : Time)  (p:tstart ≤ tend),
     AtomicMovesControls [m] tstart tend p
@@ -639,6 +688,7 @@ Ltac invertAtomicMoves :=
   Proof.
     intros? ? ? ? Ha.
     inverts Ha.
+  *)
     
   
 
@@ -693,56 +743,14 @@ Informally it denotes the following motion :
   Hint Unfold One_instance_IR : IRMC.
       
       
-  Instance Equivalence_instance_AtomicMove : @Equivalence (AtomicMove) equiv.
-  unfold equiv, Equiv_AtomicMove. split.
-  - intros x. destruct x. simpl. split; auto with *.
-  - intros x y. destruct x,y. simpl. intros Hd; destruct Hd;
-      split; auto with relations.
-
-  - intros x y z. destruct x,y,z. simpl. intros H0 H1.
-    repnd.
-    split; eauto 10
-    with relations.
-  Qed.
-
-  Lemma AtomicMoveControls_wdtl :
-  forall m tstartl tstartr tend 
-      (pl :tstartl < tend) (pr :tstartr < tend),
-    tstartl = tstartr
-    -> AtomicMoveControls m pl
-    -> AtomicMoveControls m pr.
-  Proof.
-  
-    intros ? ? ? ? ? ? ? ?. eapply AtomicMoveControls_wd; eauto; reflexivity.
-  Qed.
-
-  Lemma AtomicMoveControls_wdtr :
-  forall m tstart tendl tendr 
-      (pl :tstart < tendl) (pr :tstart < tendr),
-    tendl = tendr
-    -> AtomicMoveControls m pl
-    -> AtomicMoveControls m pr.
-  Proof.
-    intros ? ? ? ? ? ? ? ?. eapply AtomicMoveControls_wd; eauto; reflexivity.
-  Qed.
   
   Lemma Wriggleθ : {theta acs} tend =  θs + 2 * tc * distance.
   Proof.
-    invertAtomicMoves.
-    match type of amscrrl with
-    []
-    pose proof pl0 as pll.
-    rewrite amscrrl in pll.
-    pose proof (@AtomicMoveControls_wdtr _ _ _ _ pl0 pll amscrrl amscrl).
-    clear dependent tmid0.
-    
-    revert amscrl.
-    revert pl0.
-    simpl. rewrite amscrrl. clear pr0 amscrrl.
+    invertAtomicMoves. rename Hf into amscrl.
     apply AtomicMoveθ in amscl.
     apply AtomicMoveθ in amscrl.
-    simpl in amscl, amscrl. rewrite amscrrl in amscrl.
-    rewrite amscrl, amscl.
+    simpl in amscl, amscrl. rewrite amscl in amscrl.
+    rewrite amscrl.
     autounfold with IRMC. ring.    
   Qed.
 
@@ -755,7 +763,7 @@ Informally it denotes the following motion :
     pose proof Wriggleθ as XX.
     invertAtomicMoves.
     rename amscl into Hl.
-    rename amscrl into Hrr.
+    rename Hf into Hrr.
     pose proof Hl as Hlt.
     apply AtomicMoveθ in Hlt.
     apply AtomicMoveX with (tcNZ:= tcNZ) in Hl.
@@ -926,7 +934,7 @@ First we define what it means for a move to be an inverse of another.
     split; [split |].
     - eapply atomicMoveInvertibleX; eauto.
     - eapply atomicMoveInvertibleY; eauto.
-    - eapply atomicMoveInvertibleθ in Hl0; eauto.
+    - eapply atomicMoveInvertibleθ in Hf0; eauto.
   Qed.
 
   Lemma MoveInvInvolutive : ∀ (m : AtomicMove), 
@@ -937,7 +945,6 @@ First we define what it means for a move to be an inverse of another.
     split; [| reflexivity]. apply negate_involutive.
   Qed.    
     
-    Print Instances Equiv.
     
   Lemma movesControlsApp : ∀ (l r : AtomicMoves) (tstart tend: Time)
     (pr : tstart ≤ tend),
