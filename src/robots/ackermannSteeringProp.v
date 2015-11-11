@@ -1234,11 +1234,30 @@ to where we started.
   Proof.
     intros. reflexivity.
   Qed.
+
+  Global Instance HalfNumIR : HalfNum IR:= Half.
+  
+  Lemma PiBy2DesugarIR : ½ * π =  Pi [/]TwoNZ.
+  Proof.
+    rewrite mult_comm.
+    apply mult_wd;[reflexivity|].
+    apply (@mult_cancel_rht _ _ _ Two);[apply two_ap_zero|].
+    unfold half_num, HalfNumIR, Half.
+    unfold cf_div.
+    rewrite <- mult_assoc_unfolded.
+    rewrite field_mult_inv_op. ring.
+  Qed.
+  
+  (** the car's final orientation is same as before, and 
+  its position changes in the direction that is at a right angle [(½ * π)]
+  to its orientation, i.e., it is a parallel move. 
+  The distance moved is [ddistance * Sin  θw].
+  *)
   
   Lemma ParallelState : {theta acs} tend =  θs /\
     let θw := 2 * tc * wdistance in 
     posAtTime acs tend 
-      = ps + (sameXY (ddistance * Sin  θw)) * unitVec (θs + Pi [/]TwoNZ).
+      = ps + (sameXY (ddistance * Sin  θw)) * unitVec (θs + (½ * π)).
   Proof.
     unfold ParallelMove in amsc.
     apply movesControlsApp in amsc.
@@ -1267,6 +1286,7 @@ to where we started.
     rewrite unitVecLemma1 in Hfr.
     rewrite <- sameXYMult.
     rewrite  <- (@mult_assoc (Cart2D IR)); [|eauto with typeclass_instances].
+    rewrite PiBy2DesugarIR.
     exact Hfr.
   Qed.
 
