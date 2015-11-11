@@ -33,6 +33,10 @@ Require Export ackermannSteering.
 
 Require Export CartIR.
 
+(* TODO:Move *)
+(** The 2D vector pointing in the direction of θ.*)
+Definition unitVec (θ:IR) : Cart2D IR := {|X:= Cos θ; Y:= Sin θ|}.
+
 Ltac IRring := autounfold with IRMC; unfold cg_minus; try ring;
                 simpl; ring.
 
@@ -533,7 +537,7 @@ and one can drive both forward and backward *)
 
    Lemma AtomicMoveFinal : {theta acs} tend =  θs /\
      posAtTime acs tend =
-     Ps + {|X:=distance * (Cos θs); Y:=distance * (Sin θs)|}.
+     Ps + (sameXY distance) * (unitVec θs).
    Proof.
      split;[apply AtomicMoveZθ;split; timeReasoning|].
      split; simpl; [apply AtomicMoveZX | apply AtomicMoveZY].
@@ -1089,6 +1093,7 @@ First we define what it means for a move to be an inverse of another.
   
 End Invertability.
 
+
 Section Parallel.
 
 (** Adding just one atomic move to the following move 
@@ -1133,11 +1138,16 @@ to where we started.
   intros ? ? Hh . rewrite Hh. reflexivity.
   Qed.
   
+(*   TODO: Move *)
+  Global Instance unitVecProper : Proper (equiv ==> equiv) unitVec. 
+     intros ? ? H.  unfold unitVec. rewrite H. reflexivity.
+  Qed. 
+  
   (** The car's orientation at the end is same as that at the start.*)
   Lemma ParallelAuxState : {theta acs} tend =  θs /\
     let θw := θs + 2 * tc * wdistance in 
     posAtTime acs tend 
-      = ps + {|X:= ddistance * Cos θw; Y:= ddistance * Sin θw|}.
+      = ps + (sameXY ddistance) * (unitVec θw).
   Proof.
     unfold ParallelAux in amsc.
     apply movesControlsApp in amsc.
@@ -1170,6 +1180,21 @@ to where we started.
 
   End ParallelAux.
   
+(*  TODO:Move Is there a good name for this lemma? *)
+  
+  Lemma unitVecLemma1 : forall θs θw, (unitVec (θs + θw) - sameXY (Cos θw) * unitVec θs)
+  = (sameXY (Sin  θw)) * unitVec (θs + Pi [/]TwoNZ).
+  Proof.
+    intros ? ?.
+    unfold sameXY, unitVec.
+    autounfold with IRMC.
+    rewrite Sin_plus_HalfPi.
+    rewrite Cos_plus_HalfPi.
+     simpl. split; simpl; autounfold with IRMC;
+    [rewrite Cos_plus | rewrite Sin_plus]; try IRring.
+  Qed.
+    
+  
   (** After [ParallelAux], the car is in the same orientation as before, but it has position
     has changed. For a parallel move, we just have drive straight to cancel outMsgsAux
     the component of 
@@ -1192,11 +1217,58 @@ to where we started.
   Local Notation θs := ({theta acs} tstart).
   Local Notation ps := (posAtTime acs tstart).
   
-  Lemma ParallelState : {theta acs} tend =  θs /\
-    posAtTime acs tend 
-      = ps + {|X:= ddistance * Sin θs; Y:= - ddistance * Cos θs|}.
+  Lemma sameXYMult `{Ring A}: ∀ a b : A,
+     sameXY a * sameXY b = sameXY (a * b).
   Proof.
-  Abort.
+    intros. reflexivity.
+  Qed.
+  
+(*   TODO:There is already a less general lemma of same name. Replace it *)
+  Lemma sameXYAdd `{Ring A}: ∀ a b : A,
+     sameXY a + sameXY b = sameXY (a + b).
+  Proof.
+    intros. reflexivity.
+  Qed.
+  Lemma sameXYNegate `{Ring A}: ∀ a : A,
+     sameXY (-a) = - (sameXY a).
+  Proof.
+    intros. reflexivity.
+  Qed.
+  
+  Lemma ParallelState : {theta acs} tend =  θs /\
+    let θw := 2 * tc * wdistance in 
+    posAtTime acs tend 
+      = ps + (sameXY (ddistance * Sin  θw)) * unitVec (θs + Pi [/]TwoNZ).
+  Proof.
+    unfold ParallelMove in amsc.
+    apply movesControlsApp in amsc.
+    destruct amsc as [tds Hams]. (* ds for drive straight *)
+    clear amsc.
+    destruct Hams as [pds Hams]. repnd.
+    apply ParallelAuxState in Hamsl.
+    invertAtomicMoves.
+    apply AtomicMoveFinal in Hf;[|unfold amNoTurn;  reflexivity].
+    simpl in Hf. repnd.
+    rewrite Hamsll in Hfl.
+    rewrite Hamsll in Hfr.
+    split;[assumption|]. clear Hamsll Hfl.
+    rewrite Hamslr in Hfr. clear Hamslr pll pdsl pdsr.
+    remember (2 * tc * wdistance) as θw.
+    clear Heqθw.
+    rewrite <- sameXYMult in Hfr.
+    rewrite sameXYNegate in Hfr.
+    rewrite  <- (@mult_assoc (Cart2D IR)) in Hfr ; [|eauto with typeclass_instances].
+    
+    rewrite <- negate_mult_distr_l in Hfr.
+    rewrite negate_mult_distr_r in Hfr.
+    rewrite  <- (@plus_assoc (Cart2D IR)) in Hfr; [|eauto with typeclass_instances].
+    setoid_rewrite  <- (@plus_mult_distr_l (Cart2D IR)) in Hfr;
+       [|eauto with typeclass_instances].
+    rewrite unitVecLemma1 in Hfr.
+    rewrite <- sameXYMult.
+    rewrite  <- (@mult_assoc (Cart2D IR)); [|eauto with typeclass_instances].
+    exact Hfr.
+  Qed.
 
 End Parallel.
 
