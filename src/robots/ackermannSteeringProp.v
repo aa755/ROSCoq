@@ -397,6 +397,7 @@ and one can drive both forward and backward *)
   Local Notation θs := ({theta acs} tstart).
   Local Notation Xs := ({X (position acs)} tstart).
   Local Notation Ys := ({Y (position acs)} tstart).
+  Local Notation Ps := (posAtTime acs tstart).
 
 
   Lemma AtomicMoveθ : {theta acs} tend =  θs + tc * distance.
@@ -528,6 +529,14 @@ and one can drive both forward and backward *)
       apply mult_wd;[| reflexivity].
       apply Sin_wd.
       apply AtomicMoveZθ.  exact Hb.
+   Qed.
+
+   Lemma AtomicMoveFinal : {theta acs} tend =  θs /\
+     posAtTime acs tend =
+     Ps + {|X:=distance * (Cos θs); Y:=distance * (Sin θs)|}.
+   Proof.
+     split;[apply AtomicMoveZθ;split; timeReasoning|].
+     split; simpl; [apply AtomicMoveZX | apply AtomicMoveZY].
    Qed.
 
   End TCZ.
@@ -701,10 +710,10 @@ Informally it denotes the following motion :
   
   Variable tstart : Time.
   Variable tend : Time.
-  Hypothesis timeInc : tstart < tend.
+  Hypothesis timeInc : tstart ≤ tend.
   
   Hypothesis amsc : AtomicMovesControls Wriggle tstart tend 
-                      (timeLtWeaken timeInc).
+                      (timeInc).
   
   
   (** Now, we characterize the position and orientation at endpoints of each phase*)
@@ -758,6 +767,21 @@ Informally it denotes the following motion :
 
 End Wriggle.
 
+(*  Lemma Wriggleθ2  
+  `{AtomicMovesControls (Wriggle tc distance) tstart tend p} :
+  {theta acs} tend =  {theta acs} tstart + 2 * tc * distance.
+  Proof.
+    
+    invertAtomicMoves. rename Hf into amscrl.
+    apply AtomicMoveθ in amscl.
+    apply AtomicMoveθ in amscrl.
+    simpl in amscl, amscrl. rewrite amscl in amscrl.
+    rewrite amscrl.
+    autounfold with IRMC. ring.    
+  Qed.
+*)
+
+   Add Ring cart2dir : Cart2DIRRing.
 
 Section Invertability.
 (** It turns out that any Wriggle move is reversible (invertible).
@@ -1006,7 +1030,6 @@ First we define what it means for a move to be an inverse of another.
     Unshelve. apply leEq_reflexive.
   Qed.
 
-   Add Ring cart2dir : Cart2DIRRing.
    
    
 
@@ -1088,7 +1111,7 @@ to where we started.
   Local Notation SWriggleInv := (AtomicMovesInv SWriggle).
   (** Drive a distance of [ddistance]
     with front wheels perfectly straight.*)  
-  Local Notation DriveStraight := (mkAtomicMove 0 ddistance).
+  Local Notation DriveStraight := {| am_distance := ddistance ; am_tc := 0|}.
 
   Definition SlideAux : AtomicMoves 
     := SWriggle ++ [DriveStraight] ++ SWriggleInv.
@@ -1105,6 +1128,10 @@ to where we started.
   Local Notation θs := ({theta acs} tstart).
   Local Notation ps := (posAtTime acs tstart).
 
+  Lemma RingNegateProper `{Ring A} : Proper (equiv ==> equiv) (@negate A _).
+  intros ? ? Hh . rewrite Hh. reflexivity.
+  Qed.
+  
   (** The car's orientation at the end is same as that at the start.*)
   Lemma SlideAuxState : {theta acs} tend =  θs /\
     let θw := θs + 2 * tc * wdistance in 
@@ -1125,8 +1152,20 @@ to where we started.
     pose proof Hw as Hwb. (** needed for θw *)
     eapply atomicMovesInvertible in Hw; eauto.
     specialize (Hw Hwr). clear Hwr.
+    apply Wriggleθ in Hwb.
     invertAtomicMoves.
-  Abort.
+    apply AtomicMoveFinal in Hf;[|unfold amNoTurn;  reflexivity].
+    simpl in Hf. repnd.
+    specialize (Hw Hfl).
+    repnd. symmetry in Hwr.
+    split;[assumption|]. rewrite Hwb in Hfr.
+    clear Hwb Hwr Hfl pll. rewrite Hfr in Hwl. clear Hfr.
+    rewrite  <- (@plus_assoc (Cart2D IR)) in Hwl; [|eauto with typeclass_instances].
+    apply (@left_cancellation ) in Hwl; [|apply groups.LeftCancellation_instance_0].
+    apply (RingNegateProper ) in Hwl.
+    rewrite negate_involutive in Hwl.
+    rewrite Hwl. ring.
+    Qed.
   
 End Slide.
 
