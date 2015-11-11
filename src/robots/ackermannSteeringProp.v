@@ -1089,15 +1089,15 @@ First we define what it means for a move to be an inverse of another.
   
 End Invertability.
 
-Section Slide.
+Section Parallel.
 
 (** Adding just one atomic move to the following move 
-([SlideAux])
-will get us to the sliding move. After [SlideAux],
+([ParallelAux])
+will get us to the sliding move. After [ParallelAux],
 as we will prove,
 the car's orientation is same as that in the original state, but
 it's position has shifted a bit.
-[SlideAux] is just a straight-drive move inserted between
+[ParallelAux] is just a straight-drive move inserted between
 a wriggle and its inverse.
 Note that without this insertion, we would have been back
 to where we started.
@@ -1113,18 +1113,19 @@ to where we started.
     with front wheels perfectly straight.*)  
   Local Notation DriveStraight := {| am_distance := ddistance ; am_tc := 0|}.
 
-  Definition SlideAux : AtomicMoves 
+  Definition ParallelAux : AtomicMoves 
     := SWriggle ++ [DriveStraight] ++ SWriggleInv.
 
+  Section ParallelAux.
   Variable tstart : Time.
   Variable tend : Time.
-  Hypothesis timeInc : tstart < tend.
+  Hypothesis timeInc : tstart ≤ tend.
   
-  (** As usual, we assume that the car executed the [SlideAux] move
+  (** As usual, we assume that the car executed the [ParallelAux] move
   from [tstart] to [tend], and then characterize the car's 
   state at [tend] in terms of [tstart].*)
-  Hypothesis amsc : AtomicMovesControls SlideAux tstart tend 
-                      (timeLtWeaken timeInc).
+  Hypothesis amsc : AtomicMovesControls ParallelAux tstart tend 
+                      (timeInc).
   Local Notation θs := ({theta acs} tstart).
   Local Notation ps := (posAtTime acs tstart).
 
@@ -1133,12 +1134,12 @@ to where we started.
   Qed.
   
   (** The car's orientation at the end is same as that at the start.*)
-  Lemma SlideAuxState : {theta acs} tend =  θs /\
+  Lemma ParallelAuxState : {theta acs} tend =  θs /\
     let θw := θs + 2 * tc * wdistance in 
     posAtTime acs tend 
       = ps + {|X:= ddistance * Cos θw; Y:= ddistance * Sin θw|}.
   Proof.
-    unfold SlideAux in amsc.
+    unfold ParallelAux in amsc.
     apply movesControlsApp in amsc.
     destruct amsc as [tds Hams]. (* ds for drive straight *)
     clear amsc.
@@ -1166,7 +1167,37 @@ to where we started.
     rewrite negate_involutive in Hwl.
     rewrite Hwl. ring.
     Qed.
+
+  End ParallelAux.
   
-End Slide.
+  (** After [ParallelAux], the car is in the same orientation as before, but it has position
+    has changed. For a parallel move, we just have drive straight to cancel outMsgsAux
+    the component of 
+    that position change along the car's orientation.
+    In this context, a parallel move is one where the car's position shifts in a direction
+    orthogonal to its orientation.
+    *)  
+  Local Notation DriveStraightRev 
+    := {| am_distance := - ddistance * Cos (2 * tc * wdistance) ; am_tc := 0|}.
+
+  Definition ParallelMove : AtomicMoves 
+    := ParallelAux ++ [DriveStraightRev].
+  
+  Variable tstart : Time.
+  Variable tend : Time.
+  Hypothesis timeInc : tstart ≤ tend.
+
+  Hypothesis amsc : AtomicMovesControls ParallelMove tstart tend 
+                      (timeInc).
+  Local Notation θs := ({theta acs} tstart).
+  Local Notation ps := (posAtTime acs tstart).
+  
+  Lemma ParallelState : {theta acs} tend =  θs /\
+    posAtTime acs tend 
+      = ps + {|X:= ddistance * Sin θs; Y:= - ddistance * Cos θs|}.
+  Proof.
+  Abort.
+
+End Parallel.
 
 End Props.
