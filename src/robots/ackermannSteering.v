@@ -37,7 +37,16 @@ Notation FSin:= CFSine.
 Notation FCos:= CFCos.
 
 (** [TContR] is a type of continuous functions from [Time] to reals ([R])
-It denotes how a physical quantity evolved over time *)
+It denotes how a physical quantity evolved over time.
+Recall that [Time] is a type of non-negative reals.
+For a detailed example, see Sec. 2 of the 
+#<a href="http://www.cs.cornell.edu/~aa755/ROSCoq/ROSCOQ.pdf">ROSCoq paper</a>#.
+
+Also, see [robots.icreate] for a more complete example of how robots are
+specified in ROSCoq.
+
+This file is highly experimental.
+*)
 
 Local Notation "Time -c-> R" := TContR (at level 100).
 
@@ -45,19 +54,9 @@ Local Notation "Time -c-> R" := TContR (at level 100).
 (**
 * #<a href="https://en.wikipedia.org/wiki/Ackermann_steering_geometry">Ackermann Steering</a>#
 
-This file is highly experimental.
 *)
 
 Section Robot.
-
-
-(** length of the car *)
-
-Variable length : Q.
-
-(** width of the car *)
-
-Variable width :Q.
 
 
 (** Because of the limited range of the steering wheel, 
@@ -87,7 +86,7 @@ steering wheel from a little left of the midpoint to a little right, the
 turn radious goes discontinuously from a very large negative value, to undefined, 
 to a very large positive value.
 
-Note that the turn radious is always larger than a positive quantity,
+Note that the turn radius is always larger than a positive quantity,
 because of physical constraints.
 Hence, we can model its (multiplicative) inverse, which can be understood as "curvature".
 Curvature is much more well-behaved.
@@ -111,8 +110,9 @@ The above two physical quantities are the only controllable ones for the car.
 
   position :> Cart2D (Time -c-> R);
 
-(** orientation of line joining the left (driver side) rear wheel to the right rear wheel *)
-
+(** The angle (w.r.t X axis) made by the
+  the line fron the  the midpoint of the back of the car
+  to the midpoint of the front of the car   *)
   theta : (Time -c-> R);
 
   
@@ -125,5 +125,14 @@ The above two physical quantities are the only controllable ones for the car.
   derivRot : isDerivativeOf (linVel * turnCurvature) theta
 
 }.
+
+(** length of the car w.r.t. the line joining the rear wheels *)
+
+Variable lengthFront : Q.
+Variable lengthBack : Q.
+
+(** width of the car *)
+
+Variable width :Q.
 
 End Robot.

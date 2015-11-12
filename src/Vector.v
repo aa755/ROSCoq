@@ -203,5 +203,20 @@ Global Instance ProperSameXY `{Equiv A}:
   split; auto.
 Qed.
 
+Lemma sameXYMult `{Ring A}: ∀ a b : A,
+    sameXY a * sameXY b = sameXY (a * b).
+Proof.
+  intros. reflexivity.
+Qed.
 
+Lemma sameXYAdd `{Ring A}: ∀ a b : A,
+     sameXY a + sameXY b = sameXY (a + b).
+Proof.
+  intros. reflexivity.
+Qed.
 
+Lemma sameXYNegate `{Ring A}: ∀ a : A,
+  sameXY (-a) = - (sameXY a).
+Proof.
+  intros. reflexivity.
+Qed.

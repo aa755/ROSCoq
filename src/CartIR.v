@@ -21,6 +21,50 @@ Proof.
 Qed.
 
 
+(** The 2D vector pointing in the direction of θ.*)
+Definition unitVec (θ:IR) : Cart2D IR := {|X:= Cos θ; Y:= Sin θ|}.
+
+Ltac IRring := autounfold with IRMC; unfold cg_minus; try ring;
+                simpl; ring.
+
+Lemma leftShiftEqIR : forall (a b c : IR),
+  a [=] b [+] c <-> a [-] b [=] c.
+Proof.
+  intros; split ; intro H.
+  - rewrite H. IRring.
+  - rewrite <- H. IRring.
+Qed.
+
+(*  TODO:Move Is there a good name for this lemma? *)
+  
+Lemma unitVecLemma1 : forall θs θw, (unitVec (θs + θw) - sameXY (Cos θw) * unitVec θs)
+  = (sameXY (Sin  θw)) * unitVec (θs + Pi [/]TwoNZ).
+Proof.
+  intros ? ?.
+  unfold sameXY, unitVec.   autounfold with IRMC.
+  rewrite Sin_plus_HalfPi.
+  rewrite Cos_plus_HalfPi.
+  Local Opaque Sin Cos.
+  simpl. split; simpl; autounfold with IRMC;
+  [rewrite Cos_plus | rewrite Sin_plus]; try IRring.
+Qed.
+
+  Global Instance HalfNumIR : HalfNum IR:= Half.
+  
+  Lemma PiBy2DesugarIR : ½ * π =  Pi [/]TwoNZ.
+  Proof.
+    rewrite mult_comm.
+    apply mult_wd;[reflexivity|].
+    apply (@mult_cancel_rht _ _ _ Two);[apply two_ap_zero|].
+    unfold half_num, HalfNumIR, Half.
+    unfold cf_div.
+    rewrite <- mult_assoc_unfolded.
+    rewrite field_mult_inv_op. ring.
+  Qed.
+
+  Global Instance unitVecProper : Proper (equiv ==> equiv) unitVec. 
+     intros ? ? H.  unfold unitVec. rewrite H. reflexivity.
+  Qed. 
 
 Lemma cgminus_Qminus : forall (a b : Q),
   (a-b) ≡ a[-]b.
@@ -415,13 +459,6 @@ Proof.
   simpl in H1x, H1y, H2x, H2y.
   split; simpl;
   apply AbsIR_plus; assumption.
-Qed.
-
-Lemma sameXYAdd  : ∀ (a b: IR),
-  sameXY a + sameXY b = sameXY (a + b).
-Proof.
-  intros.
-  split; simpl; reflexivity.
 Qed.
 
 Lemma QPQTQplusnNeg: ∀ sp qt,

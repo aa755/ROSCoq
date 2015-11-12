@@ -90,14 +90,16 @@ Global Instance Le_instance_Time : Le Time := fun x y => x [<=] y.
   (** The typeclass [Lt] is defined in the Prop universe. It cannot have constructive content.*)
 Global Instance Lt_instance_Time : Lt Time := fun x y => Truncate (x [<] y).
 
-  Lemma timeLtWeaken : forall {a b: Time}, (a < b  -> a ≤ b)%mc.
-  Proof.
-    intros ? ? H.
-    destruct H as [X].
-    (* autounfold with IRMC. unfold Le_instance_Time.
+Hint Unfold Le_instance_Time : IRMC.
+
+Lemma timeLtWeaken : forall {a b: Time}, (a < b  -> a ≤ b)%mc.
+Proof.
+  intros ? ? H.
+  destruct H as [X].
+  (* autounfold with IRMC. unfold Le_instance_Time.
        info_eauto 2 with CoRN. *)
-    apply less_leEq. exact X.
-    Qed.
+  apply less_leEq. exact X.
+Qed.
 
 Global Instance Equivalence_instance_Subcseteq  
   (S : CSetoid) (P : S → CProp) : 
@@ -176,3 +178,7 @@ Proof.
   eauto using less_wdl, less_wdr.
 Qed.
 
+Lemma RingNegateProper `{Ring A} : Proper (equiv ==> equiv) (@negate A _).
+Proof.
+  intros ? ? Hh . rewrite Hh. reflexivity.
+Qed.

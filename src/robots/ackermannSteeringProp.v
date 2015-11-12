@@ -33,20 +33,6 @@ Require Export ackermannSteering.
 
 Require Export CartIR.
 
-(* TODO:Move *)
-(** The 2D vector pointing in the direction of θ.*)
-Definition unitVec (θ:IR) : Cart2D IR := {|X:= Cos θ; Y:= Sin θ|}.
-
-Ltac IRring := autounfold with IRMC; unfold cg_minus; try ring;
-                simpl; ring.
-
-Lemma leftShiftEqIR : forall (a b c : IR),
-  a [=] b [+] c <-> a [-] b [=] c.
-Proof.
-  intros; split ; intro H.
-  - rewrite H. IRring.
-  - rewrite <- H. IRring.
-Qed.
   
 Local Opaque CSine.
 Local Opaque CCos.
@@ -77,6 +63,7 @@ that the car immediately achieves the desired velocity from a state of rest.
 Fortunately, the lack of constanthood assumption of [linSpeed] 
 does not complicate the integrals.
 
+
 TODO: Ideally, we should let the turn curvature of them vary a bit 
 (upto some epsilon) during the process.
 This will SIGNIFICANTLY complicate the integrals.
@@ -92,9 +79,9 @@ Section Cases.
 
   Local Notation θ0 := ({theta acs} tstart).
   
-  (** we will consider 2 classes of motions between [tstart] and [tend]. These classes suffice for our purpose
+  (** We will consider 2 classes of motions between [tstart] and [tend]. These classes suffice for our purpose
     1) move with fixed steering wheel ([turnCurvature])
-    2) rotate the steering wheel while remaining stationary.
+    2) rotate the steering wheel while remaining stationary ([linVel = 0]).
   *)
 
   Section FixedSteeringWheel.
@@ -106,7 +93,7 @@ Section Cases.
 
   (** [theta] at time [t] is also needed obtain position at time [t] by integration *)
   Lemma fixedSteeringTheta : forall (t :Time)  (p: tstart ≤ t ≤ tend),
-(* ib denotes the pair of numbers that goes at the bottom and at the top of ∫ *)
+(** ib denotes the pair of numbers that goes at the bottom and at the top of ∫ *)
     let ib := @mkIntBnd _ tstart t (proj1 p) in
     ({theta acs} t - {theta acs} tstart) = tc* (∫ ib (linVel acs)).
   Proof.
@@ -121,14 +108,13 @@ Section Cases.
   Qed.
 
 
-  (** we consider 2 subcases. First the case when the front wheels are not straight, i.e. the 
-      turn curvature is nonzero. Due to "divide by 0" issues, integration has to be done differently
-      in these cases*)
+  (** We consider the case when the front wheels are not straight, i.e. the 
+      turn curvature is nonzero. The other case (front wheels are perfectly straight) is simpler, 
+      but needs to be handled differently due to "divide by 0" issues during integration.*)
 
   Section TCNZ.
   (**Needed because [tc] shows up as a denominator
-     during integration below in [fixedCurvX]. The 0 case perhaps 
-    needs to be handled separately, and constructively!*)
+     during integration below in [fixedCurvX].*)
   Hypothesis tcNZ : (tc [#] 0).
 
 
@@ -211,6 +197,7 @@ Section Cases.
 
   End TCNZ.
 
+(*
   Section TC0.
   (** now consider the case when the front wheels are exactly straight *)
   Hypothesis tcNZ : (tc = 0).
@@ -233,11 +220,12 @@ Section Cases.
   Proof.
   Abort.
 
-  
   End TC0.
+*)
+  
   
   End FixedSteeringWheel.
-  Hint Unfold Le_instance_Time : IRMC.
+  
   Section LinVel0.
   (** Now consider the second case where the steering wheel may move, but the car remains stationary *)
     Hypothesis lv0 :  forall (t :Time), 
@@ -280,7 +268,7 @@ Section Cases.
 End Cases.
 
 Section AtomicMove.
-(** We will build complex manueuvers out of the following bacic move :
+(** We will build complex manueuvers out of the following basic move :
 turn the steering wheel so that the turnCurvature has a particular value ([tc]),
 and then drive for a particular distance ([distance]).
 Note that both [tc] and [distance] are signed -- the turn center can be on the either side,
@@ -324,8 +312,8 @@ and one can drive both forward and backward *)
   
 
   Set Implicit Arguments.
-  (** what it means for the car's controls to follow the atomic move [am] during time [tstart] to [tend] *)
-  Record AtomicMoveControls (p: tstart < tend) : Type :=
+  (** This defines what it means for the car's controls to follow the atomic move [am] during time [tstart] to [tend] *)
+  Record CarExecutesAtomicMoveDuring (p: tstart < tend) : Type :=
   {
     am_tdrive : Time;
 
@@ -352,7 +340,10 @@ and one can drive both forward and backward *)
   }.
   
   Hypothesis pr : tstart < tend.
-  Hypothesis amc : AtomicMoveControls pr.
+  
+  (** Now, we assume that the car executes the atomic move [am] from [tstart] to [tend],
+    and characterize the position and orientation at [tend], in terms of their values at [tstart]. *)
+  Hypothesis amc : CarExecutesAtomicMoveDuring pr.
   
   Local Notation tc := (am_tc am).
   Local Notation distance := (am_distance am).
@@ -397,7 +388,6 @@ and one can drive both forward and backward *)
     reflexivity.
   Qed.
 
-  (** Now, we characterize the position and orientation at [tdrive] and [tend] *)
   Local Notation θs := ({theta acs} tstart).
   Local Notation Xs := ({X (position acs)} tstart).
   Local Notation Ys := ({Y (position acs)} tstart).
@@ -423,7 +413,8 @@ and one can drive both forward and backward *)
     autounfold with IRMC. simpl. ring. 
   Qed.
 
-  (** Again, 2 cases based on whether the steering wheel is perfectly straight before driving *)
+  (** 2 cases, based on whether the steering wheel is perfectly straight before driving.
+    To avoid a  divide-by-0, the integration has to be done differently in these cases. *)
   Section TCNZ.
   Hypothesis (tcNZ : amTurn).
   
@@ -547,14 +538,14 @@ and one can drive both forward and backward *)
 
 End AtomicMove.
 
-  Lemma AtomicMoveControls_wd :
+  Lemma CarExecutesAtomicMoveDuring_wd :
   forall ml mr tstartl tstartr tendl tendr 
       (pl :tstartl < tendl) (pr :tstartr < tendr),
     tstartl = tstartr
     -> tendl = tendr
-    -> AtomicMoveControls ml pl
+    -> CarExecutesAtomicMoveDuring ml pl
     -> ml = mr
-    -> AtomicMoveControls mr pr.
+    -> CarExecutesAtomicMoveDuring mr pr.
   Proof.
     intros ? ? ? ? ? ? ? ?  tl tr Hl Heq.
     destruct Hl.
@@ -574,58 +565,58 @@ End AtomicMove.
   Qed.
   
   
-    Lemma AtomicMoveControls_wdtl :
+    Lemma CarExecutesAtomicMoveDuring_wdtl :
   forall m tstartl tstartr tend 
       (pl :tstartl < tend) (pr :tstartr < tend),
     tstartl = tstartr
-    -> AtomicMoveControls m pl
-    -> AtomicMoveControls m pr.
+    -> CarExecutesAtomicMoveDuring m pl
+    -> CarExecutesAtomicMoveDuring m pr.
   Proof.
   
-    intros ? ? ? ? ? ? ? ?. eapply AtomicMoveControls_wd; eauto; reflexivity.
+    intros ? ? ? ? ? ? ? ?. eapply CarExecutesAtomicMoveDuring_wd; eauto; reflexivity.
   Qed.
 
-  Lemma AtomicMoveControls_wdtr :
+  Lemma CarExecutesAtomicMoveDuring_wdtr :
   forall m tstart tendl tendr 
       (pl :tstart < tendl) (pr :tstart < tendr),
     tendl = tendr
-    -> AtomicMoveControls m pl
-    -> AtomicMoveControls m pr.
+    -> CarExecutesAtomicMoveDuring m pl
+    -> CarExecutesAtomicMoveDuring m pr.
   Proof.
-    intros ? ? ? ? ? ? ? ?. eapply AtomicMoveControls_wd; eauto; reflexivity.
+    intros ? ? ? ? ? ? ? ?. eapply CarExecutesAtomicMoveDuring_wd; eauto; reflexivity.
   Qed.
 
   Definition AtomicMoves := list AtomicMove.
   
   
   (** This predicate defines what it means for a car to follow 
-    a list of atomic moves.*)
-  Inductive AtomicMovesControls : AtomicMoves -> forall (tstart tend : Time),  (tstart ≤ tend) -> Prop :=
+    a list of atomic moves from time [tstart] to [tend].*)
+  Inductive CarExecutesAtomicMovesDuring : AtomicMoves -> forall (tstart tend : Time),  (tstart ≤ tend) -> Prop :=
   | amscNil : forall (tl tr:Time) (pe : tl = tr)(p: tl≤tr), 
-        AtomicMovesControls [] tl tr p
+        CarExecutesAtomicMovesDuring [] tl tr p
   | amscCons : forall (tstart tmid tend:Time) (pl : tstart < tmid) (pr : tmid ≤ tend) (p : tstart ≤ tend)
       (h: AtomicMove) (tl : AtomicMoves), 
-      @AtomicMoveControls h tstart tmid pl
-      -> AtomicMovesControls tl tmid tend pr
-      -> AtomicMovesControls (h::tl) tstart tend p.
+      @CarExecutesAtomicMoveDuring h tstart tmid pl
+      -> CarExecutesAtomicMovesDuring tl tmid tend pr
+      -> CarExecutesAtomicMovesDuring (h::tl) tstart tend p.
 
 Ltac substAtomicMoves amscrrl :=
     let pll := fresh "pll" in 
     let Hf := fresh "Hf" in 
     match type of amscrrl with
     ?l = _ => match goal with
-        [  amscrl: @AtomicMoveControls _ _ l ?pl0 |- _]
+        [  amscrl: @CarExecutesAtomicMoveDuring _ _ l ?pl0 |- _]
         =>
     pose proof pl0 as pll;
     rewrite amscrrl in pll;
-    pose proof (@AtomicMoveControls_wdtr _ _ _ _ 
+    pose proof (@CarExecutesAtomicMoveDuring_wdtr _ _ _ _ 
       pl0 pll amscrrl amscrl) as Hf; clear dependent l
       end
       end.
 
 Ltac invertAtomicMoves :=
   (repeat match goal with
-    [ H: AtomicMovesControls _ _ _ _ |- _] =>
+    [ H: CarExecutesAtomicMovesDuring _ _ _ _ |- _] =>
       let Hl := fresh H "l" in
       let Hr := fresh H "r" in
       let pl := fresh H "pl" in
@@ -640,39 +631,39 @@ Ltac invertAtomicMoves :=
   end.
   
   (*
-  Lemma BetterInvertAtomicMovesControlsSingeton : 
+  Lemma BetterInvertCarExecutesAtomicMovesDuringSingeton : 
     forall (m:AtomicMove) (tstart tend : Time)  (p:tstart ≤ tend),
-    AtomicMovesControls [m] tstart tend p
-    ->  {pr : tstart < tend | AtomicMoveControls m pr}.
+    CarExecutesAtomicMovesDuring [m] tstart tend p
+    ->  {pr : tstart < tend | CarExecutesAtomicMoveDuring m pr}.
   Proof.
     intros? ? ? ? Ha.
     inverts Ha.
   *)
-    Lemma AtomicMovesControls_wd :
+    Lemma CarExecutesAtomicMovesDuring_wd :
     forall ml mr,
          ml = mr
  -> forall tstartl tstartr tendl tendr 
       (pl :tstartl ≤ tendl) (pr :tstartr ≤ tendr),
     tstartl = tstartr
     -> tendl = tendr
-    -> AtomicMovesControls ml _ _ pl
-    -> AtomicMovesControls mr _ _ pr.
+    -> CarExecutesAtomicMovesDuring ml _ _ pl
+    -> CarExecutesAtomicMovesDuring mr _ _ pr.
   Proof.
    intros ? ? meq.
    induction meq; intros ? ? ? ? ? ? ? ? Hl.
    - inverts Hl. constructor. rewrite <- H, pe. assumption.
    - inverts Hl as Hl1 Hl2.
     eapply IHmeq in Hl2; eauto; [| reflexivity].
-     eapply AtomicMoveControls_wd in Hl1; eauto; [| reflexivity].
+     eapply CarExecutesAtomicMoveDuring_wd in Hl1; eauto; [| reflexivity].
     econstructor; eauto.
     Unshelve. Focus 2. rewrite <- H1. assumption.
     rewrite <- H0. assumption.
   Qed.
     
-  Global Instance AtomicMovesControls_ProperM (tstart tend : Time)  (p :tstart ≤ tend) :
-    Proper (equiv ==> iff) (fun m => AtomicMovesControls m tstart tend p).
+  Global Instance CarExecutesAtomicMovesDuring_ProperM (tstart tend : Time)  (p :tstart ≤ tend) :
+    Proper (equiv ==> iff) (fun m => CarExecutesAtomicMovesDuring m tstart tend p).
   Proof.
-    intros ? ? ?. split; apply AtomicMovesControls_wd; 
+    intros ? ? ?. split; apply CarExecutesAtomicMovesDuring_wd; 
     eauto 1 with relations.
   Qed.
 
@@ -683,7 +674,7 @@ Section Wriggle.
 #<href="https://rigtriv.wordpress.com/2007/10/01/parallel-parking/">wiggle motion</a>#
 and characterize the the change in car's position and orientation caused
 by this motion. 
-The word "wriggle" was perhaps coinde by Nelson in his 1967 book Tensor analysis.
+The word "wriggle" was perhaps coined by Nelson in his 1967 book Tensor analysis.
 Informally it denotes the following motion : 
   steer (i.e rotate the steering wheel with brakes firmly pushed), 
   drive (while keeping the steering wheel fixed),
@@ -698,7 +689,7 @@ Informally it denotes the following motion :
   Variable distance : IR.
   
 
-(** In our formalism, wriggle is a composition of 2 atomic moves.
+(** In our formalism, wriggle is a composition of the following 2 atomic moves.
   *)
   
   Definition steerAndDrive : AtomicMove
@@ -706,7 +697,7 @@ Informally it denotes the following motion :
   Definition revSteerAndrevDrive : AtomicMove
     := {|am_tc := -tc; am_distance := -distance |}.
 
-(* the distance covered during driving and reverse driving is exactly the same.
+(** the distance covered during driving and reverse driving is exactly the same.
   TODO: let them be slightly different, e.g. upto epsilon
  *)
   Definition Wriggle : AtomicMoves 
@@ -716,11 +707,14 @@ Informally it denotes the following motion :
   Variable tend : Time.
   Hypothesis timeInc : tstart ≤ tend.
   
-  Hypothesis amsc : AtomicMovesControls Wriggle tstart tend 
+  (** Now, we assume that the car executes the [Wriggle] move from time [tstart] to [tend],
+    and characterize the position and orientation at [tend], in terms of their values at [tstart]. 
+     In this document When we say "move" in natural language, we mean [AtomicMoves].
+    *)
+  Hypothesis amsc : CarExecutesAtomicMovesDuring Wriggle tstart tend 
                       (timeInc).
   
   
-  (** Now, we characterize the position and orientation at endpoints of each phase*)
   Local Notation θs := ({theta acs} tstart).
   Local Notation Xs := ({X (position acs)} tstart).
   Local Notation Ys := ({Y (position acs)} tstart).
@@ -740,7 +734,7 @@ Informally it denotes the following motion :
     autounfold with IRMC. ring.    
   Qed.
 
-  (** just to illustrate that the car doesn't end up to the initial position after wriggle.
+  (** just to show that the car doesn't end up to the initial position after wriggle.
      This equation is not needed for anything else. *)
   Lemma WriggleX : {X (position acs)} tend =  Xs +
         ((2* Sin (θs + tc * distance) 
@@ -772,7 +766,7 @@ Informally it denotes the following motion :
 End Wriggle.
 
 (*  Lemma Wriggleθ2  
-  `{AtomicMovesControls (Wriggle tc distance) tstart tend p} :
+  `{CarExecutesAtomicMovesDuring (Wriggle tc distance) tstart tend p} :
   {theta acs} tend =  {theta acs} tstart + 2 * tc * distance.
   Proof.
     
@@ -785,14 +779,13 @@ End Wriggle.
   Qed.
 *)
 
-   Add Ring cart2dir : Cart2DIRRing.
+Add Ring cart2dir : Cart2DIRRing.
 
 Section Invertability.
 (** It turns out that any Wriggle move is reversible (invertible).
 
-Wriggle-inverse is a part of the move we will study next.
-This moves comprises of 6 atomic moves and makes the car slide
-parallel to itself in little space.
+Wriggle-inverse is a part of the sideways-move we will study next.
+The sideways move comprises of 6 atomic moves and makes the car move sideways in little space.
 
 To define Wriggle-inverse, we study invertability of moves in general,
 and prove:
@@ -807,40 +800,43 @@ First we define what it means for a move to be an inverse of another.
 
   Definition MovesIdentity (ams : AtomicMoves) :=
     ∀ (tstart tend : Time)  (p: tstart ≤ tend),
-      AtomicMovesControls ams tstart tend p
+      CarExecutesAtomicMovesDuring ams tstart tend p
       -> (posAtTime acs tstart = posAtTime acs tend 
           /\ {theta acs} tstart = {theta acs} tend).
 
   (** [MovesIsInverse ams amsr] implies [MovesIdentity (ams ++ amsr)],
     but the other direction many not be true 
-    TODO : quantify over [acs]. This extra strength is useful because
-    in the slide move below, Wriggle-inverse does not immediately
+     This extra strength is useful because
+    in the sideways move below, Wriggle-inverse does not immediately
     follow the Wriggle-move. *)
+    
+    
+(*         TODO : quantify over [acs]. *)
   Definition MovesInverse (ams amsr : AtomicMoves) :=
     ∀ 
       (tstart tend : Time)  (p: tstart ≤ tend)
       (tstartr tendr : Time)  (pr: tstartr ≤ tendr),
-      AtomicMovesControls ams tstart tend p
-      -> AtomicMovesControls amsr tstartr tendr pr
+      CarExecutesAtomicMovesDuring ams tstart tend p
+      -> CarExecutesAtomicMovesDuring amsr tstartr tendr pr
       -> {theta acs} tstartr = {theta acs} tend 
       -> (posAtTime acs tend - posAtTime acs tstart
           = posAtTime acs tstartr - posAtTime acs tendr
           /\ {theta acs} tstart = {theta acs} tendr).
 
-  Definition AtomicMovesControlsAux  
+  Definition CarExecutesAtomicMovesDuringAux  
       (tstart tend : Time)  (p: tstart ≤ tend) m
-       := AtomicMovesControls m tstart tend p .
+       := CarExecutesAtomicMovesDuring m tstart tend p .
   
    Lemma foldForProperAM : ∀ m 
       (tstart tend : Time)  (p: tstart ≤ tend),
-      AtomicMovesControls m tstart tend p ≡
-      AtomicMovesControlsAux tstart tend p m.
+      CarExecutesAtomicMovesDuring m tstart tend p ≡
+      CarExecutesAtomicMovesDuringAux tstart tend p m.
    Proof. reflexivity. Qed.
 
-  Global Instance AtomicMovesControlsAux_Proper (tstart tend : Time)  (p :tstart ≤ tend) :
-    Proper (equiv ==> iff) (AtomicMovesControlsAux tstart tend p).
+  Global Instance CarExecutesAtomicMovesDuringAux_Proper (tstart tend : Time)  (p :tstart ≤ tend) :
+    Proper (equiv ==> iff) (CarExecutesAtomicMovesDuringAux tstart tend p).
   Proof.
-    apply AtomicMovesControls_ProperM.
+    apply CarExecutesAtomicMovesDuring_ProperM.
   Qed.
 
   Global Instance MovesInverseProper : Proper 
@@ -866,8 +862,8 @@ First we define what it means for a move to be an inverse of another.
     ∀ m
       (tstart tend : Time)  (p: tstart < tend)
       (tstartr tendr : Time)  (pr: tstartr < tendr),
-      AtomicMoveControls m  p
-      -> AtomicMoveControls (AtomicMoveInv m)  pr
+      CarExecutesAtomicMoveDuring m  p
+      -> CarExecutesAtomicMoveDuring (AtomicMoveInv m)  pr
       -> {theta acs} tstartr = {theta acs} tend 
       -> ({theta acs} tstart = {theta acs} tendr).
   Proof.
@@ -886,8 +882,8 @@ First we define what it means for a move to be an inverse of another.
     ∀ m
       (tstart tend : Time)  (p: tstart < tend)
       (tstartr tendr : Time)  (pr: tstartr < tendr),
-      AtomicMoveControls m  p
-      -> AtomicMoveControls (AtomicMoveInv m)  pr
+      CarExecutesAtomicMoveDuring m  p
+      -> CarExecutesAtomicMoveDuring (AtomicMoveInv m)  pr
       -> {theta acs} tstartr = {theta acs} tend 
       -> ({X (position acs)} tend - {X (position acs)} tstart 
               = {X (position acs)} tstartr - {X (position acs)} tendr).
@@ -926,8 +922,8 @@ First we define what it means for a move to be an inverse of another.
     ∀ m
       (tstart tend : Time)  (p: tstart < tend)
       (tstartr tendr : Time)  (pr: tstartr < tendr),
-      AtomicMoveControls m  p
-      -> AtomicMoveControls (AtomicMoveInv m)  pr
+      CarExecutesAtomicMoveDuring m  p
+      -> CarExecutesAtomicMoveDuring (AtomicMoveInv m)  pr
       -> {theta acs} tstartr = {theta acs} tend 
       -> ({Y (position acs)} tend - {Y (position acs)} tstart 
               = {Y (position acs)} tstartr - {Y (position acs)} tendr).
@@ -985,16 +981,16 @@ First we define what it means for a move to be an inverse of another.
 
   Lemma movesControlsApp : ∀ (l r : AtomicMoves) (tstart tend: Time)
     (pr : tstart ≤ tend),
-    AtomicMovesControls (l++r) _ _ pr
+    CarExecutesAtomicMovesDuring (l++r) _ _ pr
     -> exists (tmid : Time), exists (p : tstart ≤ tmid ≤ tend),
-         AtomicMovesControls l tstart tmid (proj1 p)
-        /\ AtomicMovesControls r tmid tend (proj2 p).
+         CarExecutesAtomicMovesDuring l tstart tmid (proj1 p)
+        /\ CarExecutesAtomicMovesDuring r tmid tend (proj2 p).
   Proof.
     induction l; intros.
     - exists tstart. eexists. split; auto;[constructor; reflexivity| ].
       simpl in H.
       Unshelve. Focus 2. split;[apply leEq_reflexive | exact pr].
-      eapply AtomicMovesControls_wd; eauto; reflexivity.
+      eapply CarExecutesAtomicMovesDuring_wd; eauto; reflexivity.
     - simpl in H.
       invertAtomicMoves.
       eapply IHl in Hr; eauto.
@@ -1004,7 +1000,7 @@ First we define what it means for a move to be an inverse of another.
       exists tmmid. eexists.
       split; eauto.
       Focus 2.
-        eapply AtomicMovesControls_wd; eauto; reflexivity.
+        eapply CarExecutesAtomicMovesDuring_wd; eauto; reflexivity.
       econstructor; eauto.
       Unshelve.
       split; eauto 2 with CoRN.
@@ -1027,8 +1023,8 @@ First we define what it means for a move to be an inverse of another.
   
   Lemma MovesControlsSingle : ∀ (m : AtomicMove) (tstart tend: Time)
     (pr : tstart < tend),
-    @AtomicMoveControls m tstart tend pr
-    -> AtomicMovesControls [m] tstart tend (timeLtWeaken pr).
+    @CarExecutesAtomicMoveDuring m tstart tend pr
+    -> CarExecutesAtomicMovesDuring [m] tstart tend (timeLtWeaken pr).
   Proof.
     intros. econstructor; eauto. econstructor. reflexivity.
     Unshelve. apply leEq_reflexive.
@@ -1094,15 +1090,14 @@ First we define what it means for a move to be an inverse of another.
 End Invertability.
 
 
-Section Parallel.
+Section Sideways.
 
-(** Adding just one atomic move to the following move 
-([ParallelAux])
-will get us to the sliding move. After [ParallelAux],
+(** Adding just one atomic move to the [SidewaysAux] move defined below
+will get us to the sideways move. After [SidewaysAux],
 as we will prove,
 the car's orientation is same as that in the original state, but
-it's position has shifted a bit.
-[ParallelAux] is just a straight-drive move inserted between
+it's position has shifted a bit, both along the car's orientaition and orthogonal to it.
+[SidewaysAux] is just a straight-drive move inserted between
 a wriggle and its inverse.
 Note that without this insertion, we would have been back
 to where we started.
@@ -1114,45 +1109,32 @@ to where we started.
   
   Local Notation SWriggle := (Wriggle tc wdistance).
   Local Notation SWriggleInv := (AtomicMovesInv SWriggle).
+  
   (** Drive a distance of [ddistance]
     with front wheels perfectly straight.*)  
   Local Notation DriveStraight := {| am_distance := ddistance ; am_tc := 0|}.
 
-  Definition ParallelAux : AtomicMoves 
+  Definition SidewaysAux : AtomicMoves 
     := SWriggle ++ [DriveStraight] ++ SWriggleInv.
 
-  Section ParallelAux.
-  Variable tstart : Time.
-  Variable tend : Time.
-  Hypothesis timeInc : tstart ≤ tend.
   
-  (** As usual, we assume that the car executed the [ParallelAux] move
-  from [tstart] to [tend], and then characterize the car's 
-  state at [tend] in terms of [tstart].*)
-  Hypothesis amsc : AtomicMovesControls ParallelAux tstart tend 
-                      (timeInc).
-  Local Notation θs := ({theta acs} tstart).
-  Local Notation ps := (posAtTime acs tstart).
-
-  Lemma RingNegateProper `{Ring A} : Proper (equiv ==> equiv) (@negate A _).
-  intros ? ? Hh . rewrite Hh. reflexivity.
-  Qed.
-  
-(*   TODO: Move *)
-  Global Instance unitVecProper : Proper (equiv ==> equiv) unitVec. 
-     intros ? ? H.  unfold unitVec. rewrite H. reflexivity.
-  Qed. 
-  
-  (** The car's orientation at the end is same as that at the start.*)
-  Lemma ParallelAuxState : {theta acs} tend =  θs /\
-    let θw := θs + 2 * tc * wdistance in 
-    posAtTime acs tend 
-      = ps + (sameXY ddistance) * (unitVec θw).
+  (** The car's orientation at the end is same as that at the start.
+     [θAtW] denotes the car's orientation at the completion of the [SWriggle] move. 
+     For any [v], [sameXY v] denotes {|X:=v; Y:=v|}.
+     *)
+  Lemma SidewaysAuxState : forall  (tstart tend : Time) (timeInc : tstart ≤ tend),
+  (CarExecutesAtomicMovesDuring SidewaysAux tstart tend timeInc)
+  ->
+  let θs := ({theta acs} tstart) in 
+  let θAtW := θs + 2 * tc * wdistance  in
+  {theta acs} tend =  θs /\
+    posAtTime acs tend = (posAtTime acs tstart)
+      + (sameXY ddistance) * (unitVec θAtW).
   Proof.
-    unfold ParallelAux in amsc.
+    intros ? ? ? amsc.    
+    unfold SidewaysAux in amsc.
     apply movesControlsApp in amsc.
     destruct amsc as [tds Hams]. (* ds for drive straight *)
-    clear amsc.
     destruct Hams as [pds Hams].
     repnd. rename Hamsl into Hw. (* w for wiggle *)
     apply movesControlsApp in Hamsr.
@@ -1160,7 +1142,7 @@ to where we started.
     destruct Hamsr as [pwr Hams]. repnd.
     rename Hamsl into Hds.
     rename Hamsr into Hwr.
-    pose proof Hw as Hwb. (** needed for θw *)
+    pose proof Hw as Hwb. (* needed for θAtW *)
     eapply atomicMovesInvertible in Hw; eauto.
     specialize (Hw Hwr). clear Hwr.
     apply Wriggleθ in Hwb.
@@ -1176,95 +1158,45 @@ to where we started.
     apply (RingNegateProper ) in Hwl.
     rewrite negate_involutive in Hwl.
     rewrite Hwl. ring.
-    Qed.
-
-  End ParallelAux.
-  
-(*  TODO:Move Is there a good name for this lemma? *)
-  
-  Lemma unitVecLemma1 : forall θs θw, (unitVec (θs + θw) - sameXY (Cos θw) * unitVec θs)
-  = (sameXY (Sin  θw)) * unitVec (θs + Pi [/]TwoNZ).
-  Proof.
-    intros ? ?.
-    unfold sameXY, unitVec.
-    autounfold with IRMC.
-    rewrite Sin_plus_HalfPi.
-    rewrite Cos_plus_HalfPi.
-     simpl. split; simpl; autounfold with IRMC;
-    [rewrite Cos_plus | rewrite Sin_plus]; try IRring.
   Qed.
-    
-  
-  (** After [ParallelAux], the car is in the same orientation as before, but it has position
-    has changed. For a parallel move, we just have drive straight to cancel outMsgsAux
-    the component of 
-    that position change along the car's orientation.
-    In this context, a parallel move is one where the car's position shifts in a direction
+
+  (** After [SidewaysAux], the car is in the same orientation as before, but it has position
+    has changed. For a sideways move, we just have drive straight to cancel
+    the component of that position change along the car's orientation.
+    We get this component by taking the dot product of the position change with the unit vector
+    along the car's orientation.
+    Formaly, a sideways move is one where the car's position shifts in a direction
     orthogonal to its orientation.
-    *)  
+    *)
   Local Notation DriveStraightRev 
     := {| am_distance := - ddistance * Cos (2 * tc * wdistance) ; am_tc := 0|}.
 
-  Definition ParallelMove : AtomicMoves 
-    := ParallelAux ++ [DriveStraightRev].
-  
-  Variable tstart : Time.
-  Variable tend : Time.
-  Hypothesis timeInc : tstart ≤ tend.
-
-  Hypothesis amsc : AtomicMovesControls ParallelMove tstart tend 
-                      (timeInc).
-  Local Notation θs := ({theta acs} tstart).
-  Local Notation ps := (posAtTime acs tstart).
-  
-  Lemma sameXYMult `{Ring A}: ∀ a b : A,
-     sameXY a * sameXY b = sameXY (a * b).
-  Proof.
-    intros. reflexivity.
-  Qed.
-  
-(*   TODO:There is already a less general lemma of same name. Replace it *)
-  Lemma sameXYAdd `{Ring A}: ∀ a b : A,
-     sameXY a + sameXY b = sameXY (a + b).
-  Proof.
-    intros. reflexivity.
-  Qed.
-  Lemma sameXYNegate `{Ring A}: ∀ a : A,
-     sameXY (-a) = - (sameXY a).
-  Proof.
-    intros. reflexivity.
-  Qed.
-
-  Global Instance HalfNumIR : HalfNum IR:= Half.
-  
-  Lemma PiBy2DesugarIR : ½ * π =  Pi [/]TwoNZ.
-  Proof.
-    rewrite mult_comm.
-    apply mult_wd;[reflexivity|].
-    apply (@mult_cancel_rht _ _ _ Two);[apply two_ap_zero|].
-    unfold half_num, HalfNumIR, Half.
-    unfold cf_div.
-    rewrite <- mult_assoc_unfolded.
-    rewrite field_mult_inv_op. ring.
-  Qed.
-  
-  (** the car's final orientation is same as before, and 
+  Definition SidewaysMove : AtomicMoves 
+    := SidewaysAux ++ [DriveStraightRev].
+    
+  (** The car's final orientation is same as before, and 
   its position changes in the direction that is at a right angle [(½ * π)]
-  to its orientation, i.e., it is a parallel move. 
+  to its orientation, i.e., it is a sideways move. 
   The distance moved is [ddistance * Sin  θw].
+
+  For any [v], [sameXY v] denotes {|X:=v; Y:=v|}.
   *)
   
-  Lemma ParallelState : {theta acs} tend =  θs /\
-    let θw := 2 * tc * wdistance in 
-    posAtTime acs tend 
-      = ps + (sameXY (ddistance * Sin  θw)) * unitVec (θs + (½ * π)).
+  Lemma SidewaysState : forall  (tstart tend : Time) (timeInc : tstart ≤ tend),
+  (CarExecutesAtomicMovesDuring SidewaysMove tstart tend timeInc)
+  ->
+  let θs := ({theta acs} tstart) in 
+  let θw := 2 * tc * wdistance  in
+    {theta acs} tend =  θs /\
+    posAtTime acs tend = (posAtTime acs tstart) 
+      + (sameXY (ddistance * Sin  θw)) * unitVec (θs + (½ * π)).
   Proof.
-    unfold ParallelMove in amsc.
+    intros ? ? ? amsc.
+    unfold SidewaysMove in amsc. simpl.
     apply movesControlsApp in amsc.
     destruct amsc as [tds Hams]. (* ds for drive straight *)
-    clear amsc.
     destruct Hams as [pds Hams]. repnd.
-    apply ParallelAuxState in Hamsl.
+    apply SidewaysAuxState in Hamsl.
     invertAtomicMoves.
     apply AtomicMoveFinal in Hf;[|unfold amNoTurn;  reflexivity].
     simpl in Hf. repnd.
@@ -1290,6 +1222,6 @@ to where we started.
     exact Hfr.
   Qed.
 
-End Parallel.
+End Sideways.
 
 End Props.
