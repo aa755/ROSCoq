@@ -36,16 +36,16 @@ Notation FConst := ConstTContR.
 Notation FSin:= CFSine.
 Notation FCos:= CFCos.
 
-(** [TContR] is a type of continuous functions from [Time] to reals ([R])
+(** [TContR] is a type of continuous functions from [Time] to reals ([R]).
 It denotes how a physical quantity evolved over time.
 Recall that [Time] is a type of non-negative reals.
 For a detailed example, see Sec. 2 of the 
 #<a href="http://www.cs.cornell.edu/~aa755/ROSCoq/ROSCOQ.pdf">ROSCoq paper</a>#.
 
-Also, see [robots.icreate] for a more complete example of how robots are
-specified in ROSCoq.
+Also, see the #<a href="https://github.com/aa755/ROSCoq/wiki">ROSCoq wiki</a> for 
+a more complete example of how robots are specified in ROSCoq.
 
-This file is highly experimental.
+This file is experimental.
 *)
 
 Local Notation "Time -c-> R" := TContR (at level 100).
@@ -53,7 +53,18 @@ Local Notation "Time -c-> R" := TContR (at level 100).
 
 (**
 * #<a href="https://en.wikipedia.org/wiki/Ackermann_steering_geometry">Ackermann Steering</a>#
+The geometry of Ackermann steering is illustrated in the figure below:
 
+
+#<img src="ackermannSteering.svg"/>#
+
+The key idea is that while turning, the rotation axes of all 4 wheels
+meet at a point, which is denoted by turnCenter in the figure.
+This point must lie on the line joining the rear wheels, because
+they are fixed relative to the car. 
+While turning, the whole car rotates around this point.
+Note that while turning
+the front wheels are NOT parallel to each other.
 *)
 
 Section Robot.
@@ -61,7 +72,8 @@ Section Robot.
 
 (** Because of the limited range of the steering wheel, 
 turn radius cannot be made arbitrary small. 
-Thus, the turn curvature, which is its inverse cannot be made arbitrary large*)
+Thus, the turn curvature, which is its inverse,
+ cannot be made arbitrary large*)
 
 Variable maxTurnCurvature : Qpos.
 
@@ -69,17 +81,18 @@ Set Implicit Arguments.
 
 Record AckermannCar  : Type := {
 
-(** instantaneous linear veloccity of the midpoint of the 2 rear wheels *)
+(** instantaneous linear velocity of the midpoint of the 2 rear wheels *)
 
   linVel : (Time -c-> R);
 
 (** We also need to model the 
 position of the turning center.
-We know that it lies on the line joining the 2 rear wheels.
+As mentined and illustrated in the figure above, 
+we know that it lies on the line joining the 2 rear wheels.
 One way to model it is to have a physical quantity denoting
 the turn radius (at time [t]), 
 which is the  displacement from the midpoint from the 2 wheels, along that line.
-A positive value indicates that the turn center is on the right side. 
+A positive value indicates that the turn center is on the left side of the car. 
 
 However, this turn radius is a poorly behaved function. When one moves the
 steering wheel from a little left of the midpoint to a little right, the
@@ -121,7 +134,7 @@ The above two physical quantities are the only controllable ones for the car.
   derivX : isDerivativeOf (linVel * (FCos theta)) (X position);
   derivY : isDerivativeOf (linVel * (FSin theta)) (Y position);
 
-(** w = v/r. Recall that curvature = 1/r *)
+(** w = v/r. Recall that curvature = 1/r, where r is the turn radius. *)
   derivRot : isDerivativeOf (linVel * turnCurvature) theta
 
 }.

@@ -64,7 +64,7 @@ Fortunately, the lack of constanthood assumption of [linSpeed]
 does not complicate the integrals.
 
 
-TODO: Ideally, we should let the turn curvature of them vary a bit 
+TODO: Ideally, we should let the turn curvature vary a bit 
 (upto some epsilon) during the process.
 This will SIGNIFICANTLY complicate the integrals.
 *)
@@ -80,8 +80,10 @@ Section Cases.
   Local Notation θ0 := ({theta acs} tstart).
   
   (** We will consider 2 classes of motions between [tstart] and [tend]. These classes suffice for our purpose
-    1) move with fixed steering wheel ([turnCurvature])
-    2) rotate the steering wheel while remaining stationary ([linVel = 0]).
+
+    -1) move with fixed steering wheel ([turnCurvature])
+    -2) rotate the steering wheel while remaining stationary ([linVel = 0]).
+
   *)
 
   Section FixedSteeringWheel.
@@ -268,7 +270,9 @@ Section Cases.
 End Cases.
 
 Section AtomicMove.
-(** We will build complex manueuvers out of the following basic move :
+(** * Atomic Move
+
+We will build complex manueuvers out of the following basic move :
 turn the steering wheel so that the turnCurvature has a particular value ([tc]),
 and then drive for a particular distance ([distance]).
 Note that both [tc] and [distance] are signed -- the turn center can be on the either side,
@@ -586,6 +590,7 @@ End AtomicMove.
     intros ? ? ? ? ? ? ? ?. eapply CarExecutesAtomicMoveDuring_wd; eauto; reflexivity.
   Qed.
 
+(** * Executing a sequence of atomic moves *)
   Definition AtomicMoves := list AtomicMove.
   
   
@@ -670,16 +675,18 @@ Ltac invertAtomicMoves :=
   
 
 Section Wriggle.
-(** Now consider a 
+(** * The Wriggle move
+Now consider a 
 #<href="https://rigtriv.wordpress.com/2007/10/01/parallel-parking/">wiggle motion</a>#
 and characterize the the change in car's position and orientation caused
 by this motion. 
 The word "wriggle" was perhaps coined by Nelson in his 1967 book Tensor analysis.
 Informally it denotes the following motion : 
-  steer (i.e rotate the steering wheel with brakes firmly pushed), 
-  drive (while keeping the steering wheel fixed),
-  reverse steer
-  reverse drive
+
+  -steer (i.e rotate the steering wheel with brakes firmly pushed), 
+  -drive (while keeping the steering wheel fixed),
+  -reverse steer,
+  -reverse drive
 
   Wiggle is parametrized by a nonzero [turnCurvature] and a drive distance,
   both of which may be signed.
@@ -782,18 +789,20 @@ End Wriggle.
 Add Ring cart2dir : Cart2DIRRing.
 
 Section Invertability.
-(** It turns out that any Wriggle move is reversible (invertible).
+(** * Invertability of moves 
 
+It turns out that any Wriggle move is reversible (invertible).
 Wriggle-inverse is a part of the sideways-move we will study next.
 The sideways move comprises of 6 atomic moves and makes the car move sideways in little space.
 
 To define Wriggle-inverse, we study invertability of moves in general,
 and prove:
-1) Every atomic move is inverible : keep the steering wheel at
+ -1) Every atomic move is inverible : keep the steering wheel at
 the same position as before and then drive the same amount in 
 the opposite direction.
-2) The inverse of a list of atomic moves is the reverse of
+ -2) The inverse of a list of atomic moves is the reverse of
 the list of iverses of those atomic moves.
+
 
 First we define what it means for a move to be an inverse of another.
 *)
@@ -1092,7 +1101,9 @@ End Invertability.
 
 Section Sideways.
 
-(** Adding just one atomic move to the [SidewaysAux] move defined below
+(** * The sideways move
+
+Adding just one atomic move to the [SidewaysAux] move defined below
 will get us to the sideways move. After [SidewaysAux],
 as we will prove,
 the car's orientation is same as that in the original state, but
@@ -1120,7 +1131,7 @@ to where we started.
   
   (** The car's orientation at the end is same as that at the start.
      [θAtW] denotes the car's orientation at the completion of the [SWriggle] move. 
-     For any [v], [sameXY v] denotes {|X:=v; Y:=v|}.
+     For any [v], [sameXY v] denotes [{|X:=v; Y:=v|}].
      *)
   Lemma SidewaysAuxState : forall  (tstart tend : Time) (timeInc : tstart ≤ tend),
   (CarExecutesAtomicMovesDuring SidewaysAux tstart tend timeInc)
@@ -1165,7 +1176,7 @@ to where we started.
     the component of that position change along the car's orientation.
     We get this component by taking the dot product of the position change with the unit vector
     along the car's orientation.
-    Formaly, a sideways move is one where the car's position shifts in a direction
+    Formally, a sideways move is one where the car's position shifts in a direction
     orthogonal to its orientation.
     *)
   Local Notation DriveStraightRev 
@@ -1179,7 +1190,7 @@ to where we started.
   to its orientation, i.e., it is a sideways move. 
   The distance moved is [ddistance * Sin  θw].
 
-  For any [v], [sameXY v] denotes {|X:=v; Y:=v|}.
+  As mentioned before, for any [v], [sameXY v] denotes [{|X:=v; Y:=v|}].
   *)
   
   Lemma SidewaysState : forall  (tstart tend : Time) (timeInc : tstart ≤ tend),
