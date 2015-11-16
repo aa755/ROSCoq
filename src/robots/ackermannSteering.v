@@ -139,13 +139,50 @@ The above two physical quantities are the only controllable ones for the car.
 
 }.
 
+
+Record CarDimensions :=
+{
 (** length of the car w.r.t. the line joining the rear wheels *)
+   lengthFront : Q;
+   lengthBack : Q;
+   
+   (** width of the car*)
+   width :Q
+}.
 
-Variable lengthFront : Q.
-Variable lengthBack : Q.
+(** position of the 4 corners of the car *)
 
-(** width of the car *)
+Section CornerPos.
+Variable cd :CarDimensions.
+Variable acs :AckermannCar.
+Variable t: Time.
+Definition posAtTime: Cart2D IR :=
+  {| X:= {X (position acs)} t ; Y := {Y (position acs)} t |}.
 
-Variable width :Q.
+
+Definition frontUnitVec : Cart2D IR := unitVec ({theta acs} t).
+Definition rightSideUnitVec : Cart2D IR := unitVec ({theta acs} t - (½ * π)).
+
+Definition frontRight : Cart2D IR := 
+  posAtTime 
+    + frontUnitVec* (sameXY (Q2R (lengthFront cd)))
+    + rightSideUnitVec * (sameXY (Q2R (width cd))).
+
+Definition frontLeft : Cart2D IR := 
+  posAtTime 
+    + frontUnitVec* (sameXY (Q2R (lengthFront cd)))
+    - rightSideUnitVec * (sameXY (Q2R (width cd))).
+
+Definition backRight : Cart2D IR := 
+  posAtTime 
+    - frontUnitVec* (sameXY (Q2R (lengthBack cd)))
+    + rightSideUnitVec * (sameXY (Q2R (width cd))).
+
+Definition backLeft : Cart2D IR := 
+  posAtTime 
+    - frontUnitVec* (sameXY (Q2R (lengthBack cd)))
+    - rightSideUnitVec * (sameXY (Q2R (width cd))).
+
+End CornerPos.
 
 End Robot.

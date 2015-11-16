@@ -22,6 +22,8 @@ coqdoc:
 	cp SConstruct.backup SConstruct
 	cp msgSeqDiagram.svg coqdoc/
 	cp ../../src/robots/icreateHwAgentSpec.svg coqdoc/
+	dia ../../src/robots/ackermannSteering.dia -t svg
+	cp ackermannSteering.svg  coqdoc/
 	cd coqdoc; ../../../scripts/patchNoCache.sh
 
 coqdocweb:

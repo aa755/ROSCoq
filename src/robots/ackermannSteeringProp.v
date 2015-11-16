@@ -46,8 +46,6 @@ Local Opaque Cos.
 
 This file is highly experimental.
 *)
-Definition posAtTime {maxTurnCurvature : Qpos} (ic : AckermannCar maxTurnCurvature) (t: Time) : Cart2D IR :=
-  {| X:= {X (position ic)} t ; Y := {Y (position ic)} t |}.
   
 Section Props.
 Variable maxTurnCurvature : Qpos.
