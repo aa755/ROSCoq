@@ -91,7 +91,7 @@ As mentined and illustrated in the figure above,
 we know that it lies on the line joining the 2 rear wheels.
 One way to model it is to have a physical quantity denoting
 the turn radius (at time [t]), 
-which is the  displacement from the midpoint from the 2 wheels, along that line.
+which is the  displacement from the midpoint from the 2 wheels, along that line, as shown in the figure above.
 A positive value indicates that the turn center is on the left side of the car. 
 
 However, this turn radius is a poorly behaved function. When one moves the
@@ -119,7 +119,7 @@ The above two physical quantities are the only controllable ones for the car.
   turnCurvatureUB : forall t:Time, |{turnCurvature} t| ≤ (Q2R maxTurnCurvature);
 
 
-(** Position of the midpoint of the 2 rear wheels *)
+(** Position of the midpoint of the 2 rear wheels, as shown the figure above *)
 
   position :> Cart2D (Time -c-> R);
 
