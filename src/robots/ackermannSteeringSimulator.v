@@ -176,7 +176,42 @@ Local Definition eps : Qpos := QposMake 1 100.
 Definition myCarBoundingBoxZ : list (Line2D Z):=
   List.map (roundLineRZ eps) (carBoundingBox myCarDim initSt).
 
-Open Scope Z_scope.
 Eval native_compute in myCarBoundingBoxZ.
 
+Extraction Language Haskell.
+Require Import ExtrHaskellBasic.
+Require Import String.
+Require Import ExtrHaskellString.
+Require Import ExtrHaskellQ.
+Require ExtrHaskellNatInteger.
+Require ExtrHaskellNatNum.
 
+Axiom ZtoString : Z -> string.
+(** [Z] maps to [Prelude.Integer] and [string] map to Prelude.?? . 
+  So Prelude.show works *)
+Extract Constant ZtoString => "Prelude.show".
+
+Definition sconcat (l:list string) : string :=
+  List.fold_left append  l EmptyString.
+
+SearchAbout Ascii.ascii.
+
+Definition newLineChar : Ascii.ascii := Ascii.ascii_of_nat 10.
+Definition newLineString : string := String newLineChar EmptyString.
+
+SearchPattern string.
+Definition tikZPoint (p: Cart2D Z) : string := 
+  "(" ++ ZtoString (X p) ++ "," ++ ZtoString (Y p) ++ ")".
+
+Definition tikZLine (l: Line2D Z) : string :=
+  "\draw" ++ tikZPoint (lstart l) ++ "--" ++ tikZPoint (lend l) ++ ";" ++
+  newLineString.
+
+Definition tikZLines (l: list (Line2D Z)) : string :=
+  sconcat  (List.map tikZLine l).
+
+Definition myCarBoundingBoxTikZ : string :=
+  tikZLines myCarBoundingBoxZ.
+  
+Definition toPrint : string := myCarBoundingBoxTikZ.
+Extraction "simulator.hs" toPrint.
