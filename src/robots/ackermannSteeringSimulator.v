@@ -91,3 +91,41 @@ Definition stateAfterAtomicMove
   {|csrigid2D := {|pos2D := posInit + posDelta; θ2D := θf|} 
     ; cs_tc :=tc |}.
 
+
+(** position of the 4 corners of the car *)
+
+Section CornerPos.
+Variable cd :CarDimensions CR.
+Variable cs :Rigid2DState.
+
+Definition frontUnitVec : Cart2D CR := unitVecCR (θ2D cs).
+Definition rightSideUnitVec : Cart2D CR := unitVecCR ((θ2D cs) - (½ * π)).
+
+Definition frontRight : Cart2D CR := 
+  (pos2D cs) 
+    + frontUnitVec* '(lengthFront cd)
+    + rightSideUnitVec * '(width cd).
+
+Definition frontLeft : Cart2D CR := 
+  (pos2D cs) 
+    + frontUnitVec* '(lengthFront cd)
+    - rightSideUnitVec * '(width cd).
+
+Definition backRight : Cart2D CR := 
+  (pos2D cs) 
+    - frontUnitVec* '(lengthBack cd)
+    + rightSideUnitVec * '(width cd).
+
+Definition backLeft : Cart2D CR := 
+  (pos2D cs) 
+    - frontUnitVec* '(lengthBack cd)
+    - rightSideUnitVec * '(width cd).
+
+End CornerPos.
+
+Record Line2D (A:Type):=
+{
+  lstart : Cart2D A;
+  lend : Cart2D A
+}.
+
