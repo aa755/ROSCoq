@@ -42,21 +42,20 @@ Local Opaque Cosine.
 Local Opaque Sin.
 Local Opaque Cos.
 
-
-Record Rigid2DState : Type :=
+Set Implicit Arguments.
+Record Rigid2DState (A:Type): Type :=
 {
-  pos2D : Cart2D CR;  
-  θ2D :  CR
+  pos2D : Cart2D A;  
+  θ2D :  A
 }.
 
 (** enough data to render a car in a picture, which will be a part of an animation*)
-Record carState : Type :=
+Record carState (A:Type) : Type :=
 {
-  csrigid2D : Rigid2DState;  
-  cs_tc :  CR (*turn curvatire, determines the position of steering wheel*)
+  csrigid2D : Rigid2DState A;  
+  cs_tc :  A (*turn curvatire, determines the position of steering wheel*)
 }.
 
-SearchAbout CRapartT.
 Open Scope CR_scope.
 
 
@@ -75,7 +74,7 @@ Typeclasses  eauto := 100.
 Global Instance castCRCart2DCR : Cast CR (Cart2D CR) := sameXY.
 
 Definition stateAfterAtomicMove 
-  (cs : carState) (dm : DAtomicMove): carState :=
+  (cs : carState CR) (dm : DAtomicMove): carState CR:=
   
   let tc : CR := (am_tc (projT1 dm)) in
   let dist : CR := (am_distance (projT1 dm)) in
@@ -92,11 +91,40 @@ Definition stateAfterAtomicMove
     ; cs_tc :=tc |}.
 
 
+Record Line2D (A:Type):=
+{
+  lstart : Cart2D A;
+  lend : Cart2D A
+}.
+
+Fixpoint linesConsecutive {A:Type}
+   (pts : list (Cart2D A)): list (Line2D A) :=
+match pts with
+| nil => []
+| h1::tl => match tl with
+            | nil => []
+            | h2::_ =>  {|lstart := h1 ; lend := h2|}::(linesConsecutive tl)
+            end
+end.
+
+Section LineRounding.
+(** A perfect rouding from a real to an integer is undecidable.
+  This value is an upper bound on suboptimality. e.g. values between
+   1.5-eps and 1.5+eps may be rounded to 1 or 2. *)
+Variable eps: Qpos.
+
+Definition roundPointRZ (p: Cart2D CR) : Cart2D Z :=
+{|X:= R2ZApprox (X p) eps; Y:=R2ZApprox (Y p) eps |}.
+
+Definition roundLineRZ (p: Line2D CR) : Line2D Z :=
+{|lstart := roundPointRZ (lstart p); lend:=roundPointRZ (lend p) |}.
+
+End LineRounding.
 (** position of the 4 corners of the car *)
 
 Section CornerPos.
 Variable cd :CarDimensions CR.
-Variable cs :Rigid2DState.
+Variable cs :Rigid2DState CR.
 
 Definition frontUnitVec : Cart2D CR := unitVecCR (θ2D cs).
 Definition rightSideUnitVec : Cart2D CR := unitVecCR ((θ2D cs) - (½ * π)).
@@ -111,21 +139,44 @@ Definition frontLeft : Cart2D CR :=
     + frontUnitVec* '(lengthFront cd)
     - rightSideUnitVec * '(width cd).
 
-Definition backRight : Cart2D CR := 
-  (pos2D cs) 
-    - frontUnitVec* '(lengthBack cd)
-    + rightSideUnitVec * '(width cd).
-
 Definition backLeft : Cart2D CR := 
   (pos2D cs) 
     - frontUnitVec* '(lengthBack cd)
     - rightSideUnitVec * '(width cd).
 
+Definition backRight : Cart2D CR := 
+  (pos2D cs) 
+    - frontUnitVec* '(lengthBack cd)
+    + rightSideUnitVec * '(width cd).
+
+
+Definition carBoundingBox : list (Line2D CR) := 
+  {|lstart := frontRight ; lend := backRight|}
+  ::(linesConsecutive [frontRight;frontLeft;backLeft;backRight]).
+
 End CornerPos.
 
-Record Line2D (A:Type):=
-{
-  lstart : Cart2D A;
-  lend : Cart2D A
-}.
+Global Instance  CastZCR : Cast Z CR := fun x => inject_Q_CR (inject_Z x).
+
+SearchPattern (Cast Q CR).
+(**lets compute a concrete bounding box*)
+Open Scope Z_scope.
+Definition myCarDim : CarDimensions CR :=
+{|lengthFront := cast Z CR 20; lengthBack :=  cast Z CR 3; width := cast Z CR 5|}.
+Close Scope Z_scope.
+
+Definition initSt : Rigid2DState CR :=
+ {|pos2D := 0; θ2D := 0|}.
+
+(** A perfect rouding from a real to an integer is undecidable.
+  This value is an upper bound on suboptimality. e.g. values between
+   1.5-1/100 and 1.5+1/100 may be rounded to 1 or 2. *)
+Local Definition eps : Qpos := QposMake 1 100.
+
+Definition myCarBoundingBoxZ : list (Line2D Z):=
+  List.map (roundLineRZ eps) (carBoundingBox myCarDim initSt).
+
+Open Scope Z_scope.
+Eval native_compute in myCarBoundingBoxZ.
+
 
