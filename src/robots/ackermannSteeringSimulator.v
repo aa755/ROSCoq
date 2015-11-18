@@ -42,3 +42,10 @@ Local Opaque Cosine.
 Local Opaque Sin.
 Local Opaque Cos.
 
+
+Record Rigid2DState : Type :=
+{
+  pos2D : Cart2D CR;  
+  theta2D :  CR
+}.
+

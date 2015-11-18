@@ -277,8 +277,8 @@ Note that both [tc] and [distance] are signed -- the turn center can be on the e
 and one can drive both forward and backward *)
   Record AtomicMove := mkAtomicMove
   {
-     am_distance : IR;
-     am_tc : IR
+     am_distance : CR;
+     am_tc : CR
   }.
 
   (** Needed because equality on reals (IR) is different 
@@ -306,8 +306,8 @@ and one can drive both forward and backward *)
   Qed.
 
   Variable am : AtomicMove.
-  Definition amTurn := (am_tc am) [#] 0.
-  Definition amNoTurn := (am_tc am) = 0.
+  Definition amTurn := ('am_tc am) [#] (0:IR).
+  Definition amNoTurn := ('am_tc am) = (0:IR).
   
   Variable tstart : Time.
   Variable tend : Time.
@@ -324,7 +324,7 @@ and one can drive both forward and backward *)
      *)
     am_timeInc : (tstart < am_tdrive < tend);
  
-    am_steeringControls : ({turnCurvature acs} am_tdrive) = (am_tc am) 
+    am_steeringControls : ({turnCurvature acs} am_tdrive) = ('am_tc am) 
       /\ forall (t:Time), (tstart ≤ t ≤ am_tdrive) 
           -> {linVel acs} t = 0;
 
@@ -338,7 +338,7 @@ and one can drive both forward and backward *)
    am_driveDistance : 
       let pf := (timeLtWeaken (proj2 (am_timeInc))) in 
       let driveIb := (@mkIntBnd _ am_tdrive tend pf) in 
-          (am_distance am) = ∫ driveIb (linVel acs)
+          ('am_distance am) = ∫ driveIb (linVel acs)
   }.
   
   Hypothesis pr : tstart < tend.
@@ -366,12 +366,15 @@ and one can drive both forward and backward *)
     repnd.  timeReasoning.
   Qed.
 
+(** we only assumed this displacement from [tdrive] to [tend].
+But because the derivative is [0] from [tstart] to [tdrive], 
+there is no displacement during that time. *)
    Lemma am_driveDistanceFull : 
       let driveIb := (@mkIntBnd _ tstart tend am_timeStartEnd) in 
-          (am_distance am) = ∫ driveIb (linVel acs).
+          ('am_distance am) = ∫ driveIb (linVel acs).
    Proof.
     simpl. 
-    rewrite CintegralSplit 
+    rewrite CintegralSplit
       with (pl:= proj1 am_timeIncWeaken)
            (pr:= proj2 am_timeIncWeaken).
     pose proof (am_steeringControls amc) as steeringControls.
@@ -395,8 +398,7 @@ and one can drive both forward and backward *)
   Local Notation Ys := ({Y (position acs)} tstart).
   Local Notation Ps := (posAtTime acs tstart).
 
-
-  Lemma AtomicMoveθ : {theta acs} tend =  θs + tc * distance.
+  Lemma AtomicMoveθ : {theta acs} tend =  θs + 'tc * 'distance.
   Proof.
     pose proof (am_driveControls amc) as driveControls.
     eapply  fixedSteeringTheta with (t:= tend) in driveControls.
@@ -421,7 +423,7 @@ and one can drive both forward and backward *)
   Hypothesis (tcNZ : amTurn).
   
     Lemma AtomicMoveXT : {X (position acs)} tend =  Xs +
-          ((Sin ({theta acs} tend) - Sin θs) [/] tc [//] tcNZ).
+          ((Sin ({theta acs} tend) - Sin θs) [/] 'tc [//] tcNZ).
     Proof.
       pose proof (am_driveControls amc) as driveControlsb.
       pose proof (am_steeringControls amc) as steeringControls.
@@ -437,14 +439,14 @@ and one can drive both forward and backward *)
     Qed.
 
     Lemma AtomicMoveX : {X (position acs)} tend =  Xs +
-          ((Sin (θs + tc * distance) - Sin θs) [/] tc [//] tcNZ).
+          ((Sin (θs + 'tc * 'distance) - Sin θs) [/] 'tc [//] tcNZ).
     Proof.
       unfold cf_div. rewrite <- AtomicMoveθ.
       exact AtomicMoveXT.
     Qed.
 
     Lemma AtomicMoveYT : {Y (position acs)} tend =  Ys +
-          ((Cos θs - Cos ({theta acs} tend)) [/] tc [//] tcNZ).
+          ((Cos θs - Cos ({theta acs} tend)) [/] 'tc [//] tcNZ).
     Proof.
       pose proof (am_driveControls amc) as driveControlsb.
       pose proof (am_steeringControls amc) as steeringControls.
@@ -461,7 +463,7 @@ and one can drive both forward and backward *)
 
 
     Lemma AtomicMoveY : {Y (position acs)} tend =  Ys +
-          ((Cos θs - Cos (θs + tc * distance)) [/] tc [//] tcNZ).
+          ((Cos θs - Cos (θs + 'tc * 'distance)) [/] 'tc [//] tcNZ).
     Proof.
       unfold cf_div. rewrite <- AtomicMoveθ.
       exact AtomicMoveYT.
@@ -490,11 +492,12 @@ and one can drive both forward and backward *)
       - rewrite (proj2 steeringControls);[  IRring | ]. 
         repnd. split; timeReasoning.
       - unfold amNoTurn in tcZ. rewrite (driveControls);
-         [rewrite (proj1 steeringControls), tcZ; IRring | ]. 
-         repnd. split; timeReasoning.
+         [|repnd; split; timeReasoning].
+         rewrite (proj1 steeringControls),tcZ.  
+         IRring.
     Qed.
 
-    Lemma AtomicMoveZX : {X (position acs)} tend =  Xs + distance * (Cos θs).
+    Lemma AtomicMoveZX : {X (position acs)} tend =  Xs + 'distance * (Cos θs).
     Proof.
       apply leftShiftEqIR.
       rewrite mult_comm.
@@ -511,7 +514,7 @@ and one can drive both forward and backward *)
       apply AtomicMoveZθ.  exact Hb.
    Qed.
 
-    Lemma AtomicMoveZY : {Y (position acs)} tend =  Ys + distance * (Sin θs).
+    Lemma AtomicMoveZY : {Y (position acs)} tend =  Ys + 'distance * (Sin θs).
     Proof.
       apply leftShiftEqIR.
       rewrite mult_comm.
@@ -528,9 +531,14 @@ and one can drive both forward and backward *)
       apply AtomicMoveZθ.  exact Hb.
    Qed.
 
+  Global Instance castCRCart2DIR: Cast CR (Cart2D ℝ).
+  intros x.
+  apply sameXY. apply CRasIR. exact x.
+  Defined.
+  
    Lemma AtomicMoveFinal : {theta acs} tend =  θs /\
      posAtTime acs tend =
-     Ps + (sameXY distance) * (unitVec θs).
+     Ps + ('distance) * (unitVec θs).
    Proof.
      split;[apply AtomicMoveZθ;split; timeReasoning|].
      split; simpl; [apply AtomicMoveZX | apply AtomicMoveZY].
@@ -689,9 +697,9 @@ Informally it denotes the following motion :
   Wiggle is parametrized by a nonzero [turnCurvature] and a drive distance,
   both of which may be signed.
   *)
-  Variable tc : IR.
-  Hypothesis tcNZ : tc[#]0.
-  Variable distance : IR.
+  Variable tc : CR.
+  Hypothesis tcNZ : 'tc[#](0:IR).
+  Variable distance : CR.
   
 
 (** In our formalism, wriggle is a composition of the following 2 atomic moves.
@@ -729,21 +737,23 @@ Informally it denotes the following motion :
       
       
   
-  Lemma Wriggleθ : {theta acs} tend =  θs + 2 * tc * distance.
+  Lemma Wriggleθ : {theta acs} tend =  θs + 2 * 'tc * 'distance.
   Proof.
     invertAtomicMoves. rename Hf into amscrl.
     apply AtomicMoveθ in amscl.
     apply AtomicMoveθ in amscrl.
     simpl in amscl, amscrl. rewrite amscl in amscrl.
     rewrite amscrl.
-    autounfold with IRMC. ring.    
+    autounfold with IRMC.
+    autorewrite with CRtoIR. unfold cast,Cart_CR_IR.
+     ring.    
   Qed.
 
   (** just to show that the car doesn't end up to the initial position after wriggle.
-     This equation is not needed for anything else. *)
+     This equation is not needed for anything else. 
   Lemma WriggleX : {X (position acs)} tend =  Xs +
-        ((2* Sin (θs + tc * distance) 
-            - Sin (θs + 2 * tc * distance)  - Sin θs) [/] tc [//] tcNZ).
+        ((2* Sin (θs + 'tc * 'distance) 
+            - Sin (θs + 2 * 'tc * 'distance)  - Sin θs) [/] 'tc [//] tcNZ).
   Proof.
     pose proof Wriggleθ as XX.
     invertAtomicMoves.
@@ -767,7 +777,7 @@ Informally it denotes the following motion :
     autounfold with IRMC. unfold cg_minus. simpl.
      ring.
   Qed.
-
+ *)
 End Wriggle.
 
 (*  Lemma Wriggleθ2  
@@ -879,6 +889,7 @@ First we define what it means for a move to be an inverse of another.
     apply AtomicMoveθ in amscrl.
     simpl in amscl, amscrl.
     rewrite amscrl, Ht, amscl.
+    autorewrite with CRtoIR. unfold cast,Cart_CR_IR.
     IRring.
   Qed.
 
@@ -899,7 +910,7 @@ First we define what it means for a move to be an inverse of another.
     pose proof amscl as Htt.
     eapply atomicMoveInvertibleθ in Htt; eauto.
     apply not_ap_imp_eq.
-    pose proof (decideEdDN (am_tc m) [0]) as Hd.
+    pose proof (decideEdDN ('am_tc m) [0]) as Hd.
     intro Hc.
     apply Hd.
     clear Hd. intro Hd.
@@ -915,6 +926,7 @@ First we define what it means for a move to be an inverse of another.
       rewrite Hd in Ht.
       autounfold with IRMC in Ht. ring_simplify in Ht.
       rewrite amscrl, Hte, amscl, Ht.
+      autorewrite with CRtoIR. unfold cast,Cart_CR_IR.
       IRring.
     - apply AtomicMoveXT with (tcNZ:= Hd) in amscl.
       eapply AtomicMoveXT  in amscrl.
@@ -939,7 +951,7 @@ First we define what it means for a move to be an inverse of another.
     pose proof amscl as Htt.
     eapply atomicMoveInvertibleθ in Htt; eauto.
     apply not_ap_imp_eq.
-    pose proof (decideEdDN (am_tc m) [0]) as Hd.
+    pose proof (decideEdDN ('am_tc m) [0]) as Hd.
     intro Hc.
     apply Hd.
     clear Hd. intro Hd.
@@ -955,6 +967,7 @@ First we define what it means for a move to be an inverse of another.
       rewrite Hd in Ht.
       autounfold with IRMC in Ht. ring_simplify in Ht.
       rewrite amscrl, Hte, amscl, Ht.
+      autorewrite with CRtoIR. unfold cast,Cart_CR_IR.
       IRring.
     - apply AtomicMoveYT with (tcNZ:= Hd) in amscl.
       eapply AtomicMoveYT  in amscrl.
@@ -1096,6 +1109,15 @@ First we define what it means for a move to be an inverse of another.
   
 End Invertability.
 
+(* TODO: Move *)
+Lemma CRasIR1 : CRasIR 1 = [1].
+Proof.
+  pose proof IR_One_as_CR as HH.
+  apply CRasIR_wd in HH.
+  rewrite IRasCRasIR_id in HH.
+  symmetry. exact HH.
+Qed.
+
 
 Section Sideways.
 
@@ -1111,10 +1133,10 @@ a wriggle and its inverse.
 Note that without this insertion, we would have been back
 to where we started.
 *)
-  Variable tc : IR.
-  Hypothesis tcNZ : tc[#]0.
-  Variable wdistance : IR.
-  Variable ddistance : IR.
+  Variable tc : CR.
+  Hypothesis tcNZ : 'tc[#](0:IR).
+  Variable wdistance : CR.
+  Variable ddistance : CR.
   
   Local Notation SWriggle := (Wriggle tc wdistance).
   Local Notation SWriggleInv := (AtomicMovesInv SWriggle).
@@ -1135,10 +1157,10 @@ to where we started.
   (CarExecutesAtomicMovesDuring SidewaysAux tstart tend timeInc)
   ->
   let θs := ({theta acs} tstart) in 
-  let θAtW := θs + 2 * tc * wdistance  in
+  let θAtW := θs + 2 * 'tc * 'wdistance  in
   {theta acs} tend =  θs /\
     posAtTime acs tend = (posAtTime acs tstart)
-      + (sameXY ddistance) * (unitVec θAtW).
+      + ('ddistance) * (unitVec θAtW).
   Proof.
     intros ? ? ? amsc.    
     unfold SidewaysAux in amsc.
@@ -1156,7 +1178,8 @@ to where we started.
     specialize (Hw Hwr). clear Hwr.
     apply Wriggleθ in Hwb.
     invertAtomicMoves.
-    apply AtomicMoveFinal in Hf;[|unfold amNoTurn;  reflexivity].
+    apply AtomicMoveFinal in Hf;[|unfold amNoTurn;  simpl; 
+        autorewrite with CRtoIR; reflexivity].
     simpl in Hf. repnd.
     specialize (Hw Hfl).
     repnd. symmetry in Hwr.
@@ -1166,7 +1189,9 @@ to where we started.
     apply (@left_cancellation ) in Hwl; [|apply groups.LeftCancellation_instance_0].
     apply (RingNegateProper ) in Hwl.
     rewrite negate_involutive in Hwl.
-    rewrite Hwl. ring.
+    rewrite Hwl.
+    autorewrite with CRtoIR.
+    simpl. ring.
   Qed.
 
   (** After [SidewaysAux], the car is in the same orientation as before, but it has position
@@ -1178,7 +1203,7 @@ to where we started.
     orthogonal to its orientation.
     *)
   Local Notation DriveStraightRev 
-    := {| am_distance := - ddistance * Cos (2 * tc * wdistance) ; am_tc := 0|}.
+    := {| am_distance := - ddistance * cos (2 * tc * wdistance) ; am_tc := 0|}.
 
   Definition SidewaysMove : AtomicMoves 
     := SidewaysAux ++ [DriveStraightRev].
@@ -1198,7 +1223,7 @@ to where we started.
   let θw := 2 * tc * wdistance  in
     {theta acs} tend =  θs /\
     posAtTime acs tend = (posAtTime acs tstart) 
-      + (sameXY (ddistance * Sin  θw)) * unitVec (θs + (½ * π)).
+      + ('(ddistance * sin  θw)) * unitVec (θs + (½ * π)).
   Proof.
     intros ? ? ? amsc.
     unfold SidewaysMove in amsc. simpl.
@@ -1207,25 +1232,31 @@ to where we started.
     destruct Hams as [pds Hams]. repnd.
     apply SidewaysAuxState in Hamsl.
     invertAtomicMoves.
-    apply AtomicMoveFinal in Hf;[|unfold amNoTurn;  reflexivity].
+    apply AtomicMoveFinal in Hf;[|unfold amNoTurn;   simpl; 
+        autorewrite with CRtoIR; reflexivity].
     simpl in Hf. repnd.
     rewrite Hamsll in Hfl.
     rewrite Hamsll in Hfr.
     split;[assumption|]. clear Hamsll Hfl.
     rewrite Hamslr in Hfr. clear Hamslr pll pdsl pdsr.
     remember (2 * tc * wdistance) as θw.
-    clear Heqθw.
-    rewrite <- sameXYMult in Hfr.
-    rewrite sameXYNegate in Hfr.
-    rewrite  <- (@mult_assoc (Cart2D IR)) in Hfr ; [|eauto with typeclass_instances].
-    
+    clear Heqθw. unfold cast, castCRCart2DIR, Cart_CR_IR  in Hfr.
+    rewrite CR_mult_asIR in Hfr.
+    setoid_rewrite <- sameXYMult in Hfr.
+    rewrite CRasIR_inv in Hfr.
+    setoid_rewrite sameXYNegate in Hfr.
+    Typeclasses eauto := 100. simpl in Hfr.
+    rewrite  <- (@mult_assoc (Cart2D IR) _ _ _ _ _ _) in Hfr. 
     rewrite <- negate_mult_distr_l in Hfr.
     rewrite negate_mult_distr_r in Hfr.
-    rewrite  <- (@plus_assoc (Cart2D IR)) in Hfr; [|eauto with typeclass_instances].
-    setoid_rewrite  <- (@plus_mult_distr_l (Cart2D IR)) in Hfr;
-       [|eauto with typeclass_instances].
-    rewrite unitVecLemma1 in Hfr.
-    rewrite <- sameXYMult.
+    rewrite  <- (@plus_assoc (Cart2D IR) _ _ _ _ _ _) in Hfr. 
+    rewrite  <- (@plus_mult_distr_l (Cart2D IR) _ _ _ _ _ _ _ _) in Hfr.
+    autorewrite with CRtoIR in Hfr.
+    rewrite CRasIR1 in Hfr.
+    rewrite unitVecLemma1 in Hfr. unfold cast, castCRCart2DIR.
+    autorewrite with CRtoIR.
+    rewrite CRasIR1.
+    setoid_rewrite <- sameXYMult.
     rewrite  <- (@mult_assoc (Cart2D IR)); [|eauto with typeclass_instances].
     rewrite PiBy2DesugarIR.
     exact Hfr.
