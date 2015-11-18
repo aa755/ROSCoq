@@ -120,6 +120,53 @@ Definition roundLineRZ (p: Line2D CR) : Line2D Z :=
 {|lstart := roundPointRZ (lstart p); lend:=roundPointRZ (lend p) |}.
 
 End LineRounding.
+
+Extraction Language Haskell.
+Require Import ExtrHaskellBasic.
+Require Import String.
+Require Import ExtrHaskellString.
+Require Import ExtrHaskellQ.
+Require ExtrHaskellNatInteger.
+Require ExtrHaskellNatNum.
+
+Axiom ZtoString : Z -> string.
+(** [Z] maps to [Prelude.Integer] and [string] map to Prelude.?? . 
+  So Prelude.show works *)
+Extract Constant ZtoString => "Prelude.show".
+
+Definition sconcat (l:list string) : string :=
+  List.fold_left append  l EmptyString.
+
+
+Definition newLineChar : Ascii.ascii := Ascii.ascii_of_nat 10.
+Definition newLineString : string := String newLineChar EmptyString.
+
+SearchPattern string.
+Definition tikZPoint (p: Cart2D Z) : string := 
+  "(" ++ ZtoString (X p) ++ "," ++ ZtoString (Y p) ++ ")".
+
+Definition tikZLine (l: Line2D Z) : string :=
+  "\draw" ++ tikZPoint (lstart l) ++ "--" ++ tikZPoint (lend l) ++ ";" ++
+  newLineString.
+
+Definition tikZLines (l: list (Line2D Z)) : string :=
+  sconcat  (List.map tikZLine l).
+
+Definition tikZHeaderFooter (contents : string) : string :=
+  "\begin{tikzpicture}[scale=0.01]"++newLineString++contents++newLineString
+  ++ "\end{tikzpicture}".
+
+Definition beamerFrameHeaderFooter (title contents : string) : string :=
+  "\begin{frame}{"++title++"}"++newLineString++contents++newLineString
+    ++ "\end{frame}".
+
+Definition tikZPicLines (l: list (Line2D Z)) : string :=
+  tikZHeaderFooter (tikZLines l).
+
+Definition beamerFrameLines (title: string) 
+    (l: list (Line2D Z)) : string :=
+  beamerFrameHeaderFooter title (tikZPicLines l).
+
 (** position of the 4 corners of the car *)
 
 Section CornerPos.
@@ -154,64 +201,35 @@ Definition carBoundingBox : list (Line2D CR) :=
   {|lstart := frontRight ; lend := backRight|}
   ::(linesConsecutive [frontRight;frontLeft;backLeft;backRight]).
 
+Definition carBoundingBoxZ (eps:Qpos) : list (Line2D Z):=
+  List.map (roundLineRZ eps) carBoundingBox.
+
+Definition carBoundingBoxTikZ (eps:Qpos) : string := 
+  tikZLines (carBoundingBoxZ eps).
+
+Definition carBoundingBoxBeamer (eps:Qpos) (title : string) : string := 
+  beamerFrameLines title (carBoundingBoxZ eps).
+  
 End CornerPos.
 
 Global Instance  CastZCR : Cast Z CR := fun x => inject_Q_CR (inject_Z x).
 
-SearchPattern (Cast Q CR).
 (**lets compute a concrete bounding box*)
 Open Scope Z_scope.
 Definition myCarDim : CarDimensions CR :=
-{|lengthFront := cast Z CR 20; lengthBack :=  cast Z CR 3; width := cast Z CR 5|}.
+{|lengthFront := cast Z CR 200; lengthBack :=  cast Z CR 30;
+ width := cast Z CR 50|}.
 Close Scope Z_scope.
 
 Definition initSt : Rigid2DState CR :=
- {|pos2D := 0; θ2D := 0|}.
+ {|pos2D := 0; θ2D := (½ * π)|}.
 
 (** A perfect rouding from a real to an integer is undecidable.
   This value is an upper bound on suboptimality. e.g. values between
    1.5-1/100 and 1.5+1/100 may be rounded to 1 or 2. *)
 Local Definition eps : Qpos := QposMake 1 100.
 
-Definition myCarBoundingBoxZ : list (Line2D Z):=
-  List.map (roundLineRZ eps) (carBoundingBox myCarDim initSt).
 
-Eval native_compute in myCarBoundingBoxZ.
+Definition toPrint : string := carBoundingBoxBeamer myCarDim initSt eps "straight".
 
-Extraction Language Haskell.
-Require Import ExtrHaskellBasic.
-Require Import String.
-Require Import ExtrHaskellString.
-Require Import ExtrHaskellQ.
-Require ExtrHaskellNatInteger.
-Require ExtrHaskellNatNum.
-
-Axiom ZtoString : Z -> string.
-(** [Z] maps to [Prelude.Integer] and [string] map to Prelude.?? . 
-  So Prelude.show works *)
-Extract Constant ZtoString => "Prelude.show".
-
-Definition sconcat (l:list string) : string :=
-  List.fold_left append  l EmptyString.
-
-SearchAbout Ascii.ascii.
-
-Definition newLineChar : Ascii.ascii := Ascii.ascii_of_nat 10.
-Definition newLineString : string := String newLineChar EmptyString.
-
-SearchPattern string.
-Definition tikZPoint (p: Cart2D Z) : string := 
-  "(" ++ ZtoString (X p) ++ "," ++ ZtoString (Y p) ++ ")".
-
-Definition tikZLine (l: Line2D Z) : string :=
-  "\draw" ++ tikZPoint (lstart l) ++ "--" ++ tikZPoint (lend l) ++ ";" ++
-  newLineString.
-
-Definition tikZLines (l: list (Line2D Z)) : string :=
-  sconcat  (List.map tikZLine l).
-
-Definition myCarBoundingBoxTikZ : string :=
-  tikZLines myCarBoundingBoxZ.
-  
-Definition toPrint : string := myCarBoundingBoxTikZ.
 Extraction "simulator.hs" toPrint.
