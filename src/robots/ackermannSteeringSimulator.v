@@ -319,8 +319,6 @@ Qed.
 Local Definition sidewaysMove : DAtomicMoves :=
   (DSideways (QposMake 1 200) (cast Z CR 100) (cast Z CR 100))%Z.
     
-Definition toPrint : string := carStatesFrames 
-  ((movesStates sidewaysMove initSt) ++ [initSt]).
 
 Fixpoint firstNPos (n:nat) : list nat:=
 match n with
@@ -329,9 +327,35 @@ match n with
 | S n' => n'::(firstNPos n')
 end.
 
+(** [1/d; 2/d ; ...; (d-1)/d]*)
+Definition equiMidPoints (d:Z⁺) : list Q:=
+  List.map (fun m => Qmake (Z.of_nat m) d) (rev (firstNPos (Pos.to_nat d))).
 
-Definition equiMidPoints (n:nat) : list Q:=
-[].
+Definition scaleAtomicMove (m: AtomicMove) (s:CR): AtomicMove :=
+ {|am_tc := am_tc m; am_distance := s*(am_distance m) |}.
+ 
+Definition DscaleAtomicMove  (m: DAtomicMove) (s:Q) : DAtomicMove :=
+  existT _ (scaleAtomicMove (getAtomicMove m) (inject_Q_CR s)) (projT2 m).
+ 
+Definition finerAtomicMoves (d:Z⁺) (m: DAtomicMove) : list DAtomicMove :=
+  List.map (DscaleAtomicMove m) (equiMidPoints d).
 
+
+Definition finerStates (d:Z⁺) (dm : DAtomicMove) (init : carState CR) : 
+  (carState CR) * list (carState CR) :=
+  (stateAfterAtomicMove init dm,
+    List.map (fun m => stateAfterAtomicMove init m) (finerAtomicMoves d dm)).
+
+Fixpoint finerMovesStates (d:Z⁺) (l:list DAtomicMove) (init : carState CR) : 
+  list (carState CR) :=
+match l with
+| [] => [init]
+| hm::t => let (midState,interS) := finerStates d hm init in
+      [init]++(interS)++(finerMovesStates d t midState)
+end.
+
+
+Definition toPrint : string := carStatesFrames 
+  ((finerMovesStates 3 sidewaysMove initSt) ++ [initSt]).
 
 Extraction "simulator.hs" toPrint.
