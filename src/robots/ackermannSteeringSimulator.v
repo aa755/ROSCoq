@@ -153,7 +153,7 @@ Definition tikZLines (l: list (Line2D Z)) : string :=
   sconcat  (List.map tikZLine l).
 
 Definition tikZOptions : string :=
- "[scale=0.01,overlay,shift={(current page.center)}]".
+ "[scale=0.02,overlay,shift={(current page.center)}]".
  
 Definition tikZHeaderFooter (contents : string) : string :=
   "\begin{tikzpicture}"++tikZOptions++newLineString++contents++newLineString
@@ -236,13 +236,13 @@ Open Scope Z_scope.
 Local Definition eps : Qpos := QposMake 1 100.
 
 Definition myCarDim : CarDimensions CR :=
-{|lengthFront := cast Z CR 200; lengthBack :=  cast Z CR 30;
- width := cast Z CR 50|}.
+{|lengthFront := cast Z CR 100; lengthBack :=  cast Z CR 15;
+ width := cast Z CR 25|}.
  
 Close Scope Z_scope.
 
 Definition initSt : carState CR :=
- {| csrigid2D := {|pos2D := 0; θ2D := (½ * π)|}; cs_tc :=0 |} .
+ {| csrigid2D := {|pos2D := 0; θ2D := 0|}; cs_tc :=0 |} .
 
 Definition mkStraightMove (d:CR): DAtomicMove.
  exists {|am_distance :=d; am_tc :=0|}.
@@ -256,6 +256,16 @@ Definition mkQTurnMove (t:Qpos) (d:CR): DAtomicMove.
  simpl. right. right. clear.
  apply CRlt_Qlt. destruct t. simpl. assumption.
 Defined.
+
+Typeclasses eauto := 10.
+
+Definition mkNegQTurnMove (t:Qpos) (d:CR): DAtomicMove.
+ exists {|am_distance := d ; am_tc := -'t|}.
+ simpl. right. left. clear. eapply CRltT_wdl;[
+  symmetry; apply CRopp_Qopp|].
+ apply CRlt_Qlt. destruct t. simpl. lra.
+Defined.
+
   
 Local Definition straightMove : DAtomicMove :=
   (mkStraightMove (cast Z CR 100))%Z.
@@ -265,11 +275,34 @@ Local Definition turnMove : DAtomicMove :=
 
 Definition carStatesFrames  (l:list (carState CR)) : string :=
  sconcat (List.map (carBeamer eps myCarDim) l).
- 
+
+Fixpoint movesStates (l:list DAtomicMove) (init : carState CR) : 
+  list (carState CR) :=
+match l with
+| [] => [init]
+| hm::t => let midState := stateAfterAtomicMove init hm in
+      init::(movesStates t midState)
+end.
+
+Definition DAtomicMoves := list DAtomicMove.
+
+Definition getAtomicMove (d: DAtomicMove) : AtomicMove := projT1 d.
+
+
+Definition DWriggle (t:Qpos) (d:CR) : DAtomicMoves 
+    :=  [mkQTurnMove t d; mkNegQTurnMove t (-d)].
+
+Lemma DWriggleSame : forall (t:Qpos) (d:CR), 
+  List.map getAtomicMove (DWriggle t d) = Wriggle ('t) d.
+Proof.
+  intros. reflexivity.
+Qed.
+
+Local Definition wriggleMove : DAtomicMoves :=
+  (DWriggle (QposMake 100 1) (cast Z CR 100))%Z.
+  
 Definition toPrint : string := carStatesFrames 
-  [ initSt;
-    stateAfterAtomicMove initSt straightMove;
-    stateAfterAtomicMove initSt turnMove] .
+  (movesStates wriggleMove initSt).
 
 
 Extraction "simulator.hs" toPrint.
