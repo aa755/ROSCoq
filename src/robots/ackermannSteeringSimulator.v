@@ -141,7 +141,6 @@ Definition sconcat (l:list string) : string :=
 Definition newLineChar : Ascii.ascii := Ascii.ascii_of_nat 10.
 Definition newLineString : string := String newLineChar EmptyString.
 
-SearchPattern string.
 Definition tikZPoint (p: Cart2D Z) : string := 
   "(" ++ ZtoString (X p) ++ "," ++ ZtoString (Y p) ++ ")".
 
@@ -153,7 +152,7 @@ Definition tikZLines (l: list (Line2D Z)) : string :=
   sconcat  (List.map tikZLine l).
 
 Definition tikZOptions : string :=
- "[scale=0.02,overlay,shift={(current page.center)}]".
+ "[scale=0.02,remember picture,overlay,shift={(current page.center)}]".
  
 Definition tikZHeaderFooter (contents : string) : string :=
   "\begin{tikzpicture}"++tikZOptions++newLineString++contents++newLineString
@@ -270,11 +269,10 @@ Defined.
 Local Definition straightMove : DAtomicMove :=
   (mkStraightMove (cast Z CR 100))%Z.
 
-Local Definition turnMove : DAtomicMove :=
-  (mkQTurnMove (QposMake 100 1) (cast Z CR 100))%Z.
 
 Definition carStatesFrames  (l:list (carState CR)) : string :=
  sconcat (List.map (carBeamer eps myCarDim) l).
+
 
 Fixpoint movesStates (l:list DAtomicMove) (init : carState CR) : 
   list (carState CR) :=
@@ -297,12 +295,43 @@ Lemma DWriggleSame : forall (t:Qpos) (d:CR),
 Proof.
   intros. reflexivity.
 Qed.
+    
 
-Local Definition wriggleMove : DAtomicMoves :=
-  (DWriggle (QposMake 100 1) (cast Z CR 100))%Z.
-  
+
+Definition DAtomicMoveInv (m : DAtomicMove) : DAtomicMove:=
+  existT _ (AtomicMoveInv (getAtomicMove m)) (projT2 m).
+
+Definition DAtomicMovesInv (ms : DAtomicMoves) : DAtomicMoves
+      := rev (List.map DAtomicMoveInv ms).
+      
+Definition DSideways (t:Qpos) (dw ds:CR) : DAtomicMoves 
+    := (DWriggle t dw) ++ [mkStraightMove ds] 
+        ++ (DAtomicMovesInv (DWriggle t dw))
+        ++ [mkStraightMove (- ds * cos (2 * 't * dw))].
+
+Lemma DSidewaysSame : forall (t:Qpos) (dw ds :CR), 
+  List.map getAtomicMove (DSideways t dw ds) = SidewaysMove ('t) dw ds.
+Proof.
+  intros. reflexivity.
+Qed.
+
+(** turn radius, which is inverse of turn curvature, is 200*)
+Local Definition sidewaysMove : DAtomicMoves :=
+  (DSideways (QposMake 1 200) (cast Z CR 100) (cast Z CR 100))%Z.
+    
 Definition toPrint : string := carStatesFrames 
-  (movesStates wriggleMove initSt).
+  ((movesStates sidewaysMove initSt) ++ [initSt]).
+
+Fixpoint firstNPos (n:nat) : list nat:=
+match n with
+| O => [] 
+| 1 => [] 
+| S n' => n'::(firstNPos n')
+end.
+
+
+Definition equiMidPoints (n:nat) : list Q:=
+[].
 
 
 Extraction "simulator.hs" toPrint.
