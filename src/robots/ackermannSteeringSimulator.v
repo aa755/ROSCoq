@@ -152,13 +152,16 @@ Definition tikZLine (l: Line2D Z) : string :=
 Definition tikZLines (l: list (Line2D Z)) : string :=
   sconcat  (List.map tikZLine l).
 
+Definition tikZOptions : string :=
+ "[scale=0.01,overlay,shift={(current page.center)}]".
+ 
 Definition tikZHeaderFooter (contents : string) : string :=
-  "\begin{tikzpicture}[scale=0.01]"++newLineString++contents++newLineString
+  "\begin{tikzpicture}"++tikZOptions++newLineString++contents++newLineString
   ++ "\end{tikzpicture}".
 
 Definition beamerFrameHeaderFooter (title contents : string) : string :=
   "\begin{frame}{"++title++"}"++newLineString++contents++newLineString
-    ++ "\end{frame}".
+    ++ "\end{frame}"++newLineString.
 
 Definition tikZPicLines (l: list (Line2D Z)) : string :=
   tikZHeaderFooter (tikZLines l).
@@ -170,6 +173,7 @@ Definition beamerFrameLines (title: string)
 (** position of the 4 corners of the car *)
 
 Section CornerPos.
+Variable eps:Qpos.
 Variable cd :CarDimensions CR.
 Variable cs :Rigid2DState CR.
 
@@ -201,35 +205,71 @@ Definition carBoundingBox : list (Line2D CR) :=
   {|lstart := frontRight ; lend := backRight|}
   ::(linesConsecutive [frontRight;frontLeft;backLeft;backRight]).
 
-Definition carBoundingBoxZ (eps:Qpos) : list (Line2D Z):=
+Definition carBoundingBoxZ  : list (Line2D Z):=
   List.map (roundLineRZ eps) carBoundingBox.
 
-Definition carBoundingBoxTikZ (eps:Qpos) : string := 
-  tikZLines (carBoundingBoxZ eps).
+Definition carBoundingBoxTikZ : string := 
+  tikZLines (carBoundingBoxZ).
 
-Definition carBoundingBoxBeamer (eps:Qpos) (title : string) : string := 
-  beamerFrameLines title (carBoundingBoxZ eps).
+Definition carBoundingBoxBeamer : string := 
+  beamerFrameLines "hello" (carBoundingBoxZ).
   
 End CornerPos.
+
+Section DrawCar.
+Variable eps:Qpos.
+Variable cd :CarDimensions CR.
+Variable cs :carState CR.
+
+Definition carBeamer : string := 
+  beamerFrameLines "hello" (carBoundingBoxZ eps cd (csrigid2D cs)).
+
+End DrawCar.
 
 Global Instance  CastZCR : Cast Z CR := fun x => inject_Q_CR (inject_Z x).
 
 (**lets compute a concrete bounding box*)
 Open Scope Z_scope.
-Definition myCarDim : CarDimensions CR :=
-{|lengthFront := cast Z CR 200; lengthBack :=  cast Z CR 30;
- width := cast Z CR 50|}.
-Close Scope Z_scope.
-
-Definition initSt : Rigid2DState CR :=
- {|pos2D := 0; θ2D := (½ * π)|}.
-
 (** A perfect rouding from a real to an integer is undecidable.
   This value is an upper bound on suboptimality. e.g. values between
    1.5-1/100 and 1.5+1/100 may be rounded to 1 or 2. *)
 Local Definition eps : Qpos := QposMake 1 100.
 
+Definition myCarDim : CarDimensions CR :=
+{|lengthFront := cast Z CR 200; lengthBack :=  cast Z CR 30;
+ width := cast Z CR 50|}.
+ 
+Close Scope Z_scope.
 
-Definition toPrint : string := carBoundingBoxBeamer myCarDim initSt eps "straight".
+Definition initSt : carState CR :=
+ {| csrigid2D := {|pos2D := 0; θ2D := (½ * π)|}; cs_tc :=0 |} .
+
+Definition mkStraightMove (d:CR): DAtomicMove.
+ exists {|am_distance :=d; am_tc :=0|}.
+ simpl. left. reflexivity.
+Defined.
+
+Global Instance  CastQposCR : Cast Qpos CR := fun x => inject_Q_CR (QposAsQ x).
+
+Definition mkQTurnMove (t:Qpos) (d:CR): DAtomicMove.
+ exists {|am_distance := d ; am_tc := 't|}.
+ simpl. right. right. clear.
+ apply CRlt_Qlt. destruct t. simpl. assumption.
+Defined.
+  
+Local Definition straightMove : DAtomicMove :=
+  (mkStraightMove (cast Z CR 100))%Z.
+
+Local Definition turnMove : DAtomicMove :=
+  (mkQTurnMove (QposMake 100 1) (cast Z CR 100))%Z.
+
+Definition carStatesFrames  (l:list (carState CR)) : string :=
+ sconcat (List.map (carBeamer eps myCarDim) l).
+ 
+Definition toPrint : string := carStatesFrames 
+  [ initSt;
+    stateAfterAtomicMove initSt straightMove;
+    stateAfterAtomicMove initSt turnMove] .
+
 
 Extraction "simulator.hs" toPrint.
