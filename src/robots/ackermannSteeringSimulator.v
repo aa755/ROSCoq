@@ -153,6 +153,14 @@ Definition tikZLine (l: Line2D Z) : string :=
   "\draw" ++ tikZPoint (lstart l) ++ "--" ++ tikZPoint (lend l) ++ ";" ++
   newLineString.
 
+Definition tikZFilledRect (color : string) (l: Line2D Z) : string :=
+  "\draw[fill=" ++ color  ++ "," ++ color ++ "]" ++ tikZPoint (lstart l) 
+  ++ " rectangle " ++ tikZPoint (lend l) ++ ";" ++ newLineString.
+
+Definition tikZColoredLine (color : string) (l: Line2D Z) : string :=
+  "\draw[" ++ color ++ "]" ++ tikZPoint (lstart l) ++ "--" ++ tikZPoint (lend l) ++ ";" ++
+  newLineString.
+
 Definition tikZLines (l: list (Line2D Z)) : string :=
   sconcat  (List.map tikZLine l).
 
@@ -305,11 +313,19 @@ Open Scope Z_scope.
    1.5-1/100 and 1.5+1/100 may be rounded to 1 or 2. *)
 Local Definition eps : Qpos := QposMake 1 100.
 
-Definition myCarDim : CarDimensions CR :=
-{|lengthFront := cast Z CR 100; lengthBack :=  cast Z CR 15;
- width := cast Z CR 25|}.
- 
+Definition myCarDimZ : CarDimensions Z :=
+{|lengthFront :=  100; lengthBack :=  15;
+ width := 25|}.
 Close Scope Z_scope.
+
+Global Instance CastCarDimZCR : Cast  (CarDimensions Z) (CarDimensions CR) :=
+fun c => {|lengthFront := cast Z CR (lengthFront c);
+         lengthBack :=  cast Z CR (lengthBack c);
+         width := cast Z CR (width c)|}.
+
+
+Definition myCarDim : CarDimensions CR := 'myCarDimZ.
+ 
 
 Definition initSt : carState CR :=
  {| csrigid2D := {|pos2D := 0; θ2D := 0|}; cs_tc :=0 |} .
@@ -443,13 +459,63 @@ match l with
           (nb  , ([init]++(interS)++fs))
 end.
 
+Definition epsd : Z := 3.
+Definition textHt : Z := 20.
+
+Definition Rect2D := Line2D.
+
+(*
+Definition sideCars (b:BoundingRectangle) (init : carState CR) : list (Rect2D Z) :=
+  let initb := roundLineRZ eps (carBoundingRect myCarDim (csrigid2D init)) in
+  let b := roundLineRZ eps b in
+  let cardim : Cart2D Z  := {|X:= (lengthFront myCarDimZ) ; Y:= 2 * (width myCarDimZ) |} in
+  let ymax := Y (lend initb) in
+  let lcarMaxXY : Cart2D Z := {|X:= X (lstart b) - epsd ; Y:= ymax |}  in
+  let rcarMinXY : Cart2D Z := {|X:= X (lend b) + epsd ; Y:= ymax - (Y cardim) |}  in
+  [
+    {|lstart := lcarMaxXY - cardim; lend := lcarMaxXY |} ;
+    {|lstart := rcarMinXY ; lend := rcarMinXY + cardim |}
+  ].
+*)
+Definition sideCars (b:BoundingRectangle) (init : carState CR) : BoundingRectangle * list (Rect2D CR) :=
+  let initb := (carBoundingRect myCarDim (csrigid2D init)) in
+  let cardim : Cart2D CR  := {|X:= (lengthFront myCarDim) ; Y:= 2 * (width myCarDim) |} in
+  let ymax := Y (lend initb) in
+  let lcarMaxXY : Cart2D CR := {|X:= X (lstart b) - 'epsd ; Y:= ymax |}  in
+  let rcarMinXY : Cart2D CR := {|X:= X (lend b) + 'epsd ; Y:= ymax - (Y cardim) |}  in
+  (boundingUnion b {|lstart := lcarMaxXY - cardim; lend := rcarMinXY + cardim |},
+    [
+      {|lstart := lcarMaxXY - cardim; lend := lcarMaxXY |} ;
+      {|lstart := rcarMinXY ; lend := rcarMinXY + cardim |}
+    ]).
+
+Definition extendRectForText (b:BoundingRectangle)  : BoundingRectangle :=
+  {|lstart := (lstart b) - {|X:= 0 ; Y:= 'textHt  |}; lend := (lend b) + {|X:= 0 ; Y:= 'textHt  |} |}.
+  
+Open Scope string_scope.
+Definition drawEnv (b:BoundingRectangle) (init : carState CR) (label : string) : string :=
+  let (bc, sc) := sideCars b init in
+  let bf := extendRectForText bc in
+  let textPos := roundPointRZ eps (lstart bc) in
+  let bottomLineStart := {| X := X (lstart bc); Y := Y (lstart bc) - 'epsd |} in
+  let bottomLineEnd := {| X := X (lend bc); Y := Y (lstart bc) - 'epsd |} in
+  let bottomLineZ   :=  roundLineRZ eps {|lstart := bottomLineStart; lend := bottomLineStart|} in
+  let scz  :=  List.map  (roundLineRZ eps) sc in
+  let clip : string :=  tikZBoundingClip eps bf in
+  let sideCars : list string :=  List.map  (tikZFilledRect "red") scz in
+  let bottomLine : string :=  tikZColoredLine "red" bottomLineZ in 
+  let text := "\node[below,right] at " ++ tikZPoint textPos ++ "{" ++ label ++ "};" in
+  sconcat (sideCars ++ [clip;bottomLine]).
+  
+Close Scope string_scope.
+
 Definition toPrint : string := 
 let sidewaysMove := List.zip moveNames sidewaysMove  in
-let initSt := (initStName,initSt) in
-let (b,cs) := (finerMovesStates 3 sidewaysMove initSt) in
+let initStp := (initStName,initSt) in
+let (b,cs) := (finerMovesStates 3 sidewaysMove initStp) in
 let clip : string := tikZBoundingClip eps b in
 carStatesFrames 
-  (List.map (fun x => (append clip (fst x),snd x)) 
-      (cs ++ [initSt])).
+  (List.map (fun x => (drawEnv b initSt (fst x),snd x)) 
+      (cs ++ [initStp])).
 
 Extraction "simulator.hs" toPrint.
