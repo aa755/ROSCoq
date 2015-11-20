@@ -97,6 +97,11 @@ Record Line2D (A:Type):=
   lend : Cart2D A
 }.
 
+Definition centredLineAtAngle  (angle halfLength : CR) (p: Cart2D CR)
+   : (Line2D CR) := 
+   let v := 'halfLength * (unitVecCR angle) in
+   {| lstart := p-v ; lend := p+v |}.
+
 Fixpoint linesConsecutive {A:Type}
    (pts : list (Cart2D A)): list (Line2D A) :=
 match pts with
@@ -169,9 +174,26 @@ Definition beamerFrameLines (title: string)
     (l: list (Line2D Z)) : string :=
   beamerFrameHeaderFooter title (tikZPicLines l).
 
-(** position of the 4 corners of the car *)
+
+(**[lstart] represents min x y*)
+Definition BoundingRectangle := Line2D CR.
+
+Definition minCart (a b : Cart2D CR) := 
+  {|X:= CRmin (X a) (X b); Y:= CRmin (Y a) (Y b)|}.
+
+Definition maxCart (a b : Cart2D CR) := 
+  {|X:= CRmax (X a) (X b); Y:= CRmax (Y a) (Y b)|}.
+
+(*
+Fixpoint computeBoundingRect (pt : Cart2D CR) 
+  (otherpts : list (Cart2D CR)) : BoundingRectangle :=
+match otherpts with
+| [] => {|lstart := pt; lend := pt|}
+| h::tl => let b := computeBoundingRect pt tl in
+*)
 
 Section CornerPos.
+(** position of the 4 corners of the car *)
 Variable eps:Qpos.
 Variable cd :CarDimensions CR.
 Variable cs :Rigid2DState CR.
@@ -199,33 +221,65 @@ Definition backRight : Cart2D CR :=
     - frontUnitVec* '(lengthBack cd)
     + rightSideUnitVec * '(width cd).
 
+Global Instance  CastQCartCR : Cast Q (Cart2D CR) 
+  := fun x => sameXY (inject_Q_CR x).
+
+Definition leftWheelCenter : Cart2D CR := 
+  (pos2D cs) + 
+  '(Qmake 3 4) 
+    * (frontUnitVec* '(lengthFront cd)
+        + rightSideUnitVec * '(width cd)).
+
+Definition rightWheelCenter : Cart2D CR := 
+  (pos2D cs) + 
+  '(Qmake 3 4) 
+    * (frontUnitVec* '(lengthFront cd)
+        - rightSideUnitVec * '(width cd)).
 
 Definition carBoundingBox : list (Line2D CR) := 
   {|lstart := frontRight ; lend := backRight|}
   ::(linesConsecutive [frontRight;frontLeft;backLeft;backRight]).
 
-Definition carBoundingBoxZ  : list (Line2D Z):=
-  List.map (roundLineRZ eps) carBoundingBox.
+Definition carWheels (θ : CR) : list (Line2D CR) := 
+  List.map 
+    (centredLineAtAngle θ ((lengthFront cd) * '(Qmake 1 8)))
+    [leftWheelCenter; rightWheelCenter].
 
-Definition carBoundingBoxTikZ : string := 
-  tikZLines (carBoundingBoxZ).
+Definition drawCarZ  (θ : CR) : list (Line2D Z):=
+  List.map (roundLineRZ eps) (carBoundingBox++carWheels θ).
 
-Definition carBoundingBoxBeamer : string := 
-  beamerFrameLines "hello" (carBoundingBoxZ).
+Definition drawCarTikZ (θ : CR) : string := 
+  tikZLines (drawCarZ θ).
   
 End CornerPos.
 
+Definition  comparisonAsZ  (c : Datatypes.comparison) : Z :=
+match c with
+| Datatypes.Eq => 0
+| Datatypes.Lt => -1
+| Datatypes.Gt => 1
+end.
+
+
+Global Instance  CastZCR : Cast Z CR := fun x => inject_Q_CR (inject_Z x).
 Section DrawCar.
 Variable eps:Qpos.
 Variable cd :CarDimensions CR.
 Variable cs :carState CR.
 
-Definition carBeamer : string := 
-  beamerFrameLines "hello" (carBoundingBoxZ eps cd (csrigid2D cs)).
+Local Definition wheelAngle :CR := 
+  (θ2D (csrigid2D cs)) +
+  '(comparisonAsZ (CR_epsilon_sign_dec (QposMake 1 10000) (cs_tc cs))) 
+  * '(Qmake 1 6) * π.
+  
+Definition carBeamer (preface :string): string := 
+beamerFrameHeaderFooter "hello"
+  (tikZHeaderFooter 
+    (preface ++ (drawCarTikZ eps cd (csrigid2D cs) wheelAngle))).
 
 End DrawCar.
 
-Global Instance  CastZCR : Cast Z CR := fun x => inject_Q_CR (inject_Z x).
+
 
 (**lets compute a concrete bounding box*)
 Open Scope Z_scope.
@@ -270,8 +324,8 @@ Local Definition straightMove : DAtomicMove :=
   (mkStraightMove (cast Z CR 100))%Z.
 
 
-Definition carStatesFrames  (l:list (carState CR)) : string :=
- sconcat (List.map (carBeamer eps myCarDim) l).
+Definition carStatesFrames  (l:list (string * carState CR)) : string :=
+ sconcat (List.map (fun p=> carBeamer eps myCarDim (snd p) (fst p)) l).
 
 
 Fixpoint movesStates (l:list DAtomicMove) (init : carState CR) : 
@@ -356,6 +410,7 @@ end.
 
 
 Definition toPrint : string := carStatesFrames 
-  ((finerMovesStates 3 sidewaysMove initSt) ++ [initSt]).
+  (List.map (fun x => (EmptyString,x)) 
+      ((finerMovesStates 3 sidewaysMove initSt) ++ [initSt])).
 
 Extraction "simulator.hs" toPrint.
