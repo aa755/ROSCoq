@@ -157,7 +157,7 @@ Definition tikZLines (l: list (Line2D Z)) : string :=
   sconcat  (List.map tikZLine l).
 
 Definition tikZOptions : string :=
- "[scale=0.02,remember picture,overlay,shift={(current page.center)}]".
+ "[scale=0.02]".
  
 Definition tikZHeaderFooter (contents : string) : string :=
   "\begin{tikzpicture}"++tikZOptions++newLineString++contents++newLineString
@@ -178,23 +178,37 @@ Definition beamerFrameLines (title: string)
 (**[lstart] represents min x y*)
 Definition BoundingRectangle := Line2D CR.
 
+
+
 Definition minCart (a b : Cart2D CR) := 
   {|X:= CRmin (X a) (X b); Y:= CRmin (Y a) (Y b)|}.
 
 Definition maxCart (a b : Cart2D CR) := 
   {|X:= CRmax (X a) (X b); Y:= CRmax (Y a) (Y b)|}.
 
-(*
+Definition boundingUnion (a b : BoundingRectangle) : BoundingRectangle :=
+  {|lstart := minCart (lstart a) (lstart b); 
+    lend := maxCart  (lend a) (lend b)|}.
+
 Fixpoint computeBoundingRect (pt : Cart2D CR) 
   (otherpts : list (Cart2D CR)) : BoundingRectangle :=
 match otherpts with
 | [] => {|lstart := pt; lend := pt|}
 | h::tl => let b := computeBoundingRect pt tl in
-*)
-
+        boundingUnion b {|lstart := h; lend := h|}
+end.
+        
 Section CornerPos.
 (** position of the 4 corners of the car *)
 Variable eps:Qpos.
+
+Definition tikZBoundingClip (l: BoundingRectangle) : string :=
+  let maxtoDim := {|lstart := lstart l; lend := lend l - lstart l|} in
+  let l := (roundLineRZ eps maxtoDim) in   
+  "\clip" ++ tikZPoint (lstart l) ++ " rectangle " ++ tikZPoint (lend l) ++ ";" ++
+  newLineString.
+
+
 Variable cd :CarDimensions CR.
 Variable cs :Rigid2DState CR.
 
@@ -223,6 +237,9 @@ Definition backRight : Cart2D CR :=
 
 Global Instance  CastQCartCR : Cast Q (Cart2D CR) 
   := fun x => sameXY (inject_Q_CR x).
+
+Definition carBoundingRect : BoundingRectangle :=
+computeBoundingRect frontRight [frontLeft;backLeft;backRight].
 
 Definition leftWheelCenter : Cart2D CR := 
   (pos2D cs) + 
@@ -371,7 +388,8 @@ Qed.
 
 (** turn radius, which is inverse of turn curvature, is 200*)
 Local Definition sidewaysMove : DAtomicMoves :=
-  (DSideways (QposMake 1 200) (cast Z CR 100) (cast Z CR 100))%Z.
+(DWriggle (QposMake 1 200) (cast Z CR 100))%Z
+(*  (DSideways (QposMake 1 200) (cast Z CR 100) (cast Z CR 100))%Z*) . 
     
 
 Fixpoint firstNPos (n:nat) : list nat:=
@@ -401,16 +419,23 @@ Definition finerStates (d:Z⁺) (dm : DAtomicMove) (init : carState CR) :
     List.map (fun m => stateAfterAtomicMove init m) (finerAtomicMoves d dm)).
 
 Fixpoint finerMovesStates (d:Z⁺) (l:list DAtomicMove) (init : carState CR) : 
-  list (carState CR) :=
+  BoundingRectangle * list (carState CR) :=
 match l with
-| [] => [init]
+| [] => ((carBoundingRect myCarDim (csrigid2D init)) , [init])
 | hm::t => let (midState,interS) := finerStates d hm init in
-      [init]++(interS)++(finerMovesStates d t midState)
+           let (fb,fs) := (finerMovesStates d t midState) in
+           let nb := boundingUnion 
+                        fb 
+                        (carBoundingRect myCarDim (csrigid2D init)) in
+          (nb  , ([init]++(interS)++fs))
 end.
 
 
-Definition toPrint : string := carStatesFrames 
-  (List.map (fun x => (EmptyString,x)) 
-      ((finerMovesStates 3 sidewaysMove initSt) ++ [initSt])).
+Definition toPrint : string := 
+let (b,cs) := (finerMovesStates 3 sidewaysMove initSt) in
+let clip : string := tikZBoundingClip eps b in
+carStatesFrames 
+  (List.map (fun x => (clip,x)) 
+      (cs ++ [initSt])).
 
 Extraction "simulator.hs" toPrint.
