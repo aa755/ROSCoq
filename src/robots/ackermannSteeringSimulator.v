@@ -390,7 +390,18 @@ Qed.
 Local Definition sidewaysMove : DAtomicMoves :=
 (DWriggle (QposMake 1 200) (cast Z CR 100))%Z
 (*  (DSideways (QposMake 1 200) (cast Z CR 100) (cast Z CR 100))%Z*) . 
-    
+
+Open Scope string_scope.
+Definition moveNames : list string := 
+  ["\hl{(c,d)}; (-c,-d)" ;"(c,d); \hl{(-c,-d)}"].
+
+Definition initStName : string := 
+  "(c,d); (-c,-d)".
+
+Close Scope string_scope.
+  
+
+Definition NameDAtomicMove := prod string  DAtomicMove.
 
 Fixpoint firstNPos (n:nat) : list nat:=
 match n with
@@ -412,30 +423,33 @@ Definition DscaleAtomicMove  (m: DAtomicMove) (s:Q) : DAtomicMove :=
 Definition finerAtomicMoves (d:Z⁺) (m: DAtomicMove) : list DAtomicMove :=
   List.map (DscaleAtomicMove m) (equiMidPoints d).
 
+Definition NamedCarState := prod string  (carState CR).
 
-Definition finerStates (d:Z⁺) (dm : DAtomicMove) (init : carState CR) : 
-  (carState CR) * list (carState CR) :=
-  (stateAfterAtomicMove init dm,
-    List.map (fun m => stateAfterAtomicMove init m) (finerAtomicMoves d dm)).
+Definition finerStates (d:Z⁺) (dm : NameDAtomicMove) (init : carState CR) : 
+  NamedCarState * list NamedCarState :=
+  let (name,dm) := dm in
+  ((name,stateAfterAtomicMove init dm),
+    List.map (fun m => (name,stateAfterAtomicMove init m)) (finerAtomicMoves d dm)).
 
-Fixpoint finerMovesStates (d:Z⁺) (l:list DAtomicMove) (init : carState CR) : 
-  BoundingRectangle * list (carState CR) :=
+Fixpoint finerMovesStates (d:Z⁺) (l:list NameDAtomicMove) (init : NamedCarState) : 
+  BoundingRectangle * list NamedCarState :=
 match l with
-| [] => ((carBoundingRect myCarDim (csrigid2D init)) , [init])
-| hm::t => let (midState,interS) := finerStates d hm init in
+| [] => ((carBoundingRect myCarDim (csrigid2D (snd init))) , [init])
+| hm::t => let (midState,interS) := finerStates d hm (snd init) in
            let (fb,fs) := (finerMovesStates d t midState) in
            let nb := boundingUnion 
                         fb 
-                        (carBoundingRect myCarDim (csrigid2D init)) in
+                        (carBoundingRect myCarDim (csrigid2D (snd init))) in
           (nb  , ([init]++(interS)++fs))
 end.
 
-
 Definition toPrint : string := 
+let sidewaysMove := List.zip moveNames sidewaysMove  in
+let initSt := (initStName,initSt) in
 let (b,cs) := (finerMovesStates 3 sidewaysMove initSt) in
 let clip : string := tikZBoundingClip eps b in
 carStatesFrames 
-  (List.map (fun x => (clip,x)) 
+  (List.map (fun x => (append clip (fst x),snd x)) 
       (cs ++ [initSt])).
 
 Extraction "simulator.hs" toPrint.
