@@ -183,36 +183,48 @@ Definition beamerFrameLines (title: string)
   beamerFrameHeaderFooter title (tikZPicLines l).
 
 
-(**[lstart] represents min x y*)
-Definition BoundingRectangle := Line2D CR.
 
+Definition BoundingRectangle := Line2D.
 
+Class MinClass (A:Type) := min : A -> A -> A.
+Class MaxClass (A:Type) := max : A -> A -> A.
 
-Definition minCart (a b : Cart2D CR) := 
-  {|X:= CRmin (X a) (X b); Y:= CRmin (Y a) (Y b)|}.
+Global Instance MinClassCR : MinClass CR := fun x y => CRmin x y.
+Global Instance MaxClassCR : MaxClass CR := fun x y => CRmax x y.
 
-Definition maxCart (a b : Cart2D CR) := 
-  {|X:= CRmax (X a) (X b); Y:= CRmax (Y a) (Y b)|}.
+Global Instance MinClassZ : MinClass Z := Zmin.
+Global Instance MaxClassZ : MaxClass Z := Zmax.
 
-Definition boundingUnion (a b : BoundingRectangle) : BoundingRectangle :=
+Definition minCart `{MinClass A} (a b : Cart2D A) := 
+  {|X:= min (X a) (X b); Y:= min (Y a) (Y b)|}.
+
+Definition maxCart `{MaxClass A} (a b : Cart2D A) := 
+  {|X:= max (X a) (X b); Y:= max (Y a) (Y b)|}.
+
+Definition boundingUnion `{MinClass A}`{MaxClass A}
+ (a b : BoundingRectangle A) : BoundingRectangle A:=
   {|lstart := minCart (lstart a) (lstart b); 
     lend := maxCart  (lend a) (lend b)|}.
 
-Fixpoint computeBoundingRect (pt : Cart2D CR) 
-  (otherpts : list (Cart2D CR)) : BoundingRectangle :=
-match otherpts with
-| [] => {|lstart := pt; lend := pt|}
-| h::tl => let b := computeBoundingRect pt tl in
+Fixpoint computeBoundingRect `{MinClass A}`{MaxClass A} `{Zero A}
+  (pts : list (Cart2D A)) : BoundingRectangle A :=
+match pts with
+| pt::[] => {|lstart := pt; lend := pt|}
+| h::tl => let b := computeBoundingRect tl in
         boundingUnion b {|lstart := h; lend := h|}
+| [] => {|lstart := 0; lend := 0|}
 end.
+
+Definition computeBoundingRectLines `{MinClass A}`{MaxClass A} `{Zero A}
+  (ll : list (Line2D A)) : BoundingRectangle A :=
+computeBoundingRect (List.map (@lstart _) ll ++ List.map (@lend _) ll).
         
 Section CornerPos.
 (** position of the 4 corners of the car *)
 Variable eps:Qpos.
 
-Definition tikZBoundingClip (l: BoundingRectangle) : string :=
+Definition tikZBoundingClip (l: BoundingRectangle Z) : string :=
   let maxtoDim := {|lstart := lstart l; lend := lend l - lstart l|} in
-  let l := (roundLineRZ eps maxtoDim) in   
   "\clip" ++ tikZPoint (lstart l) ++ " rectangle " ++ tikZPoint (lend l) ++ ";" ++
   newLineString.
 
@@ -246,8 +258,8 @@ Definition backRight : Cart2D CR :=
 Global Instance  CastQCartCR : Cast Q (Cart2D CR) 
   := fun x => sameXY (inject_Q_CR x).
 
-Definition carBoundingRect : BoundingRectangle :=
-computeBoundingRect frontRight [frontLeft;backLeft;backRight].
+Definition carBoundingRectCR : BoundingRectangle CR :=
+  computeBoundingRect  [frontRight;frontLeft;backLeft;backRight].
 
 Definition leftWheelCenter : Cart2D CR := 
   (pos2D cs) + 
@@ -270,11 +282,12 @@ Definition carWheels (θ : CR) : list (Line2D CR) :=
     (centredLineAtAngle θ ((lengthFront cd) * '(Qmake 1 8)))
     [leftWheelCenter; rightWheelCenter].
 
-Definition drawCarZ  (θ : CR) : list (Line2D Z):=
+Definition drawCarZAux  (θ : CR) : list (Line2D Z):=
   List.map (roundLineRZ eps) (carBoundingBox++carWheels θ).
 
-Definition drawCarTikZ (θ : CR) : string := 
-  tikZLines (drawCarZ θ).
+
+Definition drawCarTikZOld (θ : CR) : string := 
+  tikZLines (drawCarZAux θ).
   
 End CornerPos.
 
@@ -297,10 +310,8 @@ Local Definition wheelAngle :CR :=
   '(comparisonAsZ (CR_epsilon_sign_dec (QposMake 1 10000) (cs_tc cs))) 
   * '(Qmake 1 6) * π.
   
-Definition carBeamer (preface :string): string := 
-beamerFrameHeaderFooter "hello"
-  (tikZHeaderFooter 
-    (preface ++ (drawCarTikZ eps cd (csrigid2D cs) wheelAngle))).
+Definition drawCarZ : list (Line2D Z) := 
+drawCarZAux eps cd (csrigid2D cs) wheelAngle.
 
 End DrawCar.
 
@@ -314,7 +325,7 @@ Open Scope Z_scope.
 Local Definition eps : Qpos := QposMake 1 100.
 
 Definition myCarDimZ : CarDimensions Z :=
-{|lengthFront :=  100; lengthBack :=  15;
+{|lengthFront :=  60; lengthBack :=  15;
  width := 25|}.
 Close Scope Z_scope.
 
@@ -357,8 +368,8 @@ Local Definition straightMove : DAtomicMove :=
   (mkStraightMove (cast Z CR 100))%Z.
 
 
-Definition carStatesFrames  (l:list (string * carState CR)) : string :=
- sconcat (List.map (fun p=> carBeamer eps myCarDim (snd p) (fst p)) l).
+Definition carStatesFrames  (l:list (string * carState CR)) : list (string * list (Line2D Z)) :=
+(List.map (fun p=> (fst p, drawCarZ eps myCarDim (snd p))) l).
 
 
 Fixpoint movesStates (l:list DAtomicMove) (init : carState CR) : 
@@ -404,7 +415,7 @@ Qed.
 
 (** turn radius, which is inverse of turn curvature, is 200*)
 Local Definition sidewaysMove : DAtomicMoves :=
-(DWriggle (QposMake 1 200) (cast Z CR 100))%Z
+(DWriggle (QposMake 1 200) (cast Z CR 30))%Z
 (*  (DSideways (QposMake 1 200) (cast Z CR 100) (cast Z CR 100))%Z*) . 
 
 Open Scope string_scope.
@@ -448,15 +459,11 @@ Definition finerStates (d:Z⁺) (dm : NameDAtomicMove) (init : carState CR) :
     List.map (fun m => (name,stateAfterAtomicMove init m)) (finerAtomicMoves d dm)).
 
 Fixpoint finerMovesStates (d:Z⁺) (l:list NameDAtomicMove) (init : NamedCarState) : 
-  BoundingRectangle * list NamedCarState :=
+   list NamedCarState :=
 match l with
-| [] => ((carBoundingRect myCarDim (csrigid2D (snd init))) , [init])
+| [] => ( [init])
 | hm::t => let (midState,interS) := finerStates d hm (snd init) in
-           let (fb,fs) := (finerMovesStates d t midState) in
-           let nb := boundingUnion 
-                        fb 
-                        (carBoundingRect myCarDim (csrigid2D (snd init))) in
-          (nb  , ([init]++(interS)++fs))
+          ([init]++(interS)++(finerMovesStates d t midState))
 end.
 
 Definition epsd : Z := 3.
@@ -464,58 +471,59 @@ Definition textHt : Z := 20.
 
 Definition Rect2D := Line2D.
 
-(*
-Definition sideCars (b:BoundingRectangle) (init : carState CR) : list (Rect2D Z) :=
-  let initb := roundLineRZ eps (carBoundingRect myCarDim (csrigid2D init)) in
-  let b := roundLineRZ eps b in
+Definition sideCars (b init :BoundingRectangle Z): (BoundingRectangle Z) * list (Rect2D Z) :=
   let cardim : Cart2D Z  := {|X:= (lengthFront myCarDimZ) ; Y:= 2 * (width myCarDimZ) |} in
-  let ymax := Y (lend initb) in
+  let ymax := Y (lend init) in
   let lcarMaxXY : Cart2D Z := {|X:= X (lstart b) - epsd ; Y:= ymax |}  in
   let rcarMinXY : Cart2D Z := {|X:= X (lend b) + epsd ; Y:= ymax - (Y cardim) |}  in
-  [
-    {|lstart := lcarMaxXY - cardim; lend := lcarMaxXY |} ;
-    {|lstart := rcarMinXY ; lend := rcarMinXY + cardim |}
-  ].
-*)
-Definition sideCars (b:BoundingRectangle) (init : carState CR) : BoundingRectangle * list (Rect2D CR) :=
-  let initb := (carBoundingRect myCarDim (csrigid2D init)) in
-  let cardim : Cart2D CR  := {|X:= (lengthFront myCarDim) ; Y:= 2 * (width myCarDim) |} in
-  let ymax := Y (lend initb) in
-  let lcarMaxXY : Cart2D CR := {|X:= X (lstart b) - 'epsd ; Y:= ymax |}  in
-  let rcarMinXY : Cart2D CR := {|X:= X (lend b) + 'epsd ; Y:= ymax - (Y cardim) |}  in
   (boundingUnion b {|lstart := lcarMaxXY - cardim; lend := rcarMinXY + cardim |},
     [
       {|lstart := lcarMaxXY - cardim; lend := lcarMaxXY |} ;
       {|lstart := rcarMinXY ; lend := rcarMinXY + cardim |}
     ]).
+    
 
-Definition extendRectForText (b:BoundingRectangle)  : BoundingRectangle :=
-  {|lstart := (lstart b) - {|X:= 0 ; Y:= 'textHt  |}; lend := (lend b) + {|X:= 0 ; Y:= 'textHt  |} |}.
+
+Definition extendRectForText (b:BoundingRectangle Z)  : BoundingRectangle Z :=
+  {|lstart := (lstart b) - {|X:= 0 ; Y:= textHt  |}; lend := (lend b) + {|X:= 0 ; Y:= textHt  |} |}.
   
 Open Scope string_scope.
-Definition drawEnv (b:BoundingRectangle) (init : carState CR) (label : string) : string :=
+
+Definition drawEnv (b init:BoundingRectangle Z)  : string * Cart2D Z:=
   let (bc, sc) := sideCars b init in
+  let textPos := lstart bc in
   let bf := extendRectForText bc in
-  let textPos := roundPointRZ eps (lstart bc) in
-  let bottomLineStart := {| X := X (lstart bc); Y := Y (lstart bc) - 'epsd |} in
-  let bottomLineEnd := {| X := X (lend bc); Y := Y (lstart bc) - 'epsd |} in
-  let bottomLineZ   :=  roundLineRZ eps {|lstart := bottomLineStart; lend := bottomLineStart|} in
-  let scz  :=  List.map  (roundLineRZ eps) sc in
-  let clip : string :=  tikZBoundingClip eps bf in
-  let sideCars : list string :=  List.map  (tikZFilledRect "red") scz in
+  let bottomLineStart := {| X := X (lstart bc); Y := Y (lstart bc) - epsd |} in
+  let bottomLineEnd := {| X := X (lend bc); Y := Y (lstart bc) - epsd |} in
+  let bottomLineZ   := {|lstart := bottomLineStart; lend := bottomLineEnd|} in
+  let clip : string :=  tikZBoundingClip bf in
+  let sideCars : list string :=  List.map  (tikZFilledRect "red") sc in
   let bottomLine : string :=  tikZColoredLine "red" bottomLineZ in 
-  let text := "\node[below,right] at " ++ tikZPoint textPos ++ "{" ++ label ++ "};" in
-  sconcat (sideCars ++ [clip;bottomLine]).
+  (sconcat (sideCars ++ [clip;bottomLine]), textPos).
   
-Close Scope string_scope.
+
+Definition frameWithLines (preface:string) (lines : list (Line2D Z)) : string :=
+  beamerFrameHeaderFooter "hello"
+    (tikZHeaderFooter (preface ++ (tikZLines lines))).
+
 
 Definition toPrint : string := 
-let sidewaysMove := List.zip moveNames sidewaysMove  in
-let initStp := (initStName,initSt) in
-let (b,cs) := (finerMovesStates 3 sidewaysMove initStp) in
-let clip : string := tikZBoundingClip eps b in
-carStatesFrames 
-  (List.map (fun x => (drawEnv b initSt (fst x),snd x)) 
-      (cs ++ [initStp])).
+  let sidewaysMove := List.zip moveNames sidewaysMove  in
+  let initStp := (initStName,initSt) in
+  let cs := (finerMovesStates 3 sidewaysMove initStp) in
+  let namedLines : list (string ** list (Line2D Z)) := carStatesFrames  cs in
+  let allLines : list (Line2D Z) :=  flat_map snd namedLines in
+  let globalB := computeBoundingRectLines allLines in
+  match namedLines with
+  | [] => ""
+  | h::tl => 
+      let initb := computeBoundingRectLines (snd h) in
+      let (preface, textPos) := drawEnv globalB initb in 
+      let textTikZ  : string -> string  
+        := fun label => "\node[below,right] at " ++ tikZPoint textPos ++ "{" ++ label ++ "};" in
+      let frames := List.map (fun p => frameWithLines (preface ++ textTikZ (fst p)) (snd p)) namedLines in
+      sconcat frames
+  end.
+Close Scope string_scope.
 
 Extraction "simulator.hs" toPrint.
