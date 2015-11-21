@@ -413,19 +413,39 @@ Proof.
   intros. reflexivity.
 Qed.
 
+
+Fixpoint mapDiagonal  `(f: A->A) (prefix tail: list A) : list (list A) :=
+match tail with
+| [] => []
+| h::tl => (prefix ++ ((f h)::tl))::(mapDiagonal f (prefix++[h]) tl)
+end.
+
+Local Definition wriggleMove : DAtomicMoves :=
+(DWriggle (QposMake 1 200) (cast Z CR 30))%Z.
+
+
 (** turn radius, which is inverse of turn curvature, is 200*)
 Local Definition sidewaysMove : DAtomicMoves :=
-(DWriggle (QposMake 1 200) (cast Z CR 30))%Z
-(*  (DSideways (QposMake 1 200) (cast Z CR 100) (cast Z CR 100))%Z*) . 
+  (DSideways (QposMake 1 100) (cast Z CR 30) (cast Z CR 20))%Z . 
 
 Open Scope string_scope.
-Definition moveNames : list string := 
-  ["\hl{(c,d)}; (-c,-d)" ;"(c,d); \hl{(-c,-d)}"].
+Definition moveNamesWriggle : list string := 
+  ["\hll{(c,d)}; (-c,-d)" ;"(c,d); \hll{(-c,-d)}"].
 
-Definition initStName : string := 
+Definition initStNameWriggle : string := 
   "(c,d); (-c,-d)".
 
+Definition atomicMoveNamesSideways : list string := 
+  ["(c,d)"; "(-c,-d)"; "$\;\;$ (0,d')" ; "$\;\;$ (-c,d)" ; "(c,-d)"; "$\;\;$ (0,d'*cos(2*c*d))"].
+
+Local Definition spacedMoves := List.map (fun x => x++"$\;\;$ ")atomicMoveNamesSideways.
+
+Definition moveNamesSideways : list string := 
+  List.map sconcat (mapDiagonal (fun x => sconcat ["\hll{";x;"}"]) [] spacedMoves).
+
 Close Scope string_scope.
+  
+  
   
 
 Definition NameDAtomicMove := prod string  DAtomicMove.
@@ -467,7 +487,7 @@ match l with
 end.
 
 Definition epsd : Z := 3.
-Definition textHt : Z := 20.
+Definition textHt : Z := 25.
 
 Definition Rect2D := Line2D.
 
@@ -508,8 +528,8 @@ Definition frameWithLines (preface:string) (lines : list (Line2D Z)) : string :=
 
 
 Definition toPrint : string := 
-  let sidewaysMove := List.zip moveNames sidewaysMove  in
-  let initStp := (initStName,initSt) in
+  let sidewaysMove := List.zip moveNamesSideways sidewaysMove  in
+  let initStp := (sconcat spacedMoves,initSt) in
   let cs := (finerMovesStates 3 sidewaysMove initStp) in
   let namedLines : list (string ** list (Line2D Z)) := carStatesFrames  cs in
   let allLines : list (Line2D Z) :=  flat_map snd namedLines in
@@ -520,7 +540,8 @@ Definition toPrint : string :=
       let initb := computeBoundingRectLines (snd h) in
       let (preface, textPos) := drawEnv globalB initb in 
       let textTikZ  : string -> string  
-        := fun label => "\node[below,right] at " ++ tikZPoint textPos ++ "{" ++ label ++ "};" in
+        := fun label => "\node[below right] at " ++ tikZPoint textPos 
+            ++ "{" ++ label ++ "};" ++ newLineString in
       let frames := List.map (fun p => frameWithLines (preface ++ textTikZ (fst p)) (snd p)) namedLines in
       sconcat frames
   end.
