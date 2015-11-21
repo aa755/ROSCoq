@@ -165,7 +165,7 @@ Definition tikZLines (l: list (Line2D Z)) : string :=
   sconcat  (List.map tikZLine l).
 
 Definition tikZOptions : string :=
- "[scale=0.02]".
+ "[scale=0.03]".
  
 Definition tikZHeaderFooter (contents : string) : string :=
   "\begin{tikzpicture}"++tikZOptions++newLineString++contents++newLineString
@@ -426,7 +426,7 @@ Local Definition wriggleMove : DAtomicMoves :=
 
 (** turn radius, which is inverse of turn curvature, is 200*)
 Local Definition sidewaysMove : DAtomicMoves :=
-  (DSideways (QposMake 1 100) (cast Z CR 30) (cast Z CR 20))%Z . 
+  (DSideways (QposMake 1 50) (cast Z CR 15) (cast Z CR 10))%Z . 
 
 Open Scope string_scope.
 Definition moveNamesWriggle : list string := 
@@ -436,9 +436,9 @@ Definition initStNameWriggle : string :=
   "(c,d); (-c,-d)".
 
 Definition atomicMoveNamesSideways : list string := 
-  ["(c,d)"; "(-c,-d)"; "$\;\;$ (0,d')" ; "$\;\;$ (-c,d)" ; "(c,-d)"; "$\;\;$ (0,d'*cos(2*c*d))"].
+  ["(c,d)"; "(-c,-d)"; "$\;$(0,d')" ; "$\;$(-c,d)" ; "(c,-d)"; "$\;$(0,d'cos 2cd)"].
 
-Local Definition spacedMoves := List.map (fun x => x++"$\;\;$ ")atomicMoveNamesSideways.
+Local Definition spacedMoves := List.map (fun x => x++" ")atomicMoveNamesSideways.
 
 Definition moveNamesSideways : list string := 
   List.map sconcat (mapDiagonal (fun x => sconcat ["\hll{";x;"}"]) [] spacedMoves).
