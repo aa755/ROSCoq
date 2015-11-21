@@ -426,7 +426,7 @@ Local Definition wriggleMove : DAtomicMoves :=
 
 (** turn radius, which is inverse of turn curvature, is 200*)
 Local Definition sidewaysMove : DAtomicMoves :=
-  (DSideways (QposMake 1 50) (cast Z CR 15) (cast Z CR 10))%Z . 
+  (DSideways (QposMake 1 50) (cast Z CR 5) (cast Z CR 15))%Z . 
 
 Open Scope string_scope.
 Definition moveNamesWriggle : list string := 
@@ -530,7 +530,7 @@ Definition frameWithLines (preface:string) (lines : list (Line2D Z)) : string :=
 Definition toPrint : string := 
   let sidewaysMove := List.zip moveNamesSideways sidewaysMove  in
   let initStp := (sconcat spacedMoves,initSt) in
-  let cs := (finerMovesStates 3 sidewaysMove initStp) in
+  let cs := (finerMovesStates 10 sidewaysMove initStp) in
   let namedLines : list (string ** list (Line2D Z)) := carStatesFrames  cs in
   let allLines : list (Line2D Z) :=  flat_map snd namedLines in
   let globalB := computeBoundingRectLines allLines in
