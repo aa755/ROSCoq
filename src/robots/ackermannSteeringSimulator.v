@@ -118,8 +118,12 @@ Section LineRounding.
    1.5-eps and 1.5+eps may be rounded to 1 or 2. *)
 Variable eps: Qpos.
 
+Global Instance  CastZCR : Cast Z CR := fun x => inject_Q_CR (inject_Z x).
+
+Definition finerRes : Z := 100.
+
 Definition roundPointRZ (p: Cart2D CR) : Cart2D Z :=
-{|X:= R2ZApprox (X p) eps; Y:=R2ZApprox (Y p) eps |}.
+{|X:= R2ZApprox ('finerRes * (X p)) eps; Y:=R2ZApprox ('finerRes * (Y p)) eps |}.
 
 Definition roundLineRZ (p: Line2D CR) : Line2D Z :=
 {|lstart := roundPointRZ (lstart p); lend:=roundPointRZ (lend p) |}.
@@ -137,8 +141,7 @@ Require ExtrHaskellNatNum.
 Axiom ZtoString : Z -> string.
 (** [Z] maps to [Prelude.Integer] and [string] map to Prelude.?? . 
   So Prelude.show works *)
-Extract Constant ZtoString => "Prelude.show".
-
+Extract Constant ZtoString => "PleaseFixMe".
 Definition sconcat (l:list string) : string :=
   List.fold_left append  l EmptyString.
 
@@ -146,8 +149,9 @@ Definition sconcat (l:list string) : string :=
 Definition newLineChar : Ascii.ascii := Ascii.ascii_of_nat 10.
 Definition newLineString : string := String newLineChar EmptyString.
 
+
 Definition tikZPoint (p: Cart2D Z) : string := 
-  "(" ++ ZtoString (X p) ++ "," ++ ZtoString (Y p) ++ ")".
+  "(" ++ ZtoString ((X p)) ++ "," ++ ZtoString (Y p) ++ ")".
 
 Definition tikZLine (l: Line2D Z) : string :=
   "\draw" ++ tikZPoint (lstart l) ++ "--" ++ tikZPoint (lend l) ++ ";" ++
@@ -299,7 +303,6 @@ match c with
 end.
 
 
-Global Instance  CastZCR : Cast Z CR := fun x => inject_Q_CR (inject_Z x).
 Section DrawCar.
 Variable eps:Qpos.
 Variable cd :CarDimensions CR.
@@ -426,7 +429,7 @@ Local Definition wriggleMove : DAtomicMoves :=
 
 (** turn radius, which is inverse of turn curvature, is 200*)
 Local Definition sidewaysMove : DAtomicMoves :=
-  (DSideways (QposMake 1 50) (cast Z CR 5) (cast Z CR 15))%Z . 
+  (DSideways (QposMake 1 50) (cast Z CR 15) (cast Z CR 10))%Z . 
 
 Open Scope string_scope.
 Definition moveNamesWriggle : list string := 
@@ -486,13 +489,13 @@ match l with
           ([init]++(interS)++(finerMovesStates d t midState))
 end.
 
-Definition epsd : Z := 3.
-Definition textHt : Z := 25.
+Definition epsd : Z := 3*finerRes.
+Definition textHt : Z := 25*finerRes.
 
 Definition Rect2D := Line2D.
 
 Definition sideCars (b init :BoundingRectangle Z): (BoundingRectangle Z) * list (Rect2D Z) :=
-  let cardim : Cart2D Z  := {|X:= (lengthFront myCarDimZ) ; Y:= 2 * (width myCarDimZ) |} in
+  let cardim : Cart2D Z  := (sameXY finerRes)*{|X:= (lengthFront myCarDimZ) ; Y:= 2 * (width myCarDimZ) |} in
   let ymax := Y (lend init) in
   let lcarMaxXY : Cart2D Z := {|X:= X (lstart b) - epsd ; Y:= ymax |}  in
   let rcarMinXY : Cart2D Z := {|X:= X (lend b) + epsd ; Y:= ymax - (Y cardim) |}  in
@@ -530,7 +533,7 @@ Definition frameWithLines (preface:string) (lines : list (Line2D Z)) : string :=
 Definition toPrint : string := 
   let sidewaysMove := List.zip moveNamesSideways sidewaysMove  in
   let initStp := (sconcat spacedMoves,initSt) in
-  let cs := (finerMovesStates 10 sidewaysMove initStp) in
+  let cs := (finerMovesStates 3 sidewaysMove initStp) in
   let namedLines : list (string ** list (Line2D Z)) := carStatesFrames  cs in
   let allLines : list (Line2D Z) :=  flat_map snd namedLines in
   let globalB := computeBoundingRectLines allLines in
