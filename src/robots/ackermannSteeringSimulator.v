@@ -190,14 +190,9 @@ Definition beamerFrameLines (title: string)
 
 Definition BoundingRectangle := Line2D.
 
-Class MinClass (A:Type) := min : A -> A -> A.
-Class MaxClass (A:Type) := max : A -> A -> A.
+Require Import fastReals.misc.
+Require Import fastReals.interface.
 
-Global Instance MinClassCR : MinClass CR := fun x y => CRmin x y.
-Global Instance MaxClassCR : MaxClass CR := fun x y => CRmax x y.
-
-Global Instance MinClassZ : MinClass Z := Zmin.
-Global Instance MaxClassZ : MaxClass Z := Zmax.
 
 Definition minCart `{MinClass A} (a b : Cart2D A) := 
   {|X:= min (X a) (X b); Y:= min (Y a) (Y b)|}.
@@ -261,6 +256,8 @@ Definition backRight : Cart2D CR :=
 
 Global Instance  CastQCartCR : Cast Q (Cart2D CR) 
   := fun x => sameXY (inject_Q_CR x).
+
+Require Import fastReals.implCR.
 
 Definition carBoundingRectCR : BoundingRectangle CR :=
   computeBoundingRect  [frontRight;frontLeft;backLeft;backRight].
