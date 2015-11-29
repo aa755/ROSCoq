@@ -43,11 +43,7 @@ Local Opaque Sin.
 Local Opaque Cos.
 
 Set Implicit Arguments.
-Record Rigid2DState (A:Type): Type :=
-{
-  pos2D : Cart2D A;  
-  θ2D :  A
-}.
+Require Import geometry2D.
 
 (** enough data to render a car in a picture, which will be a part of an animation*)
 Record carState (A:Type) : Type :=
@@ -64,14 +60,16 @@ Open Scope CR_scope.
 Definition DAtomicMove := {am : AtomicMove 
     | (am_tc am = 0 or (am_tc am) >< 0) }.
 
-Definition unitVecCR (θ : CR) : Cart2D CR := {| X := cos θ; Y := sin θ |}.
 Open Scope mc_scope.
 
 Close Scope CR_scope.
 
 Typeclasses  eauto := 100.
 
-Global Instance castCRCart2DCR : Cast CR (Cart2D CR) := sameXY.
+
+Require Import fastReals.misc.
+Require Import fastReals.interface.
+Require Import fastReals.implCR.
 
 Definition stateAfterAtomicMove 
   (cs : carState CR) (dm : DAtomicMove): carState CR:=
@@ -83,34 +81,13 @@ Definition stateAfterAtomicMove
   let posInit : Cart2D CR := (pos2D (csrigid2D cs)) in
   let posDelta := 
     match (projT2 dm) with
-    | inl _ =>  ('dist) * (unitVecCR θInit)
+    | inl _ =>  ('dist) * (unitVec θInit)
     | inr p => {|X:= (sin θf - sin θInit) * (CRinvT tc p) ; 
                 Y:= (cos θInit - cos θf) * (CRinvT tc p)|}
     end in  
   {|csrigid2D := {|pos2D := posInit + posDelta; θ2D := θf|} 
     ; cs_tc :=tc |}.
 
-
-Record Line2D (A:Type):=
-{
-  lstart : Cart2D A;
-  lend : Cart2D A
-}.
-
-Definition centredLineAtAngle  (angle halfLength : CR) (p: Cart2D CR)
-   : (Line2D CR) := 
-   let v := 'halfLength * (unitVecCR angle) in
-   {| lstart := p-v ; lend := p+v |}.
-
-Fixpoint linesConsecutive {A:Type}
-   (pts : list (Cart2D A)): list (Line2D A) :=
-match pts with
-| nil => []
-| h1::tl => match tl with
-            | nil => []
-            | h2::_ =>  {|lstart := h1 ; lend := h2|}::(linesConsecutive tl)
-            end
-end.
 
 Section LineRounding.
 (** A perfect rouding from a real to an integer is undecidable.
@@ -190,8 +167,6 @@ Definition beamerFrameLines (title: string)
 
 Definition BoundingRectangle := Line2D.
 
-Require Import fastReals.misc.
-Require Import fastReals.interface.
 
 
 Definition minCart `{MinClass A} (a b : Cart2D A) := 
@@ -228,55 +203,28 @@ Definition tikZBoundingClip (l: BoundingRectangle Z) : string :=
   newLineString.
 
 
-Variable cd :CarDimensions CR.
-Variable cs :Rigid2DState CR.
-
-Definition frontUnitVec : Cart2D CR := unitVecCR (θ2D cs).
-Definition rightSideUnitVec : Cart2D CR := unitVecCR ((θ2D cs) - (½ * π)).
-
-Definition frontRight : Cart2D CR := 
-  (pos2D cs) 
-    + frontUnitVec* '(lengthFront cd)
-    + rightSideUnitVec * '(width cd).
-
-Definition frontLeft : Cart2D CR := 
-  (pos2D cs) 
-    + frontUnitVec* '(lengthFront cd)
-    - rightSideUnitVec * '(width cd).
-
-Definition backLeft : Cart2D CR := 
-  (pos2D cs) 
-    - frontUnitVec* '(lengthBack cd)
-    - rightSideUnitVec * '(width cd).
-
-Definition backRight : Cart2D CR := 
-  (pos2D cs) 
-    - frontUnitVec* '(lengthBack cd)
-    + rightSideUnitVec * '(width cd).
-
 Global Instance  CastQCartCR : Cast Q (Cart2D CR) 
   := fun x => sameXY (inject_Q_CR x).
 
-Require Import fastReals.implCR.
+
+Variable cd :CarDimensions CR.
+Variable cs :Rigid2DState CR.
 
 Definition carBoundingRectCR : BoundingRectangle CR :=
-  computeBoundingRect  [frontRight;frontLeft;backLeft;backRight].
+  computeBoundingRect  [frontRight cs cd;frontLeft cs cd;
+                      backLeft cs cd;backRight cs cd].
 
 Definition leftWheelCenter : Cart2D CR := 
   (pos2D cs) + 
   '(Qmake 3 4) 
-    * (frontUnitVec* '(lengthFront cd)
-        + rightSideUnitVec * '(width cd)).
+    * ((frontUnitVec cs)* '(lengthFront cd)
+        + (rightSideUnitVec cs) * '(width cd)).
 
 Definition rightWheelCenter : Cart2D CR := 
   (pos2D cs) + 
   '(Qmake 3 4) 
-    * (frontUnitVec* '(lengthFront cd)
-        - rightSideUnitVec * '(width cd)).
-
-Definition carBoundingBox : list (Line2D CR) := 
-  {|lstart := frontRight ; lend := backRight|}
-  ::(linesConsecutive [frontRight;frontLeft;backLeft;backRight]).
+    * ((frontUnitVec cs)* '(lengthFront cd)
+        - (rightSideUnitVec cs) * '(width cd)).
 
 Definition carWheels (θ : CR) : list (Line2D CR) := 
   List.map 
@@ -284,7 +232,7 @@ Definition carWheels (θ : CR) : list (Line2D CR) :=
     [leftWheelCenter; rightWheelCenter].
 
 Definition drawCarZAux  (θ : CR) : list (Line2D Z):=
-  List.map (roundLineRZ eps) (carBoundingBox++carWheels θ).
+  List.map (roundLineRZ eps) ((carBoundingBox cs cd)++carWheels θ).
 
 
 Definition drawCarTikZOld (θ : CR) : string := 

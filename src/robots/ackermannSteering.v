@@ -149,14 +149,55 @@ Record CarDimensions (A:Type):=
    width :A
 }.
 
-Section CornerPos.
-Variable acs :AckermannCar.
-Definition posAtTime (t: Time): Cart2D IR :=
+Require Import geometry2D.
+
+(** enough data to render a car in a picture, which will be a part of an animation*)
+Record carState (A:Type) : Type :=
+{
+  csrigid2D : Rigid2DState A;  
+  cs_tc :  A (*turn curvatire, determines the position of steering wheel*)
+}.
+
+Definition posAtTime (acs :AckermannCar) (t: Time): Cart2D IR :=
   {| X:= {X (position acs)} t ; Y := {Y (position acs)} t |}.
 
-Variable cd :CarDimensions IR.
-(*TODO: define continuous fuctions denoting the evolution of the corners 
-of the car*)
+Section CornerPos.
+
+(** R will be instantiated with both reals and continuous functions from
+time to reals.*)
+Context `{SinClass R} `{CosClass R} `{Ring R} `{RealNumberPi R} `{HalfNum R}.
+
+Variable cs :Rigid2DState R.
+
+Definition frontUnitVec : Cart2D R := unitVec (θ2D cs).
+Definition rightSideUnitVec : Cart2D R := unitVec ((θ2D cs) - (½ * π)).
+
+Variable cd :CarDimensions R.
+
+Definition frontRight : Cart2D R := 
+  (pos2D cs) 
+    + frontUnitVec* '(lengthFront cd)
+    + rightSideUnitVec * '(width cd).
+
+Definition frontLeft : Cart2D R := 
+  (pos2D cs) 
+    + frontUnitVec* '(lengthFront cd)
+    - rightSideUnitVec * '(width cd).
+
+Definition backLeft : Cart2D R := 
+  (pos2D cs) 
+    - frontUnitVec* '(lengthBack cd)
+    - rightSideUnitVec * '(width cd).
+
+Definition backRight : Cart2D R := 
+  (pos2D cs) 
+    - frontUnitVec* '(lengthBack cd)
+    + rightSideUnitVec * '(width cd).
+
+Definition carBoundingBox : list (Line2D R) := 
+  {|lstart := frontRight ; lend := backRight|}
+  ::(linesConsecutive [frontRight;frontLeft;backLeft;backRight]).
+
 End CornerPos.
 
 End Robot.
