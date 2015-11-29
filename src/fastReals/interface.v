@@ -30,3 +30,10 @@ Class MinClass (A:Type) := min : A -> A -> A.
 Class MaxClass (A:Type) := max : A -> A -> A.
 Class SinClass (A:Type) := sin : A -> A.
 Class CosClass (A:Type) := cos : A -> A.
+
+Require Import ROSCOQ.IRMisc.CoRNMisc.
+(**because most of the theory of analysis in CoRN is built for IR. These might
+be derivable*)
+Class IsoToIR (A:Type) := isoToIR : A -> IR.
+Class IsoFromIR (A:Type) := isoFromIR : IR -> A.
+

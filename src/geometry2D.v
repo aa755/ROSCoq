@@ -1,12 +1,11 @@
 Require Export ROSCOQ.fastReals.interface.
 
-Generalizable Variable R.
 
 Require Import ROSCOQ.Vector.
 
 Set Implicit Arguments.
 
-Definition unitVec `{SinClass R}`{CosClass R} (θ : R) : Cart2D R 
+Definition unitVec {R:Type} `{SinClass R}`{CosClass R} (θ : R) : Cart2D R 
   := {| X := cos θ; Y := sin θ |}.
 
 Record Rigid2DState (A:Type): Type :=
@@ -29,7 +28,7 @@ Record Line2D (A:Type):=
 Global Instance castCRCart2DCR (R:Type): Cast R (Cart2D R) := sameXY.
 
 
-Definition centredLineAtAngle `{SinClass R}`{CosClass R} `{Ring R} 
+Definition centredLineAtAngle {R:Type} `{SinClass R}`{CosClass R} `{Ring R} 
   (angle halfLength : R) (p: Cart2D R)
    : (Line2D R) := 
    let v := 'halfLength * (unitVec angle) in
