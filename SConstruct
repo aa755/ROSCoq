@@ -15,6 +15,7 @@ while nodes:
    and not node.endswith('CRMisc/ContField.v')
    and not node.endswith('CRMisc/PointWiseRing.v')
    and not node.endswith('CRMisc/OldMetricAsNew.v')
+   and not node.endswith('src/robots/ackermannSteeringSimulator.v')
    and not node.endswith('CartAR.v')
    and not node.endswith('ProbTh.v')
    and not node.endswith('shim/oldJavaShim/icreateConcrete.v')
