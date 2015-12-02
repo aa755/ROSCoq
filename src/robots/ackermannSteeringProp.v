@@ -47,10 +47,23 @@ Local Opaque Cos.
 This file is highly experimental.
 *)
   
+(*Move*)
+Definition nonNegDuring (F : TContR) (tstart tend : Time) :=
+  forall (t: Time), (tstart ≤ t ≤ tend) -> 0 ≤ {F} t.
+
+Definition nonPosDuring (F : TContR) (tstart tend : Time) :=
+  forall (t: Time), (tstart ≤ t ≤ tend) ->  {F} t ≤ 0.
+
+Definition noSignChangeDuring (F : TContR) (tstart tend : Time) : Prop :=
+nonNegDuring F tstart tend \/  nonPosDuring F tstart tend.
+
 Section Props.
 Variable maxTurnCurvature : Qpos.
 Variable acs : AckermannCar maxTurnCurvature.
 
+Definition inBetween (b a c : IR) 
+  := (Min a c ≤ b ≤ Max a c).
+  
   Local Notation  "∫" := Cintegral.
 
 (** 
@@ -66,7 +79,6 @@ TODO: Ideally, we should let the turn curvature vary a bit
 (upto some epsilon) during the process.
 This will SIGNIFICANTLY complicate the integrals.
 *)
-
 
 Section Cases.
 
@@ -107,6 +119,23 @@ Section Cases.
     split; eauto 2 with CoRN.
   Qed.
 
+  Section NoSignChange.
+  (** While characterizing the space needed by a move,
+    the whole trajectory matters, not just the initial and final
+    positions. So, we rule out the case of the car moving both
+    forward and backward during an atomic move. The goal is 
+    to be able to be able to just consider the start and 
+    end positions of an
+    atomic move while analysing its space requirement. *)
+  Hypothesis nsc : noSignChangeDuring (linVel acs) tstart tend.
+
+  (** As a result, during an atomic move,
+    theta is always between its initial and final value. *)
+  Lemma fixedSteeringTheta : forall (t :Time)  (p: tstart ≤ t ≤ tend),
+    inBetween ({theta acs} t) ({theta acs} tstart) ({theta acs} tend).
+  Abort.
+    
+  End NoSignChange.
 
   (** We consider the case when the front wheels are not straight, i.e. the 
       turn curvature is nonzero. The other case (front wheels are perfectly straight) is simpler, 
@@ -116,8 +145,7 @@ Section Cases.
   (**Needed because [tc] shows up as a denominator
      during integration below in [fixedCurvX].*)
   Hypothesis tcNZ : (tc [#] 0).
-
-
+  
   (** [X] coordinate of the [position] at a given time. Note that in CoRN,
       division is a ternary operator. [a[/]b[//][bp]] denotes the real number [a]
       divided by the non-zero real number [b], where [bp] is the proof of non-zero-hood
