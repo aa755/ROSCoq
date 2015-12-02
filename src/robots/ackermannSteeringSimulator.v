@@ -165,29 +165,7 @@ Definition beamerFrameLines (title: string)
 
 
 
-Definition BoundingRectangle := Line2D.
 
-
-
-Definition minCart `{MinClass A} (a b : Cart2D A) := 
-  {|X:= min (X a) (X b); Y:= min (Y a) (Y b)|}.
-
-Definition maxCart `{MaxClass A} (a b : Cart2D A) := 
-  {|X:= max (X a) (X b); Y:= max (Y a) (Y b)|}.
-
-Definition boundingUnion `{MinClass A}`{MaxClass A}
- (a b : BoundingRectangle A) : BoundingRectangle A:=
-  {|lstart := minCart (lstart a) (lstart b); 
-    lend := maxCart  (lend a) (lend b)|}.
-
-Fixpoint computeBoundingRect `{MinClass A}`{MaxClass A} `{Zero A}
-  (pts : list (Cart2D A)) : BoundingRectangle A :=
-match pts with
-| pt::[] => {|lstart := pt; lend := pt|}
-| h::tl => let b := computeBoundingRect tl in
-        boundingUnion b {|lstart := h; lend := h|}
-| [] => {|lstart := 0; lend := 0|}
-end.
 
 Definition computeBoundingRectLines `{MinClass A}`{MaxClass A} `{Zero A}
   (ll : list (Line2D A)) : BoundingRectangle A :=
@@ -211,8 +189,7 @@ Variable cd :CarDimensions CR.
 Variable cs :Rigid2DState CR.
 
 Definition carBoundingRectCR : BoundingRectangle CR :=
-  computeBoundingRect  [frontRight cs cd;frontLeft cs cd;
-                      backLeft cs cd;backRight cs cd].
+  carMinMaxXY cs cd
 
 Definition leftWheelCenter : Cart2D CR := 
   (pos2D cs) + 
@@ -232,7 +209,7 @@ Definition carWheels (θ : CR) : list (Line2D CR) :=
     [leftWheelCenter; rightWheelCenter].
 
 Definition drawCarZAux  (θ : CR) : list (Line2D Z):=
-  List.map (roundLineRZ eps) ((carBoundingBox cs cd)++carWheels θ).
+  List.map (roundLineRZ eps) ((carOutline cs cd)++carWheels θ).
 
 
 Definition drawCarTikZOld (θ : CR) : string := 

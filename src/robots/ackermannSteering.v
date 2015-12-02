@@ -161,6 +161,10 @@ Record carState (A:Type) : Type :=
 Definition posAtTime (acs :AckermannCar) (t: Time): Cart2D IR :=
   {| X:= {X (position acs)} t ; Y := {Y (position acs)} t |}.
 
+Definition rigidStateAtTime (acs :AckermannCar) (t: Time) : Rigid2DState IR :=
+  {| pos2D := posAtTime acs t ; θ2D := {theta acs} t|}.
+
+
 Section CornerPos.
 
 (** R will be instantiated with both reals and continuous functions from
@@ -194,10 +198,15 @@ Definition backRight : Cart2D R :=
     - frontUnitVec* '(lengthBack cd)
     + rightSideUnitVec * '(width cd).
 
-Definition carBoundingBox : list (Line2D R) := 
+Definition carOutline : list (Line2D R) := 
   {|lstart := frontRight ; lend := backRight|}
   ::(linesConsecutive [frontRight;frontLeft;backLeft;backRight]).
 
+Context `{MaxClass R} `{MinClass R}.
+Definition carMinMaxXY : BoundingRectangle R :=
+  computeBoundingRect  [frontRight;frontLeft;backLeft;backRight].
+
 End CornerPos.
+
 
 End Robot.

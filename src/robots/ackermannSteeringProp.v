@@ -46,6 +46,34 @@ Local Opaque Cos.
 
 This file is highly experimental.
 *)
+
+(**width needs to be nonzero so that we can take its reciprocal in an arctan.
+  others can also be required to be strictly positive*)
+
+Definition nonTrivialCarDim (cd : CarDimensions IR) :=
+  0 ≤ lengthFront cd  and  0 [<] width cd and 0 ≤ lengthBack cd.
+
+Require Import fastReals.interface.
+Require Import fastReals.misc.
+Require Import geometry2D.
+
+(** For getting out of a parallel parked spot, a car's orientation does not
+need to change by 90 degrees. Assume that the X axis represents the road.
+Under such an orientation, it is easy to characterize the X Y extent of the car,
+in terms of the coordinates of the four corners of the car*)
+Section XYBounds.
+  Variable cs :Rigid2DState IR.
+  Variable cd :CarDimensions IR.
+  Hypothesis nonTriv : nonTrivialCarDim cd.
+  Hypothesis theta90 : 0 ≤ θ2D cs ≤ (½ * π).
+  
+  (**[lstart] denotes minXY, and [lend] denotes maxXY*)
+  Lemma carBounds : carMinMaxXY cs cd =
+  {|lstart := {|X:= X (backLeft cs cd); Y:= Y (backRight cs cd)|};
+     lend := {|X:= X (frontRight cs cd); Y:= Y (frontLeft cs cd) |} |}.
+  Abort.
+End XYBounds.
+
   
 (*Move*)
 Definition nonNegDuring (F : TContR) (tstart tend : Time) :=

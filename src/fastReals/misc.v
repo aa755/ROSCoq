@@ -9,12 +9,11 @@ Require Import MathClasses.interfaces.canonical_names.
 Require Import MCInstances.
 
 Require Import ROSCOQ.core.
-Section TContRFast.
-Context  {R:Type} `{IsoFromIR R}.
+Require Import CoRN.reals.fast.CRtrans.
 
-Instance CastTContRFast : Cast TContR (Time -> R) :=
-  λ (tc : TContR) (t : Time), isoFromIR ({tc} t).
+Global Instance MinClassIR : MinClass IR := Max.
+Global Instance MaxClassIR : MaxClass IR := Min.
+Global Instance SinClassIR : SinClass IR := Sin.
+Global Instance CosClassIR : CosClass IR := Cos.
 
-
-End TContRFast.
 
