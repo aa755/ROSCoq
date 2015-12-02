@@ -29,6 +29,13 @@ Record Line2D (A:Type):=
 Global Instance EquivLine2D `{Equiv A} : Equiv (Line2D A) := 
   fun a b => lstart a = lstart b /\ lend a = lend b.
 
+Global Instance ProperLine2D `{Equiv A} : 
+  Proper (equiv ==> equiv  ==> equiv) (@Build_Line2D A).
+Proof.
+  intros ? ? h1  ? ? h2. split; simpl; assumption.
+Qed.
+
+
 
 Global Instance castCRCart2DCR (R:Type): Cast R (Cart2D R) := sameXY.
 
@@ -56,6 +63,8 @@ Definition minCart `{MinClass A} (a b : Cart2D A) :=
 
 Definition maxCart `{MaxClass A} (a b : Cart2D A) := 
   {|X:= max (X a) (X b); Y:= max (Y a) (Y b)|}.
+
+
 
 Definition boundingUnion `{MinClass A}`{MaxClass A}
  (a b : BoundingRectangle A) : BoundingRectangle A:=

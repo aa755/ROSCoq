@@ -41,6 +41,7 @@ Local Opaque Cosine.
 Local Opaque Sin.
 Local Opaque Cos.
 
+
 (** 
 * Characterizing the motion under Ackermann steering.
 
@@ -53,9 +54,13 @@ This file is highly experimental.
 Definition nonTrivialCarDim (cd : CarDimensions IR) :=
   0 ≤ lengthFront cd  and  0 [<] width cd and 0 ≤ lengthBack cd.
 
+
 Require Import fastReals.interface.
 Require Import fastReals.misc.
 Require Import geometry2D.
+Require Import geometry2DProps.
+
+Hint Unfold cos CosClassIR sin SinClassIR min MinClassIR: IRMC.
 
 (** For getting out of a parallel parked spot, a car's orientation does not
 need to change by 90 degrees. Assume that the X axis represents the road.
@@ -64,13 +69,76 @@ in terms of the coordinates of the four corners of the car*)
 Section XYBounds.
   Variable cs :Rigid2DState IR.
   Variable cd :CarDimensions IR.
+  Lemma unitVecMinus90 :  ∀ θ:IR, 
+    unitVec (θ - ½ * π) = {|X:= sin θ; Y:=- cos θ|}.
+  Proof.
+    intros ?. split; simpl;
+    autounfold with IRMC.
+    - rewrite <- Cos_inv.
+      setoid_rewrite minusInvR.
+      rewrite PiBy2DesugarIR.
+      apply Cos_HalfPi_minus.
+    - rewrite <- (cg_inv_inv _ (Sin (θ [+] [--] (½ [*] π)))).
+      rewrite <- Sin_inv.
+      setoid_rewrite minusInvR.
+      rewrite PiBy2DesugarIR.
+      rewrite Sin_HalfPi_minus.
+      reflexivity.
+  Qed.
+
   Hypothesis nonTriv : nonTrivialCarDim cd.
   Hypothesis theta90 : 0 ≤ θ2D cs ≤ (½ * π).
   
+  Lemma carBoundsAMAuxMin : 
+    minCart (rightSideUnitVec cs * ' width cd) (- (rightSideUnitVec cs * ' width cd))
+    = -('width cd) * {|X:= sin (θ2D cs); Y:= cos (θ2D cs)|}.
+  Proof.
+    destruct nonTriv as [a b]. destruct b as [c b].
+    destruct theta90 as [x y]. 
+    rewrite PiBy2DesugarIR in y.
+    apply less_leEq in c.
+    unfold rightSideUnitVec. rewrite unitVecMinus90.
+    unfold minCart. split; simpl;
+    autounfold with IRMC.
+    - rewrite Min_comm.
+      rewrite leEq_imp_Min_is_lft;[ring|].
+      rewrite <- cring_inv_mult_rht.
+      apply mult_resp_leEq_rht;[| assumption].
+      apply shift_leEq_rht. unfold cg_minus.
+      rewrite cg_inv_inv.
+      pose proof (less_leEq ℝ [0] Pi pos_Pi) as h.
+      apply nonneg_div_two' in h;
+       apply plus_resp_nonneg;
+      apply Sin_nonneg; eauto 2 with CoRN.
+
+    - rewrite leEq_imp_Min_is_lft;[ring|].
+      rewrite  cring_inv_mult_rht.
+      apply inv_resp_leEq.
+      rewrite <- cring_inv_mult_rht.
+      apply mult_resp_leEq_rht;[| assumption].
+      apply shift_leEq_rht. unfold cg_minus.
+      rewrite cg_inv_inv.
+      pose proof MinusPiBy2Le0.
+      apply plus_resp_nonneg;
+      apply Cos_nonneg; eauto 2 with CoRN.
+  Qed.
+
+    
   (**[lstart] denotes minXY, and [lend] denotes maxXY*)
-  Lemma carBounds : carMinMaxXY cs cd =
+  Lemma carBoundsAMAux : carMinMaxXY cs cd =
   {|lstart := {|X:= X (backLeft cs cd); Y:= Y (backRight cs cd)|};
      lend := {|X:= X (frontRight cs cd); Y:= Y (frontLeft cs cd) |} |}.
+  Proof.
+  unfold carMinMaxXY. simpl. unfold  boundingUnion.
+  simpl. unfold backRight, backLeft.
+  Typeclasses eauto :=10.
+  pose proof (minCartSum (pos2D cs - frontUnitVec cs * ' lengthBack cd)).
+  unfold BoundingRectangle. simpl.
+  Local Opaque minCart.
+  Local Opaque maxCart.
+  simpl. split; simpl.
+  - rewrite (minCartSum (pos2D cs - frontUnitVec cs * ' lengthBack cd)).
+    rewrite carBoundsAMAuxMin.
   Abort.
 End XYBounds.
 

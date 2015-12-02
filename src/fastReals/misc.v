@@ -11,8 +11,8 @@ Require Import MCInstances.
 Require Import ROSCOQ.core.
 Require Import CoRN.reals.fast.CRtrans.
 
-Global Instance MinClassIR : MinClass IR := Max.
-Global Instance MaxClassIR : MaxClass IR := Min.
+Global Instance MinClassIR : MinClass IR := Min.
+Global Instance MaxClassIR : MaxClass IR := Max.
 Global Instance SinClassIR : SinClass IR := Sin.
 Global Instance CosClassIR : CosClass IR := Cos.
 
