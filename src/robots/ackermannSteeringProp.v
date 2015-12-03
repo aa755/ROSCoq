@@ -439,10 +439,7 @@ Section Cases.
   Hypothesis theta90 :  forall (t :Time)  (p: tstart ≤ t ≤ tend),
      0 ≤ ({theta acs} t) ≤ (½ * π).
 
-  (**As shown by the lemma [carBoundsAMAux] above, the bottom right corner
-    of the car has the least Y coordinate among all corners of the car 
-  (also among all internal points of the car). We want this corner to not hit the 
-    curb. Therefore, it is important to characterize its Y coordinate during the move. *)
+  (** To characterize the space required, one needs to study the motion of the corners *)
   Lemma backRightXYAM : forall (t :Time) (Hb : tstart ≤ t ≤ tend),
     backRightAtTime acs t cd - backRightAtTime acs tstart cd =  
     '(turnRadius + width cd) * (rhsUnitVecAtTime acs t - rhsUnitVecAtTime acs tstart) -
@@ -486,6 +483,50 @@ Section Cases.
     ring.
   Qed.
 
+  Lemma frontRightXYAM : forall (t :Time) (Hb : tstart ≤ t ≤ tend),
+    frontRightAtTime acs t cd - frontRightAtTime acs tstart cd =  
+    '(turnRadius + width cd) * (rhsUnitVecAtTime acs t - rhsUnitVecAtTime acs tstart) 
+    + 'lengthFront cd * (unitVec ({theta acs} t) - unitVec θ0).
+  Proof.
+    intros ? ?. unfold frontRightAtTime,  frontRight, frontUnitVec . simpl.
+    fold (rhsUnitVecAtTime acs t).
+    fold (rhsUnitVecAtTime acs tstart).
+    match goal with
+    [|- equiv ?l _] => assert 
+      (l=(posAtTime acs t - posAtTime acs tstart)
+          + (' lengthFront cd) * (unitVec ({theta acs} t) - unitVec θ0)
+          + (' width cd) * (rhsUnitVecAtTime acs t - rhsUnitVecAtTime acs tstart))
+        as Heq by ring; rewrite Heq; clear Heq
+    end.
+
+    rewrite fixedSteeeringXY by assumption.
+    setoid_rewrite <- sameXYAdd. unfold cast, castCRCart2DCR.
+    ring.
+  Qed.
+
+  Lemma frontLeftXYAM : forall (t :Time) (Hb : tstart ≤ t ≤ tend),
+    frontLeftAtTime acs t cd - frontLeftAtTime acs tstart cd =  
+    '(turnRadius - width cd) * (rhsUnitVecAtTime acs t - rhsUnitVecAtTime acs tstart) 
+    + 'lengthFront cd * (unitVec ({theta acs} t) - unitVec θ0).
+  Proof.
+    intros ? ?. unfold frontLeftAtTime,  frontLeft, frontUnitVec . simpl.
+    fold (rhsUnitVecAtTime acs t).
+    fold (rhsUnitVecAtTime acs tstart).
+    match goal with
+    [|- equiv ?l _] => assert 
+      (l=(posAtTime acs t - posAtTime acs tstart)
+          + (' lengthFront cd) * (unitVec ({theta acs} t) - unitVec θ0)
+          - (' width cd) * (rhsUnitVecAtTime acs t - rhsUnitVecAtTime acs tstart))
+        as Heq by ring; rewrite Heq; clear Heq
+    end.
+
+    rewrite fixedSteeeringXY by assumption.
+    setoid_rewrite <- sameXYAdd. unfold cast, castCRCart2DCR.
+    rewrite sameXYNegate.
+    ring.
+  Qed.
+
+  
   End XYBounds.
 
   End TCNZ.
