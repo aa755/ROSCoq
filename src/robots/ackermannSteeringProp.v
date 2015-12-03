@@ -30,6 +30,7 @@ Require Import CartCR.
 Require Export ackermannSteering.
 
   Add Ring RisaRing: (CRing_Ring IR).
+  Add Ring cart2dir : Cart2DIRRing.
 
 Require Export CartIR.
 
@@ -317,10 +318,7 @@ Section Cases.
   (** While characterizing the space needed by a move,
     the whole trajectory matters, not just the initial and final
     positions. So, we rule out the case of the car moving both
-    forward and backward during an atomic move. The goal is 
-    to be able to be able to just consider the start and 
-    end positions of an
-    atomic move while analysing its space requirement. *)
+    forward and backward during an atomic move. *)
   Hypothesis nsc : noSignChangeDuring (linVel acs) tstart tend.
 
   (** As a result, during an atomic move,
@@ -339,6 +337,7 @@ Section Cases.
   (**Needed because [tc] shows up as a denominator
      during integration below in [fixedCurvX].*)
   Hypothesis tcNZ : (tc [#] 0).
+  Local Notation turnRadius  (* :IR *) := (f_rcpcl tc tcNZ).
   
   (** [X] coordinate of the [position] at a given time. Note that in CoRN,
       division is a ternary operator. [a[/]b[//][bp]] denotes the real number [a]
@@ -416,6 +415,78 @@ Section Cases.
       unfold inBounds in Hbb. simpl in Hbb. repnd.
       split; eauto 2 with CoRN.
   Qed.
+
+  Definition transpose {A:Type} (c: Cart2D A) :=
+    {|X:= Y c; Y:= X c|}.
+
+  Definition unitVecT (θ : IR) : Cart2D IR := transpose (unitVec θ).
+
+  Lemma fixedSteeeringXY : forall (t :Time) (_: tstart ≤ t ≤ tend),
+    posAtTime acs t - posAtTime acs tstart = 
+      'turnRadius * (rhsUnitVecAtTime acs t - rhsUnitVecAtTime acs tstart).
+  Proof.
+    intros ? Hb.
+    unfold rhsUnitVecAtTime, rightSideUnitVec, rigidStateAtTime.
+    simpl. rewrite unitVecMinus90, unitVecMinus90.
+    unfold posAtTime. split; simpl;
+      [rewrite fixedSteeeringX by assumption| rewrite fixedSteeeringY by assumption];
+    autounfold with IRMC; unfold cf_div; ring.
+  Qed.
+
+  Section XYBounds.
+  Variable cd :CarDimensions IR.
+  Hypothesis nonTriv : nonTrivialCarDim cd.
+  Hypothesis theta90 :  forall (t :Time)  (p: tstart ≤ t ≤ tend),
+     0 ≤ ({theta acs} t) ≤ (½ * π).
+
+  (**As shown by the lemma [carBoundsAMAux] above, the bottom right corner
+    of the car has the least Y coordinate among all corners of the car 
+  (also among all internal points of the car). We want this corner to not hit the 
+    curb. Therefore, it is important to characterize its Y coordinate during the move. *)
+  Lemma backRightXYAM : forall (t :Time) (Hb : tstart ≤ t ≤ tend),
+    backRightAtTime acs t cd - backRightAtTime acs tstart cd =  
+    '(turnRadius + width cd) * (rhsUnitVecAtTime acs t - rhsUnitVecAtTime acs tstart) -
+    'lengthBack cd * (unitVec ({theta acs} t) - unitVec θ0).
+  Proof.
+    intros ? ?. unfold backRightAtTime,  backRight, frontUnitVec . simpl.
+    fold (rhsUnitVecAtTime acs t).
+    fold (rhsUnitVecAtTime acs tstart).
+    match goal with
+    [|- equiv ?l _] => assert 
+      (l=(posAtTime acs t - posAtTime acs tstart)
+          - (' lengthBack cd) * (unitVec ({theta acs} t) - unitVec θ0)
+          + (' width cd) * (rhsUnitVecAtTime acs t - rhsUnitVecAtTime acs tstart))
+        as Heq by ring; rewrite Heq; clear Heq
+    end.
+
+    rewrite fixedSteeeringXY by assumption.
+    setoid_rewrite <- sameXYAdd. unfold cast, castCRCart2DCR.
+    ring.
+  Qed.
+
+  Lemma backLeftXYAM : forall (t :Time) (Hb : tstart ≤ t ≤ tend),
+    backLeftAtTime acs t cd - backLeftAtTime acs tstart cd =  
+    '(turnRadius - width cd) * (rhsUnitVecAtTime acs t - rhsUnitVecAtTime acs tstart) -
+    'lengthBack cd * (unitVec ({theta acs} t) - unitVec θ0).
+  Proof.
+    intros ? ?. unfold backLeftAtTime,  backLeft, frontUnitVec . simpl.
+    fold (rhsUnitVecAtTime acs t).
+    fold (rhsUnitVecAtTime acs tstart).
+    match goal with
+    [|- equiv ?l _] => assert 
+      (l=(posAtTime acs t - posAtTime acs tstart)
+          - (' lengthBack cd) * (unitVec ({theta acs} t) - unitVec θ0)
+          - (' width cd) * (rhsUnitVecAtTime acs t - rhsUnitVecAtTime acs tstart))
+        as Heq by ring; rewrite Heq; clear Heq
+    end.
+
+    rewrite fixedSteeeringXY by assumption.
+    setoid_rewrite <- sameXYAdd. unfold cast, castCRCart2DCR.
+    rewrite sameXYNegate.
+    ring.
+  Qed.
+
+  End XYBounds.
 
   End TCNZ.
 
@@ -1006,7 +1077,6 @@ End Wriggle.
   Qed.
 *)
 
-Add Ring cart2dir : Cart2DIRRing.
 
 Section Invertability.
 (** * Invertability of moves 

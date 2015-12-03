@@ -208,5 +208,32 @@ Definition carMinMaxXY : BoundingRectangle R :=
 
 End CornerPos.
 
+Require Import fastReals.misc.
+(**this section defines some trivial syntactic sugar*)
+Section CornerPosAtTime.
+Context (acs :AckermannCar) (t: Time).
+Variable cd :CarDimensions IR.
+
+Definition rhsUnitVecAtTime : Cart2D IR := 
+  rightSideUnitVec (rigidStateAtTime acs t).
+
+
+Definition frontRightAtTime : Cart2D IR := 
+  frontRight (rigidStateAtTime acs t) cd.
+
+
+Definition frontLeftAtTime : Cart2D IR := 
+  frontLeft (rigidStateAtTime acs t) cd.
+
+
+Definition backRightAtTime : Cart2D IR := 
+  backRight (rigidStateAtTime acs t) cd.
+
+
+Definition backLeftAtTime : Cart2D IR := 
+  backLeft (rigidStateAtTime acs t) cd.
+
+End CornerPosAtTime.
+
 
 End Robot.
