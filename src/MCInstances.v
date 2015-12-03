@@ -182,3 +182,18 @@ Lemma RingNegateProper `{Ring A} : Proper (equiv ==> equiv) (@negate A _).
 Proof.
   intros ? ? Hh . rewrite Hh. reflexivity.
 Qed.
+
+Global Instance Pi_Instance_IR: RealNumberPi ℝ := Pi.Pi.
+Global Instance HalfNumIR : HalfNum IR:= Half.
+
+Open Scope mc_scope.
+  Lemma PiBy2DesugarIR : ½ * π =  Pi.Pi [/]TwoNZ.
+  Proof.
+    rewrite mult_comm.
+    apply mult_wd;[reflexivity|].
+    apply (@mult_cancel_rht _ _ _ Two);[apply two_ap_zero|].
+    unfold half_num, HalfNumIR, Half.
+    unfold cf_div.
+    rewrite <- mult_assoc_unfolded.
+    rewrite field_mult_inv_op. ring.
+  Qed.

@@ -2,8 +2,6 @@ Require Export CartCR.
 Require Export MCInstances.
 
 Open Scope mc_scope.
-Instance Pi_Instance_IR: RealNumberPi ℝ :=
- Pi.
 
 Lemma PiBy2NoMC :
    ('½) * π = Pi [/]TwoNZ.
@@ -49,18 +47,8 @@ Proof.
   [rewrite Cos_plus | rewrite Sin_plus]; try IRring.
 Qed.
 
-  Global Instance HalfNumIR : HalfNum IR:= Half.
+
   
-  Lemma PiBy2DesugarIR : ½ * π =  Pi [/]TwoNZ.
-  Proof.
-    rewrite mult_comm.
-    apply mult_wd;[reflexivity|].
-    apply (@mult_cancel_rht _ _ _ Two);[apply two_ap_zero|].
-    unfold half_num, HalfNumIR, Half.
-    unfold cf_div.
-    rewrite <- mult_assoc_unfolded.
-    rewrite field_mult_inv_op. ring.
-  Qed.
 
   Global Instance unitVecProper : Proper (equiv ==> equiv) unitVec. 
      intros ? ? H.  unfold unitVec. rewrite H. reflexivity.

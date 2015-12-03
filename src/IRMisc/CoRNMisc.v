@@ -873,4 +873,90 @@ Proof.
       apply cg_inv_unique_2. exact Hd.
 Qed.
 
+
+Lemma MinAssoc: forall a b c:IR,
+  Min a (Min b c) [=] Min (Min a b) c.
+Proof.
+  intros. apply equiv_imp_eq_min.
+  - intros ? h1 h2.
+    pose proof  (Min_leEq_lft b c).
+    pose proof  (Min_leEq_rht b c).
+    apply leEq_Min;[apply leEq_Min|];
+      eauto 2 with CoRN.
+  - intros ? h1.
+    pose proof  (Min_leEq_lft (Min a b) c).
+    pose proof  (Min_leEq_lft a b).
+    eauto 3 with CoRN.
+  - intros ? h1.
+    pose proof  (Min_leEq_lft (Min a b) c).
+    pose proof  (Min_leEq_rht a b).
+    pose proof  (Min_leEq_rht (Min a b) c).
+    apply leEq_Min;eauto 3 with CoRN.
+Qed.
+
+Lemma MaxAssoc: forall a b c:IR,
+  Max a (Max b c) [=] Max (Max a b) c.
+Proof.
+  intros. apply equiv_imp_eq_max.
+  - intros ? h1 h2.
+    pose proof  (lft_leEq_Max b c).
+    pose proof  (rht_leEq_Max b c).
+    apply Max_leEq;[apply Max_leEq|];
+      eauto 2 with CoRN.
+  - intros ? h1.
+    pose proof  (lft_leEq_Max (Max a b) c).
+    pose proof  (lft_leEq_Max a b).
+    eauto 3 with CoRN.
+  - intros ? h1.
+    pose proof  (lft_leEq_Max (Max a b) c).
+    pose proof  (rht_leEq_Max a b).
+    pose proof  (rht_leEq_Max (Max a b) c).
+    apply Max_leEq;eauto 3 with CoRN.
+Qed.
+
+
+
+Lemma MinMultLeft :
+  forall a b c: IR,
+    [0] [<=] a
+    -> Min (a[*]b) (a[*]c) [=] a[*](Min b c).
+Proof.
+  intros ? ? ? H.
+  pose proof (leEq_or_leEq _ b c) as Hd.
+  apply not_ap_imp_eq.
+  intro Hc.
+  apply Hd.
+  clear Hd. intro Hd.
+  apply ap_tight in Hc;[contradiction|]. clear H0 Hc.
+  destruct Hd.
+  - symmetry. 
+    rewrite leEq_imp_Min_is_lft;[| assumption].
+    rewrite leEq_imp_Min_is_lft;[reflexivity |apply mult_resp_leEq_lft; assumption].
+  - rewrite Min_comm. symmetry.  rewrite Min_comm.
+    rewrite leEq_imp_Min_is_lft;[| assumption].
+    rewrite leEq_imp_Min_is_lft;[reflexivity |apply mult_resp_leEq_lft; assumption].
+Qed.
+
+Lemma MaxMultLeft :
+  forall a b c: IR,
+    [0] [<=] a
+    -> Max (a[*]b) (a[*]c) [=] a[*](Max b c).
+Proof.
+  intros ? ? ? H.
+  pose proof (leEq_or_leEq _ b c) as Hd.
+  apply not_ap_imp_eq.
+  intro Hc.
+  apply Hd.
+  clear Hd. intro Hd.
+  apply ap_tight in Hc;[contradiction|]. clear H0 Hc.
+  destruct Hd.
+  - symmetry.
+    rewrite leEq_imp_Max_is_rht;[| assumption].
+    rewrite leEq_imp_Max_is_rht;[reflexivity |apply mult_resp_leEq_lft; assumption].
+  - rewrite Max_comm. symmetry.  rewrite Max_comm.
+    rewrite leEq_imp_Max_is_rht;[| assumption].
+    rewrite leEq_imp_Max_is_rht;[reflexivity |apply mult_resp_leEq_lft; assumption].
+Qed.
+
+
 Hint Rewrite cg_inv_zero : CoRN.

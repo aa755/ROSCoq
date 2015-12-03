@@ -60,7 +60,7 @@ Require Import fastReals.misc.
 Require Import geometry2D.
 Require Import geometry2DProps.
 
-Hint Unfold cos CosClassIR sin SinClassIR min MinClassIR: IRMC.
+Hint Unfold cos CosClassIR sin SinClassIR min MinClassIR  max MaxClassIR: IRMC.
 
 (** For getting out of a parallel parked spot, a car's orientation does not
 need to change by 90 degrees. Assume that the X axis represents the road.
@@ -86,6 +86,25 @@ Section XYBounds.
       reflexivity.
   Qed.
 
+(*
+Lemma minCartAssoc: forall a b c: Cart2D IR,
+  minCart a (minCart b c) = minCart (minCart a b) c.
+Admitted.
+
+Global Instance CommutativeMinCart : Commutative (@minCart IR _).
+Admitted.
+
+
+Lemma unitVecMinDistr :  forall θ a b:IR, 0 ≤ θ ≤ (½ * π)
+  ->
+  minCart ((unitVec θ) * 'a) ((unitVec θ) * 'b)
+     = (unitVec θ) * '(min a b).
+Proof.
+  intros.
+  unfold minCart. split; simpl;
+  autounfold with IRMC.
+Admitted.
+*)
   Hypothesis nonTriv : nonTrivialCarDim cd.
   Hypothesis theta90 : 0 ≤ θ2D cs ≤ (½ * π).
   
@@ -94,8 +113,9 @@ Section XYBounds.
     = -('width cd) * {|X:= sin (θ2D cs); Y:= cos (θ2D cs)|}.
   Proof.
     destruct nonTriv as [a b]. destruct b as [c b].
-    destruct theta90 as [x y]. 
-    rewrite PiBy2DesugarIR in y.
+    apply unitVecNonNeg in theta90.
+    unfold unitVec in theta90.
+    destruct theta90 as [x y]. simpl in x, y.
     apply less_leEq in c.
     unfold rightSideUnitVec. rewrite unitVecMinus90.
     unfold minCart. split; simpl;
@@ -106,10 +126,7 @@ Section XYBounds.
       apply mult_resp_leEq_rht;[| assumption].
       apply shift_leEq_rht. unfold cg_minus.
       rewrite cg_inv_inv.
-      pose proof (less_leEq ℝ [0] Pi pos_Pi) as h.
-      apply nonneg_div_two' in h;
-       apply plus_resp_nonneg;
-      apply Sin_nonneg; eauto 2 with CoRN.
+      apply plus_resp_nonneg; assumption.
 
     - rewrite leEq_imp_Min_is_lft;[ring|].
       rewrite  cring_inv_mult_rht.
@@ -118,10 +135,49 @@ Section XYBounds.
       apply mult_resp_leEq_rht;[| assumption].
       apply shift_leEq_rht. unfold cg_minus.
       rewrite cg_inv_inv.
-      pose proof MinusPiBy2Le0.
-      apply plus_resp_nonneg;
-      apply Cos_nonneg; eauto 2 with CoRN.
+      apply plus_resp_nonneg; assumption.
   Qed.
+
+Ltac fequivHyp H f :=
+    let He := fresh H "e" in
+    match type of H with
+    equiv ?x ?y => assert (equiv (f x) (f y)) as He
+    by (rewrite H;reflexivity)
+    end.
+    
+Ltac fequiv :=
+    let Heq := fresh "Heq" in
+    match goal with
+    [ |- equiv (?f ?x) (?f ?y)]=> assert (equiv x y) as Heq;
+      [| try (setoid_rewrite Heq; reflexivity)]
+    end.
+
+  Lemma carBoundsAMAuxMin2 : 
+    minCart 
+      (- (frontUnitVec cs * ' lengthBack cd)) 
+      (frontUnitVec cs * ' lengthFront cd)
+    =  -(frontUnitVec cs) * (' lengthBack cd).
+  Proof.
+    rewrite negate_mult_distr_r.
+    unfold frontUnitVec.
+    setoid_rewrite <- sameXYNegate.
+    setoid_rewrite unitVecMinDistr;[| assumption].
+    rewrite <- negate_mult_distr_l.
+    rewrite negate_mult_distr_r.
+    fequiv.
+    unfold cast, castCRCart2DCR. 
+    rewrite <- sameXYNegate.
+    fequiv.
+    apply leEq_imp_Min_is_lft.
+    apply shift_leEq_rht.
+    unfold cg_minus. revert nonTriv.
+    unfold nonTrivialCarDim.
+    autounfold with IRMC.
+    intros.
+    rewrite cg_inv_inv.
+      apply plus_resp_nonneg; tauto.
+  Qed.
+    
 
     
   (**[lstart] denotes minXY, and [lend] denotes maxXY*)
@@ -129,8 +185,11 @@ Section XYBounds.
   {|lstart := {|X:= X (backLeft cs cd); Y:= Y (backRight cs cd)|};
      lend := {|X:= X (frontRight cs cd); Y:= Y (frontLeft cs cd) |} |}.
   Proof.
-  unfold carMinMaxXY. simpl. unfold  boundingUnion.
-  simpl. unfold backRight, backLeft.
+  unfold carMinMaxXY.
+  unfold backRight, backLeft.
+  Local Opaque unitVec.
+  simpl. unfold  boundingUnion.
+  simpl. 
   Typeclasses eauto :=10.
   pose proof (minCartSum (pos2D cs - frontUnitVec cs * ' lengthBack cd)).
   unfold BoundingRectangle. simpl.
@@ -139,6 +198,23 @@ Section XYBounds.
   simpl. split; simpl.
   - rewrite (minCartSum (pos2D cs - frontUnitVec cs * ' lengthBack cd)).
     rewrite carBoundsAMAuxMin.
+    rewrite <- (@simple_associativity _ _ (@minCart IR _) _ _).
+    unfold frontRight, frontLeft.
+    rewrite minCartSum.
+    rewrite (@commutativity _ _ _ (@minCart IR _) _ _ (rightSideUnitVec cs * ' width cd)).
+    rewrite carBoundsAMAuxMin.
+    rewrite <- (@simple_associativity _ _ (@plus (Cart2D IR) _) _ _).
+    rewrite <- (@simple_associativity _ _ (@plus (Cart2D IR) _) _ _).
+    rewrite minCartSum.
+    rewrite (@commutativity _ _ _ (@plus (Cart2D IR) _) _ _ 
+      (-' width cd * {| X := sin (θ2D cs); Y := cos (θ2D cs) |})).
+    rewrite (@commutativity _ _ _ (@plus (Cart2D IR) _) _ _ 
+      (-' width cd * {| X := sin (θ2D cs); Y := cos (θ2D cs) |})).
+    rewrite minCartSum.
+    rewrite carBoundsAMAuxMin2.
+    unfold rightSideUnitVec. rewrite unitVecMinus90.
+    split; simpl; autounfold with IRMC; IRring.
+  - 
   Abort.
 End XYBounds.
 
