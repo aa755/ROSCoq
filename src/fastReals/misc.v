@@ -19,3 +19,4 @@ Global Instance CosClassIR : CosClass IR := Cos.
 
 Hint Unfold cos CosClassIR sin SinClassIR min MinClassIR max MaxClassIR: IRMC.
 
+
