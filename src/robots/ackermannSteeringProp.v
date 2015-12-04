@@ -447,7 +447,14 @@ Section Cases.
   Hypothesis theta90 :  forall (t :Time)  (p: tstart ≤ t ≤ tend),
      0 ≤ ({theta acs} t) ≤ (½ * π).
 
-  (** To characterize the space required, one needs to study the motion of the corners *)
+  (** To characterize the space required, one needs to study the motion of the corners.
+      Note that [unitVec ({theta acs} t)] and [rhsUnitVecAtTime acs t] are orthogonal
+      to each other at all times [t]. Also, the magnitudes in these directions are exactly
+      the coordinates in the reference frame with origin at the turnCenter, and the
+      [rhsUnitVecAtTime acs t] axis pointing towards the car. Hence,
+      each corner is rotating around the turnCenter, as explained in 
+      https://www.youtube.com/watch?v=oYMMdjbmQXc
+      *)
   Lemma backRightXYAM : forall (t :Time) (Hb : tstart ≤ t ≤ tend),
     backRightAtTime acs t cd - backRightAtTime acs tstart cd =  
     '(turnRadius + width cd) * (rhsUnitVecAtTime acs t - rhsUnitVecAtTime acs tstart) -
@@ -534,8 +541,19 @@ Section Cases.
     ring.
   Qed.
 
-  Definition carMinMaxXYAtθ (θ : IR) : Line2D IR.
-  Admitted.
+Local Notation minxy := (lstart).
+Local Notation maxxy := (lend).
+  Definition carMinMaxXYAtθ (θ : IR) : Line2D IR :=  
+  '(posAtTime acs tstart) +
+  {| minxy:= {|
+      X := turnRadius * (sin θ - sin θ0) - (width cd) * sin θ - (lengthBack cd) * cos  θ;
+      Y := turnRadius * (sin θ - sin θ0) + (width cd) * cos θ - (lengthBack cd) * sin  θ
+        |};
+     maxxy := {|
+      X := turnRadius * (sin θ - sin θ0) + (width cd) * sin θ - (lengthFront cd) * cos  θ;
+      Y := turnRadius * (sin θ - sin θ0) - (width cd) * cos θ - (lengthFront cd) * sin  θ
+        |}
+  |}.
 
   Lemma carMinMaxXYAM : 
     forall (t :Time) (Hb : tstart ≤ t ≤ tend),
@@ -1259,14 +1277,6 @@ First we define what it means for a move to be an inverse of another.
       -> (posAtTime acs tend - posAtTime acs tstart
           = posAtTime acs tstartr - posAtTime acs tendr
           /\ {theta acs} tstart = {theta acs} tendr).
-
-(*Move and define a ring*)
-Global Instance PlusLine `{Plus A} : Plus (Line2D A) :=
-  fun a b => {|lstart := lstart a + lstart b  ; lend :=  lend a + lend b|}.
-
-(*Move and define a ring homomorphism*)
-Global Instance CastPtLine {A:Type} : Cast  (Cart2D A) (Line2D A) :=
-  fun p => {|lstart := p ; lend := p|}.
 
 
 

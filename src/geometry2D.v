@@ -25,6 +25,14 @@ Record Line2D (A:Type):=
   lend : Cart2D A
 }.
 
+(*Move and define a ring*)
+Global Instance PlusLine `{Plus A} : Plus (Line2D A) :=
+  fun a b => {|lstart := lstart a + lstart b  ; lend :=  lend a + lend b|}.
+
+(*Move and define a ring homomorphism*)
+Global Instance CastPtLine {A:Type} : Cast  (Cart2D A) (Line2D A) :=
+  fun p => {|lstart := p ; lend := p|}.
+
 
 Global Instance EquivLine2D `{Equiv A} : Equiv (Line2D A) := 
   fun a b => lstart a = lstart b /\ lend a = lend b.
