@@ -61,6 +61,9 @@ Require Import fastReals.misc.
 Require Import geometry2D.
 Require Import geometry2DProps.
 
+  Local Notation minxy := (lstart).
+  Local Notation maxxy := (lend).
+
 Hint Unfold cos CosClassIR sin SinClassIR min MinClassIR  max MaxClassIR: IRMC.
 
 (** For getting out of a parallel parked spot, a car's orientation does not
@@ -137,19 +140,17 @@ Section XYBounds.
 
   Lemma carBoundsAMAuxMin2 : 
     minCart 
-      (- (frontUnitVec cs * ' lengthBack cd)) 
+      ((- frontUnitVec cs * ' lengthBack cd)) 
       (frontUnitVec cs * ' lengthFront cd)
     =  -(frontUnitVec cs) * (' lengthBack cd).
   Proof.
+    rewrite <- negate_mult_distr_l.
     rewrite negate_mult_distr_r.
     unfold frontUnitVec.
     setoid_rewrite <- sameXYNegate.
     setoid_rewrite unitVecMinDistr;[| assumption].
-    rewrite <- negate_mult_distr_l.
-    rewrite negate_mult_distr_r.
     fequiv.
     unfold cast, castCRCart2DCR. 
-    rewrite <- sameXYNegate.
     fequiv.
     apply leEq_imp_Min_is_lft.
     apply shift_leEq_rht.
@@ -163,10 +164,11 @@ Section XYBounds.
 
   Lemma carBoundsAMAuxMax2 : 
     maxCart 
-      (- (frontUnitVec cs * ' lengthBack cd)) 
+      ((- frontUnitVec cs * ' lengthBack cd)) 
       (frontUnitVec cs * ' lengthFront cd)
     =  (frontUnitVec cs) * (' lengthFront cd).
   Proof.
+    rewrite <- negate_mult_distr_l.
     rewrite negate_mult_distr_r.
     unfold frontUnitVec.
     setoid_rewrite <- sameXYNegate.
@@ -185,11 +187,9 @@ Section XYBounds.
     
 
     
-  (**[lstart] denotes minXY, and [lend] denotes maxXY of the smallest 
-    axis aligned rectangle containing the car*)
   Lemma carBoundsAMAux : carMinMaxXY cs cd =
-  {|lstart := {|X:= X (backLeft cs cd); Y:= Y (backRight cs cd)|};
-     lend := {|X:= X (frontRight cs cd); Y:= Y (frontLeft cs cd) |} |}.
+  {|minxy := {|X:= X (backLeft cs cd); Y:= Y (backRight cs cd)|};
+     maxxy := {|X:= X (frontRight cs cd); Y:= Y (frontLeft cs cd) |} |}.
   Proof.
   unfold carMinMaxXY.
   unfold backRight, backLeft.
@@ -202,10 +202,14 @@ Section XYBounds.
   Local Opaque minCart.
   Local Opaque maxCart.
   simpl. split; simpl.
-  - rewrite (minCartSum _).
+  - rewrite  (@simple_associativity _ _ (@plus (Cart2D IR) _) _ _).
+    rewrite  (@simple_associativity _ _ (@plus (Cart2D IR) _) _ _).  
+    rewrite (minCartSum _).
     rewrite carBoundsAMAuxMin.
     rewrite <- (@simple_associativity _ _ (@minCart IR _) _ _).
     unfold frontRight, frontLeft.
+    rewrite  (@simple_associativity _ _ (@plus (Cart2D IR) _) _ _).
+    rewrite  (@simple_associativity _ _ (@plus (Cart2D IR) _) _ _).  
     rewrite minCartSum.
     rewrite (@commutativity _ _ _ (@minCart IR _) _ _ (rightSideUnitVec cs * ' width cd)).
     rewrite carBoundsAMAuxMin.
@@ -216,14 +220,19 @@ Section XYBounds.
       (-' width cd * {| X := sin (θ2D cs); Y := cos (θ2D cs) |})).
     rewrite (@commutativity _ _ _ (@plus (Cart2D IR) _) _ _ 
       (-' width cd * {| X := sin (θ2D cs); Y := cos (θ2D cs) |})).
-    rewrite minCartSum.
+    rewrite minCartSum. simpl.
     rewrite carBoundsAMAuxMin2.
     unfold rightSideUnitVec. rewrite unitVecMinus90.
     split; simpl; autounfold with IRMC; IRring.
-  - rewrite (maxCartSum _).
+  - 
+    rewrite  (@simple_associativity _ _ (@plus (Cart2D IR) _) _ _).
+    rewrite  (@simple_associativity _ _ (@plus (Cart2D IR) _) _ _).  
+      rewrite (maxCartSum _).
     rewrite carBoundsAMAuxMax.
     rewrite <- (@simple_associativity _ _ (@maxCart IR _) _ _).
     unfold frontRight, frontLeft.
+    rewrite  (@simple_associativity _ _ (@plus (Cart2D IR) _) _ _).
+    rewrite  (@simple_associativity _ _ (@plus (Cart2D IR) _) _ _).  
     rewrite maxCartSum.
     rewrite (@commutativity _ _ _ (@maxCart IR _) _ _ (rightSideUnitVec cs * ' width cd)).
     rewrite carBoundsAMAuxMax.
@@ -239,8 +248,27 @@ Section XYBounds.
     unfold rightSideUnitVec. rewrite unitVecMinus90.
     split; simpl; autounfold with IRMC; IRring.
   Qed.
+
+
 End XYBounds.
 
+  (** When the turn curvature is fixed, a cars position and orientation, and hence
+   the position of its corners, and hence the confining axis-aligned rectangle,
+   can be defined just as a function of initial state and the car's orientation *)
+   
+  Definition carMinMaxXYAtθ  (init : Rigid2DState IR) (cd : CarDimensions IR)
+        (turnRadius θ : IR) : Line2D IR :=  
+  let θi := θ2D init in
+  '(pos2D init) +
+  {| minxy:= {|
+      X := turnRadius * (sin θ - sin θi) - (width cd) * sin θ - (lengthBack cd) * cos  θ;
+      Y := turnRadius * (sin θ - sin θi) + (width cd) * cos θ - (lengthBack cd) * sin  θ
+        |};
+     maxxy := {|
+      X := turnRadius * (sin θ - sin θi) + (width cd) * sin θ - (lengthFront cd) * cos  θ;
+      Y := turnRadius * (sin θ - sin θi) - (width cd) * cos θ - (lengthFront cd) * sin  θ
+        |}
+  |}.
   
 (*Move*)
 Definition nonNegDuring (F : TContR) (tstart tend : Time) :=
@@ -541,24 +569,42 @@ Section Cases.
     ring.
   Qed.
 
-Local Notation minxy := (lstart).
-Local Notation maxxy := (lend).
-  Definition carMinMaxXYAtθ (θ : IR) : Line2D IR :=  
-  '(posAtTime acs tstart) +
-  {| minxy:= {|
-      X := turnRadius * (sin θ - sin θ0) - (width cd) * sin θ - (lengthBack cd) * cos  θ;
-      Y := turnRadius * (sin θ - sin θ0) + (width cd) * cos θ - (lengthBack cd) * sin  θ
-        |};
-     maxxy := {|
-      X := turnRadius * (sin θ - sin θ0) + (width cd) * sin θ - (lengthFront cd) * cos  θ;
-      Y := turnRadius * (sin θ - sin θ0) - (width cd) * cos θ - (lengthFront cd) * sin  θ
-        |}
-  |}.
+  Global Instance EquivalenceInstanceLine2D `{Equiv A}
+  `{Equivalence _ (@equiv A _)} : Equivalence (@equiv (Line2D A) _).
+  Proof.
+    split.
+  - intros x. destruct x. split; auto with *.
+  - intros x y. destruct x,y. intros Hd; destruct Hd;
+      split; auto with relations.
 
+  - intros x y z. destruct x,y,z. intros h0 h1.
+    destruct h0, h1. simpl in *.
+    split; eauto 10
+    with relations; simpl.
+  Qed.
+     
+  Lemma foldPlusCart `{Ring A} : forall xa xb ya yb:A,
+   {| X:= xa + xb; Y:=ya + yb |} = {|X:=xa; Y:=ya|} + {|X:=xb; Y:=yb|}.
+  Proof.
+    intros. reflexivity.
+  Qed.
+
+  Lemma Cart2DEta `{Equiv A} `{Equivalence _ (@equiv A _)}  : forall c:Cart2D A,
+   {| X:= X c; Y:=Y c |} = c.
+  Proof.
+    intros. destruct c. simpl. reflexivity.
+  Qed.
+    
   Lemma carMinMaxXYAM : 
     forall (t :Time) (Hb : tstart ≤ t ≤ tend),
     carMinMaxXY (rigidStateAtTime acs t) cd
-    = carMinMaxXYAtθ ({theta acs} t).
+    = carMinMaxXYAtθ (rigidStateAtTime acs tstart) cd turnRadius ({theta acs} t).
+  Proof.
+    intros ? ?.
+    rewrite carBoundsAMAux;[|assumption| apply theta90; assumption]. simpl.
+    rewrite foldPlusCart.
+    rewrite (foldPlusCart ({X acs} t)).
+    
   Abort.
 
   (** will likely need intermediate value theorem for the -> direction
@@ -570,7 +616,7 @@ Check  IVT_I.
     let ib := @mkIntBnd _ tstart tend tstartEnd in
     confinedDuring cd confineRect
     <-> (∀ (θ : IR), θ0 ≤ θ ≤ θ0 + tc* (∫ ib (linVel acs))
-           -> carMinMaxXYAtθ θ ⊆ confineRect).
+           -> carMinMaxXYAtθ (rigidStateAtTime acs tstart) cd turnRadius θ ⊆ confineRect).
   Abort.
 
   End XYBounds.

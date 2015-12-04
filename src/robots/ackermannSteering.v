@@ -179,24 +179,24 @@ Definition rightSideUnitVec : Cart2D R := unitVec ((θ2D cs) - (½ * π)).
 Variable cd :CarDimensions R.
 
 Definition frontRight : Cart2D R := 
-  (pos2D cs) 
-    + frontUnitVec* '(lengthFront cd)
-    + rightSideUnitVec * '(width cd).
+  (pos2D cs)  +
+    (frontUnitVec* '(lengthFront cd)
+    + rightSideUnitVec * '(width cd)).
 
 Definition frontLeft : Cart2D R := 
-  (pos2D cs) 
-    + frontUnitVec* '(lengthFront cd)
-    - rightSideUnitVec * '(width cd).
+  (pos2D cs) + 
+    (frontUnitVec* '(lengthFront cd)
+    - rightSideUnitVec * '(width cd)).
 
 Definition backLeft : Cart2D R := 
-  (pos2D cs) 
-    - frontUnitVec* '(lengthBack cd)
-    - rightSideUnitVec * '(width cd).
+  (pos2D cs) +
+   (- frontUnitVec* '(lengthBack cd)
+    - rightSideUnitVec * '(width cd)).
 
 Definition backRight : Cart2D R := 
-  (pos2D cs) 
-    - frontUnitVec* '(lengthBack cd)
-    + rightSideUnitVec * '(width cd).
+  (pos2D cs) +
+    (- frontUnitVec* '(lengthBack cd)
+    + rightSideUnitVec * '(width cd)).
 
 Definition carOutline : list (Line2D R) := 
   {|lstart := frontRight ; lend := backRight|}
