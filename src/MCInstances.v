@@ -21,6 +21,7 @@ Definition decAuto :  ∀ (P: Prop) `{Decision P},
 Defined.
 
 Require Export Psatz.
+Open Scope mc_scope.
 Lemma QTimeLeRefl : ∀ {t : QTime},
   t ≤ t.
 intros.

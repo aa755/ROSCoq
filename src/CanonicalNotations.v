@@ -18,7 +18,13 @@ Instance ProjectionFst_instance_prod (A B : Type) :
 Instance ProjectionFst_instance_conj (A B : Prop) :  
     ProjectionFst (A /\ B) A := (@proj1 A B) .
 
+Class Subset (A : Type)
+  := subset : A -> A -> Prop.
 
+Require Import Coq.Unicode.Utf8.
+Infix "⊆" := (subset) (at level 70, no associativity): mc_scope.
+Open Scope mc_scope.
+Notation "x ⊆ y ⊆ z" := ((x ⊆ y) ∧ (y ⊆ z)) (at level 70, y at next level) : mc_scope.
 
 (*
 Require Export Coq.Unicode.Utf8.

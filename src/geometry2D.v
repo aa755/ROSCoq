@@ -58,6 +58,9 @@ end.
 
 Definition BoundingRectangle := Line2D.
 
+Global Instance SubsetBoundingRect `{Le A} : Subset (Line2D A) :=
+  fun a b => lstart b ≤ lstart a /\ lend a ≤ lstart b.
+
 Definition minCart `{MinClass A} (a b : Cart2D A) := 
   {|X:= min (X a) (X b); Y:= min (Y a) (Y b)|}.
 

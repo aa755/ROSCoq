@@ -531,6 +531,7 @@ Section Cases.
 
   End TCNZ.
 
+
 (*
   Section TC0.
   (** now consider the case when the front wheels are exactly straight *)
@@ -560,6 +561,12 @@ Section Cases.
   
   End FixedSteeringWheel.
   
+
+Definition confinedDuring (cd :CarDimensions IR) (rect: Line2D IR) :=
+   forall  (t :Time),
+    tstart ≤ t ≤ tend
+    → carMinMaxXY (rigidStateAtTime acs t) cd ⊆ rect.
+
   Section LinVel0.
   (** Now consider the second case where the steering wheel may move, but the car remains stationary *)
     Hypothesis lv0 :  forall (t :Time), 
@@ -674,6 +681,10 @@ and one can drive both forward and backward *)
       let driveIb := (@mkIntBnd _ am_tdrive tend pf) in 
           (am_distance am) = ∫ driveIb (linVel acs)
   }.
+
+  Definition CarMonotonicallyExecsAtomicMoveDuring (p: tstart < tend) : Type :=
+    CarExecutesAtomicMoveDuring p
+    and (noSignChangeDuring (linVel acs) tstart tend). 
   
   Hypothesis pr : tstart < tend.
   
@@ -925,17 +936,27 @@ End AtomicMove.
 (** * Executing a sequence of atomic moves *)
   Definition AtomicMoves := list AtomicMove.
   
+
+
+  Inductive executesMultipleMovesDuring 
+    (execSingleMoveDuring : AtomicMove → ∀ tstart tend : Time, tstart < tend → Type)
+    : AtomicMoves -> forall (tstart tend : Time),  (tstart ≤ tend) -> Prop :=
+  | amscNil : forall (tl tr:Time) (pe : tl = tr)(p: tl≤tr), 
+        executesMultipleMovesDuring execSingleMoveDuring [] tl tr p
+  | amscCons : forall (tstart tmid tend:Time) (pl : tstart < tmid) (pr : tmid ≤ tend) (p : tstart ≤ tend)
+      (h: AtomicMove) (tl : AtomicMoves), 
+      @execSingleMoveDuring h tstart tmid pl
+      -> executesMultipleMovesDuring execSingleMoveDuring tl tmid tend pr
+      -> executesMultipleMovesDuring execSingleMoveDuring(h::tl) tstart tend p.
+
   
   (** This predicate defines what it means for a car to follow 
     a list of atomic moves from time [tstart] to [tend].*)
-  Inductive CarExecutesAtomicMovesDuring : AtomicMoves -> forall (tstart tend : Time),  (tstart ≤ tend) -> Prop :=
-  | amscNil : forall (tl tr:Time) (pe : tl = tr)(p: tl≤tr), 
-        CarExecutesAtomicMovesDuring [] tl tr p
-  | amscCons : forall (tstart tmid tend:Time) (pl : tstart < tmid) (pr : tmid ≤ tend) (p : tstart ≤ tend)
-      (h: AtomicMove) (tl : AtomicMoves), 
-      @CarExecutesAtomicMoveDuring h tstart tmid pl
-      -> CarExecutesAtomicMovesDuring tl tmid tend pr
-      -> CarExecutesAtomicMovesDuring (h::tl) tstart tend p.
+  Definition CarExecutesAtomicMovesDuring :=
+    executesMultipleMovesDuring CarExecutesAtomicMoveDuring.
+
+  Definition CarMonotonicallyExecsAtomicMovesDuring :=
+    executesMultipleMovesDuring CarMonotonicallyExecsAtomicMoveDuring.
 
 Ltac substAtomicMoves amscrrl :=
     let pll := fresh "pll" in 
@@ -954,6 +975,8 @@ Ltac substAtomicMoves amscrrl :=
 Ltac invertAtomicMoves :=
   (repeat match goal with
     [ H: CarExecutesAtomicMovesDuring _ _ _ _ |- _] =>
+      unfold CarExecutesAtomicMovesDuring in H
+   | [ H: executesMultipleMovesDuring _ _ _ _ _ |- _] =>
       let Hl := fresh H "l" in
       let Hr := fresh H "r" in
       let pl := fresh H "pl" in
@@ -1162,6 +1185,29 @@ First we define what it means for a move to be an inverse of another.
       -> (posAtTime acs tend - posAtTime acs tstart
           = posAtTime acs tstartr - posAtTime acs tendr
           /\ {theta acs} tstart = {theta acs} tendr).
+
+(*Move and define a ring*)
+Global Instance PlusLine `{Plus A} : Plus (Line2D A) :=
+  fun a b => {|lstart := lstart a + lstart b  ; lend :=  lend a + lend b|}.
+
+(*Move and define a ring homomorphism*)
+Global Instance CastPtLine {A:Type} : Cast  (Cart2D A) (Line2D A) :=
+  fun p => {|lstart := p ; lend := p|}.
+
+
+
+(** if each atomic move is executed monotonically, we can aslo
+    relate the confinements of the car in axis aligned rectangles.*)
+  Definition MonotonicMovesInverse (ams amsr : AtomicMoves) (cd : CarDimensions ℝ) :=
+    ∀ (confineRect: Line2D IR)
+      (tstart tend : Time)  (p: tstart ≤ tend)
+      (tstartr tendr : Time)  (pr: tstartr ≤ tendr),
+      CarMonotonicallyExecsAtomicMovesDuring ams tstart tend p
+      -> CarMonotonicallyExecsAtomicMovesDuring amsr tstartr tendr pr
+      -> confinedDuring tstart tend cd confineRect
+      -> confinedDuring tstart tend cd 
+          (confineRect + '(posAtTime acs tendr - posAtTime acs tstart)).
+
 
   Definition CarExecutesAtomicMovesDuringAux  
       (tstart tend : Time)  (p: tstart ≤ tend) m
