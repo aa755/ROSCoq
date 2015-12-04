@@ -282,6 +282,11 @@ Section Cases.
 
   Hypothesis tstartEnd : (tstart ≤ tend).
 
+  Definition confinedDuring (cd :CarDimensions IR) (rect: Line2D IR) :=
+   forall  (t :Time),
+    tstart ≤ t ≤ tend
+    → carMinMaxXY (rigidStateAtTime acs t) cd ⊆ rect.
+
   Local Notation θ0 := ({theta acs} tstart).
   
   (** We will consider 2 classes of motions between [tstart] and [tend]. These classes suffice for our purpose
@@ -322,7 +327,10 @@ Section Cases.
   Hypothesis nsc : noSignChangeDuring (linVel acs) tstart tend.
 
   (** As a result, during an atomic move,
-    theta is always between its initial and final value. *)
+    theta is always between its initial and final value. 
+    This lemma may not be needed. Below, it seems to not suffice.
+    One also needs to know that [theta] assumed EVERY value in
+    this range, using the intermediate value theorem.*)
   Lemma fixedSteeringTheta : forall (t :Time)  (p: tstart ≤ t ≤ tend),
     inBetween ({theta acs} t) ({theta acs} tstart) ({theta acs} tend).
   Abort.
@@ -526,7 +534,27 @@ Section Cases.
     ring.
   Qed.
 
-  
+  Definition carMinMaxXYAtθ (θ : IR) : Line2D IR.
+  Admitted.
+
+  Lemma carMinMaxXYAM : 
+    forall (t :Time) (Hb : tstart ≤ t ≤ tend),
+    carMinMaxXY (rigidStateAtTime acs t) cd
+    = carMinMaxXYAtθ ({theta acs} t).
+  Abort.
+
+  (** will likely need intermediate value theorem for the -> direction
+    given a θ, we need to find out a time when the car was oriented
+    that way.
+  *)
+Check  IVT_I.
+  Lemma confinedDuringAMIff : forall (confineRect : Line2D IR),
+    let ib := @mkIntBnd _ tstart tend tstartEnd in
+    confinedDuring cd confineRect
+    <-> (∀ (θ : IR), θ0 ≤ θ ≤ θ0 + tc* (∫ ib (linVel acs))
+           -> carMinMaxXYAtθ θ ⊆ confineRect).
+  Abort.
+
   End XYBounds.
 
   End TCNZ.
@@ -562,10 +590,7 @@ Section Cases.
   End FixedSteeringWheel.
   
 
-Definition confinedDuring (cd :CarDimensions IR) (rect: Line2D IR) :=
-   forall  (t :Time),
-    tstart ≤ t ≤ tend
-    → carMinMaxXY (rigidStateAtTime acs t) cd ⊆ rect.
+
 
   Section LinVel0.
   (** Now consider the second case where the steering wheel may move, but the car remains stationary *)
@@ -885,6 +910,11 @@ and one can drive both forward and backward *)
 
 End AtomicMove.
 
+Section AtomicMoveSpaceRequirement.
+
+End AtomicMoveSpaceRequirement.
+
+
   Lemma CarExecutesAtomicMoveDuring_wd :
   forall ml mr tstartl tstartr tendl tendr 
       (pl :tstartl < tendl) (pr :tstartr < tendr),
@@ -910,16 +940,32 @@ End AtomicMove.
    rewrite <- tl.
    rewrite <- tr. assumption.
   Qed.
+
+  Lemma CarMonotonicallyExecsAtomicMoveDuring_wd:
+  forall ml mr tstartl tstartr tendl tendr 
+      (pl :tstartl < tendl) (pr :tstartr < tendr),
+    tstartl = tstartr
+    -> tendl = tendr
+    -> CarMonotonicallyExecsAtomicMoveDuring ml pl
+    -> ml = mr
+    -> CarMonotonicallyExecsAtomicMoveDuring mr pr.
+  Proof.
+    intros ? ? ? ? ? ? ? ?  tl tr Hl Heq.
+    destruct Hl as [c Hl].
+    split;[eapply CarExecutesAtomicMoveDuring_wd;eauto |].
+    clear c. destruct Hl as [Hl| Hl];[left | right];
+    intros t p; rewrite <- tl, <- tr  in p; apply Hl;
+      assumption.
+  Qed.
   
   
-    Lemma CarExecutesAtomicMoveDuring_wdtl :
+  Lemma CarExecutesAtomicMoveDuring_wdtl :
   forall m tstartl tstartr tend 
       (pl :tstartl < tend) (pr :tstartr < tend),
     tstartl = tstartr
     -> CarExecutesAtomicMoveDuring m pl
     -> CarExecutesAtomicMoveDuring m pr.
   Proof.
-  
     intros ? ? ? ? ? ? ? ?. eapply CarExecutesAtomicMoveDuring_wd; eauto; reflexivity.
   Qed.
 
@@ -932,6 +978,17 @@ End AtomicMove.
   Proof.
     intros ? ? ? ? ? ? ? ?. eapply CarExecutesAtomicMoveDuring_wd; eauto; reflexivity.
   Qed.
+
+  Lemma CarMonotonicallyExecsAtomicMoveDuring_wdtr :
+  forall m tstart tendl tendr 
+      (pl :tstart < tendl) (pr :tstart < tendr),
+    tendl = tendr
+    -> CarMonotonicallyExecsAtomicMoveDuring m pl
+    -> CarMonotonicallyExecsAtomicMoveDuring m pr.
+  Proof.
+    intros ? ? ? ? ? ? ? ?. eapply CarMonotonicallyExecsAtomicMoveDuring_wd; eauto; reflexivity.
+  Qed.
+
 
 (** * Executing a sequence of atomic moves *)
   Definition AtomicMoves := list AtomicMove.
@@ -972,17 +1029,34 @@ Ltac substAtomicMoves amscrrl :=
       end
       end.
 
+Ltac substAtomicMovesMon amscrrl :=
+    let pll := fresh "pll" in 
+    let Hf := fresh "Hf" in 
+    match type of amscrrl with
+    ?l = _ => match goal with
+        [  amscrl: @CarMonotonicallyExecsAtomicMoveDuring _ _ l ?pl0 |- _]
+        =>
+    pose proof pl0 as pll;
+    rewrite amscrrl in pll;
+    pose proof (@CarMonotonicallyExecsAtomicMoveDuring_wdtr _ _ _ _ 
+      pl0 pll amscrrl amscrl) as Hf; clear dependent l
+      end
+      end.
+
 Ltac invertAtomicMoves :=
   (repeat match goal with
     [ H: CarExecutesAtomicMovesDuring _ _ _ _ |- _] =>
       unfold CarExecutesAtomicMovesDuring in H
+   | [ H: CarMonotonicallyExecsAtomicMovesDuring _ _ _ _ |- _] =>
+      unfold CarMonotonicallyExecsAtomicMovesDuring in H
    | [ H: executesMultipleMovesDuring _ _ _ _ _ |- _] =>
       let Hl := fresh H "l" in
       let Hr := fresh H "r" in
       let pl := fresh H "pl" in
       let pr := fresh H "pr" in
       (inverts H as Hl Hr pl pr;[]);
-      try  substAtomicMoves Hl
+      try  substAtomicMoves Hl;
+      try  substAtomicMovesMon Hl
   (* invert only if only 1 case results. o/w inf. loop will result if there are fvars*)
   end);
   repeat match goal with
@@ -1198,8 +1272,9 @@ Global Instance CastPtLine {A:Type} : Cast  (Cart2D A) (Line2D A) :=
 
 (** if each atomic move is executed monotonically, we can aslo
     relate the confinements of the car in axis aligned rectangles.*)
-  Definition MonotonicMovesInverse (ams amsr : AtomicMoves) (cd : CarDimensions ℝ) :=
-    ∀ (confineRect: Line2D IR)
+  Definition MonotonicMovesInverse (ams amsr : AtomicMoves)  :=
+    MovesInverse ams amsr /\
+    ∀ (cd : CarDimensions ℝ) (confineRect: Line2D IR)
       (tstart tend : Time)  (p: tstart ≤ tend)
       (tstartr tendr : Time)  (pr: tstartr ≤ tendr),
       CarMonotonicallyExecsAtomicMovesDuring ams tstart tend p
@@ -1356,6 +1431,15 @@ Global Instance CastPtLine {A:Type} : Cast  (Cart2D A) (Line2D A) :=
     - eapply atomicMoveInvertibleY; eauto.
     - eapply atomicMoveInvertibleθ in Hf0; eauto.
   Qed.
+
+  Lemma atomicMonoMoveInvertible :
+    ∀ (m : AtomicMove), MonotonicMovesInverse [m] [AtomicMoveInv m].
+  Proof.
+    intros m. split;[apply atomicMoveInvertible|].
+    intros ? ? ? ? ? ? ? ? Hcm Hcm3 Hcon.
+    invertAtomicMoves.
+    intros t tp.
+  Abort.
 
   Lemma MoveInvInvolutive : ∀ (m : AtomicMove), 
     AtomicMoveInv (AtomicMoveInv m) = m.
