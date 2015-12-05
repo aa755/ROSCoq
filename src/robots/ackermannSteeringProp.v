@@ -252,9 +252,11 @@ Section XYBounds.
 
 End XYBounds.
 
-  (** When the turn curvature is fixed, a cars position and orientation, and hence
+  (** When the turn curvature is fixed, a car's position and orientation, and hence
    the position of its corners, and hence the confining axis-aligned rectangle,
-   can be defined just as a function of initial state and the car's orientation *)
+   can be defined just as a function of initial state and the car's orientation.
+    The lemma [carMinMaxXYAM] below proved the correctness of this definition..
+  *)
    
   Definition carMinMaxXYAtθ  (init : Rigid2DState IR) (cd : CarDimensions IR)
         (turnRadius θ : IR) : Line2D IR :=  
@@ -262,11 +264,11 @@ End XYBounds.
   '(pos2D init) +
   {| minxy:= {|
       X := turnRadius * (sin θ - sin θi) - (width cd) * sin θ - (lengthBack cd) * cos  θ;
-      Y := turnRadius * (sin θ - sin θi) + (width cd) * cos θ - (lengthBack cd) * sin  θ
+      Y := turnRadius * (cos θi - cos θ) - (width cd) * cos θ - (lengthBack cd) * sin  θ
         |};
      maxxy := {|
-      X := turnRadius * (sin θ - sin θi) + (width cd) * sin θ - (lengthFront cd) * cos  θ;
-      Y := turnRadius * (sin θ - sin θi) - (width cd) * cos θ - (lengthFront cd) * sin  θ
+      X := turnRadius * (sin θ - sin θi) + (width cd) * sin θ + (lengthFront cd) * cos  θ;
+      Y := turnRadius * (cos θi - cos θ) + (width cd) * cos θ + (lengthFront cd) * sin  θ
         |}
   |}.
   
@@ -589,29 +591,73 @@ Section Cases.
     intros. reflexivity.
   Qed.
 
+  Lemma foldPlusLine `{Ring A} : forall xa xb ya yb: Cart2D A,
+   {| minxy := xa + xb; maxxy :=ya + yb |} = {|minxy :=xa; maxxy :=ya|} 
+    + {|minxy:=xb; maxxy:=yb|}.
+  Proof.
+    intros. reflexivity.
+  Qed.
+
+
   Lemma Cart2DEta `{Equiv A} `{Equivalence _ (@equiv A _)}  : forall c:Cart2D A,
    {| X:= X c; Y:=Y c |} = c.
   Proof.
     intros. destruct c. simpl. reflexivity.
   Qed.
+
+  Section RingShiftMinusR.
+  Context `{Ring A}.
+  Add Ring tempRing : (stdlib_ring_theory A).
+
+  Lemma RingShiftMinusR  : forall 
+    a b c : A,
+    a - b  = c -> a = b+ c.
+  Proof.
+    intros ? ? ?  Hh.
+    fequivHyp Hh (+b).
+    clear Hh. simpl in Hhe.
+    ring_simplify in Hhe.
+    assumption.
+  Qed.
+  End RingShiftMinusR.
     
+  Global Instance ProperCastCartLine `{Equiv A}:
+    Proper (equiv ==> equiv) (cast (Cart2D A) (Line2D A)).
+  Proof.
+    intros ? ? ?. split; assumption.
+  Qed.
+
   Lemma carMinMaxXYAM : 
     forall (t :Time) (Hb : tstart ≤ t ≤ tend),
     carMinMaxXY (rigidStateAtTime acs t) cd
     = carMinMaxXYAtθ (rigidStateAtTime acs tstart) cd turnRadius ({theta acs} t).
   Proof.
     intros ? ?.
-    rewrite carBoundsAMAux;[|assumption| apply theta90; assumption]. simpl.
+    rewrite carBoundsAMAux;[|assumption| apply theta90; assumption].
+    Local Opaque unitVec. 
+      simpl. unfold rightSideUnitVec.
+      rewrite unitVecMinus90.
+    Local Transparent unitVec. simpl. 
     rewrite foldPlusCart.
     rewrite (foldPlusCart ({X acs} t)).
-    
-  Abort.
+    change ({|
+          X := {X acs} t;
+          Y := {Y acs} t |}) with (posAtTime acs t).
+    apply fixedSteeeringXY in Hb.
+    apply RingShiftMinusR in Hb.
+    unfold rhsUnitVecAtTime, rightSideUnitVec in Hb.
+    rewrite unitVecMinus90 in Hb.
+    rewrite unitVecMinus90 in Hb.
+    simpl in Hb.
+    split; simpl; rewrite Hb;
+    rewrite <- (@simple_associativity _ _ (@plus (Cart2D IR) _) _ _ ); 
+    fequiv;split; simpl; IRring.
+  Qed.
 
   (** will likely need intermediate value theorem for the -> direction
     given a θ, we need to find out a time when the car was oriented
     that way.
   *)
-Check  IVT_I.
   Lemma confinedDuringAMIff : forall (confineRect : Line2D IR),
     let ib := @mkIntBnd _ tstart tend tstartEnd in
     confinedDuring cd confineRect
