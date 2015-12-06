@@ -186,7 +186,6 @@ Section XYBounds.
       apply plus_resp_nonneg; tauto.
   Qed.
     
-
     
   Lemma carBoundsAMAux : carMinMaxXY cs cd =
   {|minxy := {|X:= X (backLeft cs cd); Y:= Y (backRight cs cd)|};
@@ -559,12 +558,7 @@ Section Cases.
     intros. reflexivity.
   Qed.
 
-  Lemma foldPlusLine `{Ring A} : forall xa xb ya yb: Cart2D A,
-   {| minxy := xa + xb; maxxy :=ya + yb |} = {|minxy :=xa; maxxy :=ya|} 
-    + {|minxy:=xb; maxxy:=yb|}.
-  Proof.
-    intros. reflexivity.
-  Qed.
+
 
     Require Import MCMisc.rings.
 

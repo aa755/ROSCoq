@@ -21,21 +21,19 @@ Class PairLike {C A B : Type}
     snd (mkPair a b) = b
 }.
 
+Section ForgetTypeclassInstances.
 Require Import MathClasses.interfaces.canonical_names.
-Global Instance CastPairLikeSame 
+Instance CastPairLikeSame 
 `{@PairLike Pair A A mkpair pfst psnd} : Cast A Pair :=
   fun p => mkpair p p.
-  
 
-
-
-Global Instance EquivPairLike 
+Instance EquivPairLike 
 `{@PairLike Pair A B mkpair pfst psnd}
 `{Equiv A} `{Equiv B} 
   : Equiv (Pair) := 
   fun a b => pfst a = pfst b /\ psnd a = psnd b.
 
-Global Instance EquivalencePairLike 
+Instance EquivalencePairLike 
 `{@PairLike Pair A B mkpair pfst psnd}
 `{Equiv A} `{Equiv B}
   `{Equivalence _ (@equiv A _)} `{Equivalence _ (@equiv B _)} 
@@ -52,7 +50,7 @@ Proof.
     with relations; simpl.
 Qed.
 
-Global Instance ProperPairLikeFst 
+Instance ProperPairLikeFst 
 `{@PairLike Pair A B mkpair pfst psnd}
 {_ : Equiv A} {_: Equiv B} :
      Proper  (equiv ==> equiv) pfst.
@@ -60,7 +58,7 @@ Proof.
   intros a b Heq. destruct Heq; assumption.
 Qed.
 
-Global Instance ProperPairLikeSnd 
+Instance ProperPairLikeSnd 
 `{@PairLike Pair A B mkpair pfst psnd}
 `{Equiv A} `{Equiv B} :
      Proper  (equiv ==> equiv) psnd.
@@ -71,31 +69,32 @@ Qed.
 
 Require Export MathClasses.theory.rings.
 Require Export MathClasses.interfaces.abstract_algebra.
-Global  Instance ZeroPairLike
+Instance ZeroPairLike
 `{@PairLike Pair A B mkpair pfst psnd}
  `{Zero A} `{Zero B} 
     : Zero (Pair)
     := mkpair 0 0.
 
 
-Global  Instance OnePairLike `{One A} `{One B} 
+Instance OnePairLike 
 `{@PairLike Pair A B mkpair pfst psnd}
+ `{One A} `{One B}
     : One (Pair)
     := mkpair 1 1.
 
-Global Instance PlusPairLike 
+Instance PlusPairLike 
 `{@PairLike Pair A B mkpair pfst psnd}
 `{Plus A} `{Plus B} 
     : Plus (Pair)
     := λ a b, mkpair (pfst a + pfst b) (psnd a + psnd b).
 
-Global Instance MultPairLike
+Instance MultPairLike
 `{@PairLike Pair A B mkpair pfst psnd}
  `{Mult A} `{Mult B} 
     : Mult (Pair)
     := λ a b, mkpair (pfst a * pfst b) (psnd a * psnd b).
 
-Global Instance NegatePairLike
+Instance NegatePairLike
 `{@PairLike Pair A B mkpair pfst psnd}
  `{Negate A} `{Negate B} 
     : Negate (Pair)
@@ -114,7 +113,7 @@ Add Ring  tempB : (rings.stdlib_ring_theory B).
 Require Import Ring.
 Typeclasses eauto :=3.
 
-Global Instance RingPairLike : Ring Pair.
+Instance RingPairLike : Ring Pair.
 Typeclasses eauto :=30.
 
 Proof.
@@ -151,7 +150,7 @@ Qed.
 End PairLikeRing.
 
 
-Global Instance ProperCastPairLikeSame 
+Instance ProperCastPairLikeSame 
 `{@PairLike Pair A A mkpair pfst psnd}
 `{Equiv A}:
     Proper (equiv ==> equiv) (cast  A (Pair)).
@@ -161,16 +160,39 @@ Proof.
     assumption.
 Qed.
 
+Instance ProperPairLikeMkpair
+`{@PairLike Pair A B mkpair pfst psnd}
+`{Equiv A}
+`{Equiv B}:
+  Proper (equiv ==> equiv  ==> equiv) (mkpair).
+Proof.
+  intros ? ? h1  ? ? h2. split; simpl;
+   repeat rewrite pairLikeFst; repeat rewrite pairLikeSnd;
+  assumption.
+Qed.
+
+Lemma foldPlusPairLike 
+`{@PairLike Pair A B mkpair pfst psnd}
+`{Ring A}
+`{Ring B} : forall xa xb ya yb,
+  mkpair (xa + xb) (ya + yb) = mkpair (xa) (ya)
+    + mkpair (xb) (yb).
+Proof.
+    intros. split; compute;
+   repeat rewrite pairLikeFst; repeat rewrite pairLikeSnd;
+   reflexivity.
+Qed.
+
+End ForgetTypeclassInstances.
+
+
 
 
 (*
-Global Instance ProperLine2D `{Equiv A} : 
-  Proper (equiv ==> equiv  ==> equiv) (@Build_Line2D A).
+Lemma foldPlusLine `{Ring A} : forall xa xb ya yb: Cart2D A,
+  {| minxy := xa + xb; maxxy :=ya + yb |} = {|minxy :=xa; maxxy :=ya|} 
+    + {|minxy:=xb; maxxy:=yb|}.
 Proof.
-  intros ? ? h1  ? ? h2. split; simpl; assumption.
+    intros. reflexivity.
 Qed.
 *)
-
-
-
-
