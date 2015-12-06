@@ -6,7 +6,10 @@ Class RealNumberPi (R : Type) := π : R.
 Class HalfNum (R : Type) := half_num : R.
 Notation "½" := half_num.
 
-(** Should we add other properties of distance, e.g. triangle inequality? *)
+(** TODO : use the class
+MathClasses.interfaces.vectorspace.Norm instead
+of this class. That file also has an axiomatization
+of usualy properties of norm. *)
 Class NormSpace (A B : Type) := norm : A -> B.
 Notation "| x |" := (norm x) (at level 300).
 

@@ -220,3 +220,13 @@ Lemma sameXYNegate `{Ring A}: ∀ a : A,
 Proof.
   intros. reflexivity.
 Qed.
+
+Definition transpose {A:Type} (c: Cart2D A) :=
+  {|X:= Y c; Y:= X c|}.
+
+
+Lemma Cart2DEta `{Equiv A} `{Equivalence _ (@equiv A _)}  : forall c:Cart2D A,
+   {| X:= X c; Y:=Y c |} = c.
+Proof.
+  intros. destruct c. simpl. reflexivity.
+Qed.

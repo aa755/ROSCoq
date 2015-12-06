@@ -28,6 +28,7 @@ Require Import MathClasses.interfaces.canonical_names.
 Require Import MCInstances.
 Require Import CartCR.
 Require Export ackermannSteering.
+Require Import MCMisc.tactics.
 
   Add Ring RisaRing: (CRing_Ring IR).
   Add Ring cart2dir : Cart2DIRRing.
@@ -349,23 +350,6 @@ Section Cases.
     split; eauto 2 with CoRN.
   Qed.
 
-  Section NoSignChange.
-  (** While characterizing the space needed by a move,
-    the whole trajectory matters, not just the initial and final
-    positions. So, we rule out the case of the car moving both
-    forward and backward during an atomic move. *)
-  Hypothesis nsc : noSignChangeDuring (linVel acs) tstart tend.
-
-  (** As a result, during an atomic move,
-    theta is always between its initial and final value. 
-    This lemma may not be needed. Below, it seems to not suffice.
-    One also needs to know that [theta] assumed EVERY value in
-    this range, using the intermediate value theorem.*)
-  Lemma fixedSteeringTheta : forall (t :Time)  (p: tstart ≤ t ≤ tend),
-    inBetween ({theta acs} t) ({theta acs} tstart) ({theta acs} tend).
-  Abort.
-    
-  End NoSignChange.
 
   (** We consider the case when the front wheels are not straight, i.e. the 
       turn curvature is nonzero. The other case (front wheels are perfectly straight) is simpler, 
@@ -454,10 +438,6 @@ Section Cases.
       split; eauto 2 with CoRN.
   Qed.
 
-  Definition transpose {A:Type} (c: Cart2D A) :=
-    {|X:= Y c; Y:= X c|}.
-
-  Definition unitVecT (θ : IR) : Cart2D IR := transpose (unitVec θ).
 
   Lemma fixedSteeeringXY : forall (t :Time) (_: tstart ≤ t ≤ tend),
     posAtTime acs t - posAtTime acs tstart = 
@@ -571,19 +551,7 @@ Section Cases.
     ring.
   Qed.
 
-  Global Instance EquivalenceInstanceLine2D `{Equiv A}
-  `{Equivalence _ (@equiv A _)} : Equivalence (@equiv (Line2D A) _).
-  Proof.
-    split.
-  - intros x. destruct x. split; auto with *.
-  - intros x y. destruct x,y. intros Hd; destruct Hd;
-      split; auto with relations.
 
-  - intros x y z. destruct x,y,z. intros h0 h1.
-    destruct h0, h1. simpl in *.
-    split; eauto 10
-    with relations; simpl.
-  Qed.
      
   Lemma foldPlusCart `{Ring A} : forall xa xb ya yb:A,
    {| X:= xa + xb; Y:=ya + yb |} = {|X:=xa; Y:=ya|} + {|X:=xb; Y:=yb|}.
@@ -598,34 +566,7 @@ Section Cases.
     intros. reflexivity.
   Qed.
 
-
-  Lemma Cart2DEta `{Equiv A} `{Equivalence _ (@equiv A _)}  : forall c:Cart2D A,
-   {| X:= X c; Y:=Y c |} = c.
-  Proof.
-    intros. destruct c. simpl. reflexivity.
-  Qed.
-
-  Section RingShiftMinusR.
-  Context `{Ring A}.
-  Add Ring tempRing : (stdlib_ring_theory A).
-
-  Lemma RingShiftMinusR  : forall 
-    a b c : A,
-    a - b  = c -> a = b+ c.
-  Proof.
-    intros ? ? ?  Hh.
-    fequivHyp Hh (+b).
-    clear Hh. simpl in Hhe.
-    ring_simplify in Hhe.
-    assumption.
-  Qed.
-  End RingShiftMinusR.
-    
-  Global Instance ProperCastCartLine `{Equiv A}:
-    Proper (equiv ==> equiv) (cast (Cart2D A) (Line2D A)).
-  Proof.
-    intros ? ? ?. split; assumption.
-  Qed.
+    Require Import MCMisc.rings.
 
   Lemma carMinMaxXYAM : 
     forall (t :Time) (Hb : tstart ≤ t ≤ tend),

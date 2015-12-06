@@ -64,6 +64,25 @@ match pts with
             end
 end.
 
+  Global Instance EquivalenceInstanceLine2D `{Equiv A}
+  `{Equivalence _ (@equiv A _)} : Equivalence (@equiv (Line2D A) _).
+  Proof.
+    split.
+  - intros x. destruct x. split; auto with *.
+  - intros x y. destruct x,y. intros Hd; destruct Hd;
+      split; auto with relations.
+
+  - intros x y z. destruct x,y,z. intros h0 h1.
+    destruct h0, h1. simpl in *.
+    split; eauto 10
+    with relations; simpl.
+  Qed.
+  Global Instance ProperCastCartLine `{Equiv A}:
+    Proper (equiv ==> equiv) (cast (Cart2D A) (Line2D A)).
+  Proof.
+    intros ? ? ?. split; assumption.
+  Qed.
+
 Definition BoundingRectangle := Line2D.
 
 Global Instance SubsetBoundingRect `{Le A} : Subset (Line2D A) :=
