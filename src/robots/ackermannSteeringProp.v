@@ -346,17 +346,18 @@ Section Cases.
     forward and backward during an atomic move.*)
   Hypothesis nsc : noSignChangeDuring (linVel acs) tstart tend.
 
+  Hypothesis tcSign : (tc≤0 \/ 0≤tc).
+
   (** As a result, during an atomic move,
     theta is always between its initial and final value. *)
-  Lemma fixedSteeringTheta : forall (t :Time)  (p: tstart ≤ t ≤ tend),
-    inBetween ({theta acs} t) ({theta acs} tstart) ({theta acs} tend).
+  Lemma thetaMonotone : forall (t :Time)  (p: tstart ≤ t ≤ tend),
+    inBetweenR ({theta acs} t) ({theta acs} tstart) ({theta acs} tend).
   Proof.
-    destruct nsc as [Hnoneg | Hnonpos].
-    SearchAbout isDerivativeOf cof_leEq.
-    - unfold nonNegDuring in Hnoneg. 
-    
-    apply TDerivativeUB2 in Hnoneg.
-    
+    eapply nosignChangeInBw;
+      [assumption | eapply derivRot |].
+    apply nonSignChangeMult; try assumption.
+    destruct tcSign; [right|left]; intros t Hb; rewrite fixed; auto.
+  Qed.
     
   End NoSignChange.
   (** We consider the case when the front wheels are not straight, i.e. the 

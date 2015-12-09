@@ -381,6 +381,7 @@ Definition nonNegDuring (F : TContR) (tstart tend : Time) :=
 Definition nonPosDuring (F : TContR) (tstart tend : Time) :=
   forall (t: Time), (tstart [<=] t /\ t [<=] tend) -> ({F} t) [<=] [0].
 
+
 Definition noSignChangeDuring (F : TContR) (tstart tend : Time) : Prop :=
   nonNegDuring F tstart tend \/  nonPosDuring F tstart tend.
 
@@ -421,13 +422,99 @@ Proof.
   unfold nonPosDuring in Hn.
   pose proof (TDerivativeUB3 F F' _ _ Hab [0] Hder) as X.
   rewrite cring_mult_zero_op in X.
-  apply shift_leEq_rht. SearchAbout cof_leEq cg_inv.
+  apply shift_leEq_rht.
   apply inv_cancel_leEq. rewrite cg_zero_inv.
   assert ([--] ({F} tstart [-] {F} tend) [=] {F} tend [-] {F} tstart)  as Xx by
     (unfold cg_minus; ring).
   rewrite Xx.
    apply X. intros t Hb.
   apply Hn. simpl in Hb. destruct Hb. split; assumption.
+Qed.
+
+Lemma nonNegDuringSplit :forall (F : TContR)
+   (tstart t tend : Time) (Hab : tstart[<=]tend)
+   (Hb : tstart [<=] t /\ t [<=] tend),
+   nonNegDuring F tstart tend
+   -> (nonNegDuring F tstart t /\ nonNegDuring F t tend). 
+Proof.
+  intros ? ? ? ? ? ? Hn.
+  split; intros tt Hbb; repnd; 
+    apply Hn; split; eauto 2 with CoRN.
+Qed.
+
+Lemma nonPosDuringSplit :forall (F : TContR)
+   (tstart t tend : Time) (Hab : tstart[<=]tend)
+   (Hb : tstart [<=] t /\ t [<=] tend),
+   nonPosDuring F tstart tend
+   -> (nonPosDuring F tstart t /\ nonPosDuring F t tend). 
+Proof.
+  intros ? ? ? ? ? ? Hn.
+  split; intros tt Hbb; repnd; 
+    apply Hn; split; eauto 2 with CoRN.
+Qed.
+
+Lemma nonSignChangeMult :forall (F G : TContR)
+   (tstart tend : Time) (Hab : tstart[<=]tend),
+   noSignChangeDuring F tstart tend
+   -> noSignChangeDuring G tstart tend
+   -> noSignChangeDuring (F [*] G) tstart tend.
+Proof.
+  intros ? ? ? ? ? Hf Hg.
+  destruct Hf, Hg.
+  - left. intros t Hb. simpl. apply mult_resp_nonneg;
+    auto.
+  - right. intros t Hb. simpl.
+    apply inv_cancel_leEq.
+    rewrite cg_zero_inv.
+    rewrite <- cring_inv_mult_lft.
+    apply mult_resp_nonneg;[auto|].
+    apply inv_cancel_leEq.
+    rewrite cg_zero_inv, cg_inv_inv. auto.
+  - right. intros t Hb. simpl.
+    apply inv_cancel_leEq.
+    rewrite cg_zero_inv.
+    rewrite <- cring_inv_mult_rht.
+    apply mult_resp_nonneg;[|auto].
+    apply inv_cancel_leEq.
+    rewrite cg_zero_inv, cg_inv_inv. auto.
+  - left. intros t Hb. simpl.
+    match goal with
+    [ |- _ [<=] ?r] => rewrite <- (cg_inv_inv _ r)
+    end.
+    rewrite <- cring_inv_mult_rht.
+    rewrite <- cring_inv_mult_lft.
+    apply mult_resp_nonneg;
+    apply inv_cancel_leEq;
+    rewrite cg_zero_inv, cg_inv_inv; auto.
+Qed.
+
+Lemma nosignChangeInBw :forall (F F' : TContR)
+   (tstart tend : Time) (Hab : tstart[<=]tend),
+   isDerivativeOf F' F
+   -> noSignChangeDuring F' tstart tend
+   -> forall (t: Time), (tstart [<=] t /\ t [<=] tend)
+      -> inBetweenR ({F} t) ({F} tstart) ({F} tend).
+Proof.
+  intros ? ? ? ? ?  Hder Hn t Hb.
+  destruct Hn as [Hinc | Hdec].
+  - unfold inBetweenR.
+    rewrite leEq_imp_Min_is_lft;
+      [| eapply nonDecreasingIfDerivNonNeg; eauto].
+    rewrite leEq_imp_Max_is_rht;
+      [| eapply nonDecreasingIfDerivNonNeg; eauto].
+    pose proof Hb as Hbbb.
+    eapply nonNegDuringSplit in Hb; eauto.
+    repnd.
+    split; eapply nonDecreasingIfDerivNonNeg; eauto.
+  - unfold inBetweenR. rewrite Min_comm, Max_comm.
+    rewrite leEq_imp_Min_is_lft;
+      [| eapply nonIncreasingIfDerivNonPos; eauto].
+    rewrite leEq_imp_Max_is_rht;
+      [| eapply nonIncreasingIfDerivNonPos; eauto].
+    pose proof Hb as Hbbb.
+    eapply nonPosDuringSplit in Hb; eauto.
+    repnd.
+    split; eapply nonIncreasingIfDerivNonPos; eauto.
 Qed.
 
 Definition opBind {A B : Type}
