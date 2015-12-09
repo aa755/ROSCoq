@@ -599,24 +599,61 @@ Section Cases.
     fequiv;split; simpl; IRring.
   Qed.
 
-  (** will likely need intermediate value theorem for the -> direction
-    given a θ, we need to find out a time when the car was oriented
-    that way.
-  *)
+  (**Move and replace [CartIR.ProperLeCartIR]*)
+  Global Instance ProperLeCart `{Equiv A} `{Equivalence _ (@equiv A _)} 
+    `{Le A} :
+    (Proper (equiv ==> equiv ==> iff) (@le A _))
+    ->  (Proper (equiv ==> equiv ==> iff) (@le (Cart2D A) _)).
+  Proof.
+    intros Hh a b Hab c d Hcd. destruct a,b,c,d.
+    compute. compute in Hcd. compute in Hab.
+    repnd. fold (@equiv A _) in Hcdl, Hcdr, Habl, Habr.
+    fold (@le A _).
+    rewrite Hcdl, Hcdr, Habl, Habr.
+    tauto.
+  Qed.
+    
+
+  Global Instance ProperSubset `{Equiv A} 
+    `{Equivalence _ (@equiv A _)}
+    `{Le A} :
+    (Proper (equiv ==> equiv ==> iff) le)
+    ->  (Proper (equiv ==> equiv ==> iff) 
+      (@CanonicalNotations.subset (Line2D A) _)).
+  Proof.
+    intros Hh a b Hab c d Hcd.
+    unfold CanonicalNotations.subset, SubsetBoundingRect.
+    rewrite Hab, Hcd. tauto.
+  Qed.
+
+  Global Instance ReflexiveTimeLe :
+    Reflexive (@le Time _).
+  Proof.
+    intros a. apply leEq_reflexive.
+  Qed.
+
   Lemma confinedDuringAMIf : forall (confineRect : Line2D IR),
-    let ib := @mkIntBnd _ tstart tend tstartEnd in
-    (∀ (θ : IR), θ0 ≤ θ ≤ θ0 + tc* (∫ ib (linVel acs))
+    noSignChangeDuring (linVel acs) tstart tend
+    ->
+    (∀ (θ : IR), inBetweenR θ ({theta acs} tstart) ({theta acs} tend)
            -> carMinMaxXYAtθ (rigidStateAtTime acs tstart) cd turnRadius θ ⊆ confineRect)
      ->  confinedDuring cd confineRect.
   Proof.
-    intros ? ? ? t Hb.
+    intros ? Hn hh t Hb.
+    specialize (hh ({theta acs}t)).
+    rewrite carMinMaxXYAM;[|assumption].
+    apply hh.
+    apply thetaMonotone; try assumption.
+    pose proof (fst (less_conf_ap _ _ _) tcNZ) as Hdec.
+    autounfold with IRMC.
+    destruct Hdec; [left|right]; eauto 2 with CoRN.
   Qed.
+
   End XYBounds.
 
   End TCNZ.
 
 
-(*
   Section TC0.
   (** now consider the case when the front wheels are exactly straight *)
   Hypothesis tcNZ : (tc = 0).
@@ -640,7 +677,6 @@ Section Cases.
   Abort.
 
   End TC0.
-*)
   
   
   End FixedSteeringWheel.
@@ -997,6 +1033,20 @@ End AtomicMoveSpaceRequirement.
    rewrite <- tr. assumption.
   Qed.
 
+(*Move*)
+  Global Instance ProperNoSignChange : forall F:TContR,
+    Proper (equiv ==> equiv ==> iff) (noSignChangeDuring F).
+  Proof.
+    intros F ? ? H1e ? ? H2e.
+    unfold noSignChangeDuring, nonNegDuring, nonPosDuring.
+    destruct x,y,x0,y0.
+    autounfold with IRMC in H1e, H2e.
+    simpl. simpl in H1e, H2e.
+    setoid_rewrite H1e.
+    setoid_rewrite H2e.
+    tauto.
+  Qed.
+     
   Lemma CarMonotonicallyExecsAtomicMoveDuring_wd:
   forall ml mr tstartl tstartr tendl tendr 
       (pl :tstartl < tendl) (pr :tstartr < tendr),
@@ -1009,9 +1059,7 @@ End AtomicMoveSpaceRequirement.
     intros ? ? ? ? ? ? ? ?  tl tr Hl Heq.
     destruct Hl as [c Hl].
     split;[eapply CarExecutesAtomicMoveDuring_wd;eauto |].
-    clear c. destruct Hl as [Hl| Hl];[left | right];
-    intros t p; rewrite <- tl, <- tr  in p; apply Hl;
-      assumption.
+    clear c. rewrite <- tl, <- tr. exact Hl.
   Qed.
   
   
