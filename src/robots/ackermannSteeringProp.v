@@ -255,7 +255,7 @@ End XYBounds.
   (** When the turn curvature is fixed, a car's position and orientation, and hence
    the position of its corners, and hence the confining axis-aligned rectangle,
    can be defined just as a function of initial state and the car's orientation.
-    The lemma [carMinMaxXYAM] below proved the correctness of this definition..
+    The lemma [carMinMaxXYAM] below proves the correctness of this definition..
   *)
    
   Definition carMinMaxXYAtθ  (init : Rigid2DState IR) (cd : CarDimensions IR)
@@ -272,22 +272,11 @@ End XYBounds.
         |}
   |}.
   
-(*Move*)
-Definition nonNegDuring (F : TContR) (tstart tend : Time) :=
-  forall (t: Time), (tstart ≤ t ≤ tend) -> 0 ≤ {F} t.
-
-Definition nonPosDuring (F : TContR) (tstart tend : Time) :=
-  forall (t: Time), (tstart ≤ t ≤ tend) ->  {F} t ≤ 0.
-
-Definition noSignChangeDuring (F : TContR) (tstart tend : Time) : Prop :=
-nonNegDuring F tstart tend \/  nonPosDuring F tstart tend.
 
 Section Props.
 Variable maxTurnCurvature : Qpos.
 Variable acs : AckermannCar maxTurnCurvature.
 
-Definition inBetween (b a c : IR) 
-  := (Min a c ≤ b ≤ Max a c).
   
   Local Notation  "∫" := Cintegral.
 
@@ -350,6 +339,26 @@ Section Cases.
   Qed.
 
 
+  Section NoSignChange.
+  (** While characterizing the space needed by a move,
+    the whole trajectory matters, not just the initial and final
+    positions. So, we rule out the case of the car moving both
+    forward and backward during an atomic move.*)
+  Hypothesis nsc : noSignChangeDuring (linVel acs) tstart tend.
+
+  (** As a result, during an atomic move,
+    theta is always between its initial and final value. *)
+  Lemma fixedSteeringTheta : forall (t :Time)  (p: tstart ≤ t ≤ tend),
+    inBetween ({theta acs} t) ({theta acs} tstart) ({theta acs} tend).
+  Proof.
+    destruct nsc as [Hnoneg | Hnonpos].
+    SearchAbout isDerivativeOf cof_leEq.
+    - unfold nonNegDuring in Hnoneg. 
+    
+    apply TDerivativeUB2 in Hnoneg.
+    
+    
+  End NoSignChange.
   (** We consider the case when the front wheels are not straight, i.e. the 
       turn curvature is nonzero. The other case (front wheels are perfectly straight) is simpler, 
       but needs to be handled differently due to "divide by 0" issues during integration.*)
@@ -593,13 +602,14 @@ Section Cases.
     given a θ, we need to find out a time when the car was oriented
     that way.
   *)
-  Lemma confinedDuringAMIff : forall (confineRect : Line2D IR),
+  Lemma confinedDuringAMIf : forall (confineRect : Line2D IR),
     let ib := @mkIntBnd _ tstart tend tstartEnd in
-    confinedDuring cd confineRect
-    <-> (∀ (θ : IR), θ0 ≤ θ ≤ θ0 + tc* (∫ ib (linVel acs))
-           -> carMinMaxXYAtθ (rigidStateAtTime acs tstart) cd turnRadius θ ⊆ confineRect).
-  Abort.
-
+    (∀ (θ : IR), θ0 ≤ θ ≤ θ0 + tc* (∫ ib (linVel acs))
+           -> carMinMaxXYAtθ (rigidStateAtTime acs tstart) cd turnRadius θ ⊆ confineRect)
+     ->  confinedDuring cd confineRect.
+  Proof.
+    intros ? ? ? t Hb.
+  Qed.
   End XYBounds.
 
   End TCNZ.

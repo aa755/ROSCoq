@@ -302,6 +302,31 @@ Proof.
   split; auto.
 Qed.
 
+(** double negation trick, to strengthen UB2. The hypothesis
+ta[<=]tb was ta[<]tb before*)
+Lemma TDerivativeUB3 :forall (F F' : TContR)
+   (ta tb : Time) (Hab : ta[<=]tb) (c : ℝ),
+   isDerivativeOf F' F
+   -> (forall (t:Time), (clcr ta tb) t -> ({F'} t) [<=] c)
+   -> ({F} tb[-] {F} ta)[<=]c[*](tb[-]ta).
+Proof.
+  intros ? ? ? ? ? ? Hder Hub.
+  pose proof (leEq_less_or_equal _ _ _ Hab) as Hdec.
+  apply leEq_def.
+  intros Hc.
+  apply Hdec. clear Hdec. intros Hdec.
+  revert Hc. apply leEq_def.
+  destruct Hdec as [Hlt | Heq].
+  - eapply TDerivativeUB2; eauto.
+  - rewrite Heq.
+    rewrite cg_minus_correct.
+    rewrite mult_commutes.
+    rewrite cring_mult_zero_op.
+    apply eq_imp_leEq. apply x_minus_x.
+    symmetry. apply TContRExt.
+    simpl. destruct ta, tb. exact Heq.
+Qed.
+
 Lemma TDerivativeLB2 :forall (F F' : TContR)
    (ta tb : Time) (Hab : ta[<]tb) (c : ℝ),
    isDerivativeOf F' F
@@ -322,6 +347,87 @@ Proof.
   rewrite <- Heq.
   apply Hub.
   split; auto.
+Qed.
+
+
+(** double negation trick, to strengthen LB2. The hypothesis
+ta[<=]tb was ta[<]tb before*)
+Lemma TDerivativeLB3 :forall (F F' : TContR)
+   (ta tb : Time) (Hab : ta[<=]tb) (c : ℝ),
+   isDerivativeOf F' F
+   -> (forall (t:Time), (clcr ta tb) t -> c [<=] ({F'} t))
+   -> c[*](tb[-]ta) [<=] ({F} tb[-] {F} ta).
+Proof.
+  intros ? ? ? ? ? ? Hder Hub.
+  pose proof (leEq_less_or_equal _ _ _ Hab) as Hdec.
+  apply leEq_def.
+  intros Hc.
+  apply Hdec. clear Hdec. intros Hdec.
+  revert Hc. apply leEq_def.
+  destruct Hdec as [Hlt | Heq].
+  - eapply TDerivativeLB2; eauto.
+  - rewrite Heq.
+    rewrite cg_minus_correct.
+    rewrite mult_commutes.
+    rewrite cring_mult_zero_op.
+    apply eq_imp_leEq. symmetry. apply x_minus_x.
+    symmetry. apply TContRExt.
+    simpl. destruct ta, tb. exact Heq.
+Qed.
+
+Definition nonNegDuring (F : TContR) (tstart tend : Time) :=
+  forall (t: Time), (tstart [<=] t /\ t [<=] tend) -> [0] [<=] ({F} t).
+
+Definition nonPosDuring (F : TContR) (tstart tend : Time) :=
+  forall (t: Time), (tstart [<=] t /\ t [<=] tend) -> ({F} t) [<=] [0].
+
+Definition noSignChangeDuring (F : TContR) (tstart tend : Time) : Prop :=
+  nonNegDuring F tstart tend \/  nonPosDuring F tstart tend.
+
+(*
+Definition nonDecreasingDuring (F : TContR) (tstart tend : Time) :=
+  forall (ta tb: Time), (tstart [<=] ta /\ ta [<=] tb /\ tb [<=] tend) 
+    -> ({F} ta) [<=] ({F} tb).
+
+Definition nonIncreasingDuring (F : TContR) (tstart tend : Time) :=
+  forall (ta tb: Time), (tstart [<=] ta /\ ta [<=] tb /\ tb [<=] tend) 
+    -> ({F} tb) [<=] ({F} ta).
+*)
+
+Definition inBetweenR (b a c : IR) 
+  := (Min a c [<=] b /\ b [<=] Max a c).
+
+Lemma nonDecreasingIfDerivNonNeg :forall (F F' : TContR)
+   (tstart tend : Time) (Hab : tstart[<=]tend),
+   isDerivativeOf F' F
+   -> nonNegDuring F' tstart tend
+   -> ({F} tstart) [<=] ({F} tend).
+Proof.
+  intros ? ? ? ? ?  Hder Hn.
+  unfold nonNegDuring in Hn.
+  pose proof (TDerivativeLB3 F F' _ _ Hab [0] Hder) as X.
+  rewrite cring_mult_zero_op in X.
+  apply shift_leEq_rht. apply X. intros t Hb.
+  apply Hn. simpl in Hb. destruct Hb. split; assumption.
+Qed.
+
+Lemma nonIncreasingIfDerivNonPos :forall (F F' : TContR)
+   (tstart tend : Time) (Hab : tstart[<=]tend),
+   isDerivativeOf F' F
+   -> nonPosDuring F' tstart tend
+   -> ({F} tend) [<=] ({F} tstart).
+Proof.
+  intros ? ? ? ? ?  Hder Hn.
+  unfold nonPosDuring in Hn.
+  pose proof (TDerivativeUB3 F F' _ _ Hab [0] Hder) as X.
+  rewrite cring_mult_zero_op in X.
+  apply shift_leEq_rht. SearchAbout cof_leEq cg_inv.
+  apply inv_cancel_leEq. rewrite cg_zero_inv.
+  assert ([--] ({F} tstart [-] {F} tend) [=] {F} tend [-] {F} tstart)  as Xx by
+    (unfold cg_minus; ring).
+  rewrite Xx.
+   apply X. intros t Hb.
+  apply Hn. simpl in Hb. destruct Hb. split; assumption.
 Qed.
 
 Definition opBind {A B : Type}
