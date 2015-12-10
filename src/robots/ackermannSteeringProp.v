@@ -1241,6 +1241,7 @@ Lemma foldPlusLine `{Ring A} : forall xa xb ya yb: Cart2D A,
     intros. reflexivity.
   Qed.
 
+(* RHS was automatically obtained *)
 Lemma carMinMaxAtTEq : forall t, 
 carMinMaxAtT t = 
 '(posAtTime acs t) +
@@ -1330,14 +1331,37 @@ Qed.
     split; simpl; ring.
   Qed.
 
+   Lemma subsetPlusLeftCancellation :
+      forall a b c : Line2D IR,
+    b ⊆ c ->  a + b ⊆ a + c.
+   Admitted.
+
+    
    Lemma confinedDuringStraightAM :
       let bi := carMinMaxAtT tstart in
       let bf := bi + '(('distance) * (unitVec θs)) in
        confinedDuring tstart tend cd 
           (boundingUnion bi bf).
    Proof.
-     intros ?  hh t Hb.
-    
+     intros ?  ? t Hb.
+     fold (carMinMaxAtT t). destruct Hb as [pl prr].
+     rewrite straightAMMinMaxXY with (pl:=pl);[| tauto].
+     unfold boundingUnion. subst bi. subst bf.
+     assert ((minxy (carMinMaxAtT tstart)) 
+        = (minxy (carMinMaxAtT tstart)) + 0) as H0 by ring.
+     rewrite H0. clear H0.
+     assert ((maxxy (carMinMaxAtT tstart)) 
+        = (maxxy (carMinMaxAtT tstart)) + 0) as H0 by ring.
+     rewrite H0. clear H0.
+     setoid_rewrite  minCartSum.
+     setoid_rewrite  maxCartSum.
+     rewrite foldPlusLine.
+     replace {|
+        lstart := minxy (carMinMaxAtT tstart);
+        lend := maxxy (carMinMaxAtT tstart) |}
+        with  (carMinMaxAtT tstart);[| reflexivity].
+     apply subsetPlusLeftCancellation.
+     
    Abort.
 
   End XYBounds.
