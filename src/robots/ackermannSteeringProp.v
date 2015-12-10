@@ -929,6 +929,23 @@ and one can drive both forward and backward *)
       exact AtomicMoveYT.
     Qed.
 
+    Lemma AtomicMoveXYT : posAtTime acs tend =  Ps +
+         {|X:=(Sin ({theta acs} tend) - Sin θs);
+             Y:=(Cos θs - Cos ({theta acs} tend))|} 
+      * '(f_rcpcl tc  tcNZ).
+    Proof.
+      split; simpl;[apply AtomicMoveXT | apply AtomicMoveYT].
+    Qed.
+
+    Lemma AtomicMoveXY : posAtTime acs tend =  Ps +
+         {|X:=(Sin (θs + tc * distance) - Sin θs);
+             Y:=(Cos θs - Cos (θs + tc * distance))|} 
+      * '(f_rcpcl tc  tcNZ).
+    Proof.
+      split; simpl;[apply AtomicMoveX | apply AtomicMoveY].
+    Qed.
+
+
   End TCNZ.
               
   Section TCZ.
@@ -956,46 +973,63 @@ and one can drive both forward and backward *)
          repnd. split; timeReasoning.
     Qed.
 
-    Lemma AtomicMoveZX : {X (position acs)} tend =  Xs + distance * (Cos θs).
-    Proof.
+    Lemma AtomicMoveZX : forall (t:Time) (pl : tstart ≤ t) (pr : t ≤ tend), 
+    {X (position acs)} t =  Xs
+     +  (∫ (mkIntBnd pl) (linVel acs)) * (Cos θs).
+    Proof. 
+      intros ? ? ?.
       apply leftShiftEqIR.
       rewrite mult_comm.
-      rewrite  (am_driveDistanceFull).
-      eapply TBarrowScale with (ib := (mkIntBnd am_timeStartEnd));
+      eapply TBarrowScale with (ib := (mkIntBnd pl));
         [apply derivX | ].
-      intros t Hb. unfold mkIntBnd, intgBndL, intgBndR in Hb. simpl in Hb.
+      intros tt Hb. unfold mkIntBnd, intgBndL, intgBndR in Hb. simpl in Hb.
       rewrite mult_comm at 1.
       autounfold with TContRMC.
       rewrite IContRMultAp.
       rewrite CFCosAp.
       apply mult_wd;[| reflexivity].
       apply Cos_wd.
-      apply AtomicMoveZθ.  exact Hb.
+      apply AtomicMoveZθ.
+      autounfold with IRMC. repnd;
+      split; eauto 3 with CoRN.
    Qed.
 
-    Lemma AtomicMoveZY : {Y (position acs)} tend =  Ys + distance * (Sin θs).
+    Lemma AtomicMoveZY : forall (t:Time) (pl : tstart ≤ t) (pr : t ≤ tend),
+    {Y (position acs)} t =  Ys
+     +  (∫ (mkIntBnd pl) (linVel acs)) * (Sin θs).
     Proof.
+      intros ? ? ?.
       apply leftShiftEqIR.
       rewrite mult_comm.
-      rewrite  (am_driveDistanceFull).
-      eapply TBarrowScale with (ib := (mkIntBnd am_timeStartEnd));
+      eapply TBarrowScale with (ib := (mkIntBnd pl));
         [apply derivY | ].
-      intros t Hb. unfold mkIntBnd, intgBndL, intgBndR in Hb. simpl in Hb.
+      intros tt Hb. unfold mkIntBnd, intgBndL, intgBndR in Hb. simpl in Hb.
       rewrite mult_comm at 1.
       autounfold with TContRMC.
       rewrite IContRMultAp.
       rewrite CFSineAp.
       apply mult_wd;[| reflexivity].
       apply Sin_wd.
-      apply AtomicMoveZθ.  exact Hb.
-   Qed.
+      apply AtomicMoveZθ. 
+      autounfold with IRMC. repnd;
+      split; eauto 3 with CoRN.
+    Qed.
 
-   Lemma AtomicMoveFinal : {theta acs} tend =  θs /\
+    Lemma AtomicMoveZ : forall (t:Time) (pl : tstart ≤ t) (pr : t ≤ tend), 
+    posAtTime acs t =
+    Ps + ' ∫ ((mkIntBnd pl)) (linVel acs) * (unitVec θs).
+    Proof.
+     split; simpl; [apply AtomicMoveZX | apply AtomicMoveZY];
+     auto.
+    Qed.
+
+   Lemma AtomicMoveZFinal : {theta acs} tend =  θs /\
      posAtTime acs tend =
-     Ps + (sameXY distance) * (unitVec θs).
+     Ps + ('distance) * (unitVec θs).
    Proof.
      split;[apply AtomicMoveZθ;split; timeReasoning|].
-     split; simpl; [apply AtomicMoveZX | apply AtomicMoveZY].
+      rewrite  (am_driveDistanceFull).
+     apply AtomicMoveZ. auto.
    Qed.
 
   End TCZ.
@@ -1432,87 +1466,61 @@ First we define what it means for a move to be an inverse of another.
     IRring.
   Qed.
 
+  Require Import CoRN.logic.Stability.
+
+  (*Move*)
+   Global Instance StableEqIR : 
+     forall x y : IR, Stable (x=y).
+   Proof.
+    intros ? ? Hd.
+    apply not_ap_imp_eq. intros Hc. apply Hd. clear Hd.
+    intro Hcc.
+    apply ap_tight in Hc;auto.
+  Qed.
     
+   Global Instance StableEqCart2D `{Equiv A} : 
+    (forall x y : A, Stable (x=y))
+    -> (forall a b : Cart2D A, Stable (a=b)).
+   Proof.
+     intros Hc a b.
+     apply stable_conjunction; apply Hc.
+   Qed.
+
   (** The equations for X coordinate are different, based on whether the steering wheel is perfectly
       straight or not. The double negation trick works while proving equality *)
-  Lemma atomicMoveInvertibleX :
+  Lemma atomicMoveInvertibleXY :
     ∀ m
       (tstart tend : Time)  (p: tstart < tend)
       (tstartr tendr : Time)  (pr: tstartr < tendr),
       CarExecutesAtomicMoveDuring m  p
       -> CarExecutesAtomicMoveDuring (AtomicMoveInv m)  pr
       -> {theta acs} tstartr = {theta acs} tend 
-      -> ({X (position acs)} tend - {X (position acs)} tstart 
-              = {X (position acs)} tstartr - {X (position acs)} tendr).
+      -> (posAtTime acs tend - posAtTime acs tstart 
+              = posAtTime acs tstartr - posAtTime acs tendr).
   Proof.
     intros m ? ? ? ? ? ? amscl amscrl Hte.
     pose proof amscl as Htt.
     eapply atomicMoveInvertibleθ in Htt; eauto.
-    apply not_ap_imp_eq.
+    eapply stable. 
+      Unshelve. Focus 2. apply StableEqCart2D.
+           apply StableEqIR;fail.
     pose proof (decideEdDN (am_tc m) [0]) as Hd.
-    intro Hc.
-    apply Hd.
-    clear Hd. intro Hd.
-    apply ap_tight in Hc;[contradiction|]. clear H Hc.
-    pose proof amscl as Ht.
-    apply AtomicMoveθ in Ht.
+    eapply DN_fmap;[exact Hd|]. clear Hd. intro Hd.
     destruct Hd as [Hd | Hd].
-    - apply AtomicMoveZX with (pr := p) in amscl;
+    - apply AtomicMoveZFinal with (pr := p) in amscl;
         [| exact Hd].
-      apply AtomicMoveZX with (pr := pr) in amscrl;
-        [| exact Hd].
-      simpl in amscl, amscrl, Ht.
-      rewrite Hd in Ht.
-      autounfold with IRMC in Ht. ring_simplify in Ht.
-      rewrite amscrl, Hte, amscl, Ht.
-      IRring.
-    - apply AtomicMoveXT with (tcNZ:= Hd) in amscl.
-      eapply AtomicMoveXT  in amscrl.
-      Unshelve. Focus 2. apply Hd.
+      apply AtomicMoveZFinal with (pr := pr) in amscrl;
+        [| exact Hd]. repnd.
+      simpl in amsclr, amscrlr.
+      rewrite amscrlr,  amsclr, Hte, amscll.
+      unfold cast, castCRCart2DCR. rewrite sameXYNegate.
+      ring.
+    - apply AtomicMoveXYT with (tcNZ:= Hd) in amscl.
+      eapply AtomicMoveXYT  in amscrl.
+      Unshelve. Focus 2. apply Hd;fail.
       simpl in amscl, amscrl.
-      unfold cf_div in amscl.
-      unfold cf_div in amscrl.
-      rewrite amscrl, Hte, amscl, Htt. IRring.
-    Qed.
-  (** just replace X by Y in the proof above *)
-  Lemma atomicMoveInvertibleY :
-    ∀ m
-      (tstart tend : Time)  (p: tstart < tend)
-      (tstartr tendr : Time)  (pr: tstartr < tendr),
-      CarExecutesAtomicMoveDuring m  p
-      -> CarExecutesAtomicMoveDuring (AtomicMoveInv m)  pr
-      -> {theta acs} tstartr = {theta acs} tend 
-      -> ({Y (position acs)} tend - {Y (position acs)} tstart 
-              = {Y (position acs)} tstartr - {Y (position acs)} tendr).
-  Proof.
-    intros m ? ? ? ? ? ? amscl amscrl Hte.
-    pose proof amscl as Htt.
-    eapply atomicMoveInvertibleθ in Htt; eauto.
-    apply not_ap_imp_eq.
-    pose proof (decideEdDN (am_tc m) [0]) as Hd.
-    intro Hc.
-    apply Hd.
-    clear Hd. intro Hd.
-    apply ap_tight in Hc;[contradiction|]. clear H Hc.
-    pose proof amscl as Ht.
-    apply AtomicMoveθ in Ht.
-    destruct Hd as [Hd | Hd].
-    - apply AtomicMoveZY with (pr := p) in amscl;
-        [| exact Hd].
-      apply AtomicMoveZY with (pr := pr) in amscrl;
-        [| exact Hd].
-      simpl in amscl, amscrl, Ht.
-      rewrite Hd in Ht.
-      autounfold with IRMC in Ht. ring_simplify in Ht.
-      rewrite amscrl, Hte, amscl, Ht.
-      IRring.
-    - apply AtomicMoveYT with (tcNZ:= Hd) in amscl.
-      eapply AtomicMoveYT  in amscrl.
-      Unshelve. Focus 2. apply Hd.
-      simpl in amscl, amscrl.
-      unfold cf_div in amscl.
-      unfold cf_div in amscrl.
-      rewrite amscrl, Hte, amscl, Htt. IRring.
+      rewrite amscrl, Hte, amscl, Htt.
+       split; simpl; IRring.
     Qed.
 
   Lemma atomicMoveInvertible :
@@ -1522,9 +1530,8 @@ First we define what it means for a move to be an inverse of another.
     invertAtomicMoves.
     intros ? ?.    
     invertAtomicMoves.
-    split; [split |].
-    - eapply atomicMoveInvertibleX; eauto.
-    - eapply atomicMoveInvertibleY; eauto.
+    split.
+    - eapply atomicMoveInvertibleXY; eauto.
     - eapply atomicMoveInvertibleθ in Hf0; eauto.
   Qed.
 
@@ -1697,7 +1704,7 @@ to where we started.
   let θAtW := θs + 2 * tc * wdistance  in
   {theta acs} tend =  θs /\
     posAtTime acs tend = (posAtTime acs tstart)
-      + (sameXY ddistance) * (unitVec θAtW).
+      + ('ddistance) * (unitVec θAtW).
   Proof.
     intros ? ? ? amsc.    
     unfold SidewaysAux in amsc.
@@ -1715,7 +1722,7 @@ to where we started.
     specialize (Hw Hwr). clear Hwr.
     apply Wriggleθ in Hwb.
     invertAtomicMoves.
-    apply AtomicMoveFinal in Hf;[|unfold amNoTurn;  reflexivity].
+    apply AtomicMoveZFinal in Hf;[|unfold amNoTurn;  reflexivity].
     simpl in Hf. repnd.
     specialize (Hw Hfl).
     repnd. symmetry in Hwr.
@@ -1757,7 +1764,7 @@ to where we started.
   let θw := 2 * tc * wdistance  in
     {theta acs} tend =  θs /\
     posAtTime acs tend = (posAtTime acs tstart) 
-      + (sameXY (ddistance * Sin  θw)) * unitVec (θs + (½ * π)).
+      + ('(ddistance * Sin  θw)) * unitVec (θs + (½ * π)).
   Proof.
     intros ? ? ? amsc.
     unfold SidewaysMove in amsc. simpl.
@@ -1766,14 +1773,14 @@ to where we started.
     destruct Hams as [pds Hams]. repnd.
     apply SidewaysAuxState in Hamsl.
     invertAtomicMoves.
-    apply AtomicMoveFinal in Hf;[|unfold amNoTurn;  reflexivity].
+    apply AtomicMoveZFinal in Hf;[|unfold amNoTurn;  reflexivity].
     simpl in Hf. repnd.
     rewrite Hamsll in Hfl.
     rewrite Hamsll in Hfr.
     split;[assumption|]. clear Hamsll Hfl.
     rewrite Hamslr in Hfr. clear Hamslr pll pdsl pdsr.
     remember (2 * tc * wdistance) as θw.
-    clear Heqθw.
+    clear Heqθw. unfold cast, castCRCart2DCR in Hfr.
     rewrite <- sameXYMult in Hfr.
     rewrite sameXYNegate in Hfr.
     rewrite  <- (@mult_assoc (Cart2D IR)) in Hfr ; [|eauto with typeclass_instances].
@@ -1783,7 +1790,7 @@ to where we started.
     rewrite  <- (@plus_assoc (Cart2D IR)) in Hfr; [|eauto with typeclass_instances].
     setoid_rewrite  <- (@plus_mult_distr_l (Cart2D IR)) in Hfr;
        [|eauto with typeclass_instances].
-    rewrite unitVecLemma1 in Hfr.
+    rewrite unitVecLemma1 in Hfr. unfold cast, castCRCart2DCR.
     rewrite <- sameXYMult.
     rewrite  <- (@mult_assoc (Cart2D IR)); [|eauto with typeclass_instances].
     rewrite PiBy2DesugarIR.
