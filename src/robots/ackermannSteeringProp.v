@@ -66,6 +66,36 @@ Require Import geometry2DProps.
   Local Notation maxxy := (lend).
 
 Hint Unfold cos CosClassIR sin SinClassIR min MinClassIR  max MaxClassIR: IRMC.
+Hint Unfold cos CosClassIR sin SinClassIR min MinClassIR  max MaxClassIR: AbstractR.
+
+Section Proper.
+
+  Global Instance ProperFrontUnitVec : Proper
+    (equiv ==> equiv) (@frontUnitVec IR _ _).
+  Proof.
+    intros x y Heq. destruct x, y. apply proj2 in Heq.
+    unfold frontUnitVec. simpl in *. rewrite Heq.
+    reflexivity.
+  Qed.
+
+  Global Instance ProperRHSUnitVec : Proper
+    (equiv ==> equiv) (@rightSideUnitVec IR _ _ _ _ _ _ _).
+  Proof.
+    intros x y Heq. destruct x, y. apply proj2 in Heq.
+    unfold rightSideUnitVec. simpl in *. rewrite Heq.
+    reflexivity.
+  Qed.
+
+  Global Instance ProperCarMinMax (cd : CarDimensions IR) : Proper
+    (equiv ==> equiv) (fun r => carMinMaxXY r cd).
+  Proof.
+    intros x y Heq. unfold carMinMaxXY. simpl.
+    unfold boundingUnion. simpl.
+    unfold backLeft, frontLeft, frontRight, backRight.
+    rewrite Heq. reflexivity.
+  Qed.
+
+End Proper.
 
 (** For getting out of a parallel parked spot, a car's orientation does not
 need to change by 90 degrees. Assume that the X axis represents the road.
@@ -272,6 +302,15 @@ End XYBounds.
         |}
   |}.
   
+  Global Instance ProperCarMinMaxAtθ (cd : CarDimensions IR) : Proper
+    (equiv ==> equiv ==> equiv ==> equiv) 
+      (fun r tr θ=> carMinMaxXYAtθ r cd tr θ).
+  Proof.
+    intros ? ? H1e ? ? H2e ? ? H3e.
+    unfold carMinMaxXYAtθ. rewrite H1e.
+    rewrite H2e. rewrite H3e.
+    reflexivity.
+  Qed.
 
 Section Props.
 Variable maxTurnCurvature : Qpos.
@@ -632,7 +671,7 @@ Section Cases.
     intros a. apply leEq_reflexive.
   Qed.
 
-  Lemma confinedDuringAMIf : forall (confineRect : Line2D IR),
+  Lemma auxConfinedDuringAMIf : forall (confineRect : Line2D IR),
     noSignChangeDuring (linVel acs) tstart tend
     ->
     (∀ (θ : IR), inBetweenR θ ({theta acs} tstart) ({theta acs} tend)
@@ -716,6 +755,12 @@ Section Cases.
       repnd. split; eauto 2 with CoRN.
     Qed.
 
+    Lemma LV0 : forall (t :Time) (p: tstart ≤ t ≤ tend),
+      rigidStateAtTime acs t = rigidStateAtTime acs tstart.
+    Proof.
+      intros. split;[split|]; simpl;
+      eauto using LV0Theta, LV0X, LV0Y.
+    Qed.
 
   End LinVel0.
   
@@ -877,6 +922,15 @@ and one can drive both forward and backward *)
     autounfold with IRMC. simpl. ring. 
   Qed.
 
+  Lemma rigidStateNoChange : forall t:Time, 
+    tstart ≤ t ≤ tdrive
+    -> (rigidStateAtTime acs t) = (rigidStateAtTime acs tstart).
+  Proof.
+    apply LV0. destruct amc.
+    simpl in *.
+    tauto.
+  Qed.
+
   (** 2 cases, based on whether the steering wheel is perfectly straight before driving.
     To avoid a  divide-by-0, the integration has to be done differently in these cases. *)
   Section TCNZ.
@@ -945,7 +999,140 @@ and one can drive both forward and backward *)
       split; simpl;[apply AtomicMoveX | apply AtomicMoveY].
     Qed.
 
+  Require Import CoRN.logic.Stability.
 
+  (*Move*)
+   Global Instance StableEqIR : 
+     forall x y : IR, Stable (x=y).
+   Proof.
+    intros ? ? Hd.
+    apply not_ap_imp_eq. intros Hc. apply Hd. clear Hd.
+    intro Hcc.
+    apply ap_tight in Hc;auto.
+  Qed.
+    
+   Global Instance StableEqCart2D `{Equiv A} : 
+    (forall x y : A, Stable (x=y))
+    -> (forall a b : Cart2D A, Stable (a=b)).
+   Proof.
+     intros Hc a b.
+     apply stable_conjunction; apply Hc.
+   Qed.
+
+   Global Instance StableLeIR : 
+     forall x y : IR, Stable (x≤y).
+   Proof.
+    intros ? ? Hd. apply leEq_def.
+    intro Hc. apply Hd. clear Hd. intro Hd. 
+    apply leEq_def in Hd. apply Hd. assumption.
+   Qed.
+    
+   Global Instance StableLeCart2D `{Le A} : 
+    (forall x y : A, Stable (x≤y))
+    -> (forall a b : Cart2D A, Stable (a≤b)).
+   Proof.
+     intros Hc a b.
+     apply stable_conjunction; apply Hc.
+   Qed.
+
+   Global Instance StableSubsetLine2D `{Le A} : 
+    (forall x y : A, Stable (x≤y))
+    -> (forall a b : Line2D A, Stable (a ⊆ b)).
+   Proof.
+     intros Hc a b.
+     apply stable_conjunction; eauto using StableLeCart2D.
+   Qed.
+
+    Section XYBounds.
+    Variable cd :CarDimensions IR.
+    Hypothesis nonTriv : nonTrivialCarDim cd.
+    Hypothesis theta90 :  forall (t :Time)  (p: tstart ≤ t ≤ tend),
+     0 ≤ ({theta acs} t) ≤ (½ * π).
+
+    Local Notation turnRadius  (* :IR *) := (f_rcpcl tc tcNZ).
+
+  Lemma noSignChangeDuringWeaken: forall F a1 b1 a2 b2,
+    noSignChangeDuring F a1 b1
+    -> a1 ≤ a2
+    -> b2 ≤ b1
+    -> noSignChangeDuring F a2 b2.
+  Proof.
+    intros ? ? ? ? ? Hn ? ?. destruct Hn as [Hn | Hn];[left|right];
+      intros t Hb; apply Hn; destruct Hb; split; eauto 2 with CoRN.
+  Qed.
+    Ltac dimp H :=
+    lapply H;[clear H; intro H|].
+
+  Lemma AMTurnCurvature : ∀ t : Time,
+      tdrive ≤ t ≤ tend → {turnCurvature acs} t = tc.
+  Proof.
+    destruct amc. simpl in *.
+    apply proj1 in am_steeringControls0.
+    setoid_rewrite am_steeringControls0 
+        in am_driveControls0.
+    assumption.
+  Qed.
+
+   Hypothesis nosign : noSignChangeDuring (linVel acs) tstart tend.
+    
+    Local Lemma confinedDuringTurningAMIfAux : forall (confineRect : Line2D IR),
+    (∀ (θ : IR), inBetweenR θ ({theta acs} tstart) ({theta acs} tend)
+           -> carMinMaxXYAtθ (rigidStateAtTime acs tstart) cd turnRadius θ ⊆ confineRect)
+     ->  confinedDuring tdrive tend cd confineRect.
+    Proof.
+      intros ? Hb.
+      eapply noSignChangeDuringWeaken in nosign;
+        [ |  exact (proj1 am_timeIncWeaken)
+        | apply leEq_reflexive].
+      destruct am_timeIncWeaken.
+      pose proof (rigidStateNoChange tdrive) as XX.
+      dimp XX;[|split;auto].
+      eapply auxConfinedDuringAMIf with (tcNZ:=tcNZ); eauto.
+      - apply AMTurnCurvature.
+      - intros. apply theta90. repnd. split; 
+            autounfold with IRMC; eauto 2 with CoRN.
+      - intros ? Hj.
+
+      assert (carMinMaxXYAtθ (rigidStateAtTime acs tdrive) cd
+        turnRadius θ= 
+      carMinMaxXYAtθ (rigidStateAtTime acs tstart) cd
+        turnRadius θ
+      ) as HH. apply ProperCarMinMaxAtθ; auto.
+      rewrite HH.
+      apply Hb. clear Hb.
+      unfold inBetweenR in Hj. apply proj2 in XX.
+      simpl in XX.
+      rewrite  XX in Hj. exact Hj.
+    Qed.
+
+    Lemma confinedDuringTurningAMIf : forall (confineRect : Line2D IR),
+    (∀ (θ : IR), inBetweenR θ ({theta acs} tstart) ({theta acs} tend)
+           -> carMinMaxXYAtθ (rigidStateAtTime acs tstart) cd turnRadius θ ⊆ confineRect)
+     ->  confinedDuring tstart tend cd confineRect.
+  Proof.
+    intros ?  hh t Hb.
+    eapply stable. 
+      Unshelve. Focus 2. apply StableSubsetLine2D.
+           apply StableLeIR;fail.
+    pose proof (leEq_or_leEq _ t tdrive) as Hd.
+    eapply DN_fmap;[exact Hd|]. clear Hd. intro Hd.
+    destruct Hd as [Hd | Hd].
+    - apply confinedDuringTurningAMIfAux in hh.
+      assert (carMinMaxXY (rigidStateAtTime acs t) cd
+      = carMinMaxXY (rigidStateAtTime acs tdrive) cd
+      ) as XX. 
+      + apply ProperCarMinMax.
+        transitivity (rigidStateAtTime acs tstart);
+          [| symmetry]; 
+        apply rigidStateNoChange; repnd; split; auto.
+        apply am_timeIncWeaken.
+      + rewrite XX. apply hh. split; auto; 
+          apply am_timeIncWeaken.
+    - apply confinedDuringTurningAMIfAux; auto.
+      repnd; split; auto.
+  Qed.
+
+  End XYBounds.
   End TCNZ.
               
   Section TCZ.
@@ -1015,7 +1202,8 @@ and one can drive both forward and backward *)
       split; eauto 3 with CoRN.
     Qed.
 
-    Lemma AtomicMoveZ : forall (t:Time) (pl : tstart ≤ t) (pr : t ≤ tend), 
+    Lemma AtomicMoveZ : ∀ (t:Time) 
+        (pl : tstart ≤ t) (pr : t ≤ tend), 
     posAtTime acs t =
     Ps + ' ∫ ((mkIntBnd pl)) (linVel acs) * (unitVec θs).
     Proof.
@@ -1032,6 +1220,127 @@ and one can drive both forward and backward *)
      apply AtomicMoveZ. auto.
    Qed.
 
+   Section XYBounds.
+   Variable cd :CarDimensions IR.
+
+   (*Move to prev. file*)
+   Definition carMinMaxAtT (t:Time):=
+     (carMinMaxXY (rigidStateAtTime acs t) cd).
+
+   Ltac hideRight :=
+   match goal with
+   | [|- _ = ?r] => remember r
+   | [|- _ [=] ?r] => remember r
+   | [|- eq _ ?r] => remember r
+   end.
+
+Lemma foldPlusLine `{Ring A} : forall xa xb ya yb: Cart2D A,
+   {| minxy := xa + xb; maxxy :=ya + yb |} = {|minxy :=xa; maxxy :=ya|} 
+    + {|minxy:=xb; maxxy:=yb|}.
+  Proof.
+    intros. reflexivity.
+  Qed.
+
+Lemma carMinMaxAtTEq : forall t, 
+carMinMaxAtT t = 
+'(posAtTime acs t) +
+({|
+lstart := minCart
+            (minCart
+               (minCart
+                  (-
+                   frontUnitVec (rigidStateAtTime acs t) *
+                   ' lengthBack cd +
+                   rightSideUnitVec
+                     (rigidStateAtTime acs t) *
+                   ' width cd)
+                  (-
+                   frontUnitVec (rigidStateAtTime acs t) *
+                   ' lengthBack cd -
+                   rightSideUnitVec
+                     (rigidStateAtTime acs t) *
+                   ' width cd))
+               (frontUnitVec (rigidStateAtTime acs t) *
+                ' lengthFront cd -
+                rightSideUnitVec
+                  (rigidStateAtTime acs t) * 
+                ' width cd))
+            (frontUnitVec (rigidStateAtTime acs t) *
+             ' lengthFront cd +
+             rightSideUnitVec (rigidStateAtTime acs t) *
+             ' width cd);
+lend := maxCart
+          (maxCart
+             (maxCart
+                (- frontUnitVec (rigidStateAtTime acs t) *
+                 ' lengthBack cd +
+                 rightSideUnitVec
+                   (rigidStateAtTime acs t) * 
+                 ' width cd)
+                (- frontUnitVec (rigidStateAtTime acs t) *
+                 ' lengthBack cd -
+                 rightSideUnitVec
+                   (rigidStateAtTime acs t) * 
+                 ' width cd))
+             (frontUnitVec (rigidStateAtTime acs t) *
+              ' lengthFront cd -
+              rightSideUnitVec (rigidStateAtTime acs t) *
+              ' width cd))
+          (frontUnitVec (rigidStateAtTime acs t) *
+           ' lengthFront cd +
+           rightSideUnitVec (rigidStateAtTime acs t) *
+           ' width cd) |}).
+Proof.
+    intros ?.
+    hideRight.
+    unfold carMinMaxAtT, carMinMaxXY. simpl.
+    unfold boundingUnion. simpl.
+    unfold backRight, backLeft.
+    rewrite maxCartSum, minCartSum.
+    unfold frontLeft.
+    rewrite maxCartSum, minCartSum.
+    unfold frontRight.
+    rewrite maxCartSum, minCartSum.
+    subst l.
+    reflexivity.
+Qed.
+  
+
+    
+   Lemma straightAMMinMaxXY : ∀ (t:Time) 
+    (pl : tstart ≤ t) (pr : t ≤ tend), 
+    carMinMaxAtT t =
+    carMinMaxAtT tstart 
+      + '(' ∫ ((mkIntBnd pl)) (linVel acs) * (unitVec θs)).
+   Proof.
+    intros ? ? ?.
+    rewrite carMinMaxAtTEq.
+    rewrite carMinMaxAtTEq.
+    unfold frontUnitVec, rightSideUnitVec.
+    simpl θ2D. hideRight.
+    rewrite AtomicMoveZθ; [|auto].
+    rewrite AtomicMoveZ with (pl:=pl); [|auto].
+    remember ('∫ (mkIntBnd pl) (linVel acs) * unitVec θs) as y.
+    clear Heqy.
+    match goal with
+    [ |- _ + ?bb = _] => remember bb as l
+    end.
+    clear Heql.
+    subst b.
+    split; simpl; ring.
+  Qed.
+
+   Lemma confinedDuringStraightAM :
+      let bi := carMinMaxAtT tstart in
+      let bf := bi + '(('distance) * (unitVec θs)) in
+       confinedDuring tstart tend cd 
+          (boundingUnion bi bf).
+   Proof.
+     intros ?  hh t Hb.
+    
+   Abort.
+
+  End XYBounds.
   End TCZ.
 
 End AtomicMove.
@@ -1465,26 +1774,6 @@ First we define what it means for a move to be an inverse of another.
     rewrite amscrl, Ht, amscl.
     IRring.
   Qed.
-
-  Require Import CoRN.logic.Stability.
-
-  (*Move*)
-   Global Instance StableEqIR : 
-     forall x y : IR, Stable (x=y).
-   Proof.
-    intros ? ? Hd.
-    apply not_ap_imp_eq. intros Hc. apply Hd. clear Hd.
-    intro Hcc.
-    apply ap_tight in Hc;auto.
-  Qed.
-    
-   Global Instance StableEqCart2D `{Equiv A} : 
-    (forall x y : A, Stable (x=y))
-    -> (forall a b : Cart2D A, Stable (a=b)).
-   Proof.
-     intros Hc a b.
-     apply stable_conjunction; apply Hc.
-   Qed.
 
   (** The equations for X coordinate are different, based on whether the steering wheel is perfectly
       straight or not. The double negation trick works while proving equality *)

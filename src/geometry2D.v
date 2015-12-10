@@ -15,9 +15,74 @@ Record Rigid2DState (A:Type): Type :=
   θ2D :  A
 }.
 
-(*Move the cartesian to polar
-conversion to this file.*)
+Require Import MCMisc.PairLike.
 
+Section Rigid2DStateInstances.
+Context `{Ring A}.
+
+
+Global Instance PairLikeRigid2DState (A:Type): 
+    PairLike  (@Build_Rigid2DState A) (@pos2D A) (@θ2D  A).
+Proof.
+  constructor; auto.
+Qed.
+
+Global Instance EquivRigid2D : Equiv (Rigid2DState A) :=
+  @EquivPairLike _ _ _ _ _ _ (PairLikeRigid2DState A) _ _.
+
+Global Instance EquivalenceRigid2D
+ : Equivalence (@equiv  (Rigid2DState A) _).
+  apply (@EquivalencePairLike _ _ _ _ _ _ (PairLikeRigid2DState A)).
+  eauto using Equivalence_instance_Cart2D2.
+  split; auto.
+Qed.
+
+Global Instance ProperPos2D : Proper (equiv ==> equiv) (@pos2D A).
+ eapply ProperPairLikeFst; eauto using typeclass_instances.
+Qed.
+
+Global Instance Properθ2D : Proper (equiv ==> equiv) (@θ2D A).
+ eapply ProperPairLikeSnd; eauto using typeclass_instances.
+Qed.
+
+Global Instance ZeroRigid2D : Zero (Rigid2DState A).
+  eapply ZeroPairLike; eauto.
+Defined.
+
+Global Instance OneRigid2D : One (Rigid2DState A).
+ apply (@OnePairLike _ _ _ _ _ _  (PairLikeRigid2DState A));
+   eauto with typeclass_instances.
+Defined.
+
+Global Instance PlusRigid2D : Plus (Rigid2DState A).
+ apply (@PlusPairLike _ _ _ _ _ _  (PairLikeRigid2DState A));
+  [apply Plus_instance_Cart2D| assumption].
+Defined.
+
+Global Instance MultRigid2D : Mult (Rigid2DState A).
+ apply (@MultPairLike _ _ _ _ _ _  (PairLikeRigid2DState A));
+  [apply Mutt_instance_Cart2D| assumption].
+Defined.
+
+Global Instance NegateRigid2D : Negate (Rigid2DState A).
+ apply (@NegatePairLike _ _ _ _ _ _  (PairLikeRigid2DState A));
+   eauto with typeclass_instances.
+Defined.
+
+Global Instance RingRigid2D : Ring (Rigid2DState A).
+ apply (@RingPairLike _ _ _ _ _ _  (PairLikeRigid2DState A)
+  _ _ _ _ _ _   Ring_instance_Cart2D 
+  _ _ _ _ _ _   _).
+Qed.
+
+
+Global Instance ProperRigid2DState : 
+  Proper (equiv ==> equiv  ==> equiv) (@Build_Rigid2DState A).
+Proof.
+  intros ? ? h1  ? ? h2. split; simpl; assumption.
+Qed.
+
+End Rigid2DStateInstances.
 
 Record Line2D (A:Type):=
 {
@@ -25,7 +90,6 @@ Record Line2D (A:Type):=
   lend : Cart2D A
 }.
 
-Require Import MCMisc.PairLike.
 
 Global Instance PairLikeLine2D (A:Type): 
     PairLike  (@Build_Line2D A) (@lstart A) (@lend A).
