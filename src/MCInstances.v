@@ -200,5 +200,36 @@ Open Scope mc_scope.
     rewrite field_mult_inv_op. ring.
   Qed.
 
+  Global Instance ReflexiveTimeLe :
+    Reflexive (@canonical_names.le Time _).
+  Proof.
+    intros a. apply leEq_reflexive.
+  Qed.
+    
+   Global Instance StableEqIR : 
+     forall x y : IR, Stable (x=y).
+   Proof.
+    intros ? ? Hd.
+    apply not_ap_imp_eq. intros Hc. apply Hd. clear Hd.
+    intro Hcc.
+    apply ap_tight in Hc;auto.
+  Qed.
+  
+   Global Instance StableLeIR : 
+     forall x y : IR, Stable (x≤y).
+   Proof.
+    intros ? ? Hd. apply leEq_def.
+    intro Hc. apply Hd. clear Hd. intro Hd. 
+    apply leEq_def in Hd. apply Hd. assumption.
+   Qed.
+
+
+   Ltac hideRight :=
+   match goal with
+   | [|- _ = ?r] => remember r
+   | [|- _ [=] ?r] => remember r
+   | [|- eq _ ?r] => remember r
+   end.
+
 
 

@@ -600,15 +600,6 @@ Section Cases.
   Qed.
 
 
-     
-  Lemma foldPlusCart `{Ring A} : forall xa xb ya yb:A,
-   {| X:= xa + xb; Y:=ya + yb |} = {|X:=xa; Y:=ya|} + {|X:=xb; Y:=yb|}.
-  Proof.
-    intros. reflexivity.
-  Qed.
-
-
-
     Require Import MCMisc.rings.
 
   Lemma carMinMaxXYAM : 
@@ -638,39 +629,6 @@ Section Cases.
     fequiv;split; simpl; IRring.
   Qed.
 
-  (**Move and replace [CartIR.ProperLeCartIR]*)
-  Global Instance ProperLeCart `{Equiv A} `{Equivalence _ (@equiv A _)} 
-    `{Le A} :
-    (Proper (equiv ==> equiv ==> iff) (@le A _))
-    ->  (Proper (equiv ==> equiv ==> iff) (@le (Cart2D A) _)).
-  Proof.
-    intros Hh a b Hab c d Hcd. destruct a,b,c,d.
-    compute. compute in Hcd. compute in Hab.
-    repnd. fold (@equiv A _) in Hcdl, Hcdr, Habl, Habr.
-    fold (@le A _).
-    rewrite Hcdl, Hcdr, Habl, Habr.
-    tauto.
-  Qed.
-    
-
-  Global Instance ProperSubset `{Equiv A} 
-    `{Equivalence _ (@equiv A _)}
-    `{Le A} :
-    (Proper (equiv ==> equiv ==> iff) le)
-    ->  (Proper (equiv ==> equiv ==> iff) 
-      (@CanonicalNotations.subset (Line2D A) _)).
-  Proof.
-    intros Hh a b Hab c d Hcd.
-    unfold CanonicalNotations.subset, SubsetBoundingRect.
-    rewrite Hab, Hcd. tauto.
-  Qed.
-
-  Global Instance ReflexiveTimeLe :
-    Reflexive (@le Time _).
-  Proof.
-    intros a. apply leEq_reflexive.
-  Qed.
-
   Lemma auxConfinedDuringAMIf : forall (confineRect : Line2D IR),
     noSignChangeDuring (linVel acs) tstart tend
     ->
@@ -691,32 +649,6 @@ Section Cases.
   End XYBounds.
 
   End TCNZ.
-
-
-  Section TC0.
-  (** now consider the case when the front wheels are exactly straight *)
-  Hypothesis tcNZ : (tc = 0).
-
-  Lemma fixedStraightSteeringTheta : forall (t :Time)  (p: tstart ≤ t ≤ tend),
-      {theta acs} t = {theta acs} tstart.
-  Proof.
-  Abort.
-
-
-  Lemma fixedStraightSteeeringX : forall (t :Time) (p: tstart ≤ t ≤ tend),
-    let ib := @mkIntBnd _ tstart t (proj1 p) in
-    ({X (position acs)} t - {X (position acs)} tstart) =  (∫ ib (linVel acs)) * Cos ({theta acs} tstart).
-  Proof.
-  Abort.
-
-  Lemma fixedStraightSteeeringY : forall (t :Time) (p: tstart ≤ t ≤ tend),
-    let ib := @mkIntBnd _ tstart t (proj1 p) in
-    ({Y (position acs)} t - {Y (position acs)} tstart) =  (∫ ib (linVel acs)) * Cos ({theta acs} tstart).
-  Proof.
-  Abort.
-
-  End TC0.
-  
   
   End FixedSteeringWheel.
   
@@ -1001,48 +933,6 @@ and one can drive both forward and backward *)
 
   Require Import CoRN.logic.Stability.
 
-  (*Move*)
-   Global Instance StableEqIR : 
-     forall x y : IR, Stable (x=y).
-   Proof.
-    intros ? ? Hd.
-    apply not_ap_imp_eq. intros Hc. apply Hd. clear Hd.
-    intro Hcc.
-    apply ap_tight in Hc;auto.
-  Qed.
-    
-   Global Instance StableEqCart2D `{Equiv A} : 
-    (forall x y : A, Stable (x=y))
-    -> (forall a b : Cart2D A, Stable (a=b)).
-   Proof.
-     intros Hc a b.
-     apply stable_conjunction; apply Hc.
-   Qed.
-
-   Global Instance StableLeIR : 
-     forall x y : IR, Stable (x≤y).
-   Proof.
-    intros ? ? Hd. apply leEq_def.
-    intro Hc. apply Hd. clear Hd. intro Hd. 
-    apply leEq_def in Hd. apply Hd. assumption.
-   Qed.
-    
-   Global Instance StableLeCart2D `{Le A} : 
-    (forall x y : A, Stable (x≤y))
-    -> (forall a b : Cart2D A, Stable (a≤b)).
-   Proof.
-     intros Hc a b.
-     apply stable_conjunction; apply Hc.
-   Qed.
-
-   Global Instance StableSubsetLine2D `{Le A} : 
-    (forall x y : A, Stable (x≤y))
-    -> (forall a b : Line2D A, Stable (a ⊆ b)).
-   Proof.
-     intros Hc a b.
-     apply stable_conjunction; eauto using StableLeCart2D.
-   Qed.
-
     Section XYBounds.
     Variable cd :CarDimensions IR.
     Hypothesis nonTriv : nonTrivialCarDim cd.
@@ -1075,7 +965,7 @@ and one can drive both forward and backward *)
 
    Hypothesis nosign : noSignChangeDuring (linVel acs) tstart tend.
     
-    Local Lemma confinedDuringTurningAMIfAux : forall (confineRect : Line2D IR),
+    (*Local*) Lemma confinedDuringTurningAMIfAux : forall (confineRect : Line2D IR),
     (∀ (θ : IR), inBetweenR θ ({theta acs} tstart) ({theta acs} tend)
            -> carMinMaxXYAtθ (rigidStateAtTime acs tstart) cd turnRadius θ ⊆ confineRect)
      ->  confinedDuring tdrive tend cd confineRect.
@@ -1224,15 +1114,6 @@ and one can drive both forward and backward *)
    Variable cd :CarDimensions IR.
 
    (*Move to prev. file*)
-   Definition carMinMaxAtT (t:Time):=
-     (carMinMaxXY (rigidStateAtTime acs t) cd).
-
-   Ltac hideRight :=
-   match goal with
-   | [|- _ = ?r] => remember r
-   | [|- _ [=] ?r] => remember r
-   | [|- eq _ ?r] => remember r
-   end.
 
 Lemma foldPlusLine `{Ring A} : forall xa xb ya yb: Cart2D A,
    {| minxy := xa + xb; maxxy :=ya + yb |} = {|minxy :=xa; maxxy :=ya|} 
@@ -1243,7 +1124,7 @@ Lemma foldPlusLine `{Ring A} : forall xa xb ya yb: Cart2D A,
 
 (* RHS was automatically obtained *)
 Lemma carMinMaxAtTEq : forall t, 
-carMinMaxAtT t = 
+carMinMaxAtT acs cd t = 
 '(posAtTime acs t) +
 ({|
 lstart := minCart
@@ -1310,8 +1191,8 @@ Qed.
     
    Lemma straightAMMinMaxXY : ∀ (t:Time) 
     (pl : tstart ≤ t) (pr : t ≤ tend), 
-    carMinMaxAtT t =
-    carMinMaxAtT tstart 
+    carMinMaxAtT acs cd t =
+    carMinMaxAtT acs cd tstart 
       + '(' ∫ ((mkIntBnd pl)) (linVel acs) * (unitVec θs)).
    Proof.
     intros ? ? ?.
@@ -1338,28 +1219,28 @@ Qed.
 
     
    Lemma confinedDuringStraightAM :
-      let bi := carMinMaxAtT tstart in
+      let bi := carMinMaxAtT acs cd tstart in
       let bf := bi + '(('distance) * (unitVec θs)) in
        confinedDuring tstart tend cd 
           (boundingUnion bi bf).
    Proof.
      intros ?  ? t Hb.
-     fold (carMinMaxAtT t). destruct Hb as [pl prr].
+     fold (carMinMaxAtT acs cd t). destruct Hb as [pl prr].
      rewrite straightAMMinMaxXY with (pl:=pl);[| tauto].
      unfold boundingUnion. subst bi. subst bf.
-     assert ((minxy (carMinMaxAtT tstart)) 
-        = (minxy (carMinMaxAtT tstart)) + 0) as H0 by ring.
+     assert ((minxy (carMinMaxAtT acs cd tstart)) 
+        = (minxy (carMinMaxAtT acs cd tstart)) + 0) as H0 by ring.
      rewrite H0. clear H0.
-     assert ((maxxy (carMinMaxAtT tstart)) 
-        = (maxxy (carMinMaxAtT tstart)) + 0) as H0 by ring.
+     assert ((maxxy (carMinMaxAtT acs cd tstart)) 
+        = (maxxy (carMinMaxAtT acs cd tstart)) + 0) as H0 by ring.
      rewrite H0. clear H0.
      setoid_rewrite  minCartSum.
      setoid_rewrite  maxCartSum.
      rewrite foldPlusLine.
      replace {|
-        lstart := minxy (carMinMaxAtT tstart);
-        lend := maxxy (carMinMaxAtT tstart) |}
-        with  (carMinMaxAtT tstart);[| reflexivity].
+        lstart := minxy (carMinMaxAtT acs cd tstart);
+        lend := maxxy (carMinMaxAtT acs cd tstart) |}
+        with  (carMinMaxAtT acs cd tstart);[| reflexivity].
      apply subsetPlusLeftCancellation.
      
    Abort.

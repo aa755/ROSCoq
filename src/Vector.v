@@ -230,3 +230,45 @@ Lemma Cart2DEta `{Equiv A} `{Equivalence _ (@equiv A _)}  : forall c:Cart2D A,
 Proof.
   intros. destruct c. simpl. reflexivity.
 Qed.
+
+
+  Global Instance ProperLeCart `{Equiv A} `{Equivalence _ (@equiv A _)} 
+    `{Le A} :
+    (Proper (equiv ==> equiv ==> iff) (@canonical_names.le A _))
+    ->  (Proper (equiv ==> equiv ==> iff) (@canonical_names.le (Cart2D A) _)).
+  Proof.
+    intros Hh a b Hab c d Hcd. destruct a,b,c,d.
+    compute. compute in Hcd. compute in Hab.
+    repnd. fold (@equiv A _) in Hcdl, Hcdr, Habl, Habr.
+    fold (@canonical_names.le A _).
+    rewrite Hcdl, Hcdr, Habl, Habr.
+    tauto.
+  Qed.
+
+
+  Lemma foldPlusCart `{Ring A} : forall xa xb ya yb:A,
+   {| X:= xa + xb; Y:=ya + yb |} = {|X:=xa; Y:=ya|} + {|X:=xb; Y:=yb|}.
+  Proof.
+    intros. reflexivity.
+  Qed.
+
+    Require Import CoRN.logic.Stability.
+
+   Global Instance StableEqCart2D `{Equiv A} : 
+    (forall x y : A, Stable (x=y))
+    -> (forall a b : Cart2D A, Stable (a=b)).
+   Proof.
+     intros Hc a b.
+     apply stable_conjunction; apply Hc.
+   Qed.
+
+
+   Global Instance StableLeCart2D `{Le A} : 
+    (forall x y : A, Stable (x≤y))
+    -> (forall a b : Cart2D A, Stable (a≤b)).
+   Proof.
+     intros Hc a b.
+     apply stable_conjunction; apply Hc.
+   Qed.
+   
+   

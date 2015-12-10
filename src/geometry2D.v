@@ -210,3 +210,26 @@ match pts with
         boundingUnion b {|lstart := h; lend := h|}
 | [] => {|lstart := 0; lend := 0|}
 end.
+
+    
+Require Import CoRN.logic.Stability.
+
+Global Instance StableSubsetLine2D `{Le A} : 
+    (forall x y : A, Stable (x≤y))
+    -> (forall a b : Line2D A, Stable (a ⊆ b)).
+Proof.
+     intros Hc a b.
+     apply stable_conjunction; eauto using StableLeCart2D.
+Qed.
+
+Global Instance ProperSubset `{Equiv A} 
+    `{Equivalence _ (@equiv A _)}
+    `{Le A} :
+    (Proper (equiv ==> equiv ==> iff) canonical_names.le)
+    ->  (Proper (equiv ==> equiv ==> iff) 
+      (@CanonicalNotations.subset (Line2D A) _)).
+Proof.
+    intros Hh a b Hab c d Hcd.
+    unfold CanonicalNotations.subset, SubsetBoundingRect.
+    rewrite Hab, Hcd. tauto.
+Qed.

@@ -169,7 +169,8 @@ Section CornerPos.
 
 (** R will be instantiated with both reals and continuous functions from
 time to reals.*)
-Context `{SinClass R} `{CosClass R} `{Ring R} `{RealNumberPi R} `{HalfNum R}.
+Context `{SinClass R} `{CosClass R} `{Ring R} `{RealNumberPi R} `{HalfNum R}
+ `{MaxClass R} `{MinClass R}.
 
 Variable cs :Rigid2DState R.
 
@@ -202,7 +203,6 @@ Definition carOutline : list (Line2D R) :=
   {|lstart := frontRight ; lend := backRight|}
   ::(linesConsecutive [frontRight;frontLeft;backLeft;backRight]).
 
-Context `{MaxClass R} `{MinClass R}.
 Definition carMinMaxXY : BoundingRectangle R :=
   computeBoundingRect  [frontRight;frontLeft;backLeft;backRight].
 
@@ -232,6 +232,9 @@ Definition backRightAtTime : Cart2D IR :=
 
 Definition backLeftAtTime : Cart2D IR := 
   backLeft (rigidStateAtTime acs t) cd.
+
+Definition carMinMaxAtT (t:Time):=
+   (carMinMaxXY (rigidStateAtTime acs t) cd).
 
 End CornerPosAtTime.
 

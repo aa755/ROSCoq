@@ -33,7 +33,6 @@ Proof.
   - rewrite <- H. IRring.
 Qed.
 
-(*  TODO:Move Is there a good name for this lemma? *)
   
 Lemma unitVecLemma1 : forall θs θw, (unitVec (θs + θw) - sameXY (Cos θw) * unitVec θs)
   = (sameXY (Sin  θw)) * unitVec (θs + Pi [/]TwoNZ).
@@ -425,15 +424,6 @@ Qed.
 
 Require Import MathClasses.interfaces.canonical_names.
 
-Global Instance ProperLeCartIR : Proper 
- (equiv ==> equiv ==> iff)
-(@le (Cart2D IR) _).
-Proof.
-  intros ? ? ? ? ? ?.
-  unfold le, Cart2D_instance_le.
-  rewrite H, H0.
-  tauto.
-Qed.
 
 Lemma XYAbsLeAdd :
   ∀ a b c d,
@@ -652,6 +642,8 @@ Local Opaque Sine Cos Cosine.
   fold TContR.
   ring.
 Qed.
+
+  Require Import CoRN.logic.Stability.
 
 
 Definition Cart2DIRRing := 
