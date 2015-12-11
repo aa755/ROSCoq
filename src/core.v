@@ -516,6 +516,72 @@ Proof.
     repnd.
     split; eapply nonIncreasingIfDerivNonPos; eauto.
 Qed.
+  Local Opaque Min Max. 
+Lemma DerivNonNegIntegral :forall (F : TContR)
+   (tstart tend : Time) (Hab : tstart[<=]tend),
+   nonNegDuring F tstart tend
+   -> [0] [<=] (Cintegral (mkIntBnd Hab) F).
+Proof.
+  intros ? ? ? ?  Hn.
+  rewrite <- CintegralZero with (p:=Hab) at 1.
+  apply IntegralMonotone. 
+  simpl.
+  intros t Hb. destruct Hb as [Hbl Hbr].
+  rewrite leEq_imp_Min_is_lft in Hbl; [| assumption].
+  rewrite leEq_imp_Max_is_rht in Hbr; [| assumption].
+  apply Hn. tauto.
+Qed.
+
+(*exact same proof as above*)
+Lemma DerivNonPosIntegral :forall (F : TContR)
+   (tstart tend : Time) (Hab : tstart[<=]tend),
+   nonPosDuring F tstart tend
+   -> (Cintegral (mkIntBnd Hab) F) [<=] [0].
+Proof.
+  intros ? ? ? ?  Hn.
+  rewrite <- CintegralZero with (p:=Hab) at 3.
+  apply IntegralMonotone. 
+  simpl.
+  intros t Hb. destruct Hb as [Hbl Hbr].
+  rewrite leEq_imp_Min_is_lft in Hbl; [| assumption].
+  rewrite leEq_imp_Max_is_rht in Hbr; [| assumption].
+  apply Hn. tauto.
+Qed.
+
+
+Lemma nosignChangeInBwInt :forall (F : TContR)
+   (tstart tend : Time) (Hab : tstart[<=]tend),
+   noSignChangeDuring F tstart tend
+   -> forall (t: Time) (pl: tstart [<=] t) (pr:t [<=] tend),
+        inBetweenR (Cintegral (mkIntBnd pl) F) 
+                   [0] 
+                   (Cintegral (mkIntBnd Hab) F).
+Proof.
+  intros ? ? ? ?  Hn ? ? ?.
+  unfold inBetweenR.
+  destruct Hn as [Hn | Hn].
+  - rewrite leEq_imp_Min_is_lft;
+      [| eauto using DerivNonNegIntegral].
+    rewrite leEq_imp_Max_is_rht;
+      [| eauto using DerivNonNegIntegral].
+    rewrite CintegralSplit with (pl:=pl) (pr:=pr).
+    eapply nonNegDuringSplit in Hn; eauto. repnd.
+    split; [eauto using DerivNonNegIntegral|].
+    apply shift_leEq_plus'. rewrite cg_minus_correct.
+    eauto using DerivNonNegIntegral.
+  - rewrite Min_comm, Max_comm.
+    rewrite leEq_imp_Min_is_lft;
+      [| eauto using DerivNonPosIntegral].
+    rewrite leEq_imp_Max_is_rht;
+      [| eauto using DerivNonPosIntegral].
+    rewrite CintegralSplit with (pl:=pl) (pr:=pr).
+    eapply nonPosDuringSplit in Hn; eauto. repnd.
+    split; [|eauto using DerivNonPosIntegral].
+    rewrite cag_commutes_unfolded.
+    apply shift_plus_leEq.
+    rewrite cg_minus_correct.
+    eauto using DerivNonPosIntegral.
+Qed.
 
 Definition opBind {A B : Type}
   (f : A-> option B) (a : option A) : option B :=

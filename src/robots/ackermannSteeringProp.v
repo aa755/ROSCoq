@@ -1204,29 +1204,64 @@ Qed.
     split; simpl; ring.
   Qed.
 
-   Lemma subsetPlusLeftCancellation :
-      forall a b c : Line2D IR,
-    b ⊆ c ->  a + b ⊆ a + c.
-   Proof.
-     unfold CanonicalNotations.subset, SubsetBoundingRect.
-     simpl. intros ? ? ? Hyp.
-     repnd.
-     split; eauto with relations.
-     SearchAbout CRing Ring.
-     Locate orders.SemiRingOrder.
-     Print orders.PartialOrder.
-     Print PreOrder.
-     SearchAbout COrdField Lt.
-   Admitted.
+  Require Import MathClasses.orders.rings.
+  Require Import MathClasses.interfaces.orders.
 
-    
+  (*Move: not intuitive at all, but turns out to be true,
+      and exactly what is needed in the next lemma*)
+  Lemma MinMax0Mult: forall (a b k:ℝ),
+      Min 0 a ≤ b ≤ Max 0 a
+      -> Min 0 (a*k) ≤ b*k ≤ Max 0 (a*k).
+  Proof.
+    intros ? ? ? Hm.
+    eapply stable.
+    Unshelve. Focus 2. apply stable_conjunction; 
+        apply StableLeIR; fail. 
+    pose proof (leEq_or_leEq _ k 0) as Hd.
+    eapply DN_fmap;[exact Hd|]. clear Hd. intro Hd.
+    destruct Hd as [Hd | Hd].
+    - rewrite (@commutativity _ _ _ mult _).
+      rewrite (@commutativity _ _ _ mult _ b). 
+      rewrite <- negate_mult_negate.
+      rewrite <- (negate_mult_negate k).
+      apply flip_le_negate in Hd. rewrite negate_0 in Hd.
+      assert (0 = (-k) * 0) as Xr by IRring.
+      rewrite Xr. clear Xr.
+      setoid_rewrite MinMultLeft;[| assumption].
+      setoid_rewrite MaxMultLeft;[| assumption].
+      split;
+      apply mult_resp_leEq_lft; auto; clear dependent k;
+      apply flip_le_negate;
+      setoid_rewrite negate_involutive.
+      + setoid_rewrite negate_0. tauto.
+      + apply proj1 in Hm. rewrite <- negate_0.
+        exact Hm.
+
+    - rewrite (@commutativity _ _ _ mult _). 
+      assert (0 = k * 0) as Xr by IRring.
+      rewrite Xr. clear Xr.
+      setoid_rewrite MinMultLeft;[| assumption].
+      setoid_rewrite MaxMultLeft;[| assumption].
+      rewrite (@commutativity _ _ _ mult _).
+      repnd.
+      split; apply mult_resp_leEq_lft; auto.
+  Qed.
+   
+  (** When the car is moving straight (not turning), the 
+      space needed (as a  rectangle) is the union
+      of the initial bouding rectangle and the final
+      bounding rectangle. Unlike while turning, the whole
+      trajectory need not be considered
+  *)
    Lemma confinedDuringStraightAM :
+      noSignChangeDuring (linVel acs) tstart tend
+      ->
       let bi := carMinMaxAtT acs cd tstart in
       let bf := bi + '(('distance) * (unitVec θs)) in
        confinedDuring tstart tend cd 
           (boundingUnion bi bf).
    Proof.
-     intros ?  ? t Hb.
+     intros Hn ?  ? t Hb.
      fold (carMinMaxAtT acs cd t). destruct Hb as [pl prr].
      rewrite straightAMMinMaxXY with (pl:=pl);[| tauto].
      unfold boundingUnion. subst bi. subst bf.
@@ -1243,10 +1278,21 @@ Qed.
         lstart := minxy (carMinMaxAtT acs cd tstart);
         lend := maxxy (carMinMaxAtT acs cd tstart) |}
         with  (carMinMaxAtT acs cd tstart);[| reflexivity].
-     apply subsetPlusLeftCancellation.
-     
-   Abort.
-
+     simpl.
+     apply order_preserving; eauto with
+      typeclass_instances.
+     remember (∫ (mkIntBnd pl) (linVel acs)) as dist.
+     eapply nosignChangeInBwInt with (pl:=pl)
+        (Hab := am_timeStartEnd) in Hn;[| assumption].
+     unfold inBetweenR in Hn.
+     rewrite <- am_driveDistanceFull in Hn.
+     rewrite <- Heqdist in Hn. clear Heqdist.
+     pose proof Hn as Hns.
+     eapply MinMax0Mult with (k:= cos θs)in Hn.
+     eapply MinMax0Mult with (k:= sin θs)in Hns.
+     repnd.     
+     split; split; simpl; tauto.
+    Qed.
   End XYBounds.
   End TCZ.
 
