@@ -186,8 +186,9 @@ end.
 
 Definition BoundingRectangle := Line2D.
 
-Global Instance SubsetBoundingRect `{Le A} : Subset (Line2D A) :=
-  fun a b => lstart b ≤ lstart a /\ lend a ≤ lstart b.
+Global Instance LeAsSubset `{Le A} : Le (Line2D A) :=
+  fun a b => lstart b ≤ lstart a /\ lend a ≤ lend b.
+
 
 Definition minCart `{MinClass A} (a b : Cart2D A) := 
   {|X:= min (X a) (X b); Y:= min (Y a) (Y b)|}.
@@ -216,20 +217,89 @@ Require Import CoRN.logic.Stability.
 
 Global Instance StableSubsetLine2D `{Le A} : 
     (forall x y : A, Stable (x≤y))
-    -> (forall a b : Line2D A, Stable (a ⊆ b)).
+    -> (forall a b : Line2D A, Stable (a ≤ b)).
 Proof.
      intros Hc a b.
      apply stable_conjunction; eauto using StableLeCart2D.
 Qed.
 
-Global Instance ProperSubset `{Equiv A} 
-    `{Equivalence _ (@equiv A _)}
-    `{Le A} :
-    (Proper (equiv ==> equiv ==> iff) canonical_names.le)
-    ->  (Proper (equiv ==> equiv ==> iff) 
-      (@CanonicalNotations.subset (Line2D A) _)).
+Require Import MathClasses.interfaces.orders.
+
+Infix "⊆" := (@le _ LeAsSubset)  (at level 70, no associativity): mc_scope.
+
+Global Instance LeSubsetPreorder `{Ring A}
+  `{l:Le A} `{PreOrder A l}
+  : @PreOrder (Line2D A) LeAsSubset.
 Proof.
-    intros Hh a b Hab c d Hcd.
-    unfold CanonicalNotations.subset, SubsetBoundingRect.
-    rewrite Hab, Hcd. tauto.
+  split; intros ?; unfold le, LeAsSubset;
+   eauto 2 with typeclass_instances;[].
+  intros a b ? ?. repnd. split;
+  eauto with relations typeclass_instances.
 Qed.
+
+
+Global Instance PartialOrderSubset `{Ring A}  `{l: Le A}
+  `{@PartialOrder A equiv l} :
+      @PartialOrder (Line2D A) _ _.
+Proof.
+  split; eauto with typeclass_instances.
+  - split; eauto with typeclass_instances.
+  - intros ? ? H1e ? ? H2e; unfold le,LeAsSubset.
+    rewrite H1e,  H2e. tauto.
+  - intros ? ?. unfold le, LeAsSubset. intros ? ?.
+    repnd. split; simpl; eapply  po_antisym; eauto.
+Qed.
+
+(* Exact same proof as Vector.MultLeSemiRingOrderCart2D,
+    except for LeAsSubset *)
+Global Instance OrderPreservingLePlusCart2D
+  `{Ring A} `{Le A}
+    `{@orders.SemiRingOrder A equiv plus mult zero one le}
+  (z : Line2D A): 
+  OrderPreserving (plus z).
+Proof.
+  split; eauto  with typeclass_instances.
+  - split; eauto with typeclass_instances.
+    split;  eauto with typeclass_instances;
+    split;  eauto with typeclass_instances.
+  - intros ? ?. unfold le, LeAsSubset.
+    intros. repnd;
+    simpl.
+    split;
+    eauto with typeclass_instances.
+Qed.
+
+Require Import MathClasses.orders.rings.
+(** does not hold for subset
+Global Instance MultLeSemiRingOrderCart2D
+  `{Ring A} `{Le A}
+    `{@orders.SemiRingOrder A equiv plus mult zero one le} :  
+  ∀ x y : (Line2D A) , PropHolds (0 ≤ x) 
+      → PropHolds (0 ≤ y) → PropHolds (0 ≤ x * y)
+ .
+Proof.
+    unfold le, LeAsSubset, PropHolds.
+    simpl.
+    intros. repnd; 
+    simpl.
+    split.
+    - NOT TRUE
+    - eapply nonneg_mult_compat; assumption.  
+Qed.
+*)
+
+Global Instance SemiRingorderLeCart `{Ring A} `{Le A}
+    `{@orders.SemiRingOrder A equiv plus mult zero one le}:
+    `{orders.SemiRingOrder (@canonical_names.le (Cart2D A) _)}.
+Proof.
+  apply from_ring_order;
+  eauto with typeclass_instances.
+Qed.
+
+Lemma foldPlusLine `{Ring A} : forall xa xb ya yb: Cart2D A,
+   {| lstart := xa + xb; lend :=ya + yb |} = {|lstart :=xa; lend :=ya|} 
+    + {|lstart:=xb; lend:=yb|}.
+  Proof.
+    intros. reflexivity.
+  Qed.
+

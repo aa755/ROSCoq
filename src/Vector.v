@@ -231,20 +231,70 @@ Proof.
   intros. destruct c. simpl. reflexivity.
 Qed.
 
+Require Import interfaces.orders.
 
-  Global Instance ProperLeCart `{Equiv A} `{Equivalence _ (@equiv A _)} 
-    `{Le A} :
-    (Proper (equiv ==> equiv ==> iff) (@canonical_names.le A _))
-    ->  (Proper (equiv ==> equiv ==> iff) (@canonical_names.le (Cart2D A) _)).
-  Proof.
-    intros Hh a b Hab c d Hcd. destruct a,b,c,d.
-    compute. compute in Hcd. compute in Hab.
-    repnd. fold (@equiv A _) in Hcdl, Hcdr, Habl, Habr.
-    fold (@canonical_names.le A _).
-    rewrite Hcdl, Hcdr, Habl, Habr.
-    tauto.
-  Qed.
+Global Instance LeCart2DPreorder `{l:Le A} `{PreOrder A l}
+  : PreOrder (Cart2D_instance_le).
+Proof.
+  split; intros ?; unfold le, Cart2D_instance_le;
+  eauto with relations.
+  intros. repnd. eauto with relations.
+Qed.
 
+Global Instance LeCart2DPartialOrder `{Ring A}  `{Le A}
+  `{@PartialOrder A _ _ }
+  : PartialOrder (Cart2D_instance_le).
+Proof.
+  split; eauto with typeclass_instances.
+  - split; eauto with typeclass_instances.
+  - intros ? ? H1e ? ? H2e; unfold le, Cart2D_instance_le.
+    rewrite H1e, H2e. tauto.
+  - intros ? ?. unfold le, Cart2D_instance_le. intros ? ?.
+    repnd. split; simpl; eapply  po_antisym; eauto.
+Qed.    
+
+Global Instance OrderPreservingLePlusCart2D
+  `{Ring A} `{Le A} `{@PartialOrder A _ _}
+  {_:forall a:A, OrderPreserving (plus a)}
+(z : Cart2D A): 
+  OrderPreserving (plus z).
+Proof.
+  split; eauto  with typeclass_instances.
+  - split; eauto with typeclass_instances.
+    split;  eauto with typeclass_instances;
+    split;  eauto with typeclass_instances.
+  - intros ? ?. unfold le, Cart2D_instance_le.
+    intros. repnd;
+    simpl.
+    split;
+    eauto with typeclass_instances.
+Qed.
+
+Global Instance MultLeSemiRingOrderCart2D
+  `{Ring A} `{l:Le A}
+  {Hm:∀ (x y :  A) , PropHolds (0 ≤ x) → PropHolds (0 ≤ y) 
+      → PropHolds (0 ≤ x * y) }:
+  
+  ∀ x y : (Cart2D A) , PropHolds (0 ≤ x) → PropHolds (0 ≤ y) → PropHolds (0 ≤ x * y) .
+Proof.
+    unfold le, Cart2D_instance_le, PropHolds.
+    unfold  PropHolds in Hm.
+    simpl.
+    intros. repnd; 
+    simpl.
+    split;
+    eauto with typeclass_instances.
+Qed.
+
+
+Require Import MathClasses.orders.rings.
+Global Instance ProperLeCart `{Ring A} `{Le A}
+    `{@orders.SemiRingOrder A equiv plus mult zero one le}:
+    `{orders.SemiRingOrder (@canonical_names.le (Cart2D A) _)}.
+Proof.
+  apply from_ring_order;
+  eauto with typeclass_instances.
+Qed.
 
   Lemma foldPlusCart `{Ring A} : forall xa xb ya yb:A,
    {| X:= xa + xb; Y:=ya + yb |} = {|X:=xa; Y:=ya|} + {|X:=xb; Y:=yb|}.

@@ -628,7 +628,7 @@ Section Cases.
     rewrite <- (@simple_associativity _ _ (@plus (Cart2D IR) _) _ _ ); 
     fequiv;split; simpl; IRring.
   Qed.
-
+   
   Lemma auxConfinedDuringAMIf : forall (confineRect : Line2D IR),
     noSignChangeDuring (linVel acs) tstart tend
     ->
@@ -1113,14 +1113,6 @@ and one can drive both forward and backward *)
    Section XYBounds.
    Variable cd :CarDimensions IR.
 
-   (*Move to prev. file*)
-
-Lemma foldPlusLine `{Ring A} : forall xa xb ya yb: Cart2D A,
-   {| minxy := xa + xb; maxxy :=ya + yb |} = {|minxy :=xa; maxxy :=ya|} 
-    + {|minxy:=xb; maxxy:=yb|}.
-  Proof.
-    intros. reflexivity.
-  Qed.
 
 (* RHS was automatically obtained *)
 Lemma carMinMaxAtTEq : forall t, 
@@ -1215,6 +1207,16 @@ Qed.
    Lemma subsetPlusLeftCancellation :
       forall a b c : Line2D IR,
     b ⊆ c ->  a + b ⊆ a + c.
+   Proof.
+     unfold CanonicalNotations.subset, SubsetBoundingRect.
+     simpl. intros ? ? ? Hyp.
+     repnd.
+     split; eauto with relations.
+     SearchAbout CRing Ring.
+     Locate orders.SemiRingOrder.
+     Print orders.PartialOrder.
+     Print PreOrder.
+     SearchAbout COrdField Lt.
    Admitted.
 
     
@@ -1281,19 +1283,6 @@ End AtomicMoveSpaceRequirement.
    rewrite <- tr. assumption.
   Qed.
 
-(*Move*)
-  Global Instance ProperNoSignChange : forall F:TContR,
-    Proper (equiv ==> equiv ==> iff) (noSignChangeDuring F).
-  Proof.
-    intros F ? ? H1e ? ? H2e.
-    unfold noSignChangeDuring, nonNegDuring, nonPosDuring.
-    destruct x,y,x0,y0.
-    autounfold with IRMC in H1e, H2e.
-    simpl. simpl in H1e, H2e.
-    setoid_rewrite H1e.
-    setoid_rewrite H2e.
-    tauto.
-  Qed.
      
   Lemma CarMonotonicallyExecsAtomicMoveDuring_wd:
   forall ml mr tstartl tstartr tendl tendr 

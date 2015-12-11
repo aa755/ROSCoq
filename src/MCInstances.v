@@ -37,7 +37,60 @@ Instance Mult_instance_IR : Mult IR := cr_mult.
 Instance Negate_instance_IR : Negate IR := cg_inv.
 Instance : Ring IR.
 Proof. apply (rings.from_stdlib_ring_theory (CRing_Ring IR)). Qed.
+
 Instance Le_instance_IR : Le IR := (@cof_leEq IR).
+
+Require Import MathClasses.interfaces.orders.
+
+Global Instance LeIRPreorder  : PreOrder Le_instance_IR .
+Proof.
+  split; intros ?; unfold le, Le_instance_IR; eauto 2 with CoRN.
+Qed.
+
+Global Instance LeIRPartialOrder  : PartialOrder Le_instance_IR .
+Proof.
+  split; eauto with typeclass_instances.
+  intros ? ?; unfold le, Le_instance_IR, equiv; eauto 2 with CoRN.
+Qed.
+ 
+
+Hint Unfold canonical_names.negate
+  canonical_names.negate
+  Le_instance_IR  
+  Plus_instance_IR 
+  Zero_instance_IR
+  plus
+  one zero
+  equiv  mult
+  dec_recip
+  zero
+  le
+  lt
+  canonical_names.negate
+  Negate_instance_IR 
+  Mult_instance_IR : IRMC.
+  
+Require Import MathClasses.orders.rings.
+
+Global Instance OrderPreservingLePlusIR (z : IR):  OrderPreserving (plus z).
+Proof.
+  split; eauto  with typeclass_instances.
+  - split; eauto with typeclass_instances.
+    split;  eauto with typeclass_instances.
+  - intros. apply plus_resp_leEq_lft; assumption.
+Qed.
+
+Global Instance MultLeSemiRingOrderIR:
+  ∀ x y : IR , PropHolds (0 ≤ x) → PropHolds (0 ≤ y) → PropHolds (0 ≤ x * y) .
+Proof.
+  apply mult_resp_nonneg.
+Qed.
+
+Global Instance LeIRSemiRingOrder  : orders.SemiRingOrder (@le IR _).
+Proof.
+  apply from_ring_order; eauto with typeclass_instances.
+Qed.
+
 
 Instance Zero_instance_TContR : Zero TContR := [0]. 
 Instance One_instance_TContR : One TContR := [1]. 
@@ -69,20 +122,6 @@ Qed.
 
 Hint Unfold π₁ ProjectionFst_instance_prod : π₁.
 
-Hint Unfold canonical_names.negate
-  canonical_names.negate
-  Le_instance_IR  
-  Plus_instance_IR 
-  plus
-  one zero
-  equiv  mult
-  dec_recip
-  zero
-  le
-  lt
-  canonical_names.negate
-  Negate_instance_IR 
-  Mult_instance_IR : IRMC.
 
 Hint Unfold mult plus one zero Mult_instance_TContR Plus_instance_TContR One_instance_TContR
     Zero_instance_TContR Negate_instance_TContR : TContRMC.
@@ -231,5 +270,18 @@ Open Scope mc_scope.
    | [|- eq _ ?r] => remember r
    end.
 
+(*Move*)
+  Global Instance ProperNoSignChange : forall F:TContR,
+    Proper (equiv ==> equiv ==> iff) (noSignChangeDuring F).
+  Proof.
+    intros F ? ? H1e ? ? H2e.
+    unfold noSignChangeDuring, nonNegDuring, nonPosDuring.
+    destruct x,y,x0,y0.
+    autounfold with IRMC in H1e, H2e.
+    simpl. simpl in H1e, H2e.
+    setoid_rewrite H1e.
+    setoid_rewrite H2e.
+    tauto.
+  Qed.
 
 

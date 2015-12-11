@@ -24,12 +24,13 @@ Instance ProjectionFst_instance_conj (A B : Prop) :
 Class Subset (A : Type)
   := subset : A -> A -> Prop.
 
+
+(*
 Require Import Coq.Unicode.Utf8.
 Infix "⊆" := (subset) (at level 70, no associativity): mc_scope.
 Open Scope mc_scope.
 Notation "x ⊆ y ⊆ z" := ((x ⊆ y) ∧ (y ⊆ z)) (at level 70, y at next level) : mc_scope.
 
-(*
 Require Export Coq.Unicode.Utf8.
 
 Class PairType (A : Type) (P: A → Type) (T :Type) :=
