@@ -6,7 +6,8 @@ nodes = map(lambda x: './' + x, dirs_to_compile)
 dirs = []
 vs = []
 
-env = DefaultEnvironment(ENV = os.environ, tools=['default','Coq'])
+
+env = DefaultEnvironment(ENV = os.environ, tools=['default','Coq','CoqQuick'])
 
 while nodes:
   node = nodes.pop()
@@ -15,7 +16,7 @@ while nodes:
    and not node.endswith('CRMisc/ContField.v')
    and not node.endswith('CRMisc/PointWiseRing.v')
    and not node.endswith('CRMisc/OldMetricAsNew.v')
-   and not node.endswith('src/robots/ackermannSteeringSimulator.v')
+   and not node.endswith('src/robots/car/ackermannSteeringSimulator.v')
    and not node.endswith('CartAR.v')
    and not node.endswith('ProbTh.v')
    and not node.endswith('shim/oldJavaShim/icreateConcrete.v')
@@ -31,14 +32,17 @@ includes = ' '.join(map(lambda x: '-I ' + x, dirs[1:]))
 
 #Note that ROSCoq depends on Corn (which depends on MathClasses). Please edit the line below, depending on how you installed them. 
 # See https://github.com/c-corn/corn
-#TODO: remove the last one and put it in a custom SConstruct for src/examples
-#Rs = '-R src ROSCOQ -R dependencies/corn CoRN -R dependencies/corn/math-classes/src MathClasses -R ~/.cabal/share/x86_64-linux-ghc-7.6.3/roshask-0.3/Geometry_msgs/Ros Ros'
 Rs = '-R src ROSCOQ -R dependencies/corn CoRN -R dependencies/corn/math-classes/src MathClasses'
 coqcmd = 'coqc ${str(SOURCE)[:-2]} ' + Rs
+coqcmdquick = 'coqc ${str(SOURCE)[:-2]} -quick ' + Rs
 
 env['COQFLAGS'] = Rs
 
-for node in vs: env.Coq(node, COQCMD=coqcmd)
+quick = ARGUMENTS.get('quick', 0)
+if int(quick):
+  for node in vs: env.CoqQuick(node, COQCMDQUICK=coqcmdquick)
+else:
+  for node in vs: env.Coq(node, COQCMD=coqcmd)
 
 
 os.system('coqdep ' + ' '.join(map(str, vs)) + ' ' + includes + ' ' + Rs + ' > deps')
