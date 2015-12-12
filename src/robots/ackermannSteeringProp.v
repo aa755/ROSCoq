@@ -995,9 +995,16 @@ and one can drive both forward and backward *)
       rewrite  XX in Hj. exact Hj.
     Qed.
 
-    Lemma confinedDuringTurningAMIf : forall (confineRect : Line2D IR),
-    (∀ (θ : IR), inBetweenR θ ({theta acs} tstart) ({theta acs} tend)
-           -> carMinMaxXYAtθ (rigidStateAtTime acs tstart) cd turnRadius θ ⊆ confineRect)
+  Definition confinedTurningAM  (init : Rigid2DState IR) 
+        (confineRect : Line2D IR) :=
+    let θi := (θ2D init) in
+    let θf := θi + tc * distance in
+    ∀ (θ : IR), 
+      inBetweenR θ θi θf
+           -> carMinMaxXYAtθ init cd turnRadius θ ⊆ confineRect.
+           
+  Lemma confinedTurningAMCorrect : forall (confineRect : Line2D IR),
+    confinedTurningAM (rigidStateAtTime acs tstart) confineRect
      ->  confinedDuring tstart tend cd confineRect.
   Proof.
     intros ?  hh t Hb.
@@ -1006,6 +1013,9 @@ and one can drive both forward and backward *)
            apply StableLeIR;fail.
     pose proof (leEq_or_leEq _ t tdrive) as Hd.
     eapply DN_fmap;[exact Hd|]. clear Hd. intro Hd.
+    unfold confinedTurningAM in hh. simpl in hh.
+    unfold inBetweenR in hh.
+    setoid_rewrite <- AtomicMoveθ in hh.
     destruct Hd as [Hd | Hd].
     - apply confinedDuringTurningAMIfAux in hh.
       assert (carMinMaxXY (rigidStateAtTime acs t) cd
@@ -1253,18 +1263,25 @@ Qed.
       bounding rectangle. Unlike while turning, the whole
       trajectory need not be considered
   *)
-   Lemma confinedDuringStraightAM :
-      noSignChangeDuring (linVel acs) tstart tend
-      ->
-      let bi := carMinMaxAtT acs cd tstart in
-      let bf := bi + '(('distance) * (unitVec θs)) in
-       confinedDuring tstart tend cd 
+   Definition straightAMSpaceRequirement 
+      (init : Rigid2DState IR) : Line2D IR :=
+      let bi := carMinMaxXY init cd in
+      let bf := bi + '(('distance) * (unitVec (θ2D init))) in
           (boundingUnion bi bf).
+          
+   Lemma straightAMSpaceRequirementCorrect :
+      noSignChangeDuring (linVel acs) tstart tend
+      -> confinedDuring tstart tend cd 
+          (straightAMSpaceRequirement 
+                (rigidStateAtTime acs tstart)).
    Proof.
-     intros Hn ?  ? t Hb.
-     fold (carMinMaxAtT acs cd t). destruct Hb as [pl prr].
+     unfold straightAMSpaceRequirement. 
+     intros Hn t Hb.
+     fold (carMinMaxAtT acs cd t).
+     fold (carMinMaxAtT acs cd tstart).
+     destruct Hb as [pl prr].
      rewrite straightAMMinMaxXY with (pl:=pl);[| tauto].
-     unfold boundingUnion. subst bi. subst bf.
+     unfold boundingUnion.
      assert ((minxy (carMinMaxAtT acs cd tstart)) 
         = (minxy (carMinMaxAtT acs cd tstart)) + 0) as H0 by ring.
      rewrite H0. clear H0.
@@ -1299,6 +1316,45 @@ Qed.
 End AtomicMove.
 
 Section AtomicMoveSpaceRequirement.
+
+Definition AtomicMoveSign (am : AtomicMove) : Type :=
+  (am_tc am =0) or (am_tc am[#]0).
+  
+(** combine the sufficient conditions on space required,
+    both for the cases of turning and driving straignt*)
+Definition carConfinedDuringAM 
+  (cd : CarDimensions IR)
+  (am : AtomicMove)
+  (s : AtomicMoveSign am) 
+  (init : Rigid2DState IR)
+  (rect : Line2D IR) := 
+match s with
+| inl _ => (straightAMSpaceRequirement am cd init) ⊆ rect
+| inr turn => (confinedTurningAM am turn cd init rect)
+end.
+
+Lemma carConfinedDuringAMCorrect:  forall 
+  (cd : CarDimensions IR)
+  (_ : nonTrivialCarDim cd)
+  (am : AtomicMove)
+  (s : AtomicMoveSign am) 
+  (rect : Line2D IR)
+  (tstart tend :Time)
+  (p: tstart < tend)
+  (_ :∀ t : Time,
+     tstart ≤ t ≤ tend → 0 ≤ {theta acs} t ≤ ½ * π),
+  @CarMonotonicallyExecsAtomicMoveDuring am tstart tend p
+  -> @carConfinedDuringAM cd am s (rigidStateAtTime acs tstart) rect
+  -> confinedDuring tstart tend cd rect.
+Proof.
+  intros ? ? ? ? ? ? ? ? ? Ham Hcc.
+  destruct Ham as [Ham Hnosign].
+  destruct s as [s | s]; simpl in Hcc.
+  - eapply straightAMSpaceRequirementCorrect with (cd:=cd) in Ham;      eauto.
+    intros t Hb. specialize (Ham t Hb).
+    eauto 2 with relations.
+  - eapply confinedTurningAMCorrect in Hcc; eauto.
+Qed. 
 
 End AtomicMoveSpaceRequirement.
 
