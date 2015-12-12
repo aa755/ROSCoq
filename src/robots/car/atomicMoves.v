@@ -34,9 +34,6 @@ Require Import fastReals.misc.
 Require Import geometry2D.
 Require Import geometry2DProps.
 Require Import ackermannSteeringProp.
-
-
-
   
 Local Opaque CSine.
 Local Opaque CCos.
@@ -44,6 +41,11 @@ Local Opaque Sine.
 Local Opaque Cosine.
 Local Opaque Sin.
 Local Opaque Cos.
+
+Local Notation minxy := (lstart).
+Local Notation maxxy := (lend).
+Local Notation  "∫" := Cintegral.
+
 
 (** * Atomic Move
 
@@ -83,9 +85,6 @@ and one can drive both forward and backward *)
     with relations.
   Qed.
 
-  Local Notation minxy := (lstart).
-  Local Notation maxxy := (lend).
-  Local Notation  "∫" := Cintegral.
 Section AtomicMove.
 
   Context  {maxTurnCurvature : Qpos}
@@ -920,11 +919,10 @@ the list of iverses of those atomic moves.
 
 First we define what it means for a move to be an inverse of another.
 *)
-  Context  {maxTurnCurvature : Qpos}
-   (acs : AckermannCar maxTurnCurvature).
 
   Definition MovesIdentity (ams : AtomicMoves) :=
-    ∀ (tstart tend : Time)  (p: tstart ≤ tend),
+    ∀ mt (acs : AckermannCar mt)
+   (tstart tend : Time)  (p: tstart ≤ tend),
       CarExecutesAtomicMovesDuring acs ams tstart tend p
       -> (posAtTime acs tstart = posAtTime acs tend 
           /\ {theta acs} tstart = {theta acs} tend).
@@ -938,7 +936,7 @@ First we define what it means for a move to be an inverse of another.
     
 (*         TODO : quantify over [acs]. *)
   Definition MovesInverse (ams amsr : AtomicMoves) :=
-    ∀ 
+    ∀ mt (acs : AckermannCar mt)
       (tstart tend : Time)  (p: tstart ≤ tend)
       (tstartr tendr : Time)  (pr: tstartr ≤ tendr),
       CarExecutesAtomicMovesDuring acs ams tstart tend p
@@ -954,7 +952,7 @@ First we define what it means for a move to be an inverse of another.
     relate the confinements of the car in axis aligned rectangles.*)
   Definition MonotonicMovesInverse (ams amsr : AtomicMoves)  :=
     MovesInverse ams amsr /\
-    ∀ (cd : CarDimensions ℝ) (confineRect: Line2D IR)
+    ∀ mt (acs : AckermannCar mt) (cd : CarDimensions ℝ) (confineRect: Line2D IR)
       (tstart tend : Time)  (p: tstart ≤ tend)
       (tstartr tendr : Time)  (pr: tstartr ≤ tendr),
       CarMonotonicallyExecsAtomicMovesDuring acs ams tstart tend p
@@ -965,17 +963,19 @@ First we define what it means for a move to be an inverse of another.
 
 
   Definition CarExecutesAtomicMovesDuringAux  
+  mt (acs : AckermannCar mt)
       (tstart tend : Time)  (p: tstart ≤ tend) m
        := CarExecutesAtomicMovesDuring acs m tstart tend p .
   
-   Lemma foldForProperAM : ∀ m 
+   Lemma foldForProperAM : ∀ mt (acs : AckermannCar mt) m 
       (tstart tend : Time)  (p: tstart ≤ tend),
       CarExecutesAtomicMovesDuring acs m tstart tend p ≡
-      CarExecutesAtomicMovesDuringAux tstart tend p m.
+      CarExecutesAtomicMovesDuringAux acs tstart tend p m.
    Proof using Type. reflexivity. Qed.
 
-  Global Instance CarExecutesAtomicMovesDuringAux_Proper (tstart tend : Time)  (p :tstart ≤ tend) :
-    Proper (equiv ==> iff) (CarExecutesAtomicMovesDuringAux tstart tend p).
+  Global Instance CarExecutesAtomicMovesDuringAux_Proper mt (acs : AckermannCar mt)
+  (tstart tend : Time)  (p :tstart ≤ tend) :
+    Proper (equiv ==> iff) (CarExecutesAtomicMovesDuringAux acs tstart tend p).
   Proof using Type.
     apply CarExecutesAtomicMovesDuring_ProperM.
   Qed.
@@ -984,8 +984,8 @@ First we define what it means for a move to be an inverse of another.
     (equiv ==> equiv ==> iff)  MovesInverse.
   Proof using Type.
     intros ? ? ? ? ? ?. unfold MovesInverse.
-    setoid_rewrite (foldForProperAM x).
-    setoid_rewrite (foldForProperAM x0).
+    setoid_rewrite (foldForProperAM acs x).
+    setoid_rewrite (foldForProperAM acs x0).
     setoid_rewrite  H.
     setoid_rewrite  H0.
     tauto.
@@ -1000,7 +1000,7 @@ First we define what it means for a move to be an inverse of another.
       := rev (List.map AtomicMoveInv ms).
 
   Lemma atomicMoveInvertibleθ :
-    ∀ m
+    ∀ mt (acs : AckermannCar mt) m
       (tstart tend : Time)  (p: tstart < tend)
       (tstartr tendr : Time)  (pr: tstartr < tendr),
       CarExecutesAtomicMoveDuring acs m  p
@@ -1008,7 +1008,7 @@ First we define what it means for a move to be an inverse of another.
       -> {theta acs} tstartr = {theta acs} tend 
       -> ({theta acs} tstart = {theta acs} tendr).
   Proof using Type.
-    intros m ? ? ? ? ? ? amscl amscrl Ht.
+    intros ? ? m ? ? ? ? ? ? amscl amscrl Ht.
     apply AtomicMoveθ in amscl.
     apply AtomicMoveθ in amscrl.
     simpl in amscl, amscrl.
@@ -1019,7 +1019,7 @@ First we define what it means for a move to be an inverse of another.
   (** The equations for X coordinate are different, based on whether the steering wheel is perfectly
       straight or not. The double negation trick works while proving equality *)
   Lemma atomicMoveInvertibleXY :
-    ∀ m
+    ∀ mt (acs : AckermannCar mt) m
       (tstart tend : Time)  (p: tstart < tend)
       (tstartr tendr : Time)  (pr: tstartr < tendr),
       CarExecutesAtomicMoveDuring acs m  p
@@ -1028,7 +1028,7 @@ First we define what it means for a move to be an inverse of another.
       -> (posAtTime acs tend - posAtTime acs tstart 
               = posAtTime acs tstartr - posAtTime acs tendr).
   Proof using Type.
-    intros m ? ? ? ? ? ? amscl amscrl Hte.
+    intros ? ? m ? ? ? ? ? ? amscl amscrl Hte.
     pose proof amscl as Htt.
     eapply atomicMoveInvertibleθ in Htt; eauto.
     eapply stable. 
@@ -1056,7 +1056,7 @@ First we define what it means for a move to be an inverse of another.
   Lemma atomicMoveInvertible :
     ∀ (m : AtomicMove), MovesInverse [m] [AtomicMoveInv m].
   Proof using Type.
-    intros m ? ? ? ? ? ? ?.
+    intros ? ? m ? ? ? ? ? ? ?.
     invertAtomicMoves.
     intros ? ?.    
     invertAtomicMoves.
@@ -1082,7 +1082,8 @@ First we define what it means for a move to be an inverse of another.
     split; [| reflexivity]. apply negate_involutive.
   Qed.
 
-  Lemma movesControlsApp : ∀ (l r : AtomicMoves) (tstart tend: Time)
+  Lemma movesControlsApp : ∀ mt (acs : AckermannCar mt) 
+  (l r : AtomicMoves) (tstart tend: Time)
     (pr : tstart ≤ tend),
     CarExecutesAtomicMovesDuring acs (l++r) _ _ pr
     -> exists (tmid : Time), exists (p : tstart ≤ tmid ≤ tend),
@@ -1124,7 +1125,8 @@ First we define what it means for a move to be an inverse of another.
     
     
   
-  Lemma MovesControlsSingle : ∀ (m : AtomicMove) (tstart tend: Time)
+  Lemma MovesControlsSingle : ∀ mt (acs : AckermannCar mt) 
+  (m : AtomicMove) (tstart tend: Time)
     (pr : tstart < tend),
     @CarExecutesAtomicMoveDuring _ acs m tstart tend pr
     -> CarExecutesAtomicMovesDuring acs [m] tstart tend (timeLtWeaken pr).
@@ -1139,7 +1141,7 @@ First we define what it means for a move to be an inverse of another.
   Lemma atomicMovesInvertibleAux :
     ∀ (m : AtomicMoves), MovesInverse (AtomicMovesInv m) m.
   Proof using Type.
-    induction m as [| h tl Hind]; intros ? ? ? ? ? ? Hm Hrm Ht;
+    induction m as [| h tl Hind]; intros ? ? ? ? ? ? ? ? Hm Hrm Ht;
       unfold AtomicMovesInv in Hrm; simpl in Hrm.
     - invertAtomicMoves. unfold posAtTime. rewrite <- Hml in Ht. 
       rewrite Hrml in Ht.
