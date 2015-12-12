@@ -1,3 +1,5 @@
+
+Set Suggest Proof Using.
 Require Export Coq.Program.Tactics.
 Require Export LibTactics.
 (** printing × $\times$ #×# *)
@@ -111,7 +113,7 @@ Section XYBounds.
   Lemma carBoundsAMAuxMin : 
     minCart (rightSideUnitVec cs * ' width cd) (- (rightSideUnitVec cs * ' width cd))
     = -('width cd) * {|X:= sin (θ2D cs); Y:= cos (θ2D cs)|}.
-  Proof.
+  Proof using All.
     destruct nonTriv as [a b]. destruct b as [c b].
     apply unitVecNonNeg in theta90.
     unfold unitVec in theta90.
@@ -142,7 +144,7 @@ Section XYBounds.
   Lemma carBoundsAMAuxMax : 
     maxCart (rightSideUnitVec cs * ' width cd) (- (rightSideUnitVec cs * ' width cd))
     = ('width cd) * {|X:= sin (θ2D cs); Y:= cos (θ2D cs)|}.
-  Proof.
+  Proof using All.
     destruct nonTriv as [a b]. destruct b as [c b].
     apply unitVecNonNeg in theta90.
     unfold unitVec in theta90.
@@ -174,7 +176,7 @@ Section XYBounds.
       ((- frontUnitVec cs * ' lengthBack cd)) 
       (frontUnitVec cs * ' lengthFront cd)
     =  -(frontUnitVec cs) * (' lengthBack cd).
-  Proof.
+  Proof using All.
     rewrite <- negate_mult_distr_l.
     rewrite negate_mult_distr_r.
     unfold frontUnitVec.
@@ -198,7 +200,7 @@ Section XYBounds.
       ((- frontUnitVec cs * ' lengthBack cd)) 
       (frontUnitVec cs * ' lengthFront cd)
     =  (frontUnitVec cs) * (' lengthFront cd).
-  Proof.
+  Proof using All.
     rewrite <- negate_mult_distr_l.
     rewrite negate_mult_distr_r.
     unfold frontUnitVec.
@@ -220,7 +222,7 @@ Section XYBounds.
   Lemma carBoundsAMAux : carMinMaxXY cs cd =
   {|minxy := {|X:= X (backLeft cs cd); Y:= Y (backRight cs cd)|};
      maxxy := {|X:= X (frontRight cs cd); Y:= Y (frontLeft cs cd) |} |}.
-  Proof.
+  Proof using All.
   unfold carMinMaxXY.
   unfold backRight, backLeft.
   Local Opaque unitVec.
@@ -366,7 +368,7 @@ Section Cases.
 (** ib denotes the pair of numbers that goes at the bottom and at the top of ∫ *)
     let ib := @mkIntBnd _ tstart t (proj1 p) in
     ({theta acs} t - {theta acs} tstart) = tc* (∫ ib (linVel acs)).
-  Proof.
+  Proof using fixed.
     intros ? Hb ?.
     setoid_rewrite <- TBarrowScale;
       [| apply (derivRot acs)|];[reflexivity|].
@@ -391,7 +393,7 @@ Section Cases.
     theta is always between its initial and final value. *)
   Lemma thetaMonotone : forall (t :Time)  (p: tstart ≤ t ≤ tend),
     inBetweenR ({theta acs} t) ({theta acs} tstart) ({theta acs} tend).
-  Proof.
+  Proof using All.
     eapply nosignChangeInBw;
       [assumption | eapply derivRot |].
     apply nonSignChangeMult; try assumption.
@@ -417,7 +419,7 @@ Section Cases.
   Lemma fixedSteeeringX : forall (t :Time) (_: tstart ≤ t ≤ tend),
     ({X (position acs)} t - {X (position acs)} tstart) =  
         ((Sin ({theta acs} t) - Sin ({theta acs} tstart)) [/] tc [//] tcNZ).
-  Proof.
+  Proof using (fixed tcNZ).
     intros  ? Hb.
     setoid_rewrite <- TBarrow with (p:= proj1 Hb);[| apply (derivX acs)].
     pose proof (@TContRDerivativeSin _ _ _ _ (derivRot acs)) as X.
@@ -444,14 +446,14 @@ Section Cases.
   Qed.
 
   Lemma tcnegNZ : - tc [#] 0.
-  Proof. 
+  Proof using tcNZ. 
     apply inv_resp_ap_zero. exact tcNZ.
   Qed.
 
   Lemma fixedSteeeringY : forall (t :Time) (_: tstart ≤ t ≤ tend),
     ({Y (position acs)} t - {Y (position acs)} tstart) =  
         ((Cos ({theta acs} tstart) - Cos ({theta acs} t)) [/] tc [//] tcNZ).
-  Proof.
+  Proof using (fixed tcNZ).
     intros  ? Hb.
     setoid_rewrite <- TBarrow with (p:= proj1 Hb);[| apply (derivY acs)].
     pose proof (@IContRDerivativeCos _ _ _ _ (derivRot acs)) as X.
@@ -490,7 +492,7 @@ Section Cases.
   Lemma fixedSteeeringXY : forall (t :Time) (_: tstart ≤ t ≤ tend),
     posAtTime acs t - posAtTime acs tstart = 
       'turnRadius * (rhsUnitVecAtTime acs t - rhsUnitVecAtTime acs tstart).
-  Proof.
+  Proof using (fixed tcNZ).
     intros ? Hb.
     unfold rhsUnitVecAtTime, rightSideUnitVec, rigidStateAtTime.
     simpl. rewrite unitVecMinus90, unitVecMinus90.
@@ -517,7 +519,7 @@ Section Cases.
     backRightAtTime acs t cd - backRightAtTime acs tstart cd =  
     '(turnRadius + width cd) * (rhsUnitVecAtTime acs t - rhsUnitVecAtTime acs tstart) -
     'lengthBack cd * (unitVec ({theta acs} t) - unitVec θ0).
-  Proof.
+  Proof using (cd fixed tcNZ).
     intros ? ?. unfold backRightAtTime,  backRight, frontUnitVec . simpl.
     fold (rhsUnitVecAtTime acs t).
     fold (rhsUnitVecAtTime acs tstart).
@@ -538,7 +540,7 @@ Section Cases.
     backLeftAtTime acs t cd - backLeftAtTime acs tstart cd =  
     '(turnRadius - width cd) * (rhsUnitVecAtTime acs t - rhsUnitVecAtTime acs tstart) -
     'lengthBack cd * (unitVec ({theta acs} t) - unitVec θ0).
-  Proof.
+  Proof using (cd fixed tcNZ).
     intros ? ?. unfold backLeftAtTime,  backLeft, frontUnitVec . simpl.
     fold (rhsUnitVecAtTime acs t).
     fold (rhsUnitVecAtTime acs tstart).
@@ -560,7 +562,7 @@ Section Cases.
     frontRightAtTime acs t cd - frontRightAtTime acs tstart cd =  
     '(turnRadius + width cd) * (rhsUnitVecAtTime acs t - rhsUnitVecAtTime acs tstart) 
     + 'lengthFront cd * (unitVec ({theta acs} t) - unitVec θ0).
-  Proof.
+  Proof using (cd fixed tcNZ).
     intros ? ?. unfold frontRightAtTime,  frontRight, frontUnitVec . simpl.
     fold (rhsUnitVecAtTime acs t).
     fold (rhsUnitVecAtTime acs tstart).
@@ -581,7 +583,7 @@ Section Cases.
     frontLeftAtTime acs t cd - frontLeftAtTime acs tstart cd =  
     '(turnRadius - width cd) * (rhsUnitVecAtTime acs t - rhsUnitVecAtTime acs tstart) 
     + 'lengthFront cd * (unitVec ({theta acs} t) - unitVec θ0).
-  Proof.
+  Proof using (cd fixed tcNZ).
     intros ? ?. unfold frontLeftAtTime,  frontLeft, frontUnitVec . simpl.
     fold (rhsUnitVecAtTime acs t).
     fold (rhsUnitVecAtTime acs tstart).
@@ -606,7 +608,7 @@ Section Cases.
     forall (t :Time) (Hb : tstart ≤ t ≤ tend),
     carMinMaxXY (rigidStateAtTime acs t) cd
     = carMinMaxXYAtθ (rigidStateAtTime acs tstart) cd turnRadius ({theta acs} t).
-  Proof.
+  Proof using (fixed nonTriv tcNZ theta90).
     intros ? ?.
     rewrite carBoundsAMAux;[|assumption| apply theta90; assumption].
     Local Opaque unitVec. 
@@ -635,7 +637,7 @@ Section Cases.
     (∀ (θ : IR), inBetweenR θ ({theta acs} tstart) ({theta acs} tend)
            -> carMinMaxXYAtθ (rigidStateAtTime acs tstart) cd turnRadius θ ⊆ confineRect)
      ->  confinedDuring cd confineRect.
-  Proof.
+  Proof using All.
     intros ? Hn hh t Hb.
     specialize (hh ({theta acs}t)).
     rewrite carMinMaxXYAM;[|assumption].
@@ -662,7 +664,7 @@ Section Cases.
 
     Lemma LV0Theta : forall (t :Time)  (p: tstart ≤ t ≤ tend),
         {theta acs} t = {theta acs} tstart.
-    Proof.
+    Proof using lv0.
       intros. eapply TDerivativeEq0;[tauto | apply derivRot|].
       intros tt Hb. simpl. rewrite lv0;autounfold with IRMC; [ring|].
       repnd. split; eauto 2 with CoRN.
@@ -671,7 +673,7 @@ Section Cases.
  Local Opaque FCos.
     Lemma LV0X : forall (t :Time) (p: tstart ≤ t ≤ tend),
       {X (position acs)} t = {X (position acs)} tstart .
-    Proof.
+    Proof using lv0.
       intros. eapply TDerivativeEq0;[tauto | apply derivX|].
       intros tt Hb.
       simpl. rewrite lv0;autounfold with IRMC; [ring|].
@@ -680,7 +682,7 @@ Section Cases.
 
     Lemma LV0Y : forall (t :Time) (p: tstart ≤ t ≤ tend),
       {Y (position acs)} t = {Y (position acs)} tstart .
-    Proof.
+    Proof using lv0.
       intros. eapply TDerivativeEq0;[tauto | apply derivY|].
       intros tt Hb.
       simpl. rewrite lv0;autounfold with IRMC; [ring|].
@@ -689,7 +691,7 @@ Section Cases.
 
     Lemma LV0 : forall (t :Time) (p: tstart ≤ t ≤ tend),
       rigidStateAtTime acs t = rigidStateAtTime acs tstart.
-    Proof.
+    Proof using lv0.
       intros. split;[split|]; simpl;
       eauto using LV0Theta, LV0X, LV0Y.
     Qed.
@@ -729,6 +731,7 @@ and one can drive both forward and backward *)
   is an equivalence relation.*)
   Global Instance Equivalence_instance_AtomicMove 
     : @Equivalence (AtomicMove) equiv.
+ Proof using .
   unfold equiv, Equiv_AtomicMove. split.
   - intros x. destruct x. simpl. split; auto with *.
   - intros x y. destruct x,y. simpl. intros Hd; destruct Hd;
@@ -791,6 +794,7 @@ and one can drive both forward and backward *)
   Local Notation tdrive := (am_tdrive amc).
   
   Lemma am_timeIncWeaken : (tstart ≤ tdrive ≤ tend).
+  Proof using Type.
     pose proof (am_timeInc amc).
     split; apply timeLtWeaken; tauto.
   Qed.
@@ -801,6 +805,7 @@ and one can drive both forward and backward *)
       destruct timeInc; eauto 2 with CoRN; fail.
 
   Lemma am_timeStartEnd : (tstart  ≤ tend).
+  Proof using All.
     pose proof (am_timeIncWeaken).
     repnd.  timeReasoning.
   Qed.
@@ -808,7 +813,7 @@ and one can drive both forward and backward *)
    Lemma am_driveDistanceFull : 
       let driveIb := (@mkIntBnd _ tstart tend am_timeStartEnd) in 
           (am_distance am) = ∫ driveIb (linVel acs).
-   Proof.
+   Proof using Type.
     simpl. 
     rewrite CintegralSplit 
       with (pl:= proj1 am_timeIncWeaken)
@@ -836,7 +841,7 @@ and one can drive both forward and backward *)
 
 
   Lemma AtomicMoveθ : {theta acs} tend =  θs + tc * distance.
-  Proof.
+  Proof using All.
     pose proof (am_driveControls amc) as driveControls.
     eapply  fixedSteeringTheta with (t:= tend) in driveControls.
     Unshelve. Focus 2. timeReasoning.
@@ -857,7 +862,7 @@ and one can drive both forward and backward *)
   Lemma rigidStateNoChange : forall t:Time, 
     tstart ≤ t ≤ tdrive
     -> (rigidStateAtTime acs t) = (rigidStateAtTime acs tstart).
-  Proof.
+  Proof using Type.
     apply LV0. destruct amc.
     simpl in *.
     tauto.
@@ -870,7 +875,7 @@ and one can drive both forward and backward *)
   
     Lemma AtomicMoveXT : {X (position acs)} tend =  Xs +
           ((Sin ({theta acs} tend) - Sin θs) [/] tc [//] tcNZ).
-    Proof.
+    Proof using All.
       pose proof (am_driveControls amc) as driveControlsb.
       pose proof (am_steeringControls amc) as steeringControls.
       setoid_rewrite (proj1 steeringControls) in driveControlsb.
@@ -886,14 +891,14 @@ and one can drive both forward and backward *)
 
     Lemma AtomicMoveX : {X (position acs)} tend =  Xs +
           ((Sin (θs + tc * distance) - Sin θs) [/] tc [//] tcNZ).
-    Proof.
+    Proof using All.
       unfold cf_div. rewrite <- AtomicMoveθ.
       exact AtomicMoveXT.
     Qed.
 
     Lemma AtomicMoveYT : {Y (position acs)} tend =  Ys +
           ((Cos θs - Cos ({theta acs} tend)) [/] tc [//] tcNZ).
-    Proof.
+    Proof using All.
       pose proof (am_driveControls amc) as driveControlsb.
       pose proof (am_steeringControls amc) as steeringControls.
       setoid_rewrite (proj1 steeringControls) in driveControlsb.
@@ -910,7 +915,7 @@ and one can drive both forward and backward *)
 
     Lemma AtomicMoveY : {Y (position acs)} tend =  Ys +
           ((Cos θs - Cos (θs + tc * distance)) [/] tc [//] tcNZ).
-    Proof.
+    Proof using All.
       unfold cf_div. rewrite <- AtomicMoveθ.
       exact AtomicMoveYT.
     Qed.
@@ -919,7 +924,7 @@ and one can drive both forward and backward *)
          {|X:=(Sin ({theta acs} tend) - Sin θs);
              Y:=(Cos θs - Cos ({theta acs} tend))|} 
       * '(f_rcpcl tc  tcNZ).
-    Proof.
+    Proof using All.
       split; simpl;[apply AtomicMoveXT | apply AtomicMoveYT].
     Qed.
 
@@ -927,7 +932,7 @@ and one can drive both forward and backward *)
          {|X:=(Sin (θs + tc * distance) - Sin θs);
              Y:=(Cos θs - Cos (θs + tc * distance))|} 
       * '(f_rcpcl tc  tcNZ).
-    Proof.
+    Proof using All.
       split; simpl;[apply AtomicMoveX | apply AtomicMoveY].
     Qed.
 
@@ -946,7 +951,7 @@ and one can drive both forward and backward *)
     -> a1 ≤ a2
     -> b2 ≤ b1
     -> noSignChangeDuring F a2 b2.
-  Proof.
+  Proof using .
     intros ? ? ? ? ? Hn ? ?. destruct Hn as [Hn | Hn];[left|right];
       intros t Hb; apply Hn; destruct Hb; split; eauto 2 with CoRN.
   Qed.
@@ -955,7 +960,7 @@ and one can drive both forward and backward *)
 
   Lemma AMTurnCurvature : ∀ t : Time,
       tdrive ≤ t ≤ tend → {turnCurvature acs} t = tc.
-  Proof.
+  Proof using Type.
     destruct amc. simpl in *.
     apply proj1 in am_steeringControls0.
     setoid_rewrite am_steeringControls0 
@@ -969,7 +974,7 @@ and one can drive both forward and backward *)
     (∀ (θ : IR), inBetweenR θ ({theta acs} tstart) ({theta acs} tend)
            -> carMinMaxXYAtθ (rigidStateAtTime acs tstart) cd turnRadius θ ⊆ confineRect)
      ->  confinedDuring tdrive tend cd confineRect.
-    Proof.
+    Proof using All.
       intros ? Hb.
       eapply noSignChangeDuringWeaken in nosign;
         [ |  exact (proj1 am_timeIncWeaken)
@@ -1006,7 +1011,7 @@ and one can drive both forward and backward *)
   Lemma confinedTurningAMCorrect : forall (confineRect : Line2D IR),
     confinedTurningAM (rigidStateAtTime acs tstart) confineRect
      ->  confinedDuring tstart tend cd confineRect.
-  Proof.
+  Proof using All.
     intros ?  hh t Hb.
     eapply stable. 
       Unshelve. Focus 2. apply StableSubsetLine2D.
@@ -1040,7 +1045,7 @@ and one can drive both forward and backward *)
   
     Lemma AtomicMoveZθ : forall t:Time, tstart ≤ t ≤ tend
     -> {theta acs} t =  θs.
-    Proof.
+    Proof using All.
       intros ? Hb. eapply TDerivativeEq0;[tauto | apply derivRot|].
       intros tt Hbb.
       apply not_ap_imp_eq.
@@ -1063,7 +1068,7 @@ and one can drive both forward and backward *)
     Lemma AtomicMoveZX : forall (t:Time) (pl : tstart ≤ t) (pr : t ≤ tend), 
     {X (position acs)} t =  Xs
      +  (∫ (mkIntBnd pl) (linVel acs)) * (Cos θs).
-    Proof. 
+    Proof using All. 
       intros ? ? ?.
       apply leftShiftEqIR.
       rewrite mult_comm.
@@ -1084,7 +1089,7 @@ and one can drive both forward and backward *)
     Lemma AtomicMoveZY : forall (t:Time) (pl : tstart ≤ t) (pr : t ≤ tend),
     {Y (position acs)} t =  Ys
      +  (∫ (mkIntBnd pl) (linVel acs)) * (Sin θs).
-    Proof.
+    Proof using All.
       intros ? ? ?.
       apply leftShiftEqIR.
       rewrite mult_comm.
@@ -1106,7 +1111,7 @@ and one can drive both forward and backward *)
         (pl : tstart ≤ t) (pr : t ≤ tend), 
     posAtTime acs t =
     Ps + ' ∫ ((mkIntBnd pl)) (linVel acs) * (unitVec θs).
-    Proof.
+    Proof using All.
      split; simpl; [apply AtomicMoveZX | apply AtomicMoveZY];
      auto.
     Qed.
@@ -1114,7 +1119,7 @@ and one can drive both forward and backward *)
    Lemma AtomicMoveZFinal : {theta acs} tend =  θs /\
      posAtTime acs tend =
      Ps + ('distance) * (unitVec θs).
-   Proof.
+   Proof using All.
      split;[apply AtomicMoveZθ;split; timeReasoning|].
       rewrite  (am_driveDistanceFull).
      apply AtomicMoveZ. auto.
@@ -1174,7 +1179,7 @@ lend := maxCart
            ' lengthFront cd +
            rightSideUnitVec (rigidStateAtTime acs t) *
            ' width cd) |}).
-Proof.
+Proof using Type.
     intros ?.
     hideRight.
     unfold carMinMaxAtT, carMinMaxXY. simpl.
@@ -1196,7 +1201,7 @@ Qed.
     carMinMaxAtT acs cd t =
     carMinMaxAtT acs cd tstart 
       + '(' ∫ ((mkIntBnd pl)) (linVel acs) * (unitVec θs)).
-   Proof.
+   Proof using All.
     intros ? ? ?.
     rewrite carMinMaxAtTEq.
     rewrite carMinMaxAtTEq.
@@ -1222,7 +1227,7 @@ Qed.
   Lemma MinMax0Mult: forall (a b k:ℝ),
       Min 0 a ≤ b ≤ Max 0 a
       -> Min 0 (a*k) ≤ b*k ≤ Max 0 (a*k).
-  Proof.
+  Proof using .
     intros ? ? ? Hm.
     eapply stable.
     Unshelve. Focus 2. apply stable_conjunction; 
@@ -1274,7 +1279,7 @@ Qed.
       -> confinedDuring tstart tend cd 
           (straightAMSpaceRequirement 
                 (rigidStateAtTime acs tstart)).
-   Proof.
+   Proof using All.
      unfold straightAMSpaceRequirement. 
      intros Hn t Hb.
      fold (carMinMaxAtT acs cd t).
@@ -1346,7 +1351,7 @@ Lemma carConfinedDuringAMCorrect:  forall
   @CarMonotonicallyExecsAtomicMoveDuring am tstart tend p
   -> @carConfinedDuringAM cd am s (rigidStateAtTime acs tstart) rect
   -> confinedDuring tstart tend cd rect.
-Proof.
+Proof using Type.
   intros ? ? ? ? ? ? ? ? ? Ham Hcc.
   destruct Ham as [Ham Hnosign].
   destruct s as [s | s]; simpl in Hcc.
@@ -1367,7 +1372,7 @@ End AtomicMoveSpaceRequirement.
     -> CarExecutesAtomicMoveDuring ml pl
     -> ml = mr
     -> CarExecutesAtomicMoveDuring mr pr.
-  Proof.
+  Proof using Type.
     intros ? ? ? ? ? ? ? ?  tl tr Hl Heq.
     destruct Hl.
     rewrite (proj2 Heq) in  am_steeringControls0.
@@ -1394,7 +1399,7 @@ End AtomicMoveSpaceRequirement.
     -> CarMonotonicallyExecsAtomicMoveDuring ml pl
     -> ml = mr
     -> CarMonotonicallyExecsAtomicMoveDuring mr pr.
-  Proof.
+  Proof using Type.
     intros ? ? ? ? ? ? ? ?  tl tr Hl Heq.
     destruct Hl as [c Hl].
     split;[eapply CarExecutesAtomicMoveDuring_wd;eauto |].
@@ -1408,7 +1413,7 @@ End AtomicMoveSpaceRequirement.
     tstartl = tstartr
     -> CarExecutesAtomicMoveDuring m pl
     -> CarExecutesAtomicMoveDuring m pr.
-  Proof.
+  Proof using Type.
     intros ? ? ? ? ? ? ? ?. eapply CarExecutesAtomicMoveDuring_wd; eauto; reflexivity.
   Qed.
 
@@ -1418,7 +1423,7 @@ End AtomicMoveSpaceRequirement.
     tendl = tendr
     -> CarExecutesAtomicMoveDuring m pl
     -> CarExecutesAtomicMoveDuring m pr.
-  Proof.
+  Proof using Type.
     intros ? ? ? ? ? ? ? ?. eapply CarExecutesAtomicMoveDuring_wd; eauto; reflexivity.
   Qed.
 
@@ -1428,7 +1433,7 @@ End AtomicMoveSpaceRequirement.
     tendl = tendr
     -> CarMonotonicallyExecsAtomicMoveDuring m pl
     -> CarMonotonicallyExecsAtomicMoveDuring m pr.
-  Proof.
+  Proof using Type.
     intros ? ? ? ? ? ? ? ?. eapply CarMonotonicallyExecsAtomicMoveDuring_wd; eauto; reflexivity.
   Qed.
 
@@ -1525,7 +1530,7 @@ Ltac invertAtomicMoves :=
     -> tendl = tendr
     -> CarExecutesAtomicMovesDuring ml _ _ pl
     -> CarExecutesAtomicMovesDuring mr _ _ pr.
-  Proof.
+  Proof using Type.
    intros ? ? meq.
    induction meq; intros ? ? ? ? ? ? ? ? Hl.
    - inverts Hl. constructor. rewrite <- H, pe. assumption.
@@ -1539,7 +1544,7 @@ Ltac invertAtomicMoves :=
     
   Global Instance CarExecutesAtomicMovesDuring_ProperM (tstart tend : Time)  (p :tstart ≤ tend) :
     Proper (equiv ==> iff) (fun m => CarExecutesAtomicMovesDuring m tstart tend p).
-  Proof.
+  Proof using Type.
     intros ? ? ?. split; apply CarExecutesAtomicMovesDuring_wd; 
     eauto 1 with relations.
   Qed.
@@ -1604,7 +1609,7 @@ Informally it denotes the following motion :
       
   
   Lemma Wriggleθ : {theta acs} tend =  θs + 2 * tc * distance.
-  Proof.
+  Proof using amsc.
     invertAtomicMoves. rename Hf into amscrl.
     apply AtomicMoveθ in amscl.
     apply AtomicMoveθ in amscrl.
@@ -1618,7 +1623,7 @@ Informally it denotes the following motion :
   Lemma WriggleX : {X (position acs)} tend =  Xs +
         ((2* Sin (θs + tc * distance) 
             - Sin (θs + 2 * tc * distance)  - Sin θs) [/] tc [//] tcNZ).
-  Proof.
+  Proof using All.
     pose proof Wriggleθ as XX.
     invertAtomicMoves.
     rename amscl into Hl.
@@ -1727,17 +1732,17 @@ First we define what it means for a move to be an inverse of another.
       (tstart tend : Time)  (p: tstart ≤ tend),
       CarExecutesAtomicMovesDuring m tstart tend p ≡
       CarExecutesAtomicMovesDuringAux tstart tend p m.
-   Proof. reflexivity. Qed.
+   Proof using Type. reflexivity. Qed.
 
   Global Instance CarExecutesAtomicMovesDuringAux_Proper (tstart tend : Time)  (p :tstart ≤ tend) :
     Proper (equiv ==> iff) (CarExecutesAtomicMovesDuringAux tstart tend p).
-  Proof.
+  Proof using Type.
     apply CarExecutesAtomicMovesDuring_ProperM.
   Qed.
 
   Global Instance MovesInverseProper : Proper 
     (equiv ==> equiv ==> iff)  MovesInverse.
-  Proof.
+  Proof using Type.
     intros ? ? ? ? ? ?. unfold MovesInverse.
     setoid_rewrite (foldForProperAM x).
     setoid_rewrite (foldForProperAM x0).
@@ -1762,7 +1767,7 @@ First we define what it means for a move to be an inverse of another.
       -> CarExecutesAtomicMoveDuring (AtomicMoveInv m)  pr
       -> {theta acs} tstartr = {theta acs} tend 
       -> ({theta acs} tstart = {theta acs} tendr).
-  Proof.
+  Proof using Type.
     intros m ? ? ? ? ? ? amscl amscrl Ht.
     apply AtomicMoveθ in amscl.
     apply AtomicMoveθ in amscrl.
@@ -1782,7 +1787,7 @@ First we define what it means for a move to be an inverse of another.
       -> {theta acs} tstartr = {theta acs} tend 
       -> (posAtTime acs tend - posAtTime acs tstart 
               = posAtTime acs tstartr - posAtTime acs tendr).
-  Proof.
+  Proof using Type.
     intros m ? ? ? ? ? ? amscl amscrl Hte.
     pose proof amscl as Htt.
     eapply atomicMoveInvertibleθ in Htt; eauto.
@@ -1810,7 +1815,7 @@ First we define what it means for a move to be an inverse of another.
 
   Lemma atomicMoveInvertible :
     ∀ (m : AtomicMove), MovesInverse [m] [AtomicMoveInv m].
-  Proof.
+  Proof using Type.
     intros m ? ? ? ? ? ? ?.
     invertAtomicMoves.
     intros ? ?.    
@@ -1831,7 +1836,7 @@ First we define what it means for a move to be an inverse of another.
 
   Lemma MoveInvInvolutive : ∀ (m : AtomicMove), 
     AtomicMoveInv (AtomicMoveInv m) = m.
-  Proof.
+  Proof using .
     intros m.
     destruct m. unfold AtomicMoveInv, equiv, Equiv_AtomicMove. simpl.
     split; [| reflexivity]. apply negate_involutive.
@@ -1843,7 +1848,7 @@ First we define what it means for a move to be an inverse of another.
     -> exists (tmid : Time), exists (p : tstart ≤ tmid ≤ tend),
          CarExecutesAtomicMovesDuring l tstart tmid (proj1 p)
         /\ CarExecutesAtomicMovesDuring r tmid tend (proj2 p).
-  Proof.
+  Proof using Type.
     induction l; intros.
     - exists tstart. eexists. split; auto;[constructor; reflexivity| ].
       simpl in H.
@@ -1870,7 +1875,7 @@ First we define what it means for a move to be an inverse of another.
   
   Lemma atomicMoveInvertibleRev :
     ∀ (m : AtomicMove), MovesInverse  [AtomicMoveInv m] [m].
-  Proof.
+  Proof using Type.
     intros m. remember [AtomicMoveInv m].
     setoid_rewrite <- MoveInvInvolutive.
     subst.
@@ -1883,7 +1888,7 @@ First we define what it means for a move to be an inverse of another.
     (pr : tstart < tend),
     @CarExecutesAtomicMoveDuring m tstart tend pr
     -> CarExecutesAtomicMovesDuring [m] tstart tend (timeLtWeaken pr).
-  Proof.
+  Proof using Type.
     intros. econstructor; eauto. econstructor. reflexivity.
     Unshelve. apply leEq_reflexive.
   Qed.
@@ -1893,7 +1898,7 @@ First we define what it means for a move to be an inverse of another.
 
   Lemma atomicMovesInvertibleAux :
     ∀ (m : AtomicMoves), MovesInverse (AtomicMovesInv m) m.
-  Proof.
+  Proof using Type.
     induction m as [| h tl Hind]; intros ? ? ? ? ? ? Hm Hrm Ht;
       unfold AtomicMovesInv in Hrm; simpl in Hrm.
     - invertAtomicMoves. unfold posAtTime. rewrite <- Hml in Ht. 
@@ -1924,7 +1929,7 @@ First we define what it means for a move to be an inverse of another.
   
   Lemma MovesInvInvolutive : ∀ (m : AtomicMoves), 
     AtomicMovesInv (AtomicMovesInv m) = m.
-  Proof.
+  Proof using .
     induction m;[reflexivity |].
     unfold AtomicMovesInv. simpl.
     rewrite map_app.
@@ -1938,7 +1943,7 @@ First we define what it means for a move to be an inverse of another.
 
   Lemma atomicMovesInvertible :
   ∀ (m : AtomicMoves), MovesInverse m (AtomicMovesInv m).
-  Proof.
+  Proof using Type.
     intros m. remember (AtomicMovesInv m).
     setoid_rewrite <- (MovesInvInvolutive m).
     subst.
@@ -1990,7 +1995,7 @@ to where we started.
   {theta acs} tend =  θs /\
     posAtTime acs tend = (posAtTime acs tstart)
       + ('ddistance) * (unitVec θAtW).
-  Proof.
+  Proof using Type.
     intros ? ? ? amsc.    
     unfold SidewaysAux in amsc.
     apply movesControlsApp in amsc.
@@ -2050,7 +2055,7 @@ to where we started.
     {theta acs} tend =  θs /\
     posAtTime acs tend = (posAtTime acs tstart) 
       + ('(ddistance * Sin  θw)) * unitVec (θs + (½ * π)).
-  Proof.
+  Proof using Type.
     intros ? ? ? amsc.
     unfold SidewaysMove in amsc. simpl.
     apply movesControlsApp in amsc.
