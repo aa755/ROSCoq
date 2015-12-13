@@ -87,7 +87,7 @@ Section Proper.
   Qed.
 
   Global Instance ProperCarMinMax (cd : CarDimensions IR) : Proper
-    (equiv ==> equiv) (fun r => carMinMaxXY r cd).
+    (equiv ==> equiv) (carMinMaxXY cd).
   Proof.
     intros x y Heq. unfold carMinMaxXY. simpl.
     unfold boundingUnion. simpl.
@@ -216,9 +216,9 @@ Section XYBounds.
       apply plus_resp_nonneg; tauto.
   Qed.
     
-  Lemma carBoundsAMAux : carMinMaxXY cs cd =
-  {|minxy := {|X:= X (backLeft cs cd); Y:= Y (backRight cs cd)|};
-     maxxy := {|X:= X (frontRight cs cd); Y:= Y (frontLeft cs cd) |} |}.
+  Lemma carBoundsAMAux : carMinMaxXY cd cs =
+  {|minxy := {|X:= X (backLeft cd cs); Y:= Y (backRight cd cs)|};
+     maxxy := {|X:= X (frontRight cd cs); Y:= Y (frontLeft cd cs) |} |}.
   Proof using All.
   unfold carMinMaxXY.
   unfold backRight, backLeft.
@@ -340,7 +340,7 @@ Context {maxTurnCurvature : Qpos}
   Definition confinedDuring (cd :CarDimensions IR) (rect: Line2D IR) :=
    forall  (t :Time),
     tstart ≤ t ≤ tend
-    → carMinMaxXY (rigidStateAtTime acs t) cd ⊆ rect.
+    → carMinMaxXY cd (rigidStateAtTime acs t) ⊆ rect.
 
   Local Notation θ0 := ({theta acs} tstart).
   
@@ -601,7 +601,7 @@ Context {maxTurnCurvature : Qpos}
 
   Lemma carMinMaxXYAM : 
     forall (t :Time) (Hb : tstart ≤ t ≤ tend),
-    carMinMaxXY (rigidStateAtTime acs t) cd
+    carMinMaxXY cd (rigidStateAtTime acs t)
     = carMinMaxXYAtθ (rigidStateAtTime acs tstart) cd turnRadius ({theta acs} t).
   Proof using (fixed nonTriv tcNZ theta90).
     intros ? ?.

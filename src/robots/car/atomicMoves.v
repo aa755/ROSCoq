@@ -23,6 +23,9 @@ Require Export LibTactics.
 
 Require Import Vector.
 
+    Ltac dimp H :=
+    lapply H;[clear H; intro H|].
+
 Require Import MathClasses.interfaces.canonical_names.
 Require Import MCInstances.
 Require Import ackermannSteering.
@@ -46,6 +49,22 @@ Local Notation minxy := (lstart).
 Local Notation maxxy := (lend).
 Local Notation  "∫" := Cintegral.
 
+Global Instance properPosAtTime {maxTurnCurvature : Qpos}
+   (acs : AckermannCar maxTurnCurvature) :
+Proper (equiv ==> equiv) (posAtTime acs).
+Proof.
+  intros ? ? Heq; split; simpl;
+  rewrite Heq; reflexivity.
+Qed.
+
+
+Global Instance properRigid2DState {maxTurnCurvature : Qpos}
+   (acs : AckermannCar maxTurnCurvature) :
+Proper (equiv ==> equiv) (rigidStateAtTime acs).
+Proof.
+  intros ? ? Heq; split; simpl;
+  rewrite Heq; reflexivity.
+Qed.
 
 (** * Atomic Move
 
@@ -301,8 +320,6 @@ Section AtomicMove.
     intros ? ? ? ? ? Hn ? ?. destruct Hn as [Hn | Hn];[left|right];
       intros t Hb; apply Hn; destruct Hb; split; eauto 2 with CoRN.
   Qed.
-    Ltac dimp H :=
-    lapply H;[clear H; intro H|].
 
   Lemma AMTurnCurvature : ∀ t : Time,
       tdrive ≤ t ≤ tend → {turnCurvature acs} t = tc.
@@ -369,16 +386,9 @@ Section AtomicMove.
     setoid_rewrite <- AtomicMoveθ in hh.
     destruct Hd as [Hd | Hd].
     - apply confinedDuringTurningAMIfAux in hh.
-      assert (carMinMaxXY (rigidStateAtTime acs t) cd
-      = carMinMaxXY (rigidStateAtTime acs tdrive) cd
-      ) as XX. 
-      + apply ProperCarMinMax.
-        transitivity (rigidStateAtTime acs tstart);
-          [| symmetry]; 
-        apply rigidStateNoChange; repnd; split; auto.
-        apply am_timeIncWeaken.
-      + rewrite XX. apply hh. split; auto; 
-          apply am_timeIncWeaken.
+      rewrite rigidStateNoChange;[| repnd; split; auto].
+      rewrite <- (rigidStateNoChange tdrive); [| split; auto;apply am_timeIncWeaken].
+      apply hh. split; auto;apply am_timeIncWeaken.
     - apply confinedDuringTurningAMIfAux; auto.
       repnd; split; auto.
   Qed.
@@ -615,7 +625,7 @@ Qed.
   *)
    Definition straightAMSpaceRequirement 
       (init : Rigid2DState IR) : Line2D IR :=
-      let bi := carMinMaxXY init cd in
+      let bi := carMinMaxXY cd init  in
       let bf := bi + '(('distance) * (unitVec (θ2D init))) in
           (boundingUnion bi bf).
           
@@ -900,6 +910,7 @@ Ltac invertAtomicMoves :=
     | [ H: le ?x ?x |- _] => clear H
   end.
   
+Hint Resolve timeLtWeaken : timeReasoning.
 Section Wddd.
   Context  {maxTurnCurvature : Qpos}
    (acs : AckermannCar maxTurnCurvature).
@@ -938,17 +949,68 @@ Fixpoint carConfinedDuringAMs (cd : CarDimensions IR)
   (lam : list DAtomicMove)
   (init : Rigid2DState IR) : Prop  :=
 match lam with
-| [] => carMinMaxXY init cd ⊆ rect
+| [] => carMinMaxXY cd init ⊆ rect
 | m::tl => (carConfinedDuringAM cd rect m init) /\ 
             carConfinedDuringAMs cd rect tl (stateAfterAtomicMove init m)
 end.
+Check carConfinedDuringAM.
+
+Global Instance EquivDAtomicMove : Equiv DAtomicMove.
+  apply sigT_equiv.
+Defined.
+
+Typeclasses Transparent EquivDAtomicMove.
+
+Global Instance ProperCarConfinedDuringAM (cd : CarDimensions IR):
+Proper (equiv ==> equiv ==> equiv ==> iff) (carConfinedDuringAM cd).
+Proof.
+  intros ? ? H1 aml amr H2 ? ? H3.
+  unfold carConfinedDuringAM.
+  destruct aml as [ml sl].
+  destruct amr as [mr sr]. simpl. 
+  unfold equiv, EquivDAtomicMove, sigT_equiv in H2.
+  simpl in H2. unfold AtomicMoveSign in sl, sr.
+  destruct sl as [sl | sl].
+  - destruct H2 as [H2l H2r].
+    rewrite H2r in sl. destruct sr;[| eapply eq_imp_not_ap in sl; eauto; contradiction].
+    rewrite H1. unfold straightAMSpaceRequirement.
+    unfold boundingUnion.
+    rewrite H3. rewrite H2l.
+    tauto.
+  -destruct H2 as [H2l H2r].
+   destruct sr as [sr|];[rewrite <- H2r in sr;eapply eq_imp_not_ap in sr; eauto; contradiction|].
+   unfold confinedTurningAM. unfold inBetweenR.
+   setoid_rewrite H1.
+Abort.
+(*
+  Global Instance ProperCarMinMaxAs (cd : CarDimensions IR) : Proper
+    (equiv ==> eq ==> equiv) (@carMinMaxXY IR _ _ _ _ _ _ _ _ _ _).
+  Proof.
+    intros x y Heq c d He. rewrite He.
+    apply ProperCarMinMax; assumption.
+  Qed.
+*)
+
+Require Import MathClasses.interfaces.orders.
+
+Global Instance LeTimePreorder  : PreOrder Le_instance_Time .
+Proof.
+  split; intros ?; unfold le, Le_instance_Time; eauto 2 with CoRN.
+Qed.
+
+Global Instance LeTimePartialOrder  : PartialOrder Le_instance_Time.
+Proof.
+  split; eauto with typeclass_instances.
+  intros ? ?; unfold le, Le_instance_Time, equiv; eauto 2 with CoRN.
+  intros. destruct x, y. eapply leEq_imp_eq; eauto.
+Qed.
 
 Lemma carConfinedDuringAMsCorrect : forall
   (cd : CarDimensions IR)
   (_ : nonTrivialCarDim cd)
   (rect : Line2D IR)
   (tstart tend :Time)
-  (_ :∀ t : Time,
+  (theta90 :∀ t : Time,
      tstart ≤ t ≤ tend → 0 ≤ {theta acs} t ≤ ½ * π)
   p
   (dams : list DAtomicMove),
@@ -958,12 +1020,23 @@ Lemma carConfinedDuringAMsCorrect : forall
   -> confinedDuring acs tstart tend cd rect.
 Proof using Type.
   intros ? ? ? ? ? ? ? ? ? Ham. remember ams as l. subst ams.
-  revert Heql. induction Ham; intros ? Hcc.
+  revert Heql. revert dams. induction Ham; intros ? ? Hcc.
   - destruct dams; inverts Heql. simpl in Hcc.
     intros ? Hb. rewrite <- pe in Hb.
-    destruct Hb as [Hbl Hbr]. eapply leEq_imp_eq in Hbl; eauto.
-    assert  (t=tl) as Hbll by (destruct t,tl;apply Hbl).
-    unfold rigidStateAtTime, posAtTime. simpl.
+    destruct Hb as [Hbl Hbr]. 
+    eapply po_antisym in Hbl. specialize (Hbl Hbr).
+    clear Hbr. rewrite <- Hbl. assumption.
+  - destruct dams as [| m tm];inverts Heql as Heql Haa Hbb.
+    pose proof (timeLtWeaken  pl).
+    dimp IHHam;
+      [|intros tt Hb; apply theta90;
+        repnd; split; eauto 2 with relations].
+    specialize (IHHam _ eq_refl).
+    simpl in Hcc. repnd.
+    eapply carConfinedDuringAMCorrect with (p0:=pl) in Hccl;
+      eauto; [|intros tt Hb; apply theta90;
+                repnd; split; eauto 2 with relations].
+    try rewrite <- stateAfterAtomicMoveCorrect in Hccr.
 Abort.
 
 End Wddd.
@@ -1111,10 +1184,12 @@ Definition MonotonicMovesInverse (dams damsr : list DAtomicMove)  :=
     - apply AtomicMoveZFinal with (pr0 := p) in amscl;
         [| exact Hd].
       apply AtomicMoveZFinal with (pr0 := pr) in amscrl;
-        [| exact Hd]. repnd.
+        [| exact Hd]. simpl in amscl.
+      destruct amscl as [amsclr amscll].
+      destruct amscrl as [amscrlr amscrll].
       simpl in amsclr, amscrlr.
       rewrite amscrlr,  amsclr, Hte, amscll.
-      unfold cast, castCRCart2DCR. rewrite sameXYNegate.
+      unfold cast, castCRCart2DCR. rewrite sameXYNegate. simpl.
       ring.
     - apply AtomicMoveXYT with (tcNZ:= Hd) in amscl.
       eapply AtomicMoveXYT  in amscrl.
@@ -1136,15 +1211,16 @@ Definition MonotonicMovesInverse (dams damsr : list DAtomicMove)  :=
     - eapply atomicMoveInvertibleθ in Hf0; eauto.
   Qed.
 
+(*
   Lemma atomicMonoMoveInvertible :
-    ∀ (m : AtomicMove), MonotonicMovesInverse [m] [AtomicMoveInv m].
+    ∀ (m : DAtomicMove), MonotonicMovesInverse [m] [AtomicMoveInv m].
   Proof.
     intros m. split;[apply atomicMoveInvertible|].
     intros ? ? ? ? ? ? ? ? ? ? Hcm Hcm3 Hcon.
     invertAtomicMoves.
     intros t tp.
   Abort.
-
+*)
   Lemma MoveInvInvolutive : ∀ (m : AtomicMove), 
     AtomicMoveInv (AtomicMoveInv m) = m.
   Proof using .

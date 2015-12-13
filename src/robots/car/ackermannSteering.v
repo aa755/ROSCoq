@@ -172,12 +172,12 @@ time to reals.*)
 Context `{SinClass R} `{CosClass R} `{Ring R} `{RealNumberPi R} `{HalfNum R}
  `{MaxClass R} `{MinClass R}.
 
+Variable cd :CarDimensions R.
 Variable cs :Rigid2DState R.
 
 Definition frontUnitVec : Cart2D R := unitVec (θ2D cs).
 Definition rightSideUnitVec : Cart2D R := unitVec ((θ2D cs) - (½ * π)).
 
-Variable cd :CarDimensions R.
 
 Definition frontRight : Cart2D R := 
   (pos2D cs)  +
@@ -219,22 +219,22 @@ Definition rhsUnitVecAtTime : Cart2D IR :=
 
 
 Definition frontRightAtTime : Cart2D IR := 
-  frontRight (rigidStateAtTime acs t) cd.
+  frontRight cd (rigidStateAtTime acs t).
 
 
 Definition frontLeftAtTime : Cart2D IR := 
-  frontLeft (rigidStateAtTime acs t) cd.
+  frontLeft cd (rigidStateAtTime acs t).
 
 
 Definition backRightAtTime : Cart2D IR := 
-  backRight (rigidStateAtTime acs t) cd.
+  backRight cd (rigidStateAtTime acs t).
 
 
 Definition backLeftAtTime : Cart2D IR := 
-  backLeft (rigidStateAtTime acs t) cd.
+  backLeft cd (rigidStateAtTime acs t).
 
 Definition carMinMaxAtT (t:Time):=
-   (carMinMaxXY (rigidStateAtTime acs t) cd).
+   (carMinMaxXY cd (rigidStateAtTime acs t)).
 
 End CornerPosAtTime.
 

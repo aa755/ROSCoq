@@ -224,8 +224,8 @@ to where we started.
     specialize (Hw Hwr). clear Hwr.
     apply Wriggleθ in Hwb.
     invertAtomicMoves.
-    apply AtomicMoveZFinal in Hf;[|unfold amNoTurn;  reflexivity].
-    simpl in Hf. repnd.
+    apply AtomicMoveZFinal in Hf;[|unfold amNoTurn;  reflexivity]. destruct Hf as [Hfr Hfl].
+    simpl in Hfl, Hfr.
     specialize (Hw Hfl).
     repnd. symmetry in Hwr.
     split;[assumption|]. rewrite Hwb in Hfr.
@@ -276,7 +276,8 @@ to where we started.
     apply SidewaysAuxState in Hamsl.
     invertAtomicMoves.
     apply AtomicMoveZFinal in Hf;[|unfold amNoTurn;  reflexivity].
-    simpl in Hf. repnd.
+     destruct Hf as [Hfr Hfl].
+    simpl in Hfl, Hfr. repnd.
     rewrite Hamsll in Hfl.
     rewrite Hamsll in Hfr.
     split;[assumption|]. clear Hamsll Hfl.
