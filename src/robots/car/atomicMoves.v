@@ -462,11 +462,10 @@ Section AtomicMove.
      auto.
     Qed.
 
-   Lemma AtomicMoveZFinal : {theta acs} tend =  θs /\
-     posAtTime acs tend =
-     Ps + ('distance) * (unitVec θs).
+   Lemma AtomicMoveZFinal : rigidStateAtTime acs tend = 
+     {| pos2D := Ps + ('distance) * (unitVec θs); θ2D := θs |}.
    Proof using All.
-     split;[apply AtomicMoveZθ;split; timeReasoning|].
+     split;[|apply AtomicMoveZθ;split; timeReasoning].
       rewrite  (am_driveDistanceFull).
      apply AtomicMoveZ. auto.
    Qed.
@@ -666,20 +665,56 @@ Qed.
 
 End AtomicMove.
 
-Section AtomicMoveSpaceRequirement.
+Section AtomicMoveSummary.
 Context `(acs : AckermannCar maxTurnCurvature).
 
 Definition AtomicMoveSign (am : AtomicMove) : Type :=
   (am_tc am =0) or (am_tc am[#]0).
+
+Definition DAtomicMove := {am : AtomicMove 
+    | AtomicMoveSign am }.
+
+(** combine the final positions for,
+    both for the cases of turning and driving straignt*)
+Definition stateAfterAtomicMove 
+  (cs : Rigid2DState IR) (dm : DAtomicMove): Rigid2DState IR:=
   
+  let tc : IR := (am_tc (projT1 dm)) in
+  let dist : IR := (am_distance (projT1 dm)) in
+  let θInit :IR := (θ2D cs) in
+  let θf :IR := θInit + tc*dist in
+  let posInit : Cart2D IR := (pos2D cs) in
+  let posDelta := 
+    match (projT2 dm) with
+    | inl _ =>  ('dist) * (unitVec θInit)
+    | inr p => {|X:= (sin θf - sin θInit) * (f_rcpcl tc p) ; 
+                Y:= (cos θInit - cos θf) * (f_rcpcl tc p)|}
+    end in  
+  {|pos2D := posInit + posDelta; θ2D := θf|}.
+
+Lemma stateAfterAtomicMoveCorrect : forall 
+  (cs : Rigid2DState IR) (dm : DAtomicMove) 
+  (tstart tend :Time)
+  (p: tstart < tend),
+  @CarExecutesAtomicMoveDuring _ acs (projT1 dm) tstart tend p
+  -> rigidStateAtTime acs tend = 
+      stateAfterAtomicMove (rigidStateAtTime acs tstart) dm.
+Proof.
+  intros ? ? ? ? ? Ham.
+  destruct dm as [am s]. unfold stateAfterAtomicMove.
+  destruct s as [s | s]; simpl.
+  - rewrite s. rewrite mult_0_l, plus_0_r. eapply AtomicMoveZFinal; eauto. 
+  - split; simpl; [eapply  AtomicMoveXY | eapply AtomicMoveθ]; eauto.
+Qed. 
+
 (** combine the sufficient conditions on space required,
     both for the cases of turning and driving straignt*)
 Definition carConfinedDuringAM 
-  (cd : CarDimensions IR)
-  (am : AtomicMove)
-  (s : AtomicMoveSign am) 
+  (cd : CarDimensions IR) (rect : Line2D IR)
+  (ams : DAtomicMove)
   (init : Rigid2DState IR)
-  (rect : Line2D IR) := 
+   := 
+let (am,s) :=ams in
 match s with
 | inl _ => (straightAMSpaceRequirement am cd init) ⊆ rect
 | inr turn => (confinedTurningAM am turn cd init rect)
@@ -688,19 +723,19 @@ end.
 Lemma carConfinedDuringAMCorrect:  forall 
   (cd : CarDimensions IR)
   (_ : nonTrivialCarDim cd)
-  (am : AtomicMove)
-  (s : AtomicMoveSign am) 
+  (ams : DAtomicMove)
   (rect : Line2D IR)
   (tstart tend :Time)
   (p: tstart < tend)
   (_ :∀ t : Time,
      tstart ≤ t ≤ tend → 0 ≤ {theta acs} t ≤ ½ * π),
-  @CarMonotonicallyExecsAtomicMoveDuring _ acs am tstart tend  p
-  -> @carConfinedDuringAM cd am s (rigidStateAtTime acs tstart) rect
+  @CarMonotonicallyExecsAtomicMoveDuring _ acs (projT1 ams) tstart tend  p
+  -> @carConfinedDuringAM cd rect ams (rigidStateAtTime acs tstart)
   -> confinedDuring acs tstart tend cd rect.
 Proof using Type.
-  intros ? ? ? ? ? ? ? ? ? Ham Hcc.
+  intros ? ? ? ? ? ? ? ? Ham Hcc.
   destruct Ham as [Ham Hnosign].
+  destruct ams as [am s].
   destruct s as [s | s]; simpl in Hcc.
   - eapply (@straightAMSpaceRequirementCorrect _ acs) with (cd:=cd) in Ham;      eauto.
     intros t Hb. specialize (Ham t Hb).
@@ -708,7 +743,7 @@ Proof using Type.
   - eapply confinedTurningAMCorrect in Hcc; eauto.
 Qed. 
 
-End AtomicMoveSpaceRequirement.
+End AtomicMoveSummary.
 
 Section Wdd.
   Context  {maxTurnCurvature : Qpos}
@@ -897,6 +932,40 @@ Section Wddd.
     eauto 1 with relations.
   Qed.
 
+
+Fixpoint carConfinedDuringAMs (cd : CarDimensions IR)
+  (rect : Line2D IR) 
+  (lam : list DAtomicMove)
+  (init : Rigid2DState IR) : Prop  :=
+match lam with
+| [] => carMinMaxXY init cd ⊆ rect
+| m::tl => (carConfinedDuringAM cd rect m init) /\ 
+            carConfinedDuringAMs cd rect tl (stateAfterAtomicMove init m)
+end.
+
+Lemma carConfinedDuringAMsCorrect : forall
+  (cd : CarDimensions IR)
+  (_ : nonTrivialCarDim cd)
+  (rect : Line2D IR)
+  (tstart tend :Time)
+  (_ :∀ t : Time,
+     tstart ≤ t ≤ tend → 0 ≤ {theta acs} t ≤ ½ * π)
+  p
+  (dams : list DAtomicMove),
+  let ams := List.map (@projT1 _ _) dams in
+  CarMonotonicallyExecsAtomicMovesDuring acs ams tstart tend  p
+  -> @carConfinedDuringAMs cd rect dams (rigidStateAtTime acs tstart)
+  -> confinedDuring acs tstart tend cd rect.
+Proof using Type.
+  intros ? ? ? ? ? ? ? ? ? Ham. remember ams as l. subst ams.
+  revert Heql. induction Ham; intros ? Hcc.
+  - destruct dams; inverts Heql. simpl in Hcc.
+    intros ? Hb. rewrite <- pe in Hb.
+    destruct Hb as [Hbl Hbr]. eapply leEq_imp_eq in Hbl; eauto.
+    assert  (t=tl) as Hbll by (destruct t,tl;apply Hbl).
+    unfold rigidStateAtTime, posAtTime. simpl.
+Abort.
+
 End Wddd.
 
 
@@ -950,16 +1019,18 @@ First we define what it means for a move to be an inverse of another.
 
 (** if each atomic move is executed monotonically, we can aslo
     relate the confinements of the car in axis aligned rectangles.*)
-  Definition MonotonicMovesInverse (ams amsr : AtomicMoves)  :=
-    MovesInverse ams amsr /\
-    ∀ mt (acs : AckermannCar mt) (cd : CarDimensions ℝ) (confineRect: Line2D IR)
-      (tstart tend : Time)  (p: tstart ≤ tend)
-      (tstartr tendr : Time)  (pr: tstartr ≤ tendr),
-      CarMonotonicallyExecsAtomicMovesDuring acs ams tstart tend p
-      -> CarMonotonicallyExecsAtomicMovesDuring acs amsr tstartr tendr pr
-      -> confinedDuring acs tstart tend cd confineRect
-      -> confinedDuring acs tstart tend cd 
-          (confineRect + '(posAtTime acs tendr - posAtTime acs tstart)).
+Definition MonotonicMovesInverse (dams damsr : list DAtomicMove)  :=
+  let ams  := List.map (@projT1 _ _) dams in
+  let amsr  := List.map (@projT1 _ _) damsr in
+  ∀ mt (acs : AckermannCar mt) (cd : CarDimensions ℝ) (confineRect: Line2D IR)
+    (tstart tend : Time)  (p: tstart ≤ tend)
+    (tstartr tendr : Time)  (pr: tstartr ≤ tendr),
+    CarMonotonicallyExecsAtomicMovesDuring acs ams tstart tend p
+    -> CarMonotonicallyExecsAtomicMovesDuring acs amsr tstartr tendr pr
+    -> carConfinedDuringAMs cd confineRect dams (rigidStateAtTime acs tstart)
+    -> carConfinedDuringAMs cd
+          (confineRect + '(posAtTime acs tendr - posAtTime acs tstart))
+          damsr (rigidStateAtTime acs tstartr).
 
 
   Definition CarExecutesAtomicMovesDuringAux  
@@ -1069,7 +1140,7 @@ First we define what it means for a move to be an inverse of another.
     ∀ (m : AtomicMove), MonotonicMovesInverse [m] [AtomicMoveInv m].
   Proof.
     intros m. split;[apply atomicMoveInvertible|].
-    intros ? ? ? ? ? ? ? ? Hcm Hcm3 Hcon.
+    intros ? ? ? ? ? ? ? ? ? ? Hcm Hcm3 Hcon.
     invertAtomicMoves.
     intros t tp.
   Abort.
