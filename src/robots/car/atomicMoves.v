@@ -500,61 +500,60 @@ Qed.
    Section XYBounds.
    Variable cd :CarDimensions IR.
 
-
 (* RHS was automatically obtained *)
-Lemma carMinMaxAtTEq : forall t, 
-carMinMaxAtT acs cd t = 
-'(posAtTime acs t) +
+Lemma carMinMaxAtTEq : forall r, 
+carMinMaxXY cd r = 
+'(pos2D r) +
 ({|
 lstart := minCart
             (minCart
                (minCart
                   (-
-                   frontUnitVec (rigidStateAtTime acs t) *
+                   frontUnitVec r *
                    ' lengthBack cd +
                    rightSideUnitVec
-                     (rigidStateAtTime acs t) *
+                     r *
                    ' width cd)
                   (-
-                   frontUnitVec (rigidStateAtTime acs t) *
+                   frontUnitVec r *
                    ' lengthBack cd -
                    rightSideUnitVec
-                     (rigidStateAtTime acs t) *
+                     r *
                    ' width cd))
-               (frontUnitVec (rigidStateAtTime acs t) *
+               (frontUnitVec r *
                 ' lengthFront cd -
                 rightSideUnitVec
-                  (rigidStateAtTime acs t) * 
+                  r * 
                 ' width cd))
-            (frontUnitVec (rigidStateAtTime acs t) *
+            (frontUnitVec r *
              ' lengthFront cd +
-             rightSideUnitVec (rigidStateAtTime acs t) *
+             rightSideUnitVec r *
              ' width cd);
 lend := maxCart
           (maxCart
              (maxCart
-                (- frontUnitVec (rigidStateAtTime acs t) *
+                (- frontUnitVec r *
                  ' lengthBack cd +
                  rightSideUnitVec
-                   (rigidStateAtTime acs t) * 
+                   r * 
                  ' width cd)
-                (- frontUnitVec (rigidStateAtTime acs t) *
+                (- frontUnitVec r *
                  ' lengthBack cd -
                  rightSideUnitVec
-                   (rigidStateAtTime acs t) * 
+                   r * 
                  ' width cd))
-             (frontUnitVec (rigidStateAtTime acs t) *
+             (frontUnitVec r *
               ' lengthFront cd -
-              rightSideUnitVec (rigidStateAtTime acs t) *
+              rightSideUnitVec r *
               ' width cd))
-          (frontUnitVec (rigidStateAtTime acs t) *
+          (frontUnitVec r *
            ' lengthFront cd +
-           rightSideUnitVec (rigidStateAtTime acs t) *
+           rightSideUnitVec r *
            ' width cd) |}).
 Proof using Type.
     intros ?.
     hideRight.
-    unfold carMinMaxAtT, carMinMaxXY. simpl.
+    unfold  carMinMaxXY. simpl.
     unfold boundingUnion. simpl.
     unfold backRight, backLeft.
     rewrite maxCartSum, minCartSum.
@@ -565,31 +564,41 @@ Proof using Type.
     subst l.
     reflexivity.
 Qed.
-  
 
-    
-   Lemma straightAMMinMaxXY : ∀ (t:Time) 
-    (pl : tstart ≤ t) (pr : t ≤ tend), 
-    carMinMaxAtT acs cd t =
-    carMinMaxAtT acs cd tstart 
-      + '(' ∫ ((mkIntBnd pl)) (linVel acs) * (unitVec θs)).
-   Proof using All.
-    intros ? ? ?.
-    rewrite carMinMaxAtTEq.
-    rewrite carMinMaxAtTEq.
-    unfold frontUnitVec, rightSideUnitVec.
-    simpl θ2D. hideRight.
-    rewrite AtomicMoveZθ; [|auto].
-    rewrite AtomicMoveZ with (pl:=pl); [|auto].
-    remember ('∫ (mkIntBnd pl) (linVel acs) * unitVec θs) as y.
-    clear Heqy.
-    match goal with
-    [ |- _ + ?bb = _] => remember bb as l
-    end.
-    clear Heql.
-    subst b.
-    split; simpl; ring.
-  Qed.
+Lemma straightAMMinMaxXY : ∀ r d, 
+   carMinMaxXY cd 
+      {|pos2D := pos2D r + d ; θ2D := θ2D r |} 
+    = carMinMaxXY cd r + 'd.
+Proof using.
+  intros.
+  rewrite carMinMaxAtTEq.
+  rewrite carMinMaxAtTEq.
+  unfold frontUnitVec, rightSideUnitVec.
+  simpl.
+  match goal with
+  [ |- _ + ?bb = _] => remember bb as l
+  end.
+  clear Heql.
+  split; simpl; ring.
+Qed.
+
+
+
+Lemma straightAMMinMaxXYT : ∀ (t:Time) 
+ (pl : tstart ≤ t) (pr : t ≤ tend), 
+ carMinMaxAtT acs cd t =
+ carMinMaxAtT acs cd tstart 
+ + '(' ∫ ((mkIntBnd pl)) (linVel acs) * (unitVec θs)).
+Proof using All.
+  intros ? ? ?.
+  unfold carMinMaxAtT.
+  unfold rigidStateAtTime.
+  rewrite AtomicMoveZθ; [|auto].
+  rewrite AtomicMoveZ with (pl:=pl); [|auto].
+  rewrite <- straightAMMinMaxXY.
+  reflexivity.
+Qed.
+
 
   Require Import MathClasses.orders.rings.
   Require Import MathClasses.interfaces.orders.
@@ -657,7 +666,7 @@ Qed.
      fold (carMinMaxAtT acs cd t).
      fold (carMinMaxAtT acs cd tstart).
      destruct Hb as [pl prr].
-     rewrite straightAMMinMaxXY with (pl:=pl);[| tauto].
+     rewrite straightAMMinMaxXYT with (pl:=pl);[| tauto].
      unfold boundingUnion.
      assert ((minxy (carMinMaxAtT acs cd tstart)) 
         = (minxy (carMinMaxAtT acs cd tstart)) + 0) as H0 by ring.
@@ -1081,6 +1090,117 @@ Proof using.
     tauto.
 Qed.
 
+(*Move to geometry2DProps*)
+Lemma minCart_leEq_lft: ∀ x y : Cart2D ℝ, 
+  minCart x y ≤ x.
+Proof.
+  intros ? ?.
+  split; apply Min_leEq_lft.
+Qed.
+
+Lemma minCart_leEq_rht: ∀ x y : Cart2D ℝ, 
+  minCart x y ≤ y.
+Proof.
+  intros ? ?. rewrite commutativity.
+  apply minCart_leEq_lft.
+Qed.
+
+Lemma lft_leEq_maxCart: ∀ x y : Cart2D ℝ, 
+  x ≤ maxCart x y.
+Proof.
+  intros ? ?.
+  split; apply lft_leEq_Max.
+Qed.
+
+Lemma rht_leEq_maxCart: ∀ x y : Cart2D ℝ, 
+  y ≤ maxCart x y.
+Proof.
+  intros ? ?. rewrite commutativity.
+  apply lft_leEq_maxCart.
+Qed.
+
+Lemma leEq_minCart : ∀ x y z : Cart2D ℝ, 
+  z ≤ x → z ≤ y → z ≤ minCart x y.
+Proof.
+  intros ? ? ? Hab Hbc.
+  destruct Hab, Hbc.
+  split; apply leEq_Min; assumption.
+Qed.
+
+Lemma maxCart_leEq : ∀ x y z : Cart2D ℝ, 
+  x ≤ z → y ≤ z → maxCart x y ≤ z.
+Proof.
+  intros ? ? ? Hab Hbc.
+  destruct Hab, Hbc.
+  split; apply Max_leEq; assumption.
+Qed.
+
+  
+Hint Resolve minCart_leEq_lft
+minCart_leEq_rht
+lft_leEq_maxCart
+rht_leEq_maxCart
+leEq_minCart
+maxCart_leEq
+ : MinMaxCart.
+
+Lemma boundingUnionIff: forall (a b c : Line2D IR),
+  boundingUnion a b ⊆ c
+  <-> (a ⊆ c /\ b ⊆ c).
+Proof using .
+  intros. unfold boundingUnion, le, LeAsSubset.
+  simpl. split; intro hh.
+  - repnd. split; split;
+    eapply (@transitivity (Cart2D ℝ) le _);
+    try apply hhl;
+    try apply hhr;
+    eauto using
+      minCart_leEq_lft,
+      minCart_leEq_rht,
+      lft_leEq_maxCart,
+      rht_leEq_maxCart.
+  - repnd. split; eauto using 
+      leEq_minCart, maxCart_leEq.
+Qed.
+  
+(*a more convenient characterization 
+of the single case*)
+Lemma carConfinedDuringAMsSingle: forall
+  (cd : CarDimensions IR)
+  (rect : Line2D IR) 
+  (m : DAtomicMove)
+  (init : Rigid2DState IR),
+carConfinedDuringAMs cd rect [m] init
+<-> carConfinedDuringAM cd rect m init.
+Proof using.
+  intros ? ? ? ?. simpl.
+  split;[tauto|].
+  intros Hc. split;[assumption|].
+  destruct m as [m s]. simpl in Hc.
+  destruct s as [s|s];
+  unfold stateAfterAtomicMove; simpl.
+  - simpl. unfold straightAMSpaceRequirement in Hc.
+    apply boundingUnionIff in Hc.
+    apply proj2 in Hc.
+    simpl in Hc.
+    eapply (@transitivity (Line2D ℝ) le _);
+      [|apply Hc].
+    apply eq_le.
+    rewrite <- straightAMMinMaxXY.
+    rewrite s, mult_0_l, plus_0_r.
+    reflexivity.
+  - unfold confinedTurningAM in Hc.
+    specialize (Hc (θ2D init + am_tc m * am_distance m)).
+(*need to unneccessarily assume that theta is in the first
+quadrant. do not depended on this
+in the definition of carConfinedDuringAM.
+state a general version of confinedTurningAM
+which does not depend on the
+not depend on the the assumption. 
+*)
+Abort.    
+
+
 Lemma carConfinedDuringAMsCorrect : forall
   (cd : CarDimensions IR)
   (_ : nonTrivialCarDim cd)
@@ -1225,6 +1345,7 @@ Definition MonotonicMovesInverse (dams damsr : list DAtomicMove)  :=
   Definition AtomicMovesInv (ms : AtomicMoves) : AtomicMoves
       := rev (List.map AtomicMoveInv ms).
 
+
   Lemma atomicMoveInvertibleθ :
     ∀ mt (acs : AckermannCar mt) m
       (tstart tend : Time)  (p: tstart < tend)
@@ -1293,13 +1414,28 @@ Definition MonotonicMovesInverse (dams damsr : list DAtomicMove)  :=
     - eapply atomicMoveInvertibleθ in Hf0; eauto.
   Qed.
 
-(*
-  Lemma atomicMonoMoveInvertible :
-    ∀ (m : DAtomicMove), MonotonicMovesInverse [m] [AtomicMoveInv m].
-  Proof.
-    intros m. split;[apply atomicMoveInvertible|].
-    intros ? ? ? ? ? ? ? ? ? ? Hcm Hcm3 Hcon.
-    invertAtomicMoves.
+  Definition DAtomicMoveInv (m : DAtomicMove) : DAtomicMove:=
+    existT _ (AtomicMoveInv (projT1 m)) (projT2 m).
+
+  Definition DAtomicMovesInv (ms : list DAtomicMove) : list DAtomicMove
+      := rev (List.map DAtomicMoveInv ms).
+
+
+Lemma atomicMonoMoveInvertible :
+    ∀ (m : DAtomicMove), 
+    MonotonicMovesInverse [m] [DAtomicMoveInv m].
+Proof.
+  intros m.
+  intros ? ? ? ? ? ? ? ? ? ? Hcm Hcmi Hcon.
+  rename confineRect into rect.
+  simpl in Hcm.
+  simpl in Hcmi.
+  invertAtomicMoves.
+  unfold DAtomicMoveInv, AtomicMoveInv in *.
+  destruct m as [m s].
+  simpl in *.
+  destruct s as [s | s].
+  - simpl in *. unfold 
     intros t tp.
   Abort.
 *)
