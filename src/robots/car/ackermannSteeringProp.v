@@ -63,39 +63,100 @@ Definition nonTrivialCarDim (cd : CarDimensions IR) :=
   0 ≤ lengthFront cd  and  0 [<] width cd and 0 ≤ lengthBack cd.
 
 
-
-
 Hint Unfold cos CosClassIR sin SinClassIR min MinClassIR  max MaxClassIR: IRMC.
 Hint Unfold cos CosClassIR sin SinClassIR min MinClassIR  max MaxClassIR: AbstractR.
 
-Section Proper.
 
-  Global Instance ProperFrontUnitVec : Proper
+Global Instance ProperFrontUnitVec : Proper
     (equiv ==> equiv) (@frontUnitVec IR _ _).
-  Proof.
-    intros x y Heq. destruct x, y. apply proj2 in Heq.
-    unfold frontUnitVec. simpl in *. rewrite Heq.
-    reflexivity.
-  Qed.
+Proof.
+  intros x y Heq. destruct x, y. apply proj2 in Heq.
+  unfold frontUnitVec. simpl in *. rewrite Heq.
+  reflexivity.
+Qed.
 
-  Global Instance ProperRHSUnitVec : Proper
-    (equiv ==> equiv) (@rightSideUnitVec IR _ _ _ _ _ _ _).
-  Proof.
-    intros x y Heq. destruct x, y. apply proj2 in Heq.
-    unfold rightSideUnitVec. simpl in *. rewrite Heq.
-    reflexivity.
-  Qed.
+Global Instance ProperRHSUnitVec : Proper
+  (equiv ==> equiv) (@rightSideUnitVec IR _ _ _ _ _ _ _).
+Proof.
+  intros x y Heq. destruct x, y. apply proj2 in Heq.
+  unfold rightSideUnitVec. simpl in *. rewrite Heq.
+  reflexivity.
+Qed.
 
-  Global Instance ProperCarMinMax (cd : CarDimensions IR) : Proper
-    (equiv ==> equiv) (carMinMaxXY cd).
-  Proof.
-    intros x y Heq. unfold carMinMaxXY. simpl.
-    unfold boundingUnion. simpl.
-    unfold backLeft, frontLeft, frontRight, backRight.
-    rewrite Heq. reflexivity.
-  Qed.
 
-End Proper.
+Global Instance properPosAtTime {maxTurnCurvature : Qpos}
+   (acs : AckermannCar maxTurnCurvature) :
+Proper (equiv ==> equiv) (posAtTime acs).
+Proof.
+  intros ? ? Heq; split; simpl;
+  rewrite Heq; reflexivity.
+Qed.
+
+
+Global Instance properRigid2DState {maxTurnCurvature : Qpos}
+   (acs : AckermannCar maxTurnCurvature) :
+Proper (equiv ==> equiv) (rigidStateAtTime acs).
+Proof.
+  intros ? ? Heq; split; simpl;
+  rewrite Heq; reflexivity.
+Qed.
+
+Global Instance EquivCarDim `{Equiv A}: Equiv (CarDimensions A) := fun a b => (width a = width b) 
+  /\ (lengthFront a = lengthFront b)
+  /\ (lengthBack a = lengthBack b).
+
+Global Instance ProperCarDimLengthFront `{Equiv A}: 
+Proper (equiv ==> equiv) (@lengthFront A).
+Proof.
+  intros ? ? Heq. destruct Heq. tauto.
+Qed.
+
+Global Instance ProperCarDimLengthBack `{Equiv A}: 
+Proper (equiv ==> equiv) (@lengthBack A).
+Proof.
+  intros ? ? Heq. destruct Heq. tauto.
+Qed.
+
+Global Instance ProperCarDimWidth `{Equiv A}: 
+Proper (equiv ==> equiv) (@width A).
+Proof.
+  intros ? ? Heq. destruct Heq. tauto.
+Qed.
+
+
+Global Instance EquivalenceCarDim  `{e:Equiv A}
+  `{Equivalence _ e}
+   : Equivalence EquivCarDim.
+Proof using .
+  unfold equiv, EquivCarDim. split.
+  - intros x. destruct x. simpl. split; auto with *.
+  - intros x y. destruct x,y. simpl. intros Hd; repnd;
+      split; auto with relations.
+
+  - intros x y z. destruct x,y,z. simpl. intros H0 H1.
+    repnd.
+    split; eauto 3
+    with relations.
+Qed.
+
+Typeclasses Transparent BoundingRectangle.
+Global Instance ProperboundingUnion:
+ Proper (equiv ==> equiv ==> equiv) 
+ (@boundingUnion IR _ _).
+Proof.
+  intros ? ? H1 ? ? H2.
+  unfold boundingUnion.
+  rewrite H1, H2. reflexivity.
+Qed.
+
+Global Instance ProperCarMinMax : Proper
+    (equiv ==> equiv ==> equiv) (@carMinMaxXY IR _ _ _ _ _ _ _ _ _ _).
+Proof.
+  intros ? ? H0 x y Heq. unfold carMinMaxXY. simpl.
+  unfold backLeft, frontLeft, frontRight, backRight.
+  rewrite H0.
+  rewrite Heq. reflexivity.
+Qed.
 
 (** For getting out of a parallel parked spot, a car's orientation does not
 need to change by 90 degrees. Assume that the X axis represents the road.
@@ -301,13 +362,13 @@ End XYBounds.
         |}
   |}.
   
-  Global Instance ProperCarMinMaxAtθ (cd : CarDimensions IR) : Proper
-    (equiv ==> equiv ==> equiv ==> equiv) 
-      (fun r tr θ=> carMinMaxXYAtθ r cd tr θ).
+  Global Instance ProperCarMinMaxAtθ : Proper
+    (equiv ==> equiv ==> equiv ==> equiv ==> equiv) 
+       carMinMaxXYAtθ.
   Proof.
-    intros ? ? H1e ? ? H2e ? ? H3e.
+    intros ? ? H1e ? ? H2e ? ? H3e ? ? H4e.
     unfold carMinMaxXYAtθ. rewrite H1e.
-    rewrite H2e. rewrite H3e.
+    rewrite H2e. rewrite H3e.  rewrite H4e.
     reflexivity.
   Qed.
 

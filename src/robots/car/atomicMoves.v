@@ -49,21 +49,19 @@ Local Notation minxy := (lstart).
 Local Notation maxxy := (lend).
 Local Notation  "∫" := Cintegral.
 
-Global Instance properPosAtTime {maxTurnCurvature : Qpos}
-   (acs : AckermannCar maxTurnCurvature) :
-Proper (equiv ==> equiv) (posAtTime acs).
+Require Import MathClasses.interfaces.orders.
+
+(*Move to MCInstances*)
+Global Instance LeTimePreorder  : PreOrder Le_instance_Time .
 Proof.
-  intros ? ? Heq; split; simpl;
-  rewrite Heq; reflexivity.
+  split; intros ?; unfold le, Le_instance_Time; eauto 2 with CoRN.
 Qed.
 
-
-Global Instance properRigid2DState {maxTurnCurvature : Qpos}
-   (acs : AckermannCar maxTurnCurvature) :
-Proper (equiv ==> equiv) (rigidStateAtTime acs).
+Global Instance LeTimePartialOrder  : PartialOrder Le_instance_Time.
 Proof.
-  intros ? ? Heq; split; simpl;
-  rewrite Heq; reflexivity.
+  split; eauto with typeclass_instances.
+  intros ? ?; unfold le, Le_instance_Time, equiv; eauto 2 with CoRN.
+  intros. destruct x, y. eapply leEq_imp_eq; eauto.
 Qed.
 
 (** * Atomic Move
@@ -103,6 +101,18 @@ and one can drive both forward and backward *)
     split; eauto 10
     with relations.
   Qed.
+
+Global Instance ProperAMTC : 
+Proper (equiv ==> equiv) am_tc.
+Proof using.
+  intros ? ? Heq. destruct Heq. tauto.
+Qed.
+
+Global Instance ProperAMDistance : 
+Proper (equiv ==> equiv) am_distance.
+Proof using.
+  intros ? ? Heq. destruct Heq. tauto.
+Qed.
 
 Section AtomicMove.
 
@@ -349,18 +359,11 @@ Section AtomicMove.
       - apply AMTurnCurvature.
       - intros. apply theta90. repnd. split; 
             autounfold with IRMC; eauto 2 with CoRN.
-      - intros ? Hj.
-
-      assert (carMinMaxXYAtθ (rigidStateAtTime acs tdrive) cd
-        turnRadius θ= 
-      carMinMaxXYAtθ (rigidStateAtTime acs tstart) cd
-        turnRadius θ
-      ) as HH. apply ProperCarMinMaxAtθ; auto.
-      rewrite HH.
-      apply Hb. clear Hb.
-      unfold inBetweenR in Hj. apply proj2 in XX.
-      simpl in XX.
-      rewrite  XX in Hj. exact Hj.
+      - intros ? Hj. rewrite XX.
+        apply Hb. clear Hb.
+        unfold inBetweenR in Hj. apply proj2 in XX.
+        simpl in XX.
+        rewrite  XX in Hj. exact Hj.
     Qed.
 
   Definition confinedTurningAM  (init : Rigid2DState IR) 
@@ -370,27 +373,41 @@ Section AtomicMove.
     ∀ (θ : IR), 
       inBetweenR θ θi θf
            -> carMinMaxXYAtθ init cd turnRadius θ ⊆ confineRect.
+
+Lemma confinedDuringSplit : forall (confineRect : Line2D IR)
+  (ts tm te :Time),
+  ts ≤ tm
+  -> tm ≤ te
+  ->confinedDuring acs ts tm cd confineRect
+  ->confinedDuring acs tm te cd confineRect
+  ->confinedDuring acs ts te cd confineRect.
+Proof using.
+  intros ? ? ? ? hl hr cl cr t Hb.
+  eapply stable. 
+      Unshelve. Focus 2. apply StableSubsetLine2D.
+           apply StableLeIR;fail.
+  pose proof (leEq_or_leEq _ t tm) as Hd.
+  eapply DN_fmap;[exact Hd|]. clear Hd. intro Hd.
+  destruct Hd;[apply cl|apply cr];
+  repnd; split; auto.
+Qed.
            
   Lemma confinedTurningAMCorrect : forall (confineRect : Line2D IR),
     confinedTurningAM (rigidStateAtTime acs tstart) confineRect
      ->  confinedDuring acs tstart tend cd confineRect.
   Proof using All.
-    intros ?  hh t Hb.
-    eapply stable. 
-      Unshelve. Focus 2. apply StableSubsetLine2D.
-           apply StableLeIR;fail.
-    pose proof (leEq_or_leEq _ t tdrive) as Hd.
-    eapply DN_fmap;[exact Hd|]. clear Hd. intro Hd.
+    intros ?  hh.
     unfold confinedTurningAM in hh. simpl in hh.
     unfold inBetweenR in hh.
     setoid_rewrite <- AtomicMoveθ in hh.
-    destruct Hd as [Hd | Hd].
+    pose proof am_timeIncWeaken. repnd.
+    apply confinedDuringSplit with (tm:=tdrive);
+    auto; [|]; intros t Hb.
     - apply confinedDuringTurningAMIfAux in hh.
       rewrite rigidStateNoChange;[| repnd; split; auto].
       rewrite <- (rigidStateNoChange tdrive); [| split; auto;apply am_timeIncWeaken].
       apply hh. split; auto;apply am_timeIncWeaken.
     - apply confinedDuringTurningAMIfAux; auto.
-      repnd; split; auto.
   Qed.
 
   End XYBounds.
@@ -684,6 +701,26 @@ Definition AtomicMoveSign (am : AtomicMove) : Type :=
 Definition DAtomicMove := {am : AtomicMove 
     | AtomicMoveSign am }.
 
+Global Instance EquivDAtomicMove : Equiv DAtomicMove.
+Proof using.
+  apply sigT_equiv.
+Defined.
+
+Global Instance EquivalenceCarDim 
+   : Equivalence EquivDAtomicMove.
+Proof using .
+  unfold EquivDAtomicMove.
+  eauto with typeclass_instances.
+  unfold equiv, EquivDAtomicMove, sigT_equiv. split.
+  - intros x. destruct x. simpl. split; auto with *.
+  - intros x y. destruct x,y. simpl. intros Hd; repnd;
+      rewrite Hd; reflexivity.
+
+  - intros x y z. destruct x,y,z. simpl. intros H0 H1.
+    repnd; rewrite H0; rewrite H1. reflexivity. 
+Qed.
+
+
 (** combine the final positions for,
     both for the cases of turning and driving straignt*)
 Definition stateAfterAtomicMove 
@@ -702,15 +739,39 @@ Definition stateAfterAtomicMove
     end in  
   {|pos2D := posInit + posDelta; θ2D := θf|}.
 
+Global Instance ProperstateAfterAtomicMove:
+Proper (equiv ==> equiv ==> equiv) 
+  stateAfterAtomicMove.
+Proof using.
+  intros ? ? H1 aml amr H2.
+  unfold stateAfterAtomicMove.
+  destruct aml as [ml sl].
+  destruct amr as [mr sr]. simpl. 
+  unfold equiv, EquivDAtomicMove, sigT_equiv in H2.
+  simpl in H2. unfold AtomicMoveSign in sl, sr.
+  destruct sl as [sl | sl].
+  - rewrite H2 in sl.
+    destruct sr;[| eapply eq_imp_not_ap in sl; eauto; contradiction].
+    rewrite  H1, H2. reflexivity.
+  - destruct sr as [sr|];[rewrite <- H2 in sr;eapply eq_imp_not_ap in sr; eauto; contradiction|].
+   rewrite H1.
+   assert ((f_rcpcl (am_tc ml) sl) = (f_rcpcl (am_tc mr) c))
+    as Heq by
+    (apply f_rcpcl_wd; apply ProperAMTC; assumption).
+   setoid_rewrite Heq.
+   setoid_rewrite H2.
+   reflexivity.
+Qed.
+
 Lemma stateAfterAtomicMoveCorrect : forall 
-  (cs : Rigid2DState IR) (dm : DAtomicMove) 
+ (dm : DAtomicMove) 
   (tstart tend :Time)
   (p: tstart < tend),
   @CarExecutesAtomicMoveDuring _ acs (projT1 dm) tstart tend p
   -> rigidStateAtTime acs tend = 
       stateAfterAtomicMove (rigidStateAtTime acs tstart) dm.
-Proof.
-  intros ? ? ? ? ? Ham.
+Proof using.
+  intros  ? ? ? ? Ham.
   destruct dm as [am s]. unfold stateAfterAtomicMove.
   destruct s as [s | s]; simpl.
   - rewrite s. rewrite mult_0_l, plus_0_r. eapply AtomicMoveZFinal; eauto. 
@@ -751,7 +812,51 @@ Proof using Type.
     intros t Hb. specialize (Ham t Hb).
     eauto 2 with relations.
   - eapply confinedTurningAMCorrect in Hcc; eauto.
-Qed. 
+Qed.
+
+ 
+Global Instance ProperstraightAMSpaceRequirement:
+ Proper (equiv ==> equiv ==> equiv ==> equiv) 
+    straightAMSpaceRequirement.
+Proof using.
+  intros aml amr H1 ? ?  H2 ? ? H3.
+  unfold straightAMSpaceRequirement.
+  unfold BoundingRectangle.
+  rewrite H3.
+  rewrite H2.
+  rewrite H1.
+  reflexivity.
+Qed.
+
+(* overall case structure of the proof is similar to 
+[ProperstateAfterAtomicMove] above*)
+Global Instance ProperCarConfinedDuringAM:
+Proper (equiv ==> equiv ==> equiv ==> equiv ==> iff) 
+  (carConfinedDuringAM).
+Proof using.
+  intros ? ? H0 ? ? H1 aml amr H2 ? ? H3.
+  unfold carConfinedDuringAM.
+  destruct aml as [ml sl].
+  destruct amr as [mr sr]. simpl. 
+  unfold equiv, EquivDAtomicMove, sigT_equiv in H2.
+  simpl in H2. unfold AtomicMoveSign in sl, sr.
+  destruct sl as [sl | sl].
+  - rewrite H2 in sl.
+    destruct sr;[| eapply eq_imp_not_ap in sl; eauto; contradiction].
+    rewrite H0, H1, H2, H3. tauto.
+  - destruct sr as [sr|];[rewrite <- H2 in sr;eapply eq_imp_not_ap in sr; eauto; contradiction|].
+   unfold confinedTurningAM. unfold inBetweenR.
+   setoid_rewrite H1.
+   setoid_rewrite H3.
+   assert ((f_rcpcl (am_tc ml) sl) = (f_rcpcl (am_tc mr) c))
+    as Heq by
+    (apply f_rcpcl_wd; apply ProperAMTC; assumption).
+   setoid_rewrite Heq.
+   setoid_rewrite H2.
+   setoid_rewrite H0.
+   tauto.
+Qed.
+
 
 End AtomicMoveSummary.
 
@@ -953,56 +1058,27 @@ match lam with
 | m::tl => (carConfinedDuringAM cd rect m init) /\ 
             carConfinedDuringAMs cd rect tl (stateAfterAtomicMove init m)
 end.
-Check carConfinedDuringAM.
 
-Global Instance EquivDAtomicMove : Equiv DAtomicMove.
-  apply sigT_equiv.
-Defined.
 
-Typeclasses Transparent EquivDAtomicMove.
 
-Global Instance ProperCarConfinedDuringAM (cd : CarDimensions IR):
-Proper (equiv ==> equiv ==> equiv ==> iff) (carConfinedDuringAM cd).
-Proof.
-  intros ? ? H1 aml amr H2 ? ? H3.
-  unfold carConfinedDuringAM.
-  destruct aml as [ml sl].
-  destruct amr as [mr sr]. simpl. 
-  unfold equiv, EquivDAtomicMove, sigT_equiv in H2.
-  simpl in H2. unfold AtomicMoveSign in sl, sr.
-  destruct sl as [sl | sl].
-  - destruct H2 as [H2l H2r].
-    rewrite H2r in sl. destruct sr;[| eapply eq_imp_not_ap in sl; eauto; contradiction].
-    rewrite H1. unfold straightAMSpaceRequirement.
-    unfold boundingUnion.
-    rewrite H3. rewrite H2l.
+Global Instance ProperCarConfinedDuringAMs:
+  Proper (equiv ==> equiv ==> equiv ==> equiv ==> iff) 
+    (carConfinedDuringAMs).
+Proof using.
+  intros ? ? H1 ? ? H2 ? ? meq.
+  induction meq as [| h1 h2 t1 t2 meq]; intros ? ? H3.
+  - simpl. rewrite H1, H2, H3. tauto.
+  - simpl.
+    pose proof H3 as Hb.
+    apply ProperstateAfterAtomicMove in H3.
+    specialize (H3 _ _ meq).
+    apply IHmeq in H3.
+    rewrite H3. clear H3 IHmeq.
+    rewrite meq.
+    rewrite H1.
+    rewrite Hb.
+    rewrite H2.
     tauto.
-  -destruct H2 as [H2l H2r].
-   destruct sr as [sr|];[rewrite <- H2r in sr;eapply eq_imp_not_ap in sr; eauto; contradiction|].
-   unfold confinedTurningAM. unfold inBetweenR.
-   setoid_rewrite H1.
-Abort.
-(*
-  Global Instance ProperCarMinMaxAs (cd : CarDimensions IR) : Proper
-    (equiv ==> eq ==> equiv) (@carMinMaxXY IR _ _ _ _ _ _ _ _ _ _).
-  Proof.
-    intros x y Heq c d He. rewrite He.
-    apply ProperCarMinMax; assumption.
-  Qed.
-*)
-
-Require Import MathClasses.interfaces.orders.
-
-Global Instance LeTimePreorder  : PreOrder Le_instance_Time .
-Proof.
-  split; intros ?; unfold le, Le_instance_Time; eauto 2 with CoRN.
-Qed.
-
-Global Instance LeTimePartialOrder  : PartialOrder Le_instance_Time.
-Proof.
-  split; eauto with typeclass_instances.
-  intros ? ?; unfold le, Le_instance_Time, equiv; eauto 2 with CoRN.
-  intros. destruct x, y. eapply leEq_imp_eq; eauto.
 Qed.
 
 Lemma carConfinedDuringAMsCorrect : forall
@@ -1020,7 +1096,8 @@ Lemma carConfinedDuringAMsCorrect : forall
   -> confinedDuring acs tstart tend cd rect.
 Proof using Type.
   intros ? ? ? ? ? ? ? ? ? Ham. remember ams as l. subst ams.
-  revert Heql. revert dams. induction Ham; intros ? ? Hcc.
+  revert Heql. revert dams. 
+  induction Ham; intros ? ? Hcc.
   - destruct dams; inverts Heql. simpl in Hcc.
     intros ? Hb. rewrite <- pe in Hb.
     destruct Hb as [Hbl Hbr]. 
@@ -1036,8 +1113,13 @@ Proof using Type.
     eapply carConfinedDuringAMCorrect with (p0:=pl) in Hccl;
       eauto; [|intros tt Hb; apply theta90;
                 repnd; split; eauto 2 with relations].
-    try rewrite <- stateAfterAtomicMoveCorrect in Hccr.
-Abort.
+    rewrite <- stateAfterAtomicMoveCorrect 
+      with (p0:=pl) in Hccr; destruct X0; eauto.
+    apply IHHam in Hccr.
+    clear IHHam c Ham. revert pl pr Hccl Hccr. clear.
+    intros. eapply confinedDuringSplit with (tm:=tmid); eauto.
+    apply timeLtWeaken. assumption.
+Qed.
 
 End Wddd.
 
