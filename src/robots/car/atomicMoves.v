@@ -1410,7 +1410,21 @@ Proof.
       [eauto 2 with typeclass_instances|].
     rewrite  (@commutativity _ _ _ boundingUnion _ _ ).
     exact Hcon.
-  -
+  - unfold confinedTurningAM, inBetweenR in *. 
+Local Opaque Max.
+Local Opaque Min.
+    simpl in *.
+    intro.
+    rewrite Ht.
+    rewrite <- negate_mult_distr_r.
+    rewrite <- (@simple_associativity _ _  plus _ _).
+    rewrite plus_negate_r.
+    rewrite plus_0_r.
+    rewrite <- (@commutativity _ _ _ Min _ _).
+    rewrite <- (@commutativity _ _ _ Max _ _).
+    intro Hb.
+    (*Hcon needs to be instantiated now,
+      but NOT with θ. *)
 Abort.
  
   Lemma MoveInvInvolutive : ∀ (m : AtomicMove), 
