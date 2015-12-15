@@ -320,5 +320,13 @@ Qed.
      intros Hc a b.
      apply stable_conjunction; apply Hc.
    Qed.
-   
-   
+
+Require Import MathClasses.interfaces.abstract_algebra.
+
+Global Instance castCRCart2DCR (R:Type): Cast R (Cart2D R) := sameXY.
+
+Instance srmSameXY `{Ring A} : SemiRing_Morphism (cast A (Cart2D A)).
+Proof.
+repeat (split; try apply _); reflexivity.
+Qed.
+

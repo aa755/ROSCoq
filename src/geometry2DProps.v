@@ -166,3 +166,75 @@ Proof.
   autounfold with IRMC;
   rewrite MaxMultLeft; try reflexivity; try assumption.
 Qed.
+
+Lemma minCart_leEq_lft: ∀ x y : Cart2D ℝ, 
+  minCart x y ≤ x.
+Proof using .
+  intros ? ?.
+  split; apply Min_leEq_lft.
+Qed.
+
+Lemma minCart_leEq_rht: ∀ x y : Cart2D ℝ, 
+  minCart x y ≤ y.
+Proof using .
+  intros ? ?. rewrite commutativity.
+  apply minCart_leEq_lft.
+Qed.
+
+Lemma lft_leEq_maxCart: ∀ x y : Cart2D ℝ, 
+  x ≤ maxCart x y.
+Proof using .
+  intros ? ?.
+  split; apply lft_leEq_Max.
+Qed.
+
+Lemma rht_leEq_maxCart: ∀ x y : Cart2D ℝ, 
+  y ≤ maxCart x y.
+Proof using .
+  intros ? ?. rewrite commutativity.
+  apply lft_leEq_maxCart.
+Qed.
+
+Lemma leEq_minCart : ∀ x y z : Cart2D ℝ, 
+  z ≤ x → z ≤ y → z ≤ minCart x y.
+Proof using .
+  intros ? ? ? Hab Hbc.
+  destruct Hab, Hbc.
+  split; apply leEq_Min; assumption.
+Qed.
+
+Lemma maxCart_leEq : ∀ x y z : Cart2D ℝ, 
+  x ≤ z → y ≤ z → maxCart x y ≤ z.
+Proof using .
+  intros ? ? ? Hab Hbc.
+  destruct Hab, Hbc.
+  split; apply Max_leEq; assumption.
+Qed.
+
+  
+Hint Resolve minCart_leEq_lft
+minCart_leEq_rht
+lft_leEq_maxCart
+rht_leEq_maxCart
+leEq_minCart
+maxCart_leEq
+ : MinMaxCart.
+
+Lemma boundingUnionIff: forall (a b c : Line2D IR),
+  boundingUnion a b ⊆ c
+  <-> (a ⊆ c /\ b ⊆ c).
+Proof using .
+  intros. unfold boundingUnion, le, LeAsSubset.
+  simpl. split; intro hh.
+  - repnd. split; split;
+    eapply (@transitivity (Cart2D ℝ) le _);
+    try apply hhl;
+    try apply hhr;
+    eauto using
+      minCart_leEq_lft,
+      minCart_leEq_rht,
+      lft_leEq_maxCart,
+      rht_leEq_maxCart.
+  - repnd. split; eauto using 
+      leEq_minCart, maxCart_leEq.
+Qed.

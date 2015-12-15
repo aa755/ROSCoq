@@ -163,8 +163,11 @@ Qed.
 
 End LineInstances.
 
+Instance srmSameStartEnd `{Ring A} : SemiRing_Morphism (cast (Cart2D A) (Line2D A)).
+Proof.
+repeat (split; try apply _); reflexivity.
+Qed.
 
-Global Instance castCRCart2DCR (R:Type): Cast R (Cart2D R) := sameXY.
 
 
 Definition centredLineAtAngle {R:Type} `{SinClass R}`{CosClass R} `{Ring R} 
