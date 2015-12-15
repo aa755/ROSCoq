@@ -1357,6 +1357,17 @@ Proof using.
   reflexivity.
 Qed.
 
+(*Move and generalize Cart2D IR. this is for for convenience during rewriting*)
+Lemma RingShiftMinus  : forall 
+  a b c : Cart2D IR,
+  a - b  = c <-> a = b + c.
+Proof.
+  intros ? ? ?; split; intros Hh.
+  (**the ring tactic does not seem to look at hyps*)
+  - rewrite <- Hh. ring.
+  - rewrite Hh. ring.
+Qed.
+
 Lemma atomicMonoMoveInvertible :
     ∀ (m : DAtomicMove), 
     MonotonicMovesInverse [m] [DAtomicMoveInv m].
@@ -1367,6 +1378,9 @@ Proof.
   rewrite carConfinedDuringAMsSingle.
   intro Hcon.
   rename confineRect into rect.
+  remember disp as d.
+  assert (d=disp) as Heq by (rewrite Heqd; reflexivity).
+  clear Heqd. subst disp.
   unfold DAtomicMoveInv, AtomicMoveInv in *.
   destruct m as [m s].
   simpl in *.
@@ -1375,22 +1389,18 @@ Proof.
     stateAfterAtomicMove in *.
     simpl in *. rewrite s in Ht.
     rewrite mult_0_l,plus_0_r in Ht.
-    remember disp as d.
-    assert (d=disp) as Heq by (rewrite Heqd; reflexivity).
-    clear Heqd. subst disp.
     rewrite Ht in Heq. rewrite Ht.
+    rewrite <- (@simple_associativity _ _  plus _ _) in Heq.
+    rewrite (@commutativity _ _ _ plus _) in Heq.
+    apply RingShiftMinus in Heq.
     rewrite preserves_negate in Heq.
-    rewrite <- negate_mult_distr_l in Heq.
-    assert (pos2D initr= pos2D init + d 
-     +' (am_distance m) * unitVec (θ2D init)) 
-     as H2eq by (rewrite Heq; ring).
-    clear Heq. rename H2eq into Heq.
+    ring_simplify in Heq.
     replace initr with {| pos2D := pos2D initr; 
       θ2D := θ2D initr |}; 
       [| destruct initr; reflexivity].
-    rewrite Heq.
-    rewrite <- (@simple_associativity _ _  plus _ 
-      (pos2D init)). rewrite Ht.
+    rewrite <- Heq. clear Heq.
+    rewrite  (@commutativity _ _ _ plus _).
+    rewrite Ht.
     rewrite displacedCarMinMaxXY.
     rewrite preserves_negate.
     rewrite <- negate_mult_distr_l.
@@ -1423,8 +1433,19 @@ Local Opaque Min.
     rewrite <- (@commutativity _ _ _ Min _ _).
     rewrite <- (@commutativity _ _ _ Max _ _).
     intro Hb.
-    (*Hcon needs to be instantiated now,
-      but NOT with θ. *)
+    specialize (Hcon _ Hb). clear Hb.
+    rewrite <- (@simple_associativity _ _  plus _ _) in Heq.
+    rewrite (@commutativity _ _ _ plus _) in Heq.
+    apply RingShiftMinus in Heq.
+    ring_simplify in Heq.
+    rewrite (@commutativity _ _ _ plus _) in Heq.
+    replace initr with {| pos2D := pos2D initr; 
+      θ2D := θ2D initr |}; 
+      [| destruct initr; reflexivity].
+    rewrite <- Heq. clear Heq.
+    unfold turnRigidStateAtθ.
+    simpl.
+
 Abort.
  
   Lemma MoveInvInvolutive : ∀ (m : AtomicMove), 
