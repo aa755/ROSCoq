@@ -280,10 +280,12 @@ Section AtomicMove.
       eapply  fixedSteeeringY with (t:= tend) (tcNZ0:=tcNZ) in driveControlsb.
       Unshelve. Focus 2. timeReasoning.
       unfold cf_div in driveControlsb.
-      rewrite (fun p => LV0Y acs tstart tdrive p tdrive) in driveControlsb;[| apply (proj2 steeringControls) 
-          | timeReasoning ].
-      rewrite (fun p => LV0Theta acs tstart tdrive p tdrive) in driveControlsb;[| apply (proj2 steeringControls) 
-          | timeReasoning ].
+      rewrite (fun p => LV0Y acs tstart tdrive p tdrive) 
+          in driveControlsb;[| apply (proj2 steeringControls) 
+                             | timeReasoning ].
+      rewrite (fun p => LV0Theta acs tstart tdrive p tdrive) 
+        in driveControlsb;[| apply (proj2 steeringControls) 
+                           | timeReasoning ].
       setoid_rewrite <- driveControlsb. simpl. autounfold with IRMC. simpl. ring.
     Qed.
 
@@ -310,14 +312,11 @@ Section AtomicMove.
     Proof using All.
       split; simpl;[apply AtomicMoveX | apply AtomicMoveY].
     Qed.
-
+  
   Require Import CoRN.logic.Stability.
 
     Section XYBounds.
     Variable cd :CarDimensions IR.
-    Hypothesis nonTriv : nonTrivialCarDim cd.
-    Hypothesis theta90 :  forall (t :Time)  (p: tstart ≤ t ≤ tend),
-     0 ≤ ({theta acs} t) ≤ (½ * π).
 
     Local Notation turnRadius  (* :IR *) := (f_rcpcl tc tcNZ).
 
@@ -345,7 +344,9 @@ Section AtomicMove.
     
     (*Local*) Lemma confinedDuringTurningAMIfAux : forall (confineRect : Line2D IR),
     (∀ (θ : IR), inBetweenR θ ({theta acs} tstart) ({theta acs} tend)
-           -> carMinMaxXYAtθ (rigidStateAtTime acs tstart) cd turnRadius θ ⊆ confineRect)
+     -> carMinMaxXY cd
+          (turnRigidStateAtθ (rigidStateAtTime acs tstart) turnRadius θ ) 
+           ⊆ confineRect)
      ->  confinedDuring acs tdrive tend cd confineRect.
     Proof using All.
       intros ? Hb.
@@ -355,10 +356,8 @@ Section AtomicMove.
       destruct am_timeIncWeaken.
       pose proof (rigidStateNoChange tdrive) as XX.
       dimp XX;[|split;auto].
-      eapply auxConfinedDuringAMIf with (tcNZ0:=tcNZ); eauto.
+      eapply auxConfinedDuringAMIf; auto.
       - apply AMTurnCurvature.
-      - intros. apply theta90. repnd. split; 
-            autounfold with IRMC; eauto 2 with CoRN.
       - intros ? Hj. rewrite XX.
         apply Hb. clear Hb.
         unfold inBetweenR in Hj. apply proj2 in XX.
@@ -372,7 +371,9 @@ Section AtomicMove.
     let θf := θi + tc * distance in
     ∀ (θ : IR), 
       inBetweenR θ θi θf
-           -> carMinMaxXYAtθ init cd turnRadius θ ⊆ confineRect.
+       -> carMinMaxXY cd
+          (turnRigidStateAtθ init
+           turnRadius θ)  ⊆ confineRect.
 
 Lemma confinedDuringSplit : forall (confineRect : Line2D IR)
   (ts tm te :Time),
@@ -802,18 +803,15 @@ end.
 
 Lemma carConfinedDuringAMCorrect:  forall 
   (cd : CarDimensions IR)
-  (_ : nonTrivialCarDim cd)
   (ams : DAtomicMove)
   (rect : Line2D IR)
   (tstart tend :Time)
-  (p: tstart < tend)
-  (_ :∀ t : Time,
-     tstart ≤ t ≤ tend → 0 ≤ {theta acs} t ≤ ½ * π),
+  (p: tstart < tend),
   @CarMonotonicallyExecsAtomicMoveDuring _ acs (projT1 ams) tstart tend  p
   -> @carConfinedDuringAM cd rect ams (rigidStateAtTime acs tstart)
   -> confinedDuring acs tstart tend cd rect.
 Proof using Type.
-  intros ? ? ? ? ? ? ? ? Ham Hcc.
+  intros  ? ? ? ? ? ? Ham Hcc.
   destruct Ham as [Ham Hnosign].
   destruct ams as [am s].
   destruct s as [s | s]; simpl in Hcc.
@@ -1093,35 +1091,35 @@ Qed.
 (*Move to geometry2DProps*)
 Lemma minCart_leEq_lft: ∀ x y : Cart2D ℝ, 
   minCart x y ≤ x.
-Proof.
+Proof using .
   intros ? ?.
   split; apply Min_leEq_lft.
 Qed.
 
 Lemma minCart_leEq_rht: ∀ x y : Cart2D ℝ, 
   minCart x y ≤ y.
-Proof.
+Proof using .
   intros ? ?. rewrite commutativity.
   apply minCart_leEq_lft.
 Qed.
 
 Lemma lft_leEq_maxCart: ∀ x y : Cart2D ℝ, 
   x ≤ maxCart x y.
-Proof.
+Proof using .
   intros ? ?.
   split; apply lft_leEq_Max.
 Qed.
 
 Lemma rht_leEq_maxCart: ∀ x y : Cart2D ℝ, 
   y ≤ maxCart x y.
-Proof.
+Proof using .
   intros ? ?. rewrite commutativity.
   apply lft_leEq_maxCart.
 Qed.
 
 Lemma leEq_minCart : ∀ x y z : Cart2D ℝ, 
   z ≤ x → z ≤ y → z ≤ minCart x y.
-Proof.
+Proof using .
   intros ? ? ? Hab Hbc.
   destruct Hab, Hbc.
   split; apply leEq_Min; assumption.
@@ -1129,7 +1127,7 @@ Qed.
 
 Lemma maxCart_leEq : ∀ x y z : Cart2D ℝ, 
   x ≤ z → y ≤ z → maxCart x y ≤ z.
-Proof.
+Proof using .
   intros ? ? ? Hab Hbc.
   destruct Hab, Hbc.
   split; apply Max_leEq; assumption.
@@ -1191,23 +1189,16 @@ Proof using.
     reflexivity.
   - unfold confinedTurningAM in Hc.
     specialize (Hc (θ2D init + am_tc m * am_distance m)).
-(*need to unneccessarily assume that theta is in the first
-quadrant. do not depended on this
-in the definition of carConfinedDuringAM.
-state a general version of confinedTurningAM
-which does not depend on the
-not depend on the the assumption. 
-*)
-Abort.    
+    apply Hc. clear Hc.
+    unfold inBetweenR.
+    split; eauto with CoRN.
+Qed.
 
 
 Lemma carConfinedDuringAMsCorrect : forall
   (cd : CarDimensions IR)
-  (_ : nonTrivialCarDim cd)
   (rect : Line2D IR)
   (tstart tend :Time)
-  (theta90 :∀ t : Time,
-     tstart ≤ t ≤ tend → 0 ≤ {theta acs} t ≤ ½ * π)
   p
   (dams : list DAtomicMove),
   let ams := List.map (@projT1 _ _) dams in
@@ -1215,7 +1206,7 @@ Lemma carConfinedDuringAMsCorrect : forall
   -> @carConfinedDuringAMs cd rect dams (rigidStateAtTime acs tstart)
   -> confinedDuring acs tstart tend cd rect.
 Proof using Type.
-  intros ? ? ? ? ? ? ? ? ? Ham. remember ams as l. subst ams.
+  intros  ? ? ? ? ? ? ? Ham. remember ams as l. subst ams.
   revert Heql. revert dams. 
   induction Ham; intros ? ? Hcc.
   - destruct dams; inverts Heql. simpl in Hcc.
@@ -1225,16 +1216,12 @@ Proof using Type.
     clear Hbr. rewrite <- Hbl. assumption.
   - destruct dams as [| m tm];inverts Heql as Heql Haa Hbb.
     pose proof (timeLtWeaken  pl).
-    dimp IHHam;
-      [|intros tt Hb; apply theta90;
-        repnd; split; eauto 2 with relations].
     specialize (IHHam _ eq_refl).
     simpl in Hcc. repnd.
     eapply carConfinedDuringAMCorrect with (p0:=pl) in Hccl;
-      eauto; [|intros tt Hb; apply theta90;
-                repnd; split; eauto 2 with relations].
+      eauto.
     rewrite <- stateAfterAtomicMoveCorrect 
-      with (p0:=pl) in Hccr; destruct X0; eauto.
+      with (p0:=pl) in Hccr; destruct X; eauto.
     apply IHHam in Hccr.
     clear IHHam c Ham. revert pl pr Hccl Hccr. clear.
     intros. eapply confinedDuringSplit with (tm:=tmid); eauto.
@@ -1431,14 +1418,14 @@ Proof.
   simpl in Hcm.
   simpl in Hcmi.
   invertAtomicMoves.
+  apply carConfinedDuringAMsSingle.
   unfold DAtomicMoveInv, AtomicMoveInv in *.
   destruct m as [m s].
   simpl in *.
   destruct s as [s | s].
-  - simpl in *. unfold 
-    intros t tp.
+  - simpl in *.
   Abort.
-*)
+
   Lemma MoveInvInvolutive : ∀ (m : AtomicMove), 
     AtomicMoveInv (AtomicMoveInv m) = m.
   Proof using .

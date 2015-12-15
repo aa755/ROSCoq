@@ -557,7 +557,61 @@ Context {maxTurnCurvature : Qpos}
     autounfold with IRMC; unfold cf_div; ring.
   Qed.
 
-  Section XYBounds.
+    Require Import MCMisc.rings.
+
+  Definition turnRigidStateAtθ (init : Rigid2DState IR) 
+  (tr θ : IR)
+  := 
+  let θi := θ2D init in
+  {|pos2D := pos2D init + {|X:=Sin θ - Sin θi; Y:=Cos θi - Cos θ|}*'tr;
+    θ2D := θ|}.
+  
+  Global Instance ProperturnRigidStateAtθ: Proper 
+  (equiv ==> equiv ==> equiv ==> equiv) turnRigidStateAtθ.
+  Proof using.
+    intros ? ? H1 ? ? H2 ? ? H3.
+    unfold turnRigidStateAtθ.
+    rewrite H1.
+    rewrite H2.
+    rewrite H3. reflexivity.
+  Qed.
+  
+  Lemma turnRigidStateAtθCorrect: forall (t :Time)  (p: tstart ≤ t ≤ tend),
+    rigidStateAtTime acs t 
+    = turnRigidStateAtθ 
+            (rigidStateAtTime acs tstart) 
+            turnRadius
+            ({theta acs} t).
+  Proof using fixed.
+    intros ? ?.
+    split;[| reflexivity].
+    simpl. apply RingShiftMinusR.
+    split;simpl;[apply fixedSteeeringX | apply fixedSteeeringY];
+    assumption.
+  Qed.
+    
+  Lemma auxConfinedDuringAMIf : forall (confineRect : Line2D IR) cd,
+    noSignChangeDuring (linVel acs) tstart tend
+    ->
+    (∀ (θ : IR), inBetweenR θ ({theta acs} tstart) ({theta acs} tend)
+  -> carMinMaxXY cd
+     (turnRigidStateAtθ (rigidStateAtTime acs tstart) turnRadius θ) 
+           ⊆ confineRect)
+     ->  confinedDuring cd confineRect.
+  Proof using fixed tstartEnd.
+    intros ? ? Hn hh t Hb.
+    specialize (hh ({theta acs}t)).
+    rewrite turnRigidStateAtθCorrect;[| assumption].
+    apply hh.
+    apply thetaMonotone; try assumption.
+    pose proof (fst (less_conf_ap _ _ _) tcNZ) as Hdec.
+    autounfold with IRMC.
+    destruct Hdec; [left|right]; eauto 2 with CoRN.
+  Qed.
+    
+(*Move this section and the first quadrant stuff at the top to 
+  a new file firstQuadrant.v? *)
+  Section XYBoundsFirstQuadrant.
   Variable cd :CarDimensions IR.
   Hypothesis nonTriv : nonTrivialCarDim cd.
   Hypothesis theta90 :  forall (t :Time)  (p: tstart ≤ t ≤ tend),
@@ -658,7 +712,6 @@ Context {maxTurnCurvature : Qpos}
   Qed.
 
 
-    Require Import MCMisc.rings.
 
   Lemma carMinMaxXYAM : 
     forall (t :Time) (Hb : tstart ≤ t ≤ tend),
@@ -687,24 +740,8 @@ Context {maxTurnCurvature : Qpos}
     fequiv;split; simpl; IRring.
   Qed.
    
-  Lemma auxConfinedDuringAMIf : forall (confineRect : Line2D IR),
-    noSignChangeDuring (linVel acs) tstart tend
-    ->
-    (∀ (θ : IR), inBetweenR θ ({theta acs} tstart) ({theta acs} tend)
-           -> carMinMaxXYAtθ (rigidStateAtTime acs tstart) cd turnRadius θ ⊆ confineRect)
-     ->  confinedDuring cd confineRect.
-  Proof using All.
-    intros ? Hn hh t Hb.
-    specialize (hh ({theta acs}t)).
-    rewrite carMinMaxXYAM;[|assumption].
-    apply hh.
-    apply thetaMonotone; try assumption.
-    pose proof (fst (less_conf_ap _ _ _) tcNZ) as Hdec.
-    autounfold with IRMC.
-    destruct Hdec; [left|right]; eauto 2 with CoRN.
-  Qed.
 
-  End XYBounds.
+  End XYBoundsFirstQuadrant.
 
   End TCNZ.
   
