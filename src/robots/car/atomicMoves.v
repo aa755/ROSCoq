@@ -1357,21 +1357,11 @@ Proof using.
   reflexivity.
 Qed.
 
-(*Move and generalize Cart2D IR. this is for for convenience during rewriting*)
-Lemma RingShiftMinus  : forall 
-  a b c : Cart2D IR,
-  a - b  = c <-> a = b + c.
-Proof.
-  intros ? ? ?; split; intros Hh.
-  (**the ring tactic does not seem to look at hyps*)
-  - rewrite <- Hh. ring.
-  - rewrite Hh. ring.
-Qed.
-
+Require Import MCMisc.rings.
 Lemma atomicMonoMoveInvertible :
     ∀ (m : DAtomicMove), 
     MonotonicMovesInverse [m] [DAtomicMoveInv m].
-Proof.
+Proof using.
   intros m.
   intros ? ? ? ? ? Ht.
   rewrite carConfinedDuringAMsSingle.
@@ -1388,7 +1378,7 @@ Proof.
   - unfold straightAMSpaceRequirement,
     stateAfterAtomicMove in *.
     simpl in *. rewrite s in Ht.
-    rewrite mult_0_l,plus_0_r in Ht.
+    rewrite mult_0_l, plus_0_r in Ht.
     rewrite Ht in Heq. rewrite Ht.
     rewrite <- (@simple_associativity _ _  plus _ _) in Heq.
     rewrite (@commutativity _ _ _ plus _) in Heq.
@@ -1406,9 +1396,7 @@ Proof.
     rewrite <- negate_mult_distr_l.
     rewrite <- (@simple_associativity _ _  plus _ _).
     rewrite <- preserves_plus.
-    rewrite <- (@simple_associativity _ _  plus _ d).
-    rewrite plus_negate_r.
-    rewrite plus_0_r.
+    rewrite RingProp2.
     rewrite (@commutativity _ _ _ plus _ d).
     rewrite  preserves_plus.
     rewrite  (@simple_associativity _ _  plus _ _).
@@ -1443,10 +1431,42 @@ Local Opaque Min.
       θ2D := θ2D initr |}; 
       [| destruct initr; reflexivity].
     rewrite <- Heq. clear Heq.
-    unfold turnRigidStateAtθ.
+    unfold turnRigidStateAtθ in *.
+    simpl in *. rewrite Ht.
+    rewrite <- negate_mult_distr_r.
+    rewrite RingProp2.
+    rewrite <- (@simple_associativity (Cart2D IR) 
+          _  plus _ _).
+    rewrite <- (@simple_associativity (Cart2D IR) 
+          _  plus _ _).
+    unfold plus at 3. unfold Plus_instance_Cart2D at 3.
     simpl.
+    unfold sin, cos, SinClassIR, CosClassIR.
+Add Ring tempRingIR : (stdlib_ring_theory IR).
+    match goal with
+    [|- context [{|
+            X :=?x ; Y :=?y|} ]] 
+         => ring_simplify x; ring_simplify y
+    end.
+    match type of Hcon with
+    carMinMaxXY _ ?r ⊆ _ =>
+       match goal with
+       [|- carMinMaxXY _ ?rr ⊆ _]
+          => assert 
+           (rr= {| pos2D := pos2D r + d; θ2D := θ2D r |})
+           as Heq
+           by  (split;[split;simpl;ring|reflexivity])
+       end
+    end.
+    rewrite Heq. clear Heq.
+    rewrite displacedCarMinMaxXY.
+    rewrite  (@commutativity _ _ _ plus _ _ ('d)).
+    rewrite  (@commutativity _ _ _ plus _ _ ('d)).
+    apply order_preserving; 
+      [eauto 2 with typeclass_instances|].
+    exact Hcon.
+  Qed.
 
-Abort.
  
   Lemma MoveInvInvolutive : ∀ (m : AtomicMove), 
     AtomicMoveInv (AtomicMoveInv m) = m.

@@ -585,7 +585,7 @@ Context {maxTurnCurvature : Qpos}
   Proof using fixed.
     intros ? ?.
     split;[| reflexivity].
-    simpl. apply RingShiftMinusR.
+    simpl. apply RingShiftMinus.
     split;simpl;[apply fixedSteeeringX | apply fixedSteeeringY];
     assumption.
   Qed.
@@ -730,7 +730,7 @@ Context {maxTurnCurvature : Qpos}
           X := {X acs} t;
           Y := {Y acs} t |}) with (posAtTime acs t).
     apply fixedSteeeringXY in Hb.
-    apply RingShiftMinusR in Hb.
+    apply RingShiftMinus in Hb.
     unfold rhsUnitVecAtTime, rightSideUnitVec in Hb.
     rewrite unitVecMinus90 in Hb.
     rewrite unitVecMinus90 in Hb.
