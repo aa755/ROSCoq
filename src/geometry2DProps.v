@@ -238,3 +238,24 @@ Proof using .
   - repnd. split; eauto using 
       leEq_minCart, maxCart_leEq.
 Qed.
+
+Global Instance CommBoundingUnion `{e:Equiv R} `{m:MinClass R}
+`{M: MaxClass R} `{@Commutative R e R min} `{@Commutative R e R max}:
+  Commutative boundingUnion.
+Proof using.
+  unfold BoundingRectangle. intros ? ?. split; simpl.
+  - apply CommutativeMinCart.
+  - apply CommutativeMaxCart.
+Qed.
+
+Lemma boundingUnionPlus : forall (a b c: Line2D IR),
+  boundingUnion (b + a) (b + c)
+  = b + (boundingUnion a c).
+Proof using.
+  intros ? ? ?.
+  unfold boundingUnion.
+  simpl.
+  rewrite minCartSum.
+  rewrite maxCartSum.
+  reflexivity.
+Qed.

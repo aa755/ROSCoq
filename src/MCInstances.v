@@ -284,4 +284,15 @@ Open Scope mc_scope.
     tauto.
   Qed.
 
+Global Instance LeTimePreorder  : PreOrder Le_instance_Time .
+Proof.
+  split; intros ?; unfold le, Le_instance_Time; eauto 2 with CoRN.
+Qed.
+
+Global Instance LeTimePartialOrder  : PartialOrder Le_instance_Time.
+Proof.
+  split; eauto with typeclass_instances.
+  intros ? ?; unfold le, Le_instance_Time, equiv; eauto 2 with CoRN.
+  intros. destruct x, y. eapply leEq_imp_eq; eauto.
+Qed.
 

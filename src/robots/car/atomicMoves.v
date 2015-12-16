@@ -51,18 +51,6 @@ Local Notation  "∫" := Cintegral.
 
 Require Import MathClasses.interfaces.orders.
 
-(*Move to MCInstances*)
-Global Instance LeTimePreorder  : PreOrder Le_instance_Time .
-Proof.
-  split; intros ?; unfold le, Le_instance_Time; eauto 2 with CoRN.
-Qed.
-
-Global Instance LeTimePartialOrder  : PartialOrder Le_instance_Time.
-Proof.
-  split; eauto with typeclass_instances.
-  intros ? ?; unfold le, Le_instance_Time, equiv; eauto 2 with CoRN.
-  intros. destruct x, y. eapply leEq_imp_eq; eauto.
-Qed.
 
 (** * Atomic Move
 
@@ -1092,39 +1080,6 @@ Proof using.
     tauto.
 Qed.
 
-(*a more convenient characterization 
-of the single case*)
-Lemma carConfinedDuringAMsSingle: forall
-  (cd : CarDimensions IR)
-  (rect : Line2D IR) 
-  (m : DAtomicMove)
-  (init : Rigid2DState IR),
-carConfinedDuringAMs cd rect [m] init
-<-> carConfinedDuringAM cd rect m init.
-Proof using.
-  intros ? ? ? ?. simpl.
-  split;[tauto|].
-  intros Hc. split;[assumption|].
-  destruct m as [m s]. simpl in Hc.
-  destruct s as [s|s];
-  unfold stateAfterAtomicMove; simpl.
-  - simpl. unfold straightAMSpaceRequirement in Hc.
-    apply boundingUnionIff in Hc.
-    apply proj2 in Hc.
-    simpl in Hc.
-    eapply (@transitivity (Line2D ℝ) le _);
-      [|apply Hc].
-    apply eq_le.
-    rewrite <- displacedCarMinMaxXY.
-    rewrite s, mult_0_l, plus_0_r.
-    reflexivity.
-  - unfold confinedTurningAM in Hc.
-    specialize (Hc (θ2D init + am_tc m * am_distance m)).
-    apply Hc. clear Hc.
-    unfold inBetweenR.
-    split; eauto with CoRN.
-Qed.
-
 
 Lemma carConfinedDuringAMsCorrect : forall
   (cd : CarDimensions IR)
@@ -1318,156 +1273,6 @@ First we define what it means for a move to be an inverse of another.
     - eapply atomicMoveInvertibleθ in Hf0; eauto.
   Qed.
 
-  Definition DAtomicMoveInv (m : DAtomicMove) : DAtomicMove:=
-    existT _ (AtomicMoveInv (projT1 m)) (projT2 m).
-
-  Definition DAtomicMovesInv (ms : list DAtomicMove) : list DAtomicMove
-      := rev (List.map DAtomicMoveInv ms).
-
-(** if each atomic move is executed monotonically, we can aslo
-    relate the confinements of the car in axis aligned rectangles.*)
-Definition MonotonicMovesInverse (dams damsr : list DAtomicMove)  := ∀ (init initr : Rigid2DState ℝ)
- (cd : CarDimensions ℝ) (confineRect: Line2D IR),
- let disp := pos2D (stateAfterAtomicMoves damsr initr) - pos2D init in
- θ2D initr = θ2D (stateAfterAtomicMoves dams init)
- -> carConfinedDuringAMs cd confineRect dams init
- -> carConfinedDuringAMs cd
-     (confineRect + 'disp)
-          damsr initr.
-
-(*Move *)
-Global Instance CommBoundingUnion `{e:Equiv R} `{m:MinClass R}
-`{M: MaxClass R} `{@Commutative R e R min} `{@Commutative R e R max}:
-  Commutative boundingUnion.
-Proof using.
-  unfold BoundingRectangle. intros ? ?. split; simpl.
-  - apply CommutativeMinCart.
-  - apply CommutativeMaxCart.
-Qed.
-
-Lemma boundingUnionPlus : forall (a b c: Line2D IR),
-  boundingUnion (b + a) (b + c)
-  = b + (boundingUnion a c).
-Proof using.
-  intros ? ? ?.
-  unfold boundingUnion.
-  simpl.
-  rewrite minCartSum.
-  rewrite maxCartSum.
-  reflexivity.
-Qed.
-
-Require Import MCMisc.rings.
-Lemma atomicMonoMoveInvertible :
-    ∀ (m : DAtomicMove), 
-    MonotonicMovesInverse [m] [DAtomicMoveInv m].
-Proof using.
-  intros m.
-  intros ? ? ? ? ? Ht.
-  rewrite carConfinedDuringAMsSingle.
-  rewrite carConfinedDuringAMsSingle.
-  intro Hcon.
-  rename confineRect into rect.
-  remember disp as d.
-  assert (d=disp) as Heq by (rewrite Heqd; reflexivity).
-  clear Heqd. subst disp.
-  unfold DAtomicMoveInv, AtomicMoveInv in *.
-  destruct m as [m s].
-  simpl in *.
-  destruct s as [s | s].
-  - unfold straightAMSpaceRequirement,
-    stateAfterAtomicMove in *.
-    simpl in *. rewrite s in Ht.
-    rewrite mult_0_l, plus_0_r in Ht.
-    rewrite Ht in Heq. rewrite Ht.
-    rewrite <- (@simple_associativity _ _  plus _ _) in Heq.
-    rewrite (@commutativity _ _ _ plus _) in Heq.
-    apply RingShiftMinus in Heq.
-    rewrite preserves_negate in Heq.
-    ring_simplify in Heq.
-    replace initr with {| pos2D := pos2D initr; 
-      θ2D := θ2D initr |}; 
-      [| destruct initr; reflexivity].
-    rewrite <- Heq. clear Heq.
-    rewrite  (@commutativity _ _ _ plus _).
-    rewrite Ht.
-    rewrite displacedCarMinMaxXY.
-    rewrite preserves_negate.
-    rewrite <- negate_mult_distr_l.
-    rewrite <- (@simple_associativity _ _  plus _ _).
-    rewrite <- preserves_plus.
-    rewrite RingProp2.
-    rewrite (@commutativity _ _ _ plus _ d).
-    rewrite  preserves_plus.
-    rewrite  (@simple_associativity _ _  plus _ _).
-    rewrite  (@commutativity _ _ _ plus _ _ ('d)).
-    rewrite  (@commutativity _ _ _ plus _ _ ('d)).
-    rewrite boundingUnionPlus.
-    rewrite  (@commutativity _ _ _ plus _ _ ('d)).
-    apply order_preserving; 
-      [eauto 2 with typeclass_instances|].
-    rewrite  (@commutativity _ _ _ boundingUnion _ _ ).
-    exact Hcon.
-  - unfold confinedTurningAM, inBetweenR in *. 
-Local Opaque Max.
-Local Opaque Min.
-    simpl in *.
-    intro.
-    rewrite Ht.
-    rewrite <- negate_mult_distr_r.
-    rewrite <- (@simple_associativity _ _  plus _ _).
-    rewrite plus_negate_r.
-    rewrite plus_0_r.
-    rewrite <- (@commutativity _ _ _ Min _ _).
-    rewrite <- (@commutativity _ _ _ Max _ _).
-    intro Hb.
-    specialize (Hcon _ Hb). clear Hb.
-    rewrite <- (@simple_associativity _ _  plus _ _) in Heq.
-    rewrite (@commutativity _ _ _ plus _) in Heq.
-    apply RingShiftMinus in Heq.
-    ring_simplify in Heq.
-    rewrite (@commutativity _ _ _ plus _) in Heq.
-    replace initr with {| pos2D := pos2D initr; 
-      θ2D := θ2D initr |}; 
-      [| destruct initr; reflexivity].
-    rewrite <- Heq. clear Heq.
-    unfold turnRigidStateAtθ in *.
-    simpl in *. rewrite Ht.
-    rewrite <- negate_mult_distr_r.
-    rewrite RingProp2.
-    rewrite <- (@simple_associativity (Cart2D IR) 
-          _  plus _ _).
-    rewrite <- (@simple_associativity (Cart2D IR) 
-          _  plus _ _).
-    unfold plus at 3. unfold Plus_instance_Cart2D at 3.
-    simpl.
-    unfold sin, cos, SinClassIR, CosClassIR.
-Add Ring tempRingIR : (stdlib_ring_theory IR).
-    match goal with
-    [|- context [{|
-            X :=?x ; Y :=?y|} ]] 
-         => ring_simplify x; ring_simplify y
-    end.
-    match type of Hcon with
-    carMinMaxXY _ ?r ⊆ _ =>
-       match goal with
-       [|- carMinMaxXY _ ?rr ⊆ _]
-          => assert 
-           (rr= {| pos2D := pos2D r + d; θ2D := θ2D r |})
-           as Heq
-           by  (split;[split;simpl;ring|reflexivity])
-       end
-    end.
-    rewrite Heq. clear Heq.
-    rewrite displacedCarMinMaxXY.
-    rewrite  (@commutativity _ _ _ plus _ _ ('d)).
-    rewrite  (@commutativity _ _ _ plus _ _ ('d)).
-    apply order_preserving; 
-      [eauto 2 with typeclass_instances|].
-    exact Hcon.
-  Qed.
-
- 
   Lemma MoveInvInvolutive : ∀ (m : AtomicMove), 
     AtomicMoveInv (AtomicMoveInv m) = m.
   Proof using .
@@ -1586,4 +1391,273 @@ Add Ring tempRingIR : (stdlib_ring_theory IR).
     apply atomicMovesInvertibleAux.
   Qed.
   
+  
 End Invertability.
+
+Section  SpaceInvertability.
+
+Add Ring tempRingIR : (stdlib_ring_theory IR).
+
+Lemma carConfinedDuringAMEndpoints: forall
+  (cd : CarDimensions IR)
+  (rect : Line2D IR) 
+  (m : DAtomicMove)
+  (init : Rigid2DState IR),
+carConfinedDuringAM cd rect m init
+→ (carMinMaxXY cd (stateAfterAtomicMove init m) ⊆ rect
+   /\ carMinMaxXY cd init ⊆ rect).
+Proof.
+  intros ? ? ? ? Hc.
+  destruct m as [m s]. simpl in Hc.
+  destruct s as [s|s];
+  unfold stateAfterAtomicMove; simpl.
+- simpl. unfold straightAMSpaceRequirement in Hc.
+  apply boundingUnionIff in Hc.
+  simpl in Hc.
+  repnd.
+  split;[| exact Hcl].
+  eapply (@transitivity (Line2D ℝ) le _);
+      [|apply Hcr].
+  apply eq_le.
+  rewrite <- displacedCarMinMaxXY.
+  rewrite s, mult_0_l, plus_0_r.
+  reflexivity.
+- unfold confinedTurningAM in Hc.
+  pose proof (Hc (θ2D init)) as Hcc.
+  unfold turnRigidStateAtθ in Hcc.
+  specialize (Hc (θ2D init + am_tc m * am_distance m)).
+  rewrite plus_negate_r in Hcc.
+  rewrite plus_negate_r in Hcc.
+  fold (@Zero_instance_Cart2D IR _) in Hcc.
+  fold (@zero (Cart2D IR) _) in Hcc.
+  rewrite mult_0_l, plus_0_r in Hcc.
+  split;[ apply Hc | apply Hcc]; clear Hc Hcc;
+  unfold inBetweenR;
+  split; eauto with CoRN.
+Qed.
+  
+
+(*a more convenient characterization 
+of the single case*)
+Lemma carConfinedDuringAMsSingle: forall
+  (cd : CarDimensions IR)
+  (rect : Line2D IR) 
+  (m : DAtomicMove)
+  (init : Rigid2DState IR),
+carConfinedDuringAMs cd rect [m] init
+<-> carConfinedDuringAM cd rect m init.
+Proof using.
+  intros ? ? ? ?. simpl.
+  split;[tauto|].
+  intros Hc. split;[assumption|].
+  apply carConfinedDuringAMEndpoints in Hc.
+  tauto.
+Qed.
+
+Definition DAtomicMoveInv (m : DAtomicMove) : DAtomicMove:=
+  existT _ (AtomicMoveInv (projT1 m)) (projT2 m).
+
+Definition DAtomicMovesInv (ms : list DAtomicMove) : list DAtomicMove
+  := rev (List.map DAtomicMoveInv ms).
+
+(** if each atomic move is executed monotonically, we can aslo
+    relate the confinements of the car in axis aligned rectangles.*)
+Definition MovesSpaceInverse (dams damsr : list DAtomicMove)  := ∀ (init initr : Rigid2DState ℝ)
+ (cd : CarDimensions ℝ) (confineRect: Line2D IR),
+ let disp := pos2D (stateAfterAtomicMoves damsr initr) - pos2D init in
+ θ2D initr = θ2D (stateAfterAtomicMoves dams init)
+ -> carConfinedDuringAMs cd confineRect dams init
+ -> carConfinedDuringAMs cd
+     (confineRect + 'disp)
+          damsr initr.
+
+Lemma carConfinedDuringAMsAppend : forall cd rect la lb init,
+carConfinedDuringAMs cd rect (la++lb) init
+<-> (carConfinedDuringAMs cd rect la init 
+    /\ carConfinedDuringAMs cd rect lb (stateAfterAtomicMoves la init)).
+Proof.
+  induction la; intros lb init.
+- simpl. split; [|tauto].
+  intros Hc.
+  destruct lb;[simpl in *; tauto|].
+  simpl in *. repnd. split;[| tauto].
+  clear Hcr.
+  apply carConfinedDuringAMEndpoints in Hcl; tauto.
+- simpl. rewrite IHla. tauto.
+Qed. 
+
+
+Require Import MCMisc.rings.
+Local Opaque Max.
+Local Opaque Min.
+
+Lemma atomicMoveSpaceInvertible :
+    ∀ (m : DAtomicMove), 
+    MovesSpaceInverse [m] [DAtomicMoveInv m].
+Proof using.
+  intros m.
+  intros ? ? ? ? ? Ht.
+  rewrite carConfinedDuringAMsSingle.
+  rewrite carConfinedDuringAMsSingle.
+  intro Hcon.
+  rename confineRect into rect.
+  remember disp as d.
+  assert (d=disp) as Heq by (rewrite Heqd; reflexivity).
+  clear Heqd. subst disp.
+  unfold DAtomicMoveInv, AtomicMoveInv in *.
+  destruct m as [m s].
+  simpl in *.
+  destruct s as [s | s].
+  - unfold straightAMSpaceRequirement,
+    stateAfterAtomicMove in *.
+    simpl in *. rewrite s in Ht.
+    rewrite mult_0_l, plus_0_r in Ht.
+    rewrite Ht in Heq. rewrite Ht.
+    rewrite <- (@simple_associativity _ _  plus _ _) in Heq.
+    rewrite (@commutativity _ _ _ plus _) in Heq.
+    apply RingShiftMinus in Heq.
+    rewrite preserves_negate in Heq.
+    ring_simplify in Heq.
+    replace initr with {| pos2D := pos2D initr; 
+      θ2D := θ2D initr |}; 
+      [| destruct initr; reflexivity].
+    rewrite <- Heq. clear Heq.
+    rewrite  (@commutativity _ _ _ plus _).
+    rewrite Ht.
+    rewrite displacedCarMinMaxXY.
+    rewrite preserves_negate.
+    rewrite <- negate_mult_distr_l.
+    rewrite <- (@simple_associativity _ _  plus _ _).
+    rewrite <- preserves_plus.
+    rewrite RingProp2.
+    rewrite (@commutativity _ _ _ plus _ d).
+    rewrite  preserves_plus.
+    rewrite  (@simple_associativity _ _  plus _ _).
+    rewrite  (@commutativity _ _ _ plus _ _ ('d)).
+    rewrite  (@commutativity _ _ _ plus _ _ ('d)).
+    rewrite boundingUnionPlus.
+    rewrite  (@commutativity _ _ _ plus _ _ ('d)).
+    apply order_preserving; 
+      [eauto 2 with typeclass_instances|].
+    rewrite  (@commutativity _ _ _ boundingUnion _ _ ).
+    exact Hcon.
+  - unfold confinedTurningAM, inBetweenR in *. 
+    simpl in *.
+    intro.
+    rewrite Ht.
+    rewrite <- negate_mult_distr_r.
+    rewrite <- (@simple_associativity _ _  plus _ _).
+    rewrite plus_negate_r.
+    rewrite plus_0_r.
+    rewrite <- (@commutativity _ _ _ Min _ _).
+    rewrite <- (@commutativity _ _ _ Max _ _).
+    intro Hb.
+    specialize (Hcon _ Hb). clear Hb.
+    rewrite <- (@simple_associativity _ _  plus _ _) in Heq.
+    rewrite (@commutativity _ _ _ plus _) in Heq.
+    apply RingShiftMinus in Heq.
+    ring_simplify in Heq.
+    rewrite (@commutativity _ _ _ plus _) in Heq.
+    replace initr with {| pos2D := pos2D initr; 
+      θ2D := θ2D initr |}; 
+      [| destruct initr; reflexivity].
+    rewrite <- Heq. clear Heq.
+    unfold turnRigidStateAtθ in *.
+    simpl in *. rewrite Ht.
+    rewrite <- negate_mult_distr_r.
+    rewrite RingProp2.
+    rewrite <- (@simple_associativity (Cart2D IR) 
+          _  plus _ _).
+    rewrite <- (@simple_associativity (Cart2D IR) 
+          _  plus _ _).
+    unfold plus at 3. unfold Plus_instance_Cart2D at 3.
+    simpl.
+    unfold sin, cos, SinClassIR, CosClassIR.
+    match goal with
+    [|- context [{|
+            X :=?x ; Y :=?y|} ]] 
+         => ring_simplify x; ring_simplify y
+    end.
+    match type of Hcon with
+    carMinMaxXY _ ?r ⊆ _ =>
+       match goal with
+       [|- carMinMaxXY _ ?rr ⊆ _]
+          => assert 
+           (rr= {| pos2D := pos2D r + d; θ2D := θ2D r |})
+           as Heq
+           by  (split;[split;simpl;ring|reflexivity])
+       end
+    end.
+    rewrite Heq. clear Heq.
+    rewrite displacedCarMinMaxXY.
+    rewrite  (@commutativity _ _ _ plus _ _ ('d)).
+    rewrite  (@commutativity _ _ _ plus _ _ ('d)).
+    apply order_preserving; 
+      [eauto 2 with typeclass_instances|].
+    exact Hcon.
+  Qed.
+
+Lemma DMoveInvInvolutive : ∀ (m : DAtomicMove), 
+    DAtomicMoveInv (DAtomicMoveInv m) = m.
+Proof using .
+  intros m.
+  apply MoveInvInvolutive.
+Qed.
+
+Lemma DMovesInvInvolutive : ∀ (m : list DAtomicMove), 
+  DAtomicMovesInv (DAtomicMovesInv m) = m.
+Proof using .
+  induction m;[reflexivity |].
+  unfold DAtomicMovesInv. simpl.
+  rewrite map_app.
+  rewrite map_cons.
+  rewrite rev_app_distr.
+  simpl.
+  rewrite DMoveInvInvolutive.
+  constructor; auto.
+Qed.
+
+
+Lemma atomicMovesSpaceInvertibleAux :
+  ∀ (m : list DAtomicMove), MovesSpaceInverse (DAtomicMovesInv m) m.
+Proof using Type.
+  induction m as [| h tl Hind];
+  intros ? ? ? ? ? Ht Hcon;
+  remember disp as d;
+  assert (d=disp) as Heq by (rewrite Heqd; reflexivity);
+  clear Heqd; subst disp.
+- simpl in *.
+  rewrite (@commutativity _ _ _ plus _) in Heq.
+  apply RingShiftMinus in Heq.
+  ring_simplify in Heq.
+  replace initr with {| pos2D := pos2D initr; 
+      θ2D := θ2D initr |}; 
+      [| destruct initr; reflexivity].
+  rewrite <- Heq. clear Heq.
+  rewrite Ht.
+  rewrite (@commutativity _ _ _ plus _).
+  rewrite displacedCarMinMaxXY.
+  rewrite (@commutativity _ _ _ plus _).
+  rewrite (@commutativity _ _ _ plus _ _ ('d)).
+  apply order_preserving; 
+      [eauto 2 with typeclass_instances|].
+  exact Hcon.
+- unfold DAtomicMovesInv in *.
+  simpl in *.
+  setoid_rewrite fold_left_app in Ht.
+  simpl in Ht.
+  fold (stateAfterAtomicMoves (rev (List.map DAtomicMoveInv tl)) init) in Ht.
+  apply carConfinedDuringAMsAppend in Hcon.
+  repnd.
+  eapply atomicMoveSpaceInvertible with (initr:=initr) in Hconr;
+    [|exact Ht].
+  split.
+  + simpl in Hconr. rewrite DMoveInvInvolutive in Hconr. admit.
+  + rewrite Heq. apply Hind; auto. clear Hconl Hconr.
+    rewrite <- negate_mult_distr_r in Ht.
+    symmetry in Ht.
+    rewrite RingShiftMinus in Ht.
+    symmetry in Ht.
+    rewrite (@commutativity _ _ _ plus _) in Ht.
+    exact Ht.
+Abort. 
