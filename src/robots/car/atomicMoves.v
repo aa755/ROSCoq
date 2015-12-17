@@ -1151,7 +1151,6 @@ First we define what it means for a move to be an inverse of another.
     follow the Wriggle-move. *)
     
     
-(*         TODO : quantify over [acs]. *)
   Definition MovesInverse (ams amsr : AtomicMoves) :=
     ∀ mt (acs : AckermannCar mt)
       (tstart tend : Time)  (p: tstart ≤ tend)
@@ -1462,7 +1461,8 @@ Definition DAtomicMovesInv (ms : list DAtomicMove) : list DAtomicMove
 
 (** if each atomic move is executed monotonically, we can aslo
     relate the confinements of the car in axis aligned rectangles.*)
-Definition MovesSpaceInverse (dams damsr : list DAtomicMove)  := ∀ (init initr : Rigid2DState ℝ)
+Definition MovesSpaceInverse (dams damsr : list DAtomicMove) := 
+  ∀ (init initr : Rigid2DState ℝ)
  (cd : CarDimensions ℝ) (confineRect: Line2D IR),
  let disp := pos2D (stateAfterAtomicMoves damsr initr) - pos2D init in
  θ2D initr = θ2D (stateAfterAtomicMoves dams init)
@@ -1470,6 +1470,17 @@ Definition MovesSpaceInverse (dams damsr : list DAtomicMove)  := ∀ (init initr
  -> carConfinedDuringAMs cd
      (confineRect + 'disp)
           damsr initr.
+
+(* analogous to [MovesInverse], but more convenient as there is no car*)
+Definition MovesStateInverse (damsl damsr : list DAtomicMove) := 
+  ∀ (initl initr : Rigid2DState ℝ)
+ (cd : CarDimensions ℝ) ,
+ let endl := (stateAfterAtomicMoves damsl initl) in
+ let endr := (stateAfterAtomicMoves damsr initr) in
+ θ2D initr = θ2D endl
+ -> (pos2D endl - pos2D initl
+    = pos2D initr - pos2D endr
+    /\ θ2D initl = θ2D endr).
 
 Lemma carConfinedDuringAMsAppend : forall cd rect la lb init,
 carConfinedDuringAMs cd rect (la++lb) init
@@ -1490,6 +1501,94 @@ Qed.
 Require Import MCMisc.rings.
 Local Opaque Max.
 Local Opaque Min.
+
+(*reuse this to prove atomicMoveInvertible*)
+Lemma atomicMoveStateInvertible :
+    ∀ (m : DAtomicMove), 
+    MovesStateInverse [m] [DAtomicMoveInv m].
+Proof using.
+  intros m.
+  intros ? ? ? ? ? Ht. subst endl endr.
+  unfold stateAfterAtomicMoves.
+  simpl fold_left.
+  unfold DAtomicMoveInv, AtomicMoveInv in *.
+  destruct m as [m s].
+  destruct s as [s | s].
+  - simpl in *. rewrite s in *.
+    rewrite mult_0_l, plus_0_r in Ht.
+    rewrite Ht. split;[| ring].
+    rewrite preserves_negate.
+    ring.
+  - simpl. rewrite Ht. simpl.
+    split;[| ring].
+    rewrite <- negate_mult_distr_r.
+    rewrite RingProp2.
+    split; simpl; ring.
+Qed.
+
+Lemma DMoveInvInvolutive : ∀ (m : DAtomicMove), 
+    DAtomicMoveInv (DAtomicMoveInv m) = m.
+Proof using .
+  intros m.
+  apply MoveInvInvolutive.
+Qed.
+
+Lemma DMovesInvInvolutive : ∀ (m : list DAtomicMove), 
+  DAtomicMovesInv (DAtomicMovesInv m) = m.
+Proof using .
+  induction m;[reflexivity |].
+  unfold DAtomicMovesInv. simpl.
+  rewrite map_app.
+  rewrite map_cons.
+  rewrite rev_app_distr.
+  simpl.
+  rewrite DMoveInvInvolutive.
+  constructor; auto.
+Qed.
+
+
+Lemma atomicMovesStateInvertibleAux :
+  ∀ (m : list DAtomicMove), MovesStateInverse (DAtomicMovesInv m) m.
+Proof using.
+  induction m as [| h tl Hind];
+  intros ? ? ? ?  ? Ht; subst endl endr;
+    [simpl in *; split;[ ring| auto]|].
+  simpl in *.
+  unfold DAtomicMovesInv in *.
+  simpl in *.
+  revert Ht.
+  setoid_rewrite fold_left_app.
+  simpl fold_left.
+  fold (stateAfterAtomicMoves (rev (List.map DAtomicMoveInv tl)) initl).
+  pose proof (atomicMoveStateInvertible (DAtomicMoveInv h)) as X.
+  unfold MovesStateInverse in X.
+  unfold stateAfterAtomicMoves in X.
+  simpl fold_left in X.
+  intro Ht.
+  specialize (X _ _ cd Ht).
+  rewrite DMoveInvInvolutive in X.
+  unfold DAtomicMoveInv in Ht. simpl in Ht.
+  rewrite <- negate_mult_distr_r in Ht.
+  symmetry in Ht.
+  rewrite RingShiftMinus in Ht.
+  symmetry in Ht.
+  rewrite (@commutativity _ _ _ plus _) in Ht.
+  unfold MovesStateInverse in Hind.
+  specialize (Hind _ (stateAfterAtomicMove initr h) cd Ht).
+  clear Ht.
+  repnd. clear Xr.
+  split;[| exact Hindr].
+  clear Hindr.
+  pose proof (@sg_op_proper _ _ plus  _ _ _ Hindl _ _ Xl) as Hadd.
+  clear Hindl  Xl.
+  unfold sg_op in Hadd.
+  ring_simplify in Hadd.
+  rewrite (@commutativity _ _ _ plus _).
+  symmetry.
+  rewrite (@commutativity _ _ _ plus _).
+  symmetry.
+  exact Hadd.
+Qed.  
 
 Lemma atomicMoveSpaceInvertible :
     ∀ (m : DAtomicMove), 
@@ -1597,26 +1696,6 @@ Proof using.
     exact Hcon.
   Qed.
 
-Lemma DMoveInvInvolutive : ∀ (m : DAtomicMove), 
-    DAtomicMoveInv (DAtomicMoveInv m) = m.
-Proof using .
-  intros m.
-  apply MoveInvInvolutive.
-Qed.
-
-Lemma DMovesInvInvolutive : ∀ (m : list DAtomicMove), 
-  DAtomicMovesInv (DAtomicMovesInv m) = m.
-Proof using .
-  induction m;[reflexivity |].
-  unfold DAtomicMovesInv. simpl.
-  rewrite map_app.
-  rewrite map_cons.
-  rewrite rev_app_distr.
-  simpl.
-  rewrite DMoveInvInvolutive.
-  constructor; auto.
-Qed.
-
 
 Lemma atomicMovesSpaceInvertibleAux :
   ∀ (m : list DAtomicMove), MovesSpaceInverse (DAtomicMovesInv m) m.
@@ -1649,15 +1728,32 @@ Proof using Type.
   fold (stateAfterAtomicMoves (rev (List.map DAtomicMoveInv tl)) init) in Ht.
   apply carConfinedDuringAMsAppend in Hcon.
   repnd.
-  eapply atomicMoveSpaceInvertible with (initr:=initr) in Hconr;
-    [|exact Ht].
-  split.
-  + simpl in Hconr. rewrite DMoveInvInvolutive in Hconr. admit.
-  + rewrite Heq. apply Hind; auto. clear Hconl Hconr.
-    rewrite <- negate_mult_distr_r in Ht.
-    symmetry in Ht.
-    rewrite RingShiftMinus in Ht.
-    symmetry in Ht.
-    rewrite (@commutativity _ _ _ plus _) in Ht.
-    exact Ht.
-Abort. 
+  pose proof (@atomicMoveSpaceInvertible (DAtomicMoveInv h)) as X.
+  specialize (@X _ initr cd confineRect Ht).
+  apply X in Hconr. clear X.
+  rewrite <- negate_mult_distr_r in Ht.
+  symmetry in Ht.
+  rewrite RingShiftMinus in Ht.
+  symmetry in Ht.
+  rewrite (@commutativity _ _ _ plus _) in Ht.
+  split;[|rewrite Heq; apply Hind; auto].
+  clear Hconl.
+  simpl stateAfterAtomicMoves in Hconr. 
+  rewrite DMoveInvInvolutive in Hconr.
+  apply carConfinedDuringAMsSingle in Hconr.
+  pose proof (atomicMovesStateInvertibleAux tl 
+      _ (stateAfterAtomicMove initr h) cd Ht) as X.
+  apply proj1 in X. clear Ht.
+  pose proof (@sg_op_proper _ _ plus  _ _ _ Heq _ _ X) as Hadd.
+  clear Heq X.
+  unfold sg_op in Hadd.
+  ring_simplify in Hadd.
+  rewrite RingShiftMinus in Hadd.
+  ring_simplify in Hadd.
+  symmetry in Hadd.
+  rewrite (@commutativity _ _ _ plus _) in Hadd.
+  rewrite <- RingShiftMinus in Hadd.
+  rewrite Hadd in Hconr.
+  clear Hadd.
+  exact Hconr.
+Qed. 
