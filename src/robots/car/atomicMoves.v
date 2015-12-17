@@ -1396,6 +1396,7 @@ Section  SpaceInvertability.
 
 Add Ring tempRingIR : (stdlib_ring_theory IR).
 
+Require Import MathClasses.interfaces.canonical_names.
 Lemma carConfinedDuringAMEndpoints: forall
   (cd : CarDimensions IR)
   (rect : Line2D IR) 
@@ -1506,7 +1507,7 @@ Lemma atomicMoveStateInvertible :
     MovesStateInverse [m] [DAtomicMoveInv m].
 Proof using.
   intros m.
-  intros ? ? ? ? ? Ht. subst endl endr.
+  intros  ? ? ? ? Ht. subst endl endr.
   unfold stateAfterAtomicMoves.
   simpl fold_left.
   unfold DAtomicMoveInv, AtomicMoveInv in *.
@@ -1548,7 +1549,7 @@ Lemma atomicMovesStateInvertibleAux :
   ∀ (m : list DAtomicMove), MovesStateInverse (DAtomicMovesInv m) m.
 Proof using.
   induction m as [| h tl Hind];
-  intros ? ? ? ?  ? Ht; subst endl endr;
+  intros ? ? ?  ? Ht; subst endl endr;
     [simpl in *; split;[ ring| auto]|].
   simpl in *.
   unfold DAtomicMovesInv in *.
@@ -1562,7 +1563,7 @@ Proof using.
   unfold stateAfterAtomicMoves in X.
   simpl fold_left in X.
   intro Ht.
-  specialize (X _ _ cd Ht).
+  specialize (X _ _  Ht).
   rewrite DMoveInvInvolutive in X.
   unfold DAtomicMoveInv in Ht. simpl in Ht.
   rewrite <- negate_mult_distr_r in Ht.
@@ -1571,7 +1572,7 @@ Proof using.
   symmetry in Ht.
   rewrite (@commutativity _ _ _ plus _) in Ht.
   unfold MovesStateInverse in Hind.
-  specialize (Hind _ (stateAfterAtomicMove initr h) cd Ht).
+  specialize (Hind _ (stateAfterAtomicMove initr h) Ht).
   clear Ht.
   repnd. clear Xr.
   split;[| exact Hindr].
@@ -1739,7 +1740,7 @@ Proof using Type.
   rewrite DMoveInvInvolutive in Hconr.
   apply carConfinedDuringAMsSingle in Hconr.
   pose proof (atomicMovesStateInvertibleAux tl 
-      _ (stateAfterAtomicMove initr h) cd Ht) as X.
+      _ (stateAfterAtomicMove initr h) Ht) as X.
   apply proj1 in X. clear Ht.
   pose proof (@sg_op_proper _ _ plus  _ _ _ Heq _ _ X) as Hadd.
   clear Heq X.
@@ -1791,7 +1792,7 @@ Lemma atomicMovesStateInvertible :
   ∀ (m : list DAtomicMove), MovesStateInverse m (-m).
 Proof.
   intros. unfold MovesStateInverse.
-  intros ? ? ?.
+  intros ? ?.
   pose proof (DMovesInvInvolutive m) as H.
   rewrite <- H at 1.
   rewrite <- H at 2.
