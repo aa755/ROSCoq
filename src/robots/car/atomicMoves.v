@@ -1054,10 +1054,9 @@ match lam with
             carConfinedDuringAMs cd rect tl (stateAfterAtomicMove init m)
 end.
 
-Definition stateAfterAtomicMoves
-  (lam : list DAtomicMove)
-  (init : Rigid2DState IR) : Rigid2DState IR  :=
-fold_left stateAfterAtomicMove lam init.
+Definition stateAfterAtomicMoves :
+(list DAtomicMove)->Rigid2DState IR ->Rigid2DState IR :=
+fold_left stateAfterAtomicMove.
 
 
 Global Instance ProperCarConfinedDuringAMs:
@@ -1546,7 +1545,6 @@ Proof using .
   constructor; auto.
 Qed.
 
-
 Lemma atomicMovesStateInvertibleAux :
   ∀ (m : list DAtomicMove), MovesStateInverse (DAtomicMovesInv m) m.
 Proof using.
@@ -1559,7 +1557,7 @@ Proof using.
   revert Ht.
   setoid_rewrite fold_left_app.
   simpl fold_left.
-  fold (stateAfterAtomicMoves (rev (List.map DAtomicMoveInv tl)) initl).
+  fold stateAfterAtomicMoves.
   pose proof (atomicMoveStateInvertible (DAtomicMoveInv h)) as X.
   unfold MovesStateInverse in X.
   unfold stateAfterAtomicMoves in X.
@@ -1725,7 +1723,7 @@ Proof using Type.
   simpl in *.
   setoid_rewrite fold_left_app in Ht.
   simpl in Ht.
-  fold (stateAfterAtomicMoves (rev (List.map DAtomicMoveInv tl)) init) in Ht.
+  fold stateAfterAtomicMoves in Ht.
   apply carConfinedDuringAMsAppend in Hcon.
   repnd.
   pose proof (@atomicMoveSpaceInvertible (DAtomicMoveInv h)) as X.
@@ -1759,3 +1757,68 @@ Proof using Type.
 Qed. 
 
 End SpaceInvertability.
+
+Definition mkStraightMove (d:IR): DAtomicMove.
+ exists {|am_distance :=d; am_tc :=0|}.
+ simpl. left. reflexivity.
+Defined.
+
+Lemma carConfinedDuringAMsEndpoints: forall
+  (cd : CarDimensions IR)
+  (rect : Line2D IR) 
+  (m : list DAtomicMove)
+  (init : Rigid2DState IR),
+carConfinedDuringAMs cd rect m init
+→ (carMinMaxXY cd (stateAfterAtomicMoves m init) ⊆ rect
+   /\ carMinMaxXY cd init ⊆ rect).
+Proof.
+  induction m; intros ? Hc;simpl in *;
+    [tauto|].
+  repnd.
+  apply carConfinedDuringAMEndpoints in Hcl.
+  split;[| tauto].
+  repnd.
+  apply IHm in Hcr. tauto.
+Qed.
+
+(**because the extremas w.r.t space occupation occur
+at endpoints during a straight move, one can forget about it
+while computing space requirements. 
+This is not true for turning moves.*)
+Lemma strMoveSandwichedConfined : ∀
+  (damsl damsr : list DAtomicMove)
+  (cd : CarDimensions ℝ) (init : Rigid2DState ℝ) (d:ℝ)
+  (confineRect: Line2D IR),
+  let sandwich : list DAtomicMove 
+    := damsl ++ [mkStraightMove d] ++ damsr in
+  let stMid : Rigid2DState ℝ  
+    := stateAfterAtomicMoves (damsl ++ [mkStraightMove d]) init in
+ carConfinedDuringAMs cd confineRect damsl init
+ -> carConfinedDuringAMs cd confineRect damsr stMid
+ -> carConfinedDuringAMs cd confineRect sandwich init.
+Proof.
+  intros ? ? ? ? ? ?.
+  simpl. intros H1c H2c.
+  apply carConfinedDuringAMsAppend.
+  split;[exact H1c|].
+  fold ([mkStraightMove d] ++ damsr).
+  rewrite carConfinedDuringAMsAppend.
+  setoid_rewrite fold_left_app in H2c.
+  fold stateAfterAtomicMoves in H2c.
+  fold stateAfterAtomicMoves in H2c.
+  split;[|exact H2c].
+  apply carConfinedDuringAMsSingle.
+  simpl. unfold straightAMSpaceRequirement.
+  simpl.
+  apply boundingUnionIff.
+  apply carConfinedDuringAMsEndpoints in H1c.
+  apply carConfinedDuringAMsEndpoints in H2c.
+  repnd.
+  split;[tauto |].
+  simpl in H2cr.
+  unfold stateAfterAtomicMove in H2cr.
+  simpl in H2cr.
+  rewrite mult_0_l, plus_0_r in H2cr. 
+  rewrite displacedCarMinMaxXY in H2cr.
+  exact H2cr.
+Qed.  
