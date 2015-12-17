@@ -1472,8 +1472,7 @@ Definition MovesSpaceInverse (dams damsr : list DAtomicMove) :=
 
 (* analogous to [MovesInverse], but more convenient as there is no car*)
 Definition MovesStateInverse (damsl damsr : list DAtomicMove) := 
-  ∀ (initl initr : Rigid2DState ℝ)
- (cd : CarDimensions ℝ) ,
+  ∀ (initl initr : Rigid2DState ℝ) ,
  let endl := (stateAfterAtomicMoves damsl initl) in
  let endr := (stateAfterAtomicMoves damsr initr) in
  θ2D initr = θ2D endl
@@ -1755,6 +1754,49 @@ Proof using Type.
   clear Hadd.
   exact Hconr.
 Qed. 
+
+Global Instance NegateDAtomicMove : Negate DAtomicMove :=
+  DAtomicMoveInv.
+
+Global Instance NegateDAtomicMoves : Negate (list DAtomicMove) :=
+  DAtomicMovesInv.
+
+(*Move *)
+Global Instance Properfold_left `{Equiv A} `{Equiv B}
+(f:A->B->A) :
+(Proper (equiv ==> equiv ==> equiv) f)
+-> (Proper (equiv ==> equiv ==> equiv) (fold_left f)).
+Proof.
+  intros Hp ? ? H1. induction H1; intros ? ? H3;
+  [assumption|].
+  simpl.
+  specialize (Hp _ _ H3 _ _ H1).
+  specialize (IHpointWiseRelated _ _ Hp).
+  assumption.
+Qed.
+
+
+Lemma atomicMovesSpaceInvertible :
+  ∀ (m : list DAtomicMove), MovesSpaceInverse m (-m).
+Proof.
+  intros. unfold MovesSpaceInverse.
+  intros ? ? ? ?.
+  pose proof (DMovesInvInvolutive m) as H.
+  rewrite <- H at 1.
+  rewrite <- H at 2.
+  apply atomicMovesSpaceInvertibleAux.
+Qed.
+
+Lemma atomicMovesStateInvertible :
+  ∀ (m : list DAtomicMove), MovesStateInverse m (-m).
+Proof.
+  intros. unfold MovesStateInverse.
+  intros ? ? ?.
+  pose proof (DMovesInvInvolutive m) as H.
+  rewrite <- H at 1.
+  rewrite <- H at 2.
+  apply atomicMovesStateInvertibleAux.
+Qed.
 
 End SpaceInvertability.
 
