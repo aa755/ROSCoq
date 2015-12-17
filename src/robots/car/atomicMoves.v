@@ -1757,3 +1757,5 @@ Proof using Type.
   clear Hadd.
   exact Hconr.
 Qed. 
+
+End SpaceInvertability.
