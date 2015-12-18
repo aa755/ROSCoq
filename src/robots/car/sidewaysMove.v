@@ -33,7 +33,6 @@ Require Import geometry2DProps.
 Require Import ackermannSteeringProp.
 Require Import MathClasses.orders.rings.
 Require Import MathClasses.interfaces.orders.
-Require Import ackermannSteeringProp.
 Require Import atomicMoves.
 Require Import IRMisc.LegacyIRRing.
 
@@ -301,6 +300,50 @@ Variable α : IR.
 Hypothesis αPos : 0[<]α.
 Variable d : IR.
 Hypothesis dNN : 0≤d.
+Hypothesis firstQuadW: 0 ≤ 2*α*d ≤ ½ * π.
+
+(*Move*)
+Lemma inBetweenExpand `{PreOrder A r} : forall a b c a' c':A,
+(r a b /\ r b c) 
+-> (r a' a /\ r c c')
+-> (r a' b /\ r b c').
+Proof using.
+  intros. repnd.
+  split; eapply transitivity; eauto.
+Qed.
+
+Local Definition  adNN : 0≤α*d.
+Proof using αPos dNN.
+exact  (mult_resp_nonneg ℝ α d (less_leEq ℝ [0] α αPos) dNN).
+Qed.
+
+(*Local Lemma is not supported prior to 8.5beta3*)  
+Local Definition firstQuadW1: ∀ θ : ℝ,
+0 ≤ θ ≤ (α * d)
+-> 0 ≤ θ ≤ ½ * π.
+Proof using firstQuadW αPos  dNN.
+  intros ? Hh.
+  eapply inBetweenExpand; 
+    [apply Hh |].
+  clear Hh.
+  split;[reflexivity|].
+  eapply transitivity;[| apply firstQuadW].
+  rewrite <- (@simple_associativity _ _ mult _ _ _).
+  apply rings.RingLeProp2.
+  apply adNN. 
+Qed.
+  
+Local Definition firstQuadW2: ∀ θ : ℝ,
+(α * d) ≤ θ ≤ 2*α * d
+-> 0 ≤ θ ≤ ½ * π.
+Proof using firstQuadW αPos  dNN.
+  intros ? Hh.
+  eapply inBetweenExpand; 
+    [apply Hh |].
+  clear Hh.
+  split;[apply adNN|].
+  tauto.
+Qed.
 
 
 Local Notation  αNZ := ((pos_ap_zero _ _ αPos): α[#]0).
@@ -310,15 +353,13 @@ Local Notation SWriggle := (Wriggle α αNZ d).
 
 Local Notation tr := ((@f_rcpcl ℝ α (pos_ap_zero ℝ α αPos))).
 
-Local Notation  adNN  :=
-(mult_resp_nonneg ℝ α d (less_leEq ℝ [0] α αPos) dNN).
+
 
 (*apply mult_resp_nonneg; auto 2 with CoRN.*)
 
-
-Lemma WriggleFirstQSpace :
-  ∀  (cd : CarDimensions ℝ)
-  (confineRect: Line2D IR),
+Variable cd : CarDimensions ℝ.
+Hypothesis nTriv : nonTrivialCarDim cd.
+Lemma WriggleFirstQSpace :  ∀  (confineRect: Line2D IR),
   let sm:={|
        pos2D := ('tr) * {|
                    X := sin (α * d);
@@ -353,8 +394,26 @@ Proof.
   setoid_rewrite minus_0_r. *)
   setoid_rewrite cg_inv_zero.
   setoid_rewrite negate_mult_negate.
-  setoid_rewrite leEq_imp_Min_is_lft.
-Abort.
+  setoid_rewrite leEq_imp_Min_is_lft;
+    [| exact adNN
+     | apply flip_le_minus_l; rewrite plus_negate_r
+      ;exact adNN].
+  setoid_rewrite leEq_imp_Max_is_rht;
+    [| exact adNN
+     | apply flip_le_minus_l; rewrite plus_negate_r
+      ;exact adNN].
+  fold (Le_instance_IR).
+  fold (@le IR _).
+  setoid_rewrite  (@commutativity _ _ _ mult _ _ tr).
+  setoid_rewrite rings.RingProp3.
+  setoid_rewrite  (@simple_associativity _ _ mult _ _ _).
+  split; intros ? ?; specialize (Ht θ).
+  - destruct Ht. rewrite carMinMaxXYAM; auto;[].
+    apply firstQuadW1. assumption.
+  - destruct Ht. subst sm.
+    rewrite carMinMaxXYAM; auto;[].
+      apply firstQuadW2; assumption.
+Qed.
 
 End FirstQuadWriggle.
 

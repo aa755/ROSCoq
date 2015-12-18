@@ -17,7 +17,7 @@ Add Ring tempRing : (stdlib_ring_theory A).
 Lemma RingShiftMinus  : forall 
   a b c : A,
   a - b  = c <-> a = b + c.
-Proof.
+Proof using All.
   intros ? ? ?; split; intros Hh.
   (**the ring tactic does not seem to look at hyps*)
   - rewrite <- Hh. ring.
@@ -27,8 +27,46 @@ Qed.
 Lemma RingProp2  : forall 
   a b  : A,
   a + b - b  =a.
-Proof.
+Proof using All.
   intros ? ?. ring.
 Qed.
+
+Lemma RingProp3  : forall 
+  a   : A,
+  a + a   = 2 * a.
+Proof using All.
+  intros ? . ring.
+Qed.
+
+
+Section Le.
+Require Export MathClasses.orders.rings.
+Context `{Le A}
+    `{@orders.SemiRingOrder A equiv plus mult zero one le}.
+
+Lemma RingLeProp1  : forall 
+  a  b : A,
+  0 ≤ b
+  ->a ≤ b + a.
+Proof using All.
+  intros ? ? Hh.
+  apply flip_le_minus_l. rewrite plus_negate_r.
+  assumption.
+Qed.
+
+Lemma RingLeProp2  : forall 
+  a : A,
+  0 ≤ a
+  ->a ≤ 2*a.
+Proof using All.
+  intros ? Hh.
+  rewrite <- RingProp3.
+  apply RingLeProp1.
+  assumption.
+Qed.
+
+
+End Le.
+
 
 End RingMisc.
