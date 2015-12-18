@@ -202,7 +202,7 @@ to where we started.
   let rectR := confineRect 
     + '('(d') * unitVec ((θ2D init) + 2 * α * d)) in
   let cmr := boundingUnion confineRect rectR in
-carConfinedDuringAMs cd confineRect (Wriggle α tcNZ d) init
+carConfinedDuringAMs cd confineRect SWriggle init
 -> carConfinedDuringAMs cd cmr SidewaysAux init.
   Proof using.
     intros ? ? ?. simpl. intros H.
@@ -238,7 +238,7 @@ carConfinedDuringAMs cd confineRect (Wriggle α tcNZ d) init
 Lemma unitVecLemma1 : forall θs θw:IR, 
   (unitVec (θs + θw)  - '(cos θw) * unitVec θs)
   = ('(sin  θw)) * unitVec (θs + (½ * π)).
-Proof.
+Proof using.
   intros ? ?.
   unfold cast,castCRCart2DCR,
      sameXY, unitVec.   autounfold with IRMC.
@@ -284,3 +284,81 @@ Qed.
      ring.
   Qed.
 End Sideways.
+
+Require Import firstQuadrant.
+
+Section FirstQuadWriggle.
+(**  The lemmas [SidewaysAuxSpace] above reduces
+  the problem of computing the space needec by the
+  [SidewaysAux] move to just doing that for the 
+  [Wriggle] move, which constitutes the first 2 out
+  of the 5 atomic moves in [SidewaysAux].
+  WLOG, we consider the car's initial state to be ((0,0),0),
+  which means it is at origin, and its forward direction
+  points along the X axis.
+  *)
+Variable α : IR.
+Hypothesis αPos : 0[<]α.
+Variable d : IR.
+Hypothesis dNN : 0≤d.
+
+
+Local Notation  αNZ := ((pos_ap_zero _ _ αPos): α[#]0).
+Local Notation init  := (0:Rigid2DState IR).
+
+Local Notation SWriggle := (Wriggle α αNZ d).
+
+Local Notation tr := ((@f_rcpcl ℝ α (pos_ap_zero ℝ α αPos))).
+
+Local Notation  adNN  :=
+(mult_resp_nonneg ℝ α d (less_leEq ℝ [0] α αPos) dNN).
+
+(*apply mult_resp_nonneg; auto 2 with CoRN.*)
+
+
+Lemma WriggleFirstQSpace :
+  ∀  (cd : CarDimensions ℝ)
+  (confineRect: Line2D IR),
+  let sm:={|
+       pos2D := ('tr) * {|
+                   X := sin (α * d);
+                   Y := (1 - cos (α * d))|} ;
+          θ2D := α * d |} in
+  (∀ θ : ℝ,
+   (0 ≤ θ ≤ (α * d) 
+      → carMinMaxXYAtθ 0 cd tr θ ⊆ confineRect)
+   ∧ 
+   (α * d ≤ θ ≤ (2* α * d)
+    → carMinMaxXYAtθ sm cd (-tr) θ ⊆ confineRect))
+  ->
+  carConfinedDuringAMs cd confineRect SWriggle init.
+Proof.
+  intros ? ? Ht. unfold Wriggle.
+  (*to stop reduction*)
+  match goal with
+  [|- context [?h::nil]] => remember (h::nil) as hh
+  end.
+  simpl. subst hh.
+  rewrite carConfinedDuringAMsSingle.
+  simpl. unfold stateAfterAtomicMove.
+  simpl. unfold confinedTurningAM. simpl.
+  unfold inBetweenR.
+  setoid_rewrite plus_0_l.
+  setoid_rewrite plus_0_l.
+  setoid_rewrite  reciprocalNeg with (xp:=αNZ).
+  setoid_rewrite Sin_zero.
+  setoid_rewrite Cos_zero.
+  (*fold Zero_instance_IR.
+  fold (@zero IR _).
+  setoid_rewrite minus_0_r. *)
+  setoid_rewrite cg_inv_zero.
+  setoid_rewrite negate_mult_negate.
+  setoid_rewrite leEq_imp_Min_is_lft.
+Abort.
+
+End FirstQuadWriggle.
+
+
+
+
+
