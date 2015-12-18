@@ -193,6 +193,25 @@ to where we started.
     reflexivity.
   Qed.
 
+    Local Opaque conjugate.
+    Local Opaque Wriggle.
+  Lemma SidewaysAuxSpace :
+  ∀  (cd : CarDimensions ℝ)
+  (init : Rigid2DState ℝ)
+  (confineRect: Line2D IR), 
+  let rectR := confineRect 
+    + '('(d') * unitVec ((θ2D init) + 2 * α * d)) in
+  let cmr := boundingUnion confineRect rectR in
+carConfinedDuringAMs cd confineRect (Wriggle α tcNZ d) init
+-> carConfinedDuringAMs cd cmr SidewaysAux init.
+  Proof using.
+    intros ? ? ?. simpl. intros H.
+    eapply straightConjugateSpace with (d:=d')in H.
+    rewrite WriggleState in H.
+    simpl in H.
+    exact H.
+  Qed.
+
   (** After [SidewaysAux], the car is in the same orientation as before, but it has position
     has changed. For a sideways move, we just have drive straight to cancel
     the component of that position change along the car's orientation.

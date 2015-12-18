@@ -202,9 +202,11 @@ Definition maxCart `{MaxClass A} (a b : Cart2D A) :=
 
 
 Definition boundingUnion `{MinClass A}`{MaxClass A}
- (a b : BoundingRectangle A) : BoundingRectangle A:=
+ (a b : Line2D A) : Line2D A:=
   {|lstart := minCart (lstart a) (lstart b); 
     lend := maxCart  (lend a) (lend b)|}.
+
+Typeclasses Transparent BoundingRectangle.
 
 Fixpoint computeBoundingRect `{MinClass A}`{MaxClass A} `{Zero A}
   (pts : list (Cart2D A)) : BoundingRectangle A :=

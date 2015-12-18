@@ -259,3 +259,28 @@ Proof using.
   rewrite maxCartSum.
   reflexivity.
 Qed.
+
+Lemma  boundingUnionLeft:
+  ∀ a b: Line2D ℝ, a ⊆ boundingUnion a b.
+Proof.
+  intros ? ?. unfold boundingUnion;
+  split; simpl; eauto using minCart_leEq_lft,
+    lft_leEq_maxCart.
+Qed.
+
+Lemma  boundingUnionRight:
+  ∀ a b: Line2D ℝ, b ⊆ boundingUnion a b.
+Proof.
+  intros. rewrite commutativity.
+  apply boundingUnionLeft.
+Qed.
+
+Global Instance ProperboundingUnion:
+ Proper (equiv ==> equiv ==> equiv) 
+ (@boundingUnion IR _ _).
+Proof.
+  intros ? ? H1 ? ? H2.
+  unfold boundingUnion.
+  rewrite H1, H2. reflexivity.
+Qed.
+

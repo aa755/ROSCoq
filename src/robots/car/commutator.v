@@ -120,20 +120,6 @@ Proof.
 - repnd. split; eauto using carConfinedDuringAMSubset.
 Qed.
 
-Lemma  boundingUnionLeft:
-  ∀ a b: Line2D ℝ, a ⊆ boundingUnion a b.
-Proof.
-  intros ? ?. unfold boundingUnion;
-  split; simpl; eauto using minCart_leEq_lft,
-    lft_leEq_maxCart.
-Qed.
-
-Lemma  boundingUnionRight:
-  ∀ a b: Line2D ℝ, b ⊆ boundingUnion a b.
-Proof.
-  intros. rewrite commutativity.
-  apply boundingUnionLeft.
-Qed.
 
 Lemma straightConjugateSpace : ∀  (cd : CarDimensions ℝ)
   (a : list DAtomicMove) (d:ℝ)

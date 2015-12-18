@@ -56,11 +56,6 @@ Local Opaque Cos.
 This file is highly experimental.
 *)
 
-(**width needs to be nonzero so that we can take its reciprocal in an arctan.
-  others can also be required to be strictly positive*)
-
-Definition nonTrivialCarDim (cd : CarDimensions IR) :=
-  0 ≤ lengthFront cd  and  0 [<] width cd and 0 ≤ lengthBack cd.
 
 
 Hint Unfold cos CosClassIR sin SinClassIR min MinClassIR  max MaxClassIR: IRMC.
@@ -123,6 +118,11 @@ Proof.
   intros ? ? Heq. destruct Heq. tauto.
 Qed.
 
+(**width needs to be nonzero so that we can take its reciprocal in an arctan.
+  others can also be required to be strictly positive*)
+
+Definition nonTrivialCarDim (cd : CarDimensions IR) :=
+  0 ≤ lengthFront cd  and  0 [<] width cd and 0 ≤ lengthBack cd.
 
 Global Instance EquivalenceCarDim  `{e:Equiv A}
   `{Equivalence _ e}
@@ -139,241 +139,15 @@ Proof using .
     with relations.
 Qed.
 
-Typeclasses Transparent BoundingRectangle.
-Global Instance ProperboundingUnion:
- Proper (equiv ==> equiv ==> equiv) 
- (@boundingUnion IR _ _).
-Proof.
-  intros ? ? H1 ? ? H2.
-  unfold boundingUnion.
-  rewrite H1, H2. reflexivity.
-Qed.
-
 Global Instance ProperCarMinMax : Proper
     (equiv ==> equiv ==> equiv) (@carMinMaxXY IR _ _ _ _ _ _ _ _ _ _).
-Proof.
+Proof using.
   intros ? ? H0 x y Heq. unfold carMinMaxXY. simpl.
   unfold backLeft, frontLeft, frontRight, backRight.
   rewrite H0.
   rewrite Heq. reflexivity.
 Qed.
 
-(** For getting out of a parallel parked spot, a car's orientation does not
-need to change by 90 degrees. Assume that the X axis represents the road.
-Under such an orientation, it is easy to characterize the X Y extent of the car,
-in terms of the coordinates of the four corners of the car*)
-Section XYBounds.
-  Variable cs :Rigid2DState IR.
-  Variable cd :CarDimensions IR.
-
-  Hypothesis nonTriv : nonTrivialCarDim cd.
-  Hypothesis theta90 : 0 ≤ θ2D cs ≤ (½ * π).
-  
-  Lemma carBoundsAMAuxMin : 
-    minCart (rightSideUnitVec cs * ' width cd) (- (rightSideUnitVec cs * ' width cd))
-    = -('width cd) * {|X:= sin (θ2D cs); Y:= cos (θ2D cs)|}.
-  Proof using All.
-    destruct nonTriv as [a b]. destruct b as [c b].
-    apply unitVecNonNeg in theta90.
-    unfold unitVec in theta90.
-    destruct theta90 as [x y]. simpl in x, y.
-    apply less_leEq in c.
-    unfold rightSideUnitVec. rewrite unitVecMinus90.
-    unfold minCart. split; simpl;
-    autounfold with IRMC.
-    - rewrite Min_comm.
-      rewrite leEq_imp_Min_is_lft;[ring|].
-      rewrite <- cring_inv_mult_rht.
-      apply mult_resp_leEq_rht;[| assumption].
-      apply shift_leEq_rht. unfold cg_minus.
-      rewrite cg_inv_inv.
-      apply plus_resp_nonneg; assumption.
-
-    - rewrite leEq_imp_Min_is_lft;[ring|].
-      rewrite  cring_inv_mult_rht.
-      apply inv_resp_leEq.
-      rewrite <- cring_inv_mult_rht.
-      apply mult_resp_leEq_rht;[| assumption].
-      apply shift_leEq_rht. unfold cg_minus.
-      rewrite cg_inv_inv.
-      apply plus_resp_nonneg; assumption.
-  Qed.
-
-  (* only needed to replace leEq_imp_Min_is_lft by leEq_imp_Max_is_rht *)
-  Lemma carBoundsAMAuxMax : 
-    maxCart (rightSideUnitVec cs * ' width cd) (- (rightSideUnitVec cs * ' width cd))
-    = ('width cd) * {|X:= sin (θ2D cs); Y:= cos (θ2D cs)|}.
-  Proof using All.
-    destruct nonTriv as [a b]. destruct b as [c b].
-    apply unitVecNonNeg in theta90.
-    unfold unitVec in theta90.
-    destruct theta90 as [x y]. simpl in x, y.
-    apply less_leEq in c.
-    unfold rightSideUnitVec. rewrite unitVecMinus90.
-    unfold maxCart. split; simpl;
-    autounfold with IRMC.
-    - rewrite Max_comm.
-      rewrite leEq_imp_Max_is_rht;[ring|].
-      rewrite <- cring_inv_mult_rht.
-      apply mult_resp_leEq_rht;[| assumption].
-      apply shift_leEq_rht. unfold cg_minus.
-      rewrite cg_inv_inv.
-      apply plus_resp_nonneg; assumption.
-
-    - rewrite leEq_imp_Max_is_rht;[ring|].
-      rewrite  cring_inv_mult_rht.
-      apply inv_resp_leEq.
-      rewrite <- cring_inv_mult_rht.
-      apply mult_resp_leEq_rht;[| assumption].
-      apply shift_leEq_rht. unfold cg_minus.
-      rewrite cg_inv_inv.
-      apply plus_resp_nonneg; assumption.
-  Qed.
-
-  Lemma carBoundsAMAuxMin2 : 
-    minCart 
-      ((- frontUnitVec cs * ' lengthBack cd)) 
-      (frontUnitVec cs * ' lengthFront cd)
-    =  -(frontUnitVec cs) * (' lengthBack cd).
-  Proof using All.
-    rewrite <- negate_mult_distr_l.
-    rewrite negate_mult_distr_r.
-    unfold frontUnitVec.
-    setoid_rewrite <- sameXYNegate.
-    setoid_rewrite unitVecMinDistr;[| assumption].
-    fequiv.
-    unfold cast, castCRCart2DCR. 
-    fequiv.
-    apply leEq_imp_Min_is_lft.
-    apply shift_leEq_rht.
-    unfold cg_minus. revert nonTriv.
-    unfold nonTrivialCarDim.
-    autounfold with IRMC.
-    intros.
-    rewrite cg_inv_inv.
-      apply plus_resp_nonneg; tauto.
-  Qed.
-
-  Lemma carBoundsAMAuxMax2 : 
-    maxCart 
-      ((- frontUnitVec cs * ' lengthBack cd)) 
-      (frontUnitVec cs * ' lengthFront cd)
-    =  (frontUnitVec cs) * (' lengthFront cd).
-  Proof using All.
-    rewrite <- negate_mult_distr_l.
-    rewrite negate_mult_distr_r.
-    unfold frontUnitVec.
-    setoid_rewrite <- sameXYNegate.
-    setoid_rewrite unitVecMaxDistr;[| assumption].
-    fequiv.
-    fequiv.
-    apply leEq_imp_Max_is_rht.
-    apply shift_leEq_rht.
-    unfold cg_minus. revert nonTriv.
-    unfold nonTrivialCarDim.
-    autounfold with IRMC.
-    intros.
-    rewrite cg_inv_inv.
-      apply plus_resp_nonneg; tauto.
-  Qed.
-    
-  Lemma carBoundsAMAux : carMinMaxXY cd cs =
-  {|minxy := {|X:= X (backLeft cd cs); Y:= Y (backRight cd cs)|};
-     maxxy := {|X:= X (frontRight cd cs); Y:= Y (frontLeft cd cs) |} |}.
-  Proof using All.
-  unfold carMinMaxXY.
-  unfold backRight, backLeft.
-  Local Opaque unitVec.
-  simpl. unfold  boundingUnion.
-  simpl. 
-  Typeclasses eauto :=10.
-  pose proof (minCartSum (pos2D cs - frontUnitVec cs * ' lengthBack cd)).
-  unfold BoundingRectangle. simpl.
-  Local Opaque minCart.
-  Local Opaque maxCart.
-  simpl. split; simpl.
-  - rewrite  (@simple_associativity _ _ (@plus (Cart2D IR) _) _ _).
-    rewrite  (@simple_associativity _ _ (@plus (Cart2D IR) _) _ _).  
-    rewrite (minCartSum _).
-    rewrite carBoundsAMAuxMin.
-    rewrite <- (@simple_associativity _ _ (@minCart IR _) _ _).
-    unfold frontRight, frontLeft.
-    rewrite  (@simple_associativity _ _ (@plus (Cart2D IR) _) _ _).
-    rewrite  (@simple_associativity _ _ (@plus (Cart2D IR) _) _ _).  
-    rewrite minCartSum.
-    rewrite (@commutativity _ _ _ (@minCart IR _) _ _ (rightSideUnitVec cs * ' width cd)).
-    rewrite carBoundsAMAuxMin.
-    rewrite <- (@simple_associativity _ _ (@plus (Cart2D IR) _) _ _).
-    rewrite <- (@simple_associativity _ _ (@plus (Cart2D IR) _) _ _).
-    rewrite minCartSum.
-    rewrite (@commutativity _ _ _ (@plus (Cart2D IR) _) _ _ 
-      (-' width cd * {| X := sin (θ2D cs); Y := cos (θ2D cs) |})).
-    rewrite (@commutativity _ _ _ (@plus (Cart2D IR) _) _ _ 
-      (-' width cd * {| X := sin (θ2D cs); Y := cos (θ2D cs) |})).
-    rewrite minCartSum. simpl.
-    rewrite carBoundsAMAuxMin2.
-    unfold rightSideUnitVec. rewrite unitVecMinus90.
-    split; simpl; autounfold with IRMC; IRring.
-  - 
-    rewrite  (@simple_associativity _ _ (@plus (Cart2D IR) _) _ _).
-    rewrite  (@simple_associativity _ _ (@plus (Cart2D IR) _) _ _).  
-      rewrite (maxCartSum _).
-    rewrite carBoundsAMAuxMax.
-    rewrite <- (@simple_associativity _ _ (@maxCart IR _) _ _).
-    unfold frontRight, frontLeft.
-    rewrite  (@simple_associativity _ _ (@plus (Cart2D IR) _) _ _).
-    rewrite  (@simple_associativity _ _ (@plus (Cart2D IR) _) _ _).  
-    rewrite maxCartSum.
-    rewrite (@commutativity _ _ _ (@maxCart IR _) _ _ (rightSideUnitVec cs * ' width cd)).
-    rewrite carBoundsAMAuxMax.
-    rewrite <- (@simple_associativity _ _ (@plus (Cart2D IR) _) _ _).
-    rewrite <- (@simple_associativity _ _ (@plus (Cart2D IR) _) _ _).
-    rewrite maxCartSum.
-    rewrite (@commutativity _ _ _ (@plus (Cart2D IR) _) _ _ 
-      (' width cd * {| X := sin (θ2D cs); Y := cos (θ2D cs) |})).
-    rewrite (@commutativity _ _ _ (@plus (Cart2D IR) _) _ _ 
-      (' width cd * {| X := sin (θ2D cs); Y := cos (θ2D cs) |})).
-    rewrite maxCartSum.
-    rewrite carBoundsAMAuxMax2.
-    unfold rightSideUnitVec. rewrite unitVecMinus90.
-    split; simpl; autounfold with IRMC; IRring.
-  Qed.
-
-
-End XYBounds.
-
-  (** When the turn curvature is fixed, a car's position and orientation, and hence
-   the position of its corners, and hence the confining axis-aligned rectangle,
-   can be defined just as a function of initial state and the car's orientation.
-    The lemma [carMinMaxXYAM] below proves the correctness of this definition..
-  *)
-   
-  Definition carMinMaxXYAtθ  (init : Rigid2DState IR) (cd : CarDimensions IR)
-        (turnRadius θ : IR) : Line2D IR :=  
-  let θi := θ2D init in
-  '(pos2D init) +
-  {| minxy:= {|
-      X := turnRadius * (sin θ - sin θi) - (width cd) * sin θ - (lengthBack cd) * cos  θ;
-      Y := turnRadius * (cos θi - cos θ) - (width cd) * cos θ - (lengthBack cd) * sin  θ
-        |};
-     maxxy := {|
-      X := turnRadius * (sin θ - sin θi) + (width cd) * sin θ + (lengthFront cd) * cos  θ;
-      Y := turnRadius * (cos θi - cos θ) + (width cd) * cos θ + (lengthFront cd) * sin  θ
-        |}
-  |}.
-  
-  Global Instance ProperCarMinMaxAtθ : Proper
-    (equiv ==> equiv ==> equiv ==> equiv ==> equiv) 
-       carMinMaxXYAtθ.
-  Proof.
-    intros ? ? H1e ? ? H2e ? ? H3e ? ? H4e.
-    unfold carMinMaxXYAtθ. rewrite H1e.
-    rewrite H2e. rewrite H3e.  rewrite H4e.
-    reflexivity.
-  Qed.
-
-
-  
 
 (** 
 We characterize the motion of a car at a particular fixed turn curvature.
@@ -557,65 +331,8 @@ Context {maxTurnCurvature : Qpos}
     autounfold with IRMC; unfold cf_div; ring.
   Qed.
 
-    Require Import MCMisc.rings.
-
-  Definition turnRigidStateAtθ (init : Rigid2DState IR) 
-  (tr θ : IR)
-  := 
-  let θi := θ2D init in
-  {|pos2D := pos2D init + {|X:=Sin θ - Sin θi; Y:=Cos θi - Cos θ|}*'tr;
-    θ2D := θ|}.
-  
-  Global Instance ProperturnRigidStateAtθ: Proper 
-  (equiv ==> equiv ==> equiv ==> equiv) turnRigidStateAtθ.
-  Proof using.
-    intros ? ? H1 ? ? H2 ? ? H3.
-    unfold turnRigidStateAtθ.
-    rewrite H1.
-    rewrite H2.
-    rewrite H3. reflexivity.
-  Qed.
-  
-  Lemma turnRigidStateAtθCorrect: forall (t :Time)  (p: tstart ≤ t ≤ tend),
-    rigidStateAtTime acs t 
-    = turnRigidStateAtθ 
-            (rigidStateAtTime acs tstart) 
-            turnRadius
-            ({theta acs} t).
-  Proof using fixed.
-    intros ? ?.
-    split;[| reflexivity].
-    simpl. apply RingShiftMinus.
-    split;simpl;[apply fixedSteeeringX | apply fixedSteeeringY];
-    assumption.
-  Qed.
-    
-  Lemma auxConfinedDuringAMIf : forall (confineRect : Line2D IR) cd,
-    noSignChangeDuring (linVel acs) tstart tend
-    ->
-    (∀ (θ : IR), inBetweenR θ ({theta acs} tstart) ({theta acs} tend)
-  -> carMinMaxXY cd
-     (turnRigidStateAtθ (rigidStateAtTime acs tstart) turnRadius θ) 
-           ⊆ confineRect)
-     ->  confinedDuring cd confineRect.
-  Proof using fixed tstartEnd.
-    intros ? ? Hn hh t Hb.
-    specialize (hh ({theta acs}t)).
-    rewrite turnRigidStateAtθCorrect;[| assumption].
-    apply hh.
-    apply thetaMonotone; try assumption.
-    pose proof (fst (less_conf_ap _ _ _) tcNZ) as Hdec.
-    autounfold with IRMC.
-    destruct Hdec; [left|right]; eauto 2 with CoRN.
-  Qed.
-    
-(*Move this section and the first quadrant stuff at the top to 
-  a new file firstQuadrant.v? *)
-  Section XYBoundsFirstQuadrant.
+  Section CornersCircle.
   Variable cd :CarDimensions IR.
-  Hypothesis nonTriv : nonTrivialCarDim cd.
-  Hypothesis theta90 :  forall (t :Time)  (p: tstart ≤ t ≤ tend),
-     0 ≤ ({theta acs} t) ≤ (½ * π).
 
   (** To characterize the space required, one needs to study the motion of the corners.
       Note that [unitVec ({theta acs} t)] and [rhsUnitVecAtTime acs t] are orthogonal
@@ -711,44 +428,60 @@ Context {maxTurnCurvature : Qpos}
     ring.
   Qed.
 
+  End CornersCircle.
+    Require Import MCMisc.rings.
 
-
-  Lemma carMinMaxXYAM : 
-    forall (t :Time) (Hb : tstart ≤ t ≤ tend),
-    carMinMaxXY cd (rigidStateAtTime acs t)
-    = carMinMaxXYAtθ (rigidStateAtTime acs tstart) cd turnRadius ({theta acs} t).
-  Proof using (fixed nonTriv tcNZ theta90).
-    intros ? ?.
-    rewrite carBoundsAMAux;[|assumption| apply theta90; assumption].
-    Local Opaque unitVec. 
-      simpl. unfold rightSideUnitVec.
-      rewrite unitVecMinus90.
-    Local Transparent unitVec. simpl. 
-    rewrite foldPlusCart.
-    rewrite (foldPlusCart ({X acs} t)).
-    change ({|
-          X := {X acs} t;
-          Y := {Y acs} t |}) with (posAtTime acs t).
-    apply fixedSteeeringXY in Hb.
-    apply RingShiftMinus in Hb.
-    unfold rhsUnitVecAtTime, rightSideUnitVec in Hb.
-    rewrite unitVecMinus90 in Hb.
-    rewrite unitVecMinus90 in Hb.
-    simpl in Hb.
-    split; simpl; rewrite Hb;
-    rewrite <- (@simple_associativity _ _ (@plus (Cart2D IR) _) _ _ ); 
-    fequiv;split; simpl; IRring.
+  Definition turnRigidStateAtθ (init : Rigid2DState IR) 
+  (tr θ : IR)
+  := 
+  let θi := θ2D init in
+  {|pos2D := pos2D init + {|X:=Sin θ - Sin θi; Y:=Cos θi - Cos θ|}*'tr;
+    θ2D := θ|}.
+  
+  Global Instance ProperturnRigidStateAtθ: Proper 
+  (equiv ==> equiv ==> equiv ==> equiv) turnRigidStateAtθ.
+  Proof using.
+    intros ? ? H1 ? ? H2 ? ? H3.
+    unfold turnRigidStateAtθ.
+    rewrite H1.
+    rewrite H2.
+    rewrite H3. reflexivity.
   Qed.
-   
-
-  End XYBoundsFirstQuadrant.
-
+  
+  Lemma turnRigidStateAtθCorrect: forall (t :Time)  (p: tstart ≤ t ≤ tend),
+    rigidStateAtTime acs t 
+    = turnRigidStateAtθ 
+            (rigidStateAtTime acs tstart) 
+            turnRadius
+            ({theta acs} t).
+  Proof using fixed.
+    intros ? ?.
+    split;[| reflexivity].
+    simpl. apply RingShiftMinus.
+    split;simpl;[apply fixedSteeeringX | apply fixedSteeeringY];
+    assumption.
+  Qed.
+    
+  Lemma auxConfinedDuringAMIf : forall (confineRect : Line2D IR) cd,
+    noSignChangeDuring (linVel acs) tstart tend
+    ->
+    (∀ (θ : IR), inBetweenR θ ({theta acs} tstart) ({theta acs} tend)
+  -> carMinMaxXY cd
+     (turnRigidStateAtθ (rigidStateAtTime acs tstart) turnRadius θ) 
+           ⊆ confineRect)
+     ->  confinedDuring cd confineRect.
+  Proof using fixed tstartEnd.
+    intros ? ? Hn hh t Hb.
+    specialize (hh ({theta acs}t)).
+    rewrite turnRigidStateAtθCorrect;[| assumption].
+    apply hh.
+    apply thetaMonotone; try assumption.
+    pose proof (fst (less_conf_ap _ _ _) tcNZ) as Hdec.
+    autounfold with IRMC.
+    destruct Hdec; [left|right]; eauto 2 with CoRN.
+  Qed.
   End TCNZ.
-  
   End FixedSteeringWheel.
-  
-
-
 
   Section LinVel0.
   (** Now consider the second case where the steering wheel may move, but the car remains stationary *)
@@ -790,10 +523,5 @@ Context {maxTurnCurvature : Qpos}
     Qed.
 
   End LinVel0.
-  
-(* TODO : given the car's dimensions, confine the whole car within 
-  a "small, yet simple" region
-  during the above motion. *)
-
 End Cases.
 
