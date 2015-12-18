@@ -236,8 +236,8 @@ Require Import Psatz.
 Require Import Ring. 
 Require Import CoRN.tactics.CornTac.
 Require Import CoRN.algebra.CRing_as_Ring.
+Require Import IRMisc.LegacyIRRing.
 
-Add Ring IRisaRing: (CRing_Ring IR).
 Require Import Psatz.
 Require Import Setoid.
 

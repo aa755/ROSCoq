@@ -17,6 +17,8 @@ Require Export IRMisc.ContField.
 
 Require Export StdlibMisc.
 
+Require Import IRMisc.LegacyIRRing.
+
 Definition N2R  (n: nat) : IR := (inj_Q IR  (inject_Z n)).
 
 
@@ -1283,7 +1285,7 @@ Require Import Ring.
 Require Import CoRN.tactics.CornTac.
 Require Import CoRN.algebra.CRing_as_Ring.
 
-Add Ring RisaRing: (CRing_Ring IR).
+Require Import IRMisc.LegacyIRRing.
 
 Ltac IRRing :=
   unfold cg_minus; ring; idtac "ring failed; try unfolding

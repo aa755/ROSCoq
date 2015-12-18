@@ -1,5 +1,6 @@
 Require Export CartCR.
 Require Export MCInstances.
+Require Import IRMisc.LegacyIRRing.
 
 Open Scope mc_scope.
 
@@ -335,7 +336,7 @@ Require Import Ring.
 Require Import CoRN.tactics.CornTac.
 Require Import CoRN.algebra.CRing_as_Ring.
 
-Add Ring RisaRing: (CRing_Ring IR).
+Require Import IRMisc.LegacyIRRing.
 Lemma rotateOriginTowardsTowards : ∀ (XTowards : Cart2D IR)
   (nz : 0 [<] normIR XTowards),
   rotateOriginTowards XTowards nz XTowards 

@@ -1,4 +1,4 @@
-
+Require Import IRMisc.LegacyIRRing.
 Require Export icreate.
 
 Open Scope mc_scope.

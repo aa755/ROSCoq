@@ -1,4 +1,5 @@
 Require Import robots.icreate.
+Require Import IRMisc.LegacyIRRing.
 
 (** printing × $\times$ #×# *)
 (** printing :> $:$ #:># *)
@@ -2334,13 +2335,13 @@ Proof.
   rewrite Heq in Hadd.
   clear Heq.
   rewrite sameXYAdd in Hadd.
-  eapply ProperLeCartIR;[| | apply Hadd];
-    [reflexivity|].
+  eapply transitivity;[apply Hadd|].
+  apply orders.eq_le.
   apply ProperSameXY.
   unfold QT2R, Q2R.
   autounfold with IRMC.
   rewrite inj_Q_mult.
-  ring.
+  IRring.
 Qed.
 
 (* consider changing types of [θErrTrans]

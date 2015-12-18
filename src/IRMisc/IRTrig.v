@@ -156,7 +156,7 @@ Qed.
 Require Import Ring. 
 Require Import CoRN.algebra.CRing_as_Ring.
 
-Add Ring RisaRing: (CRing_Ring IR).
+Require Import IRMisc.LegacyIRRing.
 Lemma Cos_minus: ∀ x y : IR, Cos (x[-]y)[=]Cos x[*]Cos y[+]Sin x[*]Sin y.
 Proof.
   intros.

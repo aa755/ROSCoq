@@ -30,7 +30,7 @@ Require Import MCMisc.tactics.
 Require Import fastReals.interface.
 Require Import fastReals.misc.
 
-  Add Ring RisaRing: (CRing_Ring IR).
+  Require Import IRMisc.LegacyIRRing.
   Add Ring cart2dir : Cart2DIRRing.
 
 Require Export CartIR.

@@ -30,7 +30,7 @@ Require Import CartCR.
 Require Export ackermannSteering.
 Require Export ackermannSteeringProp.
 
-  Add Ring RisaRing: (CRing_Ring IR).
+  Require Import IRMisc.LegacyIRRing.
 
 Require Export CartIR.
 

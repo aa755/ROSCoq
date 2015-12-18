@@ -1,6 +1,8 @@
 Require Import MathClasses.interfaces.canonical_names.
 Require Import CanonicalNotations.
 Require Export core.
+Require Import IRMisc.LegacyIRRing.
+
 Instance Zero_instance_QTime : Zero QTime := (mkQTime 0 I).
 Instance Zero_instance_Time : Zero Time := (QT2T (mkQTime 0 I)).
 Instance Lt_instance_QTime : Lt QTime := Qlt.

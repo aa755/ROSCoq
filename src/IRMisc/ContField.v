@@ -1,6 +1,7 @@
 
 Require Export CoRN.ftc.MoreIntervals.
 Require Export IRMisc.PointWiseRing.
+Require Import IRMisc.LegacyIRRing.
 
 Set Implicit Arguments.
 Require Import Coq.Unicode.Utf8.

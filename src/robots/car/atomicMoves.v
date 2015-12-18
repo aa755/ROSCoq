@@ -37,7 +37,8 @@ Require Import fastReals.misc.
 Require Import geometry2D.
 Require Import geometry2DProps.
 Require Import ackermannSteeringProp.
-  
+Require Import IRMisc.LegacyIRRing.
+
 Local Opaque CSine.
 Local Opaque CCos.
 Local Opaque Sine.
