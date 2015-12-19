@@ -373,7 +373,7 @@ Lemma WriggleFirstQSpace :  ∀  (confineRect: Line2D IR),
     → carMinMaxXYAtθ sm cd (-tr) θ ⊆ confineRect))
   ->
   carConfinedDuringAMs cd confineRect SWriggle init.
-Proof.
+Proof using All.
   intros ? ? Ht. unfold Wriggle.
   (*to stop reduction*)
   match goal with
@@ -414,6 +414,55 @@ Proof.
     rewrite carMinMaxXYAM; auto;[].
       apply firstQuadW2; assumption.
 Qed.
+
+Add Ring tempRingIR : (stdlib_ring_theory IR).
+Lemma WriggleFirstQSpace2 :  ∀  (confineRect: Line2D IR),
+  let sm:={|
+       pos2D := ('tr) * {|
+                   X := sin (α * d);
+                   Y := (1 - cos (α * d))|} ;
+          θ2D := α * d |} in
+  True ->
+  (∀ θ : ℝ,
+   (0 ≤ θ ≤ (α * d) 
+      → carMinMaxXYAtθ 0 cd tr θ ⊆ confineRect)
+   ∧ 
+   (α * d ≤ θ ≤ (2* α * d)
+    → carMinMaxXYAtθ sm cd (-tr) θ ⊆ confineRect)).
+Proof using All.
+  intro. remember (f_rcpcl α (pos_ap_zero ℝ α αPos)) as trr.
+  simpl.
+  intros H ?.
+  unfold carMinMaxXYAtθ.
+  simpl.
+  rewrite Sin_zero.
+  rewrite Cos_zero.
+  fold Zero_instance_IR.
+  fold (@zero IR _).
+  fold One_instance_IR.
+  fold (@one IR _).
+  progress match goal with
+    [|- context [{|
+            X :=?x ; Y :=?y|} ]] 
+         => ring_simplify x; ring_simplify y
+    end.
+  progress match goal with
+    [|- context [Build_Line2D _ {|
+            X :=?x ; Y :=?y|} ]] 
+         => ring_simplify x; ring_simplify y
+    end.
+  rewrite preserves_0.
+  rewrite (@plus_0_l (Line2D IR) _ _ _ _ _ _).
+  rewrite rings.RingProp4.
+  rewrite rings.RingProp4.
+  unfold cast, llll1, PairLike.CastPairLikeSame.
+  unfold castCRCart2DCR.
+  unfold llll8, PairLike.PlusPairLike,
+  Plus_instance_Cart2D.
+  unfold plus. simpl.
+  fold (@plus IR _).
+Abort.
+
 
 End FirstQuadWriggle.
 

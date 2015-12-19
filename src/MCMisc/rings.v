@@ -38,6 +38,13 @@ Proof using All.
   intros ? . ring.
 Qed.
 
+Lemma RingProp4  : forall 
+  a b c  : A,
+  -a * (b-c)   = a * (c-b).
+Proof using All.
+  intros ? ? ? . ring.
+Qed.
+
 
 Section Le.
 Require Export MathClasses.orders.rings.
