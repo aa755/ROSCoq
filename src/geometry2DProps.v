@@ -284,3 +284,22 @@ Proof.
   rewrite H1, H2. reflexivity.
 Qed.
 
+Ltac remCart2D c1min :=
+  match goal with
+    [|- context [{|
+            X :=?x ; Y :=?y|} ]] 
+         => remember ({|
+            X :=x ; Y :=y|}) as c1min
+    end.
+
+Require Import MCMisc.tactics.
+Ltac simpRemCart2D c1min Heqc1min :=
+  match goal with
+    [|- context [{|
+            X :=?x ; Y :=?y|} ]] 
+         => mcremember ({|
+            X :=x ; Y :=y|}) c1min Heqc1min;
+          ring_simplify x in Heqc1min; 
+          ring_simplify y in Heqc1min
+    end.
+

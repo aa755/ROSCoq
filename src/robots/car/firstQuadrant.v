@@ -268,6 +268,33 @@ End Rigid2DState.
 
 Section TurnMove.
   Variable cd :CarDimensions IR.
+  
+Require Import MathClasses.interfaces.vectorspace.
+
+Definition carMinMaxXYAtθ2 (init : Rigid2DState ℝ)  (tr θ : ℝ) :=
+let θi:=θ2D init in
+' pos2D init +
+{|
+minxy := {|
+  X := ⟨{|X:= - lengthBack cd; Y:= tr- width cd|}, unitVec θ⟩
+          - tr * sin θi ;
+  Y := ⟨{|X:= - tr - width cd; Y:= - lengthBack cd|},
+          unitVec θ⟩ + tr * cos θi|};
+maxxy := {| 
+  X := ⟨{|X:= lengthFront cd; Y:= tr + width cd|}, unitVec θ⟩
+          - tr * sin θi;
+  Y := ⟨{|X:= - tr + width cd; Y:=  lengthFront cd|},
+          unitVec θ⟩ + tr * cos θi |}
+|}.
+
+Lemma carMinMaxXYAtθ2Same (init : Rigid2DState ℝ)  (tr θ : ℝ):
+  carMinMaxXYAtθ2 init tr θ = carMinMaxXYAtθ init cd tr θ.
+Proof using.
+  unfold carMinMaxXYAtθ2, inprod, InProductCart2D.
+  simpl. unfold carMinMaxXYAtθ.
+  split;split;simpl;IRring.
+Qed.
+  
   Hypothesis nonTriv : nonTrivialCarDim cd.
   
   Lemma carMinMaxXYAM : forall init tr θ,

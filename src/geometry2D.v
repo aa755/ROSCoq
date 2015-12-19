@@ -308,3 +308,17 @@ Lemma foldPlusLine `{Ring A} : forall xa xb ya yb: Cart2D A,
     intros. reflexivity.
   Qed.
 
+Require Import MathClasses.interfaces.vectorspace.
+
+Global Instance InProductCart2D `{Ring A} : Inproduct A (Cart2D A) :=
+  λ a b, (X a)*(X b) + (Y a)*(Y b).
+
+Global Instance ProperInProductCart2D `{Ring A}  :
+  Proper (equiv ==> equiv ==> equiv) (@inprod A (Cart2D A) _).
+Proof using .
+  intros ? ? H1 ? ? H2.
+  unfold inprod, InProductCart2D.
+  rewrite H1. rewrite H2.
+  reflexivity.
+Qed.
+

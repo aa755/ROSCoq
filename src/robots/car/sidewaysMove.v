@@ -418,75 +418,10 @@ Qed.
 
 Require Import MathClasses.interfaces.vectorspace.
 
-(** Move *)
-Global Instance InProductCart2D `{Ring A} : Inproduct A (Cart2D A) :=
-  λ a b, (X a)*(X b) + (Y a)*(Y b).
-
-Global Instance ProperInProductCart2D `{Ring A}  :
-  Proper (equiv ==> equiv ==> equiv) (@inprod A (Cart2D A) _).
-Proof using .
-  intros ? ? H1 ? ? H2.
-  unfold inprod, InProductCart2D.
-  rewrite H1. rewrite H2.
-  reflexivity.
-Qed.
-
-Lemma eqEquiv `{e:Equiv A} `{Equivalence A e}: ∀ a b:A,
-eq a b
--> a=b.
-Proof using .
-intros ? ? Hs. rewrite Hs. reflexivity.
-Qed.
-
-
-Ltac mcremember x y H:=
-remember x as y eqn:H;
-apply eqEquiv in H.
-
-Ltac remCart2D c1min :=
-  match goal with
-    [|- context [{|
-            X :=?x ; Y :=?y|} ]] 
-         => remember ({|
-            X :=x ; Y :=y|}) as c1min
-    end.
-
-Ltac simpRemCart2D c1min Heqc1min :=
-  match goal with
-    [|- context [{|
-            X :=?x ; Y :=?y|} ]] 
-         => mcremember ({|
-            X :=x ; Y :=y|}) c1min Heqc1min;
-          ring_simplify x in Heqc1min; 
-          ring_simplify y in Heqc1min
-    end.
-
-Definition carMinMaxXYAtθ2 (init : Rigid2DState ℝ)  (tr θ : ℝ) :=
-let θi:=θ2D init in
-' pos2D init +
-{|
-minxy := {|
-  X := ⟨{|X:= - lengthBack cd; Y:= tr- width cd|}, unitVec θ⟩
-          - tr * sin θi ;
-  Y := ⟨{|X:= - tr - width cd; Y:= - lengthBack cd|},
-          unitVec θ⟩ + tr * cos θi|};
-maxxy := {| 
-  X := ⟨{|X:= lengthFront cd; Y:= tr + width cd|}, unitVec θ⟩
-          - tr * sin θi;
-  Y := ⟨{|X:= - tr + width cd; Y:=  lengthFront cd|},
-          unitVec θ⟩ + tr * cos θi |}
-|}.
 
 (*
 Add Ring tempRingIR : (stdlib_ring_theory IR).
 *)
-Lemma carMinMaxXYAtθ2Same (init : Rigid2DState ℝ)  (tr θ : ℝ):
-  carMinMaxXYAtθ2 init tr θ = carMinMaxXYAtθ init cd tr θ.
-Proof using.
-  unfold carMinMaxXYAtθ2, inprod, InProductCart2D.
-  simpl. unfold carMinMaxXYAtθ.
-  split;split;simpl;IRring.
-Qed.
 
 Lemma WriggleFirstQSpace2 :  ∀  (confineRect: Line2D IR),
 (∀ θ:IR,
