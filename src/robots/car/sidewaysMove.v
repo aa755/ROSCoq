@@ -415,7 +415,77 @@ Proof using All.
       apply firstQuadW2; assumption.
 Qed.
 
+Require Import MathClasses.interfaces.vectorspace.
+
+(** Move *)
+Global Instance InProductCart2D `{Ring A} : Inproduct A (Cart2D A) :=
+  λ a b, (X a)*(X b) + (Y a)*(Y b).
+
+Global Instance ProperInProductCart2D `{Ring A}  :
+  Proper (equiv ==> equiv ==> equiv) (@inprod A (Cart2D A) _).
+Proof using .
+  intros ? ? H1 ? ? H2.
+  unfold inprod, InProductCart2D.
+  rewrite H1. rewrite H2.
+  reflexivity.
+Qed.
+
+Lemma eqEquiv `{e:Equiv A} `{Equivalence A e}: ∀ a b:A,
+eq a b
+-> a=b.
+Proof using .
+intros ? ? Hs. rewrite Hs. reflexivity.
+Qed.
+
+
+Ltac mcremember x y H:=
+remember x as y eqn:H;
+apply eqEquiv in H.
+
+Ltac remCart2D c1min :=
+  match goal with
+    [|- context [{|
+            X :=?x ; Y :=?y|} ]] 
+         => remember ({|
+            X :=x ; Y :=y|}) as c1min
+    end.
+
+Ltac simpRemCart2D c1min Heqc1min :=
+  match goal with
+    [|- context [{|
+            X :=?x ; Y :=?y|} ]] 
+         => mcremember ({|
+            X :=x ; Y :=y|}) c1min Heqc1min;
+          ring_simplify x in Heqc1min; 
+          ring_simplify y in Heqc1min
+    end.
+
+Definition carMinMaxXYAtθ2 (init : Rigid2DState ℝ)  (tr θ : ℝ) :=
+let θi:=θ2D init in
+' pos2D init +
+{|
+lstart := {|
+  X := ⟨{|X:= - lengthBack cd; Y:= tr- width cd|}, unitVec θ⟩
+          - tr * sin θi ;
+  Y := ⟨{|X:= - tr - width cd; Y:= - lengthBack cd|},
+          unitVec θ⟩ + tr * cos θi|};
+lend := {| 
+  X := ⟨{|X:= lengthFront cd; Y:= tr + width cd|}, unitVec θ⟩
+          - tr * sin θi;
+  Y := ⟨{|X:= - tr + width cd; Y:=  lengthFront cd|},
+          unitVec θ⟩ + tr * cos θi |}
+|}.
+
 Add Ring tempRingIR : (stdlib_ring_theory IR).
+
+Lemma carMinMaxXYAtθ2Same (init : Rigid2DState ℝ)  (tr θ : ℝ):
+  carMinMaxXYAtθ2 init tr θ = carMinMaxXYAtθ init cd tr θ.
+Proof using.
+  unfold carMinMaxXYAtθ2, inprod, InProductCart2D.
+  simpl. unfold carMinMaxXYAtθ.
+  split;split;simpl;ring.
+Qed.
+
 Lemma WriggleFirstQSpace2 :  ∀  (confineRect: Line2D IR),
   let sm:={|
        pos2D := ('tr) * {|
@@ -433,7 +503,9 @@ Proof using All.
   intro. remember (f_rcpcl α (pos_ap_zero ℝ α αPos)) as trr.
   simpl.
   intros H ?.
-  unfold carMinMaxXYAtθ.
+  rewrite <- carMinMaxXYAtθ2Same.
+  rewrite <- carMinMaxXYAtθ2Same.
+  unfold carMinMaxXYAtθ2.
   simpl.
   rewrite Sin_zero.
   rewrite Cos_zero.
@@ -441,26 +513,14 @@ Proof using All.
   fold (@zero IR _).
   fold One_instance_IR.
   fold (@one IR _).
-  progress match goal with
-    [|- context [{|
-            X :=?x ; Y :=?y|} ]] 
-         => ring_simplify x; ring_simplify y
-    end.
-  progress match goal with
-    [|- context [Build_Line2D _ {|
-            X :=?x ; Y :=?y|} ]] 
-         => ring_simplify x; ring_simplify y
-    end.
+  rewrite mult_0_r.
+  rewrite mult_1_r.
   rewrite preserves_0.
   rewrite (@plus_0_l (Line2D IR) _ _ _ _ _ _).
-  rewrite rings.RingProp4.
-  rewrite rings.RingProp4.
-  unfold cast, llll1, PairLike.CastPairLikeSame.
-  unfold castCRCart2DCR.
-  unfold llll8, PairLike.PlusPairLike,
-  Plus_instance_Cart2D.
-  unfold plus. simpl.
-  fold (@plus IR _).
+  rewrite minus_0_r.
+  rewrite minus_0_r.
+  rewrite negate_mult_distr_l.
+  rewrite (negate_involutive trr).
 Abort.
 
 
