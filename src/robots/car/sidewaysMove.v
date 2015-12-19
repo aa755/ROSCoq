@@ -35,6 +35,7 @@ Require Import MathClasses.orders.rings.
 Require Import MathClasses.interfaces.orders.
 Require Import atomicMoves.
 Require Import IRMisc.LegacyIRRing.
+Hint Unfold One_instance_IR : IRMC.
 
   Local Notation minxy := (lstart).
   Local Notation maxxy := (lend).
@@ -464,45 +465,81 @@ Definition carMinMaxXYAtθ2 (init : Rigid2DState ℝ)  (tr θ : ℝ) :=
 let θi:=θ2D init in
 ' pos2D init +
 {|
-lstart := {|
+minxy := {|
   X := ⟨{|X:= - lengthBack cd; Y:= tr- width cd|}, unitVec θ⟩
           - tr * sin θi ;
   Y := ⟨{|X:= - tr - width cd; Y:= - lengthBack cd|},
           unitVec θ⟩ + tr * cos θi|};
-lend := {| 
+maxxy := {| 
   X := ⟨{|X:= lengthFront cd; Y:= tr + width cd|}, unitVec θ⟩
           - tr * sin θi;
   Y := ⟨{|X:= - tr + width cd; Y:=  lengthFront cd|},
           unitVec θ⟩ + tr * cos θi |}
 |}.
 
+(*
 Add Ring tempRingIR : (stdlib_ring_theory IR).
-
+*)
 Lemma carMinMaxXYAtθ2Same (init : Rigid2DState ℝ)  (tr θ : ℝ):
   carMinMaxXYAtθ2 init tr θ = carMinMaxXYAtθ init cd tr θ.
 Proof using.
   unfold carMinMaxXYAtθ2, inprod, InProductCart2D.
   simpl. unfold carMinMaxXYAtθ.
-  split;split;simpl;ring.
+  split;split;simpl;IRring.
 Qed.
 
 Lemma WriggleFirstQSpace2 :  ∀  (confineRect: Line2D IR),
-  let sm:={|
-       pos2D := ('tr) * {|
-                   X := sin (α * d);
-                   Y := (1 - cos (α * d))|} ;
-          θ2D := α * d |} in
-  True ->
-  (∀ θ : ℝ,
-   (0 ≤ θ ≤ (α * d) 
-      → carMinMaxXYAtθ 0 cd tr θ ⊆ confineRect)
-   ∧ 
-   (α * d ≤ θ ≤ (2* α * d)
-    → carMinMaxXYAtθ sm cd (-tr) θ ⊆ confineRect)).
+(∀ θ:IR,
+(0 ≤ θ ≤ α * d
+ → {|
+   minxy := {|
+             X := ⟨ {|
+                    X := - lengthBack cd;
+                    Y := tr - width cd |}, 
+                  unitVec θ ⟩;
+             Y := (⟨ {|
+                     X := - tr - width cd;
+                     Y := - lengthBack cd |}, 
+                   unitVec θ ⟩) + tr |};
+   maxxy := {|
+           X := ⟨ {|
+                  X := lengthFront cd;
+                  Y := tr + width cd |}, 
+                unitVec θ ⟩;
+           Y := (⟨ {|
+                   X := - tr + width cd;
+                   Y := lengthFront cd |}, 
+                 unitVec θ ⟩) + tr |} |} ⊆ confineRect)
+∧ (α * d ≤ θ ≤ 2 * α * d
+   → ' (' tr * {| X := 2 * sin (α * d); 
+                  Y := 1 - 2 * cos (α * d) |}) +
+     {|
+     minxy := {|
+               X := (⟨ {|
+                       X := - lengthBack cd;
+                       Y := - tr - width cd |}, 
+                     unitVec θ ⟩);
+               Y := (⟨ {|
+                       X := tr - width cd;
+                       Y := - lengthBack cd |}, 
+                     unitVec θ ⟩)|};
+     maxxy := {|
+             X := (⟨ {|
+                     X := lengthFront cd;
+                     Y := - tr + width cd |}, 
+                   unitVec θ ⟩);
+             Y := (⟨ {|
+                     X := tr + width cd;
+                     Y := lengthFront cd |}, 
+                   unitVec θ ⟩)|} 
+                   |}
+     ⊆ confineRect))
+  ->
+  carConfinedDuringAMs cd confineRect SWriggle init.
 Proof using All.
+  intros ? Hh. apply WriggleFirstQSpace.
   intro. remember (f_rcpcl α (pos_ap_zero ℝ α αPos)) as trr.
-  simpl.
-  intros H ?.
+  clear Heqtrr.
   rewrite <- carMinMaxXYAtθ2Same.
   rewrite <- carMinMaxXYAtθ2Same.
   unfold carMinMaxXYAtθ2.
@@ -513,16 +550,19 @@ Proof using All.
   fold (@zero IR _).
   fold One_instance_IR.
   fold (@one IR _).
-  rewrite mult_0_r.
-  rewrite mult_1_r.
   rewrite preserves_0.
-  rewrite (@plus_0_l (Line2D IR) _ _ _ _ _ _).
-  rewrite minus_0_r.
-  rewrite minus_0_r.
+  specialize (Hh θ).
+  destruct Hh as [Hl Hr].
+  rewrite negate_mult_distr_l.
   rewrite negate_mult_distr_l.
   rewrite (negate_involutive trr).
-Abort.
-
+  split;[clear Hr| clear Hl]; intro Hb;
+    [specialize (Hl Hb)|specialize (Hr Hb)];
+    eapply transitivity;[ |eapply Hl | |eapply Hr];
+    apply orders.eq_le; 
+    unfold inprod, InProductCart2D;split; split; simpl;
+    try IRring.
+Qed.
 
 End FirstQuadWriggle.
 
