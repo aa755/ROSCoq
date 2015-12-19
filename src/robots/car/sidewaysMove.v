@@ -353,6 +353,34 @@ Local Notation init  := (0:Rigid2DState IR).
 Local Notation SWriggle := (Wriggle α αNZ d).
 
 Local Notation tr := ((@f_rcpcl ℝ α (pos_ap_zero ℝ α αPos))).
+(*Move *)
+Lemma and_iff_compat_lr: 
+  ∀ A B C D: Prop, ((A ↔ D)∧ (B ↔ C)) → (A ∧ B ↔ D ∧ C).
+Proof using.
+  intros. tauto.
+Qed.
+Lemma iff_under_imp: 
+  ∀ A B C: Prop, (A → (B ↔ C)) → ((A → B) ↔ (A → C)).
+Proof using.
+  intros. tauto.
+Qed.
+Lemma andWeakenL : forall (A B C :Prop),
+    (A -> B) -> (A /\ C) -> (B /\ C).
+Proof using.
+    tauto.
+Qed.
+Lemma iff_under_imp2: 
+  ∀ A B C: Prop, ((B ↔ C)) → ((A → B) ↔ (A → C)).
+Proof using.
+  intros. tauto.
+Qed.
+Lemma po_properL:
+  ∀ (A : CProp) (Ae : Equiv A) (Ale : Le A) (a:A),
+  PartialOrder Ale → Equivalence (@equiv A _) → Proper (equiv ==> iff)
+    (fun x=> le x a).
+Proof using.
+  intros ? ? ? ? ? ? ? ? ?. apply po_proper; auto.
+Qed.
 
 
 
@@ -372,10 +400,10 @@ Lemma WriggleFirstQSpace :  ∀  (confineRect: Line2D IR),
    ∧ 
    (α * d ≤ θ ≤ (2* α * d)
     → carMinMaxXYAtθ sm cd (-tr) θ ⊆ confineRect))
-  ->
+  <->
   carConfinedDuringAMs cd confineRect SWriggle init.
 Proof using All.
-  intros ? ? Ht. unfold Wriggle.
+  intros ? ?. unfold Wriggle.
   (*to stop reduction*)
   match goal with
   [|- context [?h::nil]] => remember (h::nil) as hh
@@ -384,6 +412,14 @@ Proof using All.
   rewrite carConfinedDuringAMsSingle.
   simpl. unfold stateAfterAtomicMove.
   simpl. unfold confinedTurningAM. simpl.
+(*  SearchAbout ((∀ a:?A, ?P a <-> ?Q a)). *)
+  rewrite  conjunction_under_forall.
+(*  SearchAbout ((∀ a:?A, ?P a /\ ?Q a)).  *)
+  apply iff_under_forall.
+  intro θ.
+  match goal with
+  [|- ?l ↔ _] => remember l as ll
+  end.
   unfold inBetweenR.
   setoid_rewrite plus_0_l.
   setoid_rewrite plus_0_l.
@@ -408,12 +444,11 @@ Proof using All.
   setoid_rewrite  (@commutativity _ _ _ mult _ _ tr).
   setoid_rewrite rings.RingProp3.
   setoid_rewrite  (@simple_associativity _ _ mult _ _ _).
-  split; intros ? ?; specialize (Ht θ).
-  - destruct Ht. rewrite carMinMaxXYAM; auto;[].
-    apply firstQuadW1. assumption.
-  - destruct Ht. subst sm.
-    rewrite carMinMaxXYAM; auto;[].
-      apply firstQuadW2; assumption.
+  subst ll.
+  apply and_iff_compat_lr.
+  split;apply iff_under_imp;intros Hb;
+  rewrite carMinMaxXYAM; try tauto;
+  [apply firstQuadW1 | apply firstQuadW2]; assumption.
 Qed.
 
 Require Import MathClasses.interfaces.vectorspace.
@@ -469,12 +504,25 @@ Lemma WriggleFirstQSpace2 :  ∀  (confineRect: Line2D IR),
                    unitVec θ ⟩)|} 
                    |}
      ⊆ confineRect))
-  ->
+  <->
   carConfinedDuringAMs cd confineRect SWriggle init.
 Proof using All.
-  intros ? Hh. apply WriggleFirstQSpace.
-  intro. remember (f_rcpcl α (pos_ap_zero ℝ α αPos)) as trr.
+  intros ?. rewrite <- WriggleFirstQSpace.
+  apply iff_under_forall.
+  intro θ.
+  remember (f_rcpcl α (pos_ap_zero ℝ α αPos)) as trr.
   clear Heqtrr.
+  apply and_iff_compat_lr.
+  eapply andWeakenL.
+  exact (iff_under_imp2 _ _ _).
+  apply and_comm.
+  eapply andWeakenL.
+  exact (iff_under_imp2 _ _ _).
+  eapply andWeakenL.
+  apply po_properL; eauto with typeclass_instances.
+  apply and_comm.
+  eapply andWeakenL.
+  apply po_properL; eauto with typeclass_instances.
   rewrite <- carMinMaxXYAtθ2Same.
   rewrite <- carMinMaxXYAtθ2Same.
   unfold carMinMaxXYAtθ2.
@@ -486,16 +534,7 @@ Proof using All.
   fold One_instance_IR.
   fold (@one IR _).
   rewrite preserves_0.
-  specialize (Hh θ).
-  destruct Hh as [Hl Hr].
-  rewrite negate_mult_distr_l.
-  rewrite negate_mult_distr_l.
-  rewrite (negate_involutive trr).
-  split;[clear Hr| clear Hl]; intro Hb;
-    [specialize (Hl Hb)|specialize (Hr Hb)];
-    eapply transitivity;[ |eapply Hl | |eapply Hr];
-    apply orders.eq_le; 
-    unfold inprod, InProductCart2D;split; split; simpl;
+  unfold inprod, InProductCart2D;split; split; split; simpl;
     try IRring.
 Qed.
 
