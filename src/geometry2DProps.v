@@ -123,22 +123,38 @@ Proof.
   [apply Cos_nonneg | apply Sin_nonneg]; eauto 3 with CoRN.
 Qed.
 
-  Lemma unitVecMinus90 :  ∀ θ:IR, 
-    unitVec (θ - ½ * π) = {|X:= sin θ; Y:=- cos θ|}.
-  Proof.
+  Lemma unitVec90Minus :  ∀ θ:IR, 
+    unitVec (½ * π - θ) = {|X:= sin θ; Y:= cos θ|}.
+  Proof using.
     intros ?. split; simpl;
     autounfold with IRMC.
-    - rewrite <- Cos_inv.
-      setoid_rewrite minusInvR.
-      rewrite PiBy2DesugarIR.
+    -  rewrite PiBy2DesugarIR.
       apply Cos_HalfPi_minus.
-    - rewrite <- (cg_inv_inv _ (Sin (θ [+] [--] (½ [*] π)))).
-      rewrite <- Sin_inv.
-      setoid_rewrite minusInvR.
-      rewrite PiBy2DesugarIR.
-      rewrite Sin_HalfPi_minus.
-      reflexivity.
+    - rewrite PiBy2DesugarIR.
+      apply Sin_HalfPi_minus.
   Qed.
+
+Local Opaque Sin.
+Local Opaque Cos.
+
+  Lemma unitVecMinus90 :  ∀ θ:IR, 
+    unitVec (θ - ½ * π) = {|X:= sin θ; Y:=- cos θ|}.
+  Proof using.
+    intros ?. unfold EquivCart, unitVec.
+    autounfold with IRMC. simpl.
+    rewrite <- Cos_inv.
+    setoid_rewrite minusInvR.
+    rewrite <- (cg_inv_inv _ (Sin (θ [+] [--] (½ [*] π)))).
+    rewrite <- Sin_inv.
+    setoid_rewrite minusInvR.
+    split.
+    - rewrite PiBy2DesugarIR.
+      apply Cos_HalfPi_minus.
+    - rewrite PiBy2DesugarIR.
+      apply cg_inv_wd.
+      apply Sin_HalfPi_minus.
+  Qed.
+
 
 Lemma unitVecMinDistr :  forall θ a b:IR, 0 ≤ θ ≤ (½ * π)
   ->

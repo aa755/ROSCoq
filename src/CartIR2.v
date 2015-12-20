@@ -2,6 +2,7 @@ Require Import CartCR.
 Require Import MCInstances.
 Require Import IRMisc.LegacyIRRing.
 
+
 (**Ideally, this file should be a part of CartIR.v
 However, many other old files depend on CartIR.v,
 and changing it may break stuff. Eventually 
@@ -27,7 +28,7 @@ Global Instance castPolar `{Cast A B}
   : Cast (Polar2D A) (Polar2D B) :=
   fun c => {|rad := cast A B (rad c) ;  θ := cast A B (θ c) |}.
 
-Global Instance Cart2PolarIR : Cast (Cart2D Q) (Polar2D IR):=
+Global Instance cart2PolarIR : Cast (Cart2D Q) (Polar2D IR):=
 fun c => '(Cart2Polar c).
 
 Global Instance NormCart2DQ : Norm IR (Cart2D Q)
@@ -36,14 +37,41 @@ Global Instance NormCart2DQ : Norm IR (Cart2D Q)
 Require Import fastReals.interface.
 Require Import fastReals.misc.
 
-Typeclasses eauto := 3.
-
+Definition polar2CartIR (c:Polar2D IR) : Cart2D IR :=
+  '(rad c) * (unitVec (θ c)).
+  
 Lemma CartToPolarCorrect : ∀ (q : Cart2D Q),
   let θ:IR := '(polarTheta q) in 
   'q  = '(∥q∥) * (unitVec θ).
 Proof.
   intros ?. simpl.
   apply CartToPolarToXIR.
+Qed.
+
+Lemma CartToPolarCorrect2 : ∀ (q : Cart2D Q),
+  'q  = polar2CartIR (cart2PolarIR (q)).
+Proof.
+  intros ?. simpl.
+  apply CartToPolarToXIR.
+Qed.
+
+Lemma multDotRight : forall (a:IR) (b c : Cart2D IR),
+a * (⟨b,c⟩) = ⟨('a) * c, b⟩.
+Proof using.
+  intros.   unfold inprod, InProductCart2D.
+  simpl. IRring.
+Qed.
+
+
+Lemma CartToPolarCorrect90Minus : ∀ (q : Cart2D Q),
+  let θ:IR := '(polarTheta q) in 
+  (transpose ('q))  = '(∥q∥) * (unitVec (½ * π -θ)).
+Proof using.
+  intros ?. simpl.
+  setoid_rewrite unitVec90Minus at 1.
+  unfold transpose.
+  rewrite CartToPolarCorrect.
+  simpl. reflexivity.
 Qed.
 
 Lemma unitVDot : ∀ (α β:IR) ,

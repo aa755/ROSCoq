@@ -16,7 +16,18 @@ Global Instance MaxClassIR : MaxClass IR := Max.
 Global Instance SinClassIR : SinClass IR := Sin.
 Global Instance CosClassIR : CosClass IR := Cos.
 
+Require Import MathClasses.interfaces.abstract_algebra.
 
-Hint Unfold cos CosClassIR sin SinClassIR min MinClassIR max MaxClassIR: IRMC.
+Global Instance srmInjQ : SemiRing_Morphism (cast Q IR).
+Proof using.
+repeat (split; try apply _).
+- intros. apply inj_Q_plus.
+- intros. apply inj_Q_Zero.
+- intros. apply inj_Q_mult.
+- intros. apply inj_Q_One.
+Qed.
+
+
+Hint Unfold cos CosClassIR sin SinClassIR min MinClassIR max MaxClassIR One_instance_IR: IRMC.
 
 

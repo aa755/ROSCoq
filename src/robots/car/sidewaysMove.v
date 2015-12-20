@@ -549,7 +549,20 @@ fun a =>  Build_CarDimensions
             ('width a).
 
 Section FirstQuadWriggleQ.
-(** Because cartesian to polar conversion is currently
+
+(** 
+In the above lemma [WriggleFirstQSpace2] each of
+the 8 coordinates were of the form <..,unitVec θ>.
+So, it was a linear some of sine and cosine of θ.
+As θ varies, it is hard to find when it achieves an extrema.
+Using Cartesian to polar conversion, each of the above
+coordinate can be represemnted in the form
+c1*cos(θ+β)+c2, where c1 and c2 are constants,
+and β is an angle in the first quadrant.
+It is much easier to characterize the extremas in this
+representation. For example cosine of 0 is 1, and it decreases from 0 to π.
+
+Because cartesian to polar conversion is currently
     only defined for rational coordinates, we now
     assume that the turn radius and the car's dimensions
     are rationals.
@@ -564,7 +577,7 @@ Variable cd : CarDimensions Q.
 Hypothesis ntriv : nonTrivialCarDim (' cd).
 Hypothesis dNN : ((0:IR)≤'d).
 Hypothesis firstQuadW: (0:IR) ≤ (2*'α*'d) ≤ ½ * π.
-Notation tr := ((Qinv α):Q).
+Local Definition tr := ((Qinv α):Q).
 
 
 Local Notation  αNZ := ((pos_ap_zero _ _ αPos): 'α[#](0:IR)).
@@ -575,7 +588,7 @@ Proof using αPos.
   pose proof αPos as Hh.
   eapply less_wdl in Hh;[|symmetry;apply inj_Q_Zero].
   apply less_inj_Q in Hh. simpl in Hh.
-  assert (tr == Qdiv 1 α)%Q as H by (field;lra).
+  assert (tr == Qdiv 1 α)%Q as H by (unfold tr;field;lra).
   rewrite H. setoid_rewrite inj_Q_div with (H:=αNZ).
   unfold cf_div.
   rewrite  inj_Q_One.
@@ -584,82 +597,87 @@ Proof using αPos.
   IRring.
 Qed.
 
-(** the turn center cannot be inside the car. for that,
+(** The turn center cannot be inside the car. for that,
 one of the front wheels have to rotate by more than 90 along 
-the vertical axis*)
+the vertical axis. 
+(Also, on some wide roads, I can
+make a U turn in just one maneouver. So, the
+minimum turn radius is less than half the width 
+of such roads. So, the minimum turn radius is
+only a small factor times width of the car. Note
+that in [CarDimensions], the [width] field actually
+denotes half the width.)
+*)
 Hypothesis turnCentreOut : (width cd ≤Qabs tr)%Q.
 
-(** all coordinates below in the second coordinates
-are non-negative. This is to ensure that
-the result of polar conversion is in the first quadrant.
-*)
- 
+(*not in use anymore?*)
 Definition negY `{One A}`{Negate A} : Cart2D A:= 
 {|X:=1;Y:=-1|}.
 
 
 Definition NegPosition : Type := bool (*outside*) * bool(*inside*).
 
-(** see  [decodeAsCosXY] below to see what the next 4 definitions represent *)
+(** In the  "constant times cosine" explained at the  beginning of this section, the value 
+in the representation, the angle β can for
+the 4 coordinates can only take one of the following
+4 values: *)
 
-Definition minXY1 : (Cart2D NegPosition) * (Cart2D (Cart2D Q)):=
-( {|X := (true, true); Y :=(true, false)|},
-{| X := {|X :=  lengthBack cd; Y := tr - width cd |};
-   Y := {|X :=  tr + width cd; Y :=  lengthBack cd |}
-|}).
+Require Import CartIR2.
+Definition βMinusBack :(Cart2D Q) :=
+({|X :=  lengthBack cd; Y := tr - width cd |}).
 
-Definition maxXY1 : (Cart2D NegPosition) * (Cart2D (Cart2D Q)):=
-({|X := (false, false); Y :=(true, true)|},
-{| X := {|X := lengthFront cd; Y := tr + width cd |};
-   Y := {|X :=  tr - width cd; Y :=  lengthFront cd |}
-|}).
+Definition βPlusBack :(Cart2D Q) :=
+({|X :=  lengthBack cd; Y := tr + width cd |}).
 
+Definition βMinusFront :(Cart2D Q) :=
+( {|X :=  lengthFront cd; Y := tr - width cd |}).
 
-Definition minXY2 : (Cart2D NegPosition) * (Cart2D (Cart2D Q)):=
-({|X := (true, false); Y := (false, true)|},
-{| X := {|X :=  lengthBack cd; Y := tr + width cd |};
-   Y := {|X :=  tr - width cd; Y :=  lengthBack cd |}
-|}).
+Definition βPlusFront :(Cart2D Q) :=
+( {|X :=  lengthFront cd; Y := tr + width cd |}).
 
 
-Definition maxXY2 : (Cart2D NegPosition) * (Cart2D (Cart2D Q)):=
-({|X := (false, true) ; Y :=(false, false)|},
-{| X := {|X := lengthFront cd; Y := tr - width cd |};
-   Y := {|X :=  tr + width cd; Y :=  lengthFront cd |}
-|}).
+Definition minXY1 : (Cart2D ((Polar2D IR) * NegPosition)) :=
+{|X := ('βMinusBack,(true, true));
+  Y := ('βPlusBack,(true, false))|}.
+
+Definition maxXY1 : (Cart2D ((Polar2D IR) * NegPosition)):=
+{|X := ('βPlusFront,(false, false)); 
+  Y :=('βMinusFront,(true, true))|}.
+
+
+Definition minXY2 : (Cart2D ((Polar2D IR) * NegPosition)):=
+{|X := ('βPlusBack,(true, false)); 
+  Y := ('βMinusBack,(false, true))|}.
+
+
+Definition maxXY2 : (Cart2D ((Polar2D IR) * NegPosition)):=
+{|X := ('βMinusFront,(false, true)) ; 
+   Y :=('βPlusFront,(false, false))|}.
+
 
 Definition negateIfTrue `{Negate A} (b:bool)(a:A) : A:=
 if b then (-a) else a.
 
-Require Import CartIR2.
-Definition decodeAsCos (n:NegPosition) (c:Cart2D Q) (θ:IR): IR :=
-let β :IR := '(polarTheta c) in
-let γ := θ + (negateIfTrue (negb (snd n)) β) in
-(negateIfTrue (fst n) (∥c∥ * Cos γ)).
+Definition decodeAsCos (nc: (Polar2D IR) * NegPosition) (theta:IR): IR :=
+let (c,n) := nc in
+let β :IR := θ c in
+let γ := theta + (negateIfTrue (negb (snd n)) β) in
+(negateIfTrue (fst n) ((rad c) * Cos γ)).
 
-Definition decodeAsCosXY (nc: (Cart2D NegPosition) * (Cart2D (Cart2D Q))) (θ:IR): Cart2D IR :=
-{|X := decodeAsCos (X (fst nc)) (X (snd nc)) θ;
-  Y := decodeAsCos (Y (fst nc)) (Y (snd nc)) θ|}.
+(*Move *)
+Definition flipAngle (c:Polar2D IR) : Polar2D IR:=
+{| rad := rad c ; θ:= ½ * π -θ c|}.
+
+Definition decodeAsCosXY (nc: Cart2D ((Polar2D IR) * NegPosition))
+ (θ:IR): Cart2D IR :=
+let ync := (flipAngle (fst (Y nc)), snd (Y nc)) in
+{|X := decodeAsCos (X nc) θ;
+  Y := decodeAsCos ync θ|}.
 
 Local Notation init  := (0:Rigid2DState IR).
 Local Notation SWriggle := (Wriggle ('α) αNZ ('d)).
 
-
 Local Definition trr :IR := 'tr.
-Lemma multDotRight : forall (a:IR) (b c : Cart2D IR),
-a * (⟨b,c⟩) = ⟨('a) * c, b⟩.
-Proof using.
-  intros.   unfold inprod, InProductCart2D.
-  simpl. IRring.
-Qed.
-Global Instance srmInjQ : SemiRing_Morphism (cast Q IR).
-Proof using.
-repeat (split; try apply _).
-- intros. apply inj_Q_plus.
-- intros. apply inj_Q_Zero.
-- intros. apply inj_Q_mult.
-- intros. apply inj_Q_One.
-Qed.
 
 Definition constW1 := {|X := 0; Y := trr|}.
 
@@ -677,6 +695,7 @@ Definition confineRect2 (θ:IR): Line2D IR
  {|
      minxy :=  decodeAsCosXY minXY2 θ ;
      maxxy := decodeAsCosXY maxXY2 θ  |}.
+
 
 Lemma WriggleFirstQSpace3 :  ∀  (confineRect: Line2D IR),
 (∀ θ:IR,
@@ -710,14 +729,53 @@ Proof using All.
   do 4 (rewrite <- unitVDot).
   do 4 (rewrite <- unitVDot2).
   do 8 (rewrite multDotRight).
-  do 8 (rewrite <- CartToPolarCorrect).
+  pose proof CartToPolarCorrect90Minus as Hr.
+  unfold norm, NormCart2DQ in Hr.
+  do 4 (rewrite <- Hr). clear Hr.
+  pose proof CartToPolarCorrect as Hr.
+  unfold norm, NormCart2DQ in Hr.
+  do 4 (rewrite <- Hr). clear Hr.
   replace (@cast _ _ (@castCart Q IR _)) with (@castCart Q IR _);[| reflexivity]. unfold castCart. simpl.
-  rewrite  preserves_plus.
-  rewrite  preserves_plus.
+  pose proof  (@preserves_plus _ _ _ _ _ _ _ _ _ _ _ _
+   (cast Q IR) _ tr) as Hh.
+   unfold transpose.
+   simpl.
+   rewrite Hh at 1.
+   rewrite Hh at 1.
+   rewrite Hh at 1.
+   rewrite Hh at 1.
+   rewrite Hh at 1.
+   rewrite Hh at 1.
+   rewrite Hh at 1.
+   rewrite Hh at 1.
   rewrite  preserves_negate.
   fold trr.
    unfold inprod, InProductCart2D;split; split; split; simpl;
     try IRring.
 Qed.
+
+(** Now lets consider all 4 sides one by one. They are
+too different to handle simulaneously *)
+Definition isBoundLeft (minx: IR) :=
+forall θ:IR,
+(0 ≤ θ ≤ 'α * 'd
+ → minx ≤ X (minxy (confineRect1 θ)))
+∧ ('α * 'd ≤ θ ≤ 2 * 'α * 'd
+   → minx ≤ X (minxy (confineRect2 θ))).
+
+Lemma βPlusMinusBack : 
+'(polarTheta βMinusBack) ≤ cast CR IR (polarTheta βPlusBack).
+Abort.
+
+Lemma βPlusMinusFront : 
+'(polarTheta βMinusFront) ≤ cast CR IR (polarTheta βPlusFront).
+Abort.
+
+Lemma isBoundLeft1 (minx: IR) : isBoundLeft minx.
+Proof.
+  unfold isBoundLeft.
+  intro θ.
+  simpl.
+Abort.
 
 End FirstQuadWriggleQ.
