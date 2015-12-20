@@ -661,23 +661,35 @@ repeat (split; try apply _).
 - intros. apply inj_Q_One.
 Qed.
 
+Definition constW1 := {|X := 0; Y := trr|}.
+
+Definition constW2 := (' trr * {| X := 2 * Sin ('α * 'd); 
+                  Y := 1 - 2 * Cos ('α * 'd) |}).
+
+Definition confineRect1 (θ:IR): Line2D IR
+ := 'constW1 +
+ {|
+     minxy :=  decodeAsCosXY minXY1 θ ;
+     maxxy := decodeAsCosXY maxXY1 θ  |}.
+
+Definition confineRect2 (θ:IR): Line2D IR
+ := 'constW2 +
+ {|
+     minxy :=  decodeAsCosXY minXY2 θ ;
+     maxxy := decodeAsCosXY maxXY2 θ  |}.
+
 Lemma WriggleFirstQSpace3 :  ∀  (confineRect: Line2D IR),
 (∀ θ:IR,
 (0 ≤ θ ≤ 'α * 'd
- → ('{|X := 0; Y := trr|})+
-  {|
-     minxy :=  decodeAsCosXY minXY1 θ ;
-     maxxy := decodeAsCosXY maxXY1 θ  |} ⊆ confineRect)
+ → confineRect1 θ ⊆ confineRect)
 ∧ ('α * 'd ≤ θ ≤ 2 * 'α * 'd
-   → ' (' trr * {| X := 2 * Sin ('α * 'd); 
-                  Y := 1 - 2 * Cos ('α * 'd) |}) +
-   {|
-     minxy := decodeAsCosXY minXY2 θ;
-     maxxy := decodeAsCosXY maxXY2 θ |} ⊆ confineRect))
+   → confineRect2 θ ⊆ confineRect))
   <->
   carConfinedDuringAMs ('cd) confineRect SWriggle init.
 Proof using All.
   intro.
+  unfold confineRect2, confineRect1,
+    constW1, constW2.
   rewrite <- WriggleFirstQSpace2; auto;[].
   apply iff_under_forall.
   intro θ. rewrite <- trComplicated.
@@ -695,31 +707,10 @@ Proof using All.
   unfold decodeAsCosXY, decodeAsCos. simpl.
   fold CosClassIR SinClassIR.
   fold (@cos IR _) (@sin IR _).
-  rewrite <- unitVDot.
-  rewrite <- unitVDot.
-  rewrite <- unitVDot.
-  rewrite <- unitVDot.
-  rewrite <- unitVDot2.
-  rewrite <- unitVDot2.
-  rewrite <- unitVDot2.
-  rewrite <- unitVDot2.
-
-  rewrite multDotRight.
-  rewrite multDotRight.
-  rewrite multDotRight.
-  rewrite multDotRight.
-  rewrite multDotRight.
-  rewrite multDotRight.
-  rewrite multDotRight.
-  rewrite multDotRight.
-  rewrite <- CartToPolarCorrect.
-  rewrite <- CartToPolarCorrect.
-  rewrite <- CartToPolarCorrect.
-  rewrite <- CartToPolarCorrect.
-  rewrite <- CartToPolarCorrect.
-  rewrite <- CartToPolarCorrect.
-  rewrite <- CartToPolarCorrect.
-  rewrite <- CartToPolarCorrect.
+  do 4 (rewrite <- unitVDot).
+  do 4 (rewrite <- unitVDot2).
+  do 8 (rewrite multDotRight).
+  do 8 (rewrite <- CartToPolarCorrect).
   replace (@cast _ _ (@castCart Q IR _)) with (@castCart Q IR _);[| reflexivity]. unfold castCart. simpl.
   rewrite  preserves_plus.
   rewrite  preserves_plus.
