@@ -540,6 +540,14 @@ Qed.
 
 End FirstQuadWriggle.
 
+(*Move*)
+Global Instance CastCarDim `{Cast A B} 
+  : Cast (CarDimensions A) (CarDimensions B) :=
+fun a =>  Build_CarDimensions 
+            ('lengthFront a)
+            ('lengthBack a) 
+            ('width a).
+
 Section FirstQuadWriggleQ.
 (** Because cartesian to polar conversion is currently
     only defined for rational coordinates, we now
@@ -550,29 +558,29 @@ Section FirstQuadWriggleQ.
     they are 0 or away from it.
   *)
 Variable α : Q.
-Hypothesis αPos : (0<α)%Q.
+Hypothesis αPos : ((0:IR)[<]'α).
 Variable d : Q.
 Variable cd : CarDimensions Q.
-
-Hypothesis dNN : (0≤d)%Q.
-Hypothesis firstQuadW: (0:IR) ≤ '(2*α*d)%Q ≤ ½ * π.
+Hypothesis ntriv : nonTrivialCarDim (' cd).
+Hypothesis dNN : ((0:IR)≤'d).
+Hypothesis firstQuadW: (0:IR) ≤ (2*'α*'d) ≤ ½ * π.
 Notation tr := ((Qinv α):Q).
 
-Local Definition αNZ : 'α[#](0:IR).
-Proof using αPos.
-  eapply ap_wdr_unfolded;[|apply inj_Q_Zero].
-  apply ap_symmetric.
-  apply inj_Q_ap. simpl.
-  apply Qlt_not_eq. assumption.
-Defined.
+
+Local Notation  αNZ := ((pos_ap_zero _ _ αPos): 'α[#](0:IR)).
+
 
 Local Definition trComplicated : 'tr = f_rcpcl ('α) αNZ.
 Proof using αPos.
+  pose proof αPos as Hh.
+  eapply less_wdl in Hh;[|symmetry;apply inj_Q_Zero].
+  apply less_inj_Q in Hh. simpl in Hh.
   assert (tr == Qdiv 1 α)%Q as H by (field;lra).
   rewrite H. setoid_rewrite inj_Q_div with (H:=αNZ).
   unfold cf_div.
   rewrite  inj_Q_One.
   unfold cast, Cast_instace_Q_IR.
+  unfold Q2R.
   IRring.
 Qed.
 
@@ -623,10 +631,11 @@ Definition maxXY2 : (Cart2D NegPosition) * (Cart2D (Cart2D Q)):=
 Definition negateIfTrue `{Negate A} (b:bool)(a:A) : A:=
 if b then (-a) else a.
 
+Require Import CartIR2.
 Definition decodeAsCos (n:NegPosition) (c:Cart2D Q) (θ:IR): IR :=
 let β :IR := '(polarTheta c) in
-let γ := θ + (negateIfTrue (snd n) β) in
-(negateIfTrue (fst n) (Cos γ)).
+let γ := θ + (negateIfTrue (negb (snd n)) β) in
+(negateIfTrue (fst n) (∥c∥ * Cos γ)).
 
 Definition decodeAsCosXY (nc: (Cart2D NegPosition) * (Cart2D (Cart2D Q))) (θ:IR): Cart2D IR :=
 {|X := decodeAsCos (X (fst nc)) (X (snd nc)) θ;
@@ -635,31 +644,89 @@ Definition decodeAsCosXY (nc: (Cart2D NegPosition) * (Cart2D (Cart2D Q))) (θ:IR
 Local Notation init  := (0:Rigid2DState IR).
 Local Notation SWriggle := (Wriggle ('α) αNZ ('d)).
 
-(*Move*)
-Global Instance CastCarDim `{Cast A B} 
-  : Cast (CarDimensions A) (CarDimensions B) :=
-fun a =>  Build_CarDimensions 
-            ('lengthFront a)
-            ('lengthBack a) 
-            ('width a).
 
 Local Definition trr :IR := 'tr.
+Lemma multDotRight : forall (a:IR) (b c : Cart2D IR),
+a * (⟨b,c⟩) = ⟨('a) * c, b⟩.
+Proof using.
+  intros.   unfold inprod, InProductCart2D.
+  simpl. IRring.
+Qed.
+Global Instance srmInjQ : SemiRing_Morphism (cast Q IR).
+Proof using.
+repeat (split; try apply _).
+- intros. apply inj_Q_plus.
+- intros. apply inj_Q_Zero.
+- intros. apply inj_Q_mult.
+- intros. apply inj_Q_One.
+Qed.
 
 Lemma WriggleFirstQSpace3 :  ∀  (confineRect: Line2D IR),
-(∀ θ:Q,
-(0 ≤ θ ≤ α * d
- → {|
-     minxy :=  decodeAsCosXY minXY1 ('θ) ;
-     maxxy := decodeAsCosXY maxXY1 ('θ) + 'trr |} ⊆ confineRect)
-∧ (α * d ≤ θ ≤ 2 * α * d
-   → ' (' trr * {| X := 2 * Sin ('(α * d)); 
-                  Y := 1 - 2 * Cos ('(α * d)) |}) +
+(∀ θ:IR,
+(0 ≤ θ ≤ 'α * 'd
+ → ('{|X := 0; Y := trr|})+
+  {|
+     minxy :=  decodeAsCosXY minXY1 θ ;
+     maxxy := decodeAsCosXY maxXY1 θ  |} ⊆ confineRect)
+∧ ('α * 'd ≤ θ ≤ 2 * 'α * 'd
+   → ' (' trr * {| X := 2 * Sin ('α * 'd); 
+                  Y := 1 - 2 * Cos ('α * 'd) |}) +
    {|
-     minxy := decodeAsCosXY minXY2 ('θ);
-     maxxy := decodeAsCosXY maxXY2 ('θ) |} ⊆ confineRect))
+     minxy := decodeAsCosXY minXY2 θ;
+     maxxy := decodeAsCosXY maxXY2 θ |} ⊆ confineRect))
   <->
   carConfinedDuringAMs ('cd) confineRect SWriggle init.
 Proof using All.
-Abort.
+  intro.
+  rewrite <- WriggleFirstQSpace2; auto;[].
+  apply iff_under_forall.
+  intro θ. rewrite <- trComplicated.
+  apply and_iff_compat_lr.
+  eapply andWeakenL.
+  exact (iff_under_imp2 _ _ _).
+  apply and_comm.
+  eapply andWeakenL.
+  exact (iff_under_imp2 _ _ _).
+  eapply andWeakenL.
+  apply po_properL; eauto with typeclass_instances.
+  apply and_comm.
+  eapply andWeakenL.
+  apply po_properL; eauto with typeclass_instances.
+  unfold decodeAsCosXY, decodeAsCos. simpl.
+  fold CosClassIR SinClassIR.
+  fold (@cos IR _) (@sin IR _).
+  rewrite <- unitVDot.
+  rewrite <- unitVDot.
+  rewrite <- unitVDot.
+  rewrite <- unitVDot.
+  rewrite <- unitVDot2.
+  rewrite <- unitVDot2.
+  rewrite <- unitVDot2.
+  rewrite <- unitVDot2.
+
+  rewrite multDotRight.
+  rewrite multDotRight.
+  rewrite multDotRight.
+  rewrite multDotRight.
+  rewrite multDotRight.
+  rewrite multDotRight.
+  rewrite multDotRight.
+  rewrite multDotRight.
+  rewrite <- CartToPolarCorrect.
+  rewrite <- CartToPolarCorrect.
+  rewrite <- CartToPolarCorrect.
+  rewrite <- CartToPolarCorrect.
+  rewrite <- CartToPolarCorrect.
+  rewrite <- CartToPolarCorrect.
+  rewrite <- CartToPolarCorrect.
+  rewrite <- CartToPolarCorrect.
+  replace (@cast _ _ (@castCart Q IR _)) with (@castCart Q IR _);[| reflexivity]. unfold castCart. simpl.
+  rewrite  preserves_plus.
+  rewrite  preserves_plus.
+  rewrite  preserves_negate.
+  fold trr.
+   unfold inprod, InProductCart2D;split; split; split; simpl;
+    try IRring.
+Qed.
 
 End FirstQuadWriggleQ.
