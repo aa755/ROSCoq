@@ -540,7 +540,80 @@ Qed.
 
 End FirstQuadWriggle.
 
+Section FirstQuadWriggleQ.
+(** Because cartesian to polar conversion is currently
+    only defined for rational coordinates, we now
+    assume that the turn radius and the car's dimensions
+    are rationals.
+    Eventually, they can be reals 
+    along with constructive proofs of whether
+    they are 0 or away from it.
+  *)
+Variable α : Q.
+Hypothesis αPos : (0<α)%Q.
+Variable d : Q.
+Variable cd : CarDimensions Q.
+
+Hypothesis dNN : (0≤d)%Q.
+Hypothesis firstQuadW: (0:IR) ≤ '(2*α*d)%Q ≤ ½ * π.
+Notation tr := ((Qinv α):Q).
+
+Local Definition αNZ : 'α[#](0:IR).
+Proof using αPos.
+  eapply ap_wdr_unfolded;[|apply inj_Q_Zero].
+  apply ap_symmetric.
+  apply inj_Q_ap. simpl.
+  apply Qlt_not_eq. assumption.
+Defined.
+
+Local Definition trComplicated : 'tr = f_rcpcl ('α) αNZ.
+Proof using αPos.
+  assert (tr == Qdiv 1 α)%Q as H by (field;lra).
+  rewrite H. setoid_rewrite inj_Q_div with (H:=αNZ).
+  unfold cf_div.
+  rewrite  inj_Q_One.
+  unfold cast, Cast_instace_Q_IR.
+  IRring.
+Qed.
+
+(** the turn center cannot be inside the car. for that,
+one of the front wheels have to rotate by more than 90 along 
+the vertical axis*)
+Hypothesis turnCentreOut : (width cd ≤Qabs tr)%Q.
+
+(** all coordinates below in the second coordinates
+are non-negative. This is to ensure that
+the result of polar conversion is in the first quadrant.
+*)
+ 
+Definition negY `{One A}`{Negate A} : Cart2D A:= 
+{|X:=1;Y:=-1|}.
+
+Definition Pair A:Type := A * A.
+
+Definition minXY1 : Pair (Cart2D (Cart2D Q)):=
+({|X := -negY; Y :=-1|},
+{| X := {|X :=  lengthBack cd; Y := tr - width cd |};
+   Y := {|X :=  tr + width cd; Y :=  lengthBack cd |}
+|}).
+
+Definition maxXY1 : Pair (Cart2D (Cart2D Q)):=
+({|X := 1; Y :=-negY|},
+{| X := {|X := lengthFront cd; Y := tr + width cd |};
+   Y := {|X :=  tr - width cd; Y :=  lengthFront cd |}
+|}).
 
 
+Definition minXY2 : Pair (Cart2D (Cart2D Q)):=
+({|X := -1; Y :=negY|},
+{| X := {|X :=  lengthBack cd; Y := tr + width cd |};
+   Y := {|X :=  tr - width cd; Y :=  lengthBack cd |}
+|}).
 
 
+Definition maxXY2 : Pair (Cart2D (Cart2D Q)):=
+({|X := negY; Y :=1|},
+{| X := {|X := lengthFront cd; Y := tr - width cd |};
+   Y := {|X :=  tr + width cd; Y :=  lengthFront cd |}
+|}).
+End FirstQuadWriggleQ.

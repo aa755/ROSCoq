@@ -328,3 +328,32 @@ Proof.
     eapply (orders.strict_po_trans); eauto;
     exists 1%nat; vm_compute; reflexivity.
 Qed.
+
+Lemma polarFirstQuad : forall (c: Cart2D Q),
+  0 ≤ c -> 0 ≤ polarTheta c ≤ ('½)*π.
+Proof.
+  intros ?. unfold polarTheta, QSignHalf, QSign,
+  Zero_instance_Cart2D, Cart2D_instance_le.
+  autounfold with QMC.
+  simpl.
+  intro Hh. destruct Hh.
+  destruct (decide (X c == 0)%Q).
+  - simpl. destruct (decide (Y c < 0)%Q);[lra|].
+    rewrite commutativity.
+    split;[| reflexivity].
+    apply CRweakenLt.
+    exists (1%nat); vm_compute; reflexivity.
+  - destruct (decide (X c < 0)%Q);[lra|].
+    assert ((0 < X c)%Q) by lra.
+    clear n n0.
+    split.
+    + apply rational_arctan_nonneg.
+      autounfold  with QMC.
+      SearchAbout Qle Qdiv (0%Q).
+      apply Q.Qle_shift_div_l; lra.
+    + destruct (CRarctan_range ('(Y c/X c)%Q)) as [Hl Hr].
+      clear Hl.
+      rewrite arctan_Qarctan in Hr.
+      apply CRweakenLt.
+      exact Hr.
+Qed.
