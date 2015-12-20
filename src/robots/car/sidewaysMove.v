@@ -589,31 +589,77 @@ the result of polar conversion is in the first quadrant.
 Definition negY `{One A}`{Negate A} : Cart2D A:= 
 {|X:=1;Y:=-1|}.
 
-Definition Pair A:Type := A * A.
 
-Definition minXY1 : Pair (Cart2D (Cart2D Q)):=
-({|X := -negY; Y :=-1|},
+Definition NegPosition : Type := bool (*outside*) * bool(*inside*).
+
+(** see  [decodeAsCosXY] below to see what the next 4 definitions represent *)
+
+Definition minXY1 : (Cart2D NegPosition) * (Cart2D (Cart2D Q)):=
+( {|X := (true, true); Y :=(true, false)|},
 {| X := {|X :=  lengthBack cd; Y := tr - width cd |};
    Y := {|X :=  tr + width cd; Y :=  lengthBack cd |}
 |}).
 
-Definition maxXY1 : Pair (Cart2D (Cart2D Q)):=
-({|X := 1; Y :=-negY|},
+Definition maxXY1 : (Cart2D NegPosition) * (Cart2D (Cart2D Q)):=
+({|X := (false, false); Y :=(true, true)|},
 {| X := {|X := lengthFront cd; Y := tr + width cd |};
    Y := {|X :=  tr - width cd; Y :=  lengthFront cd |}
 |}).
 
 
-Definition minXY2 : Pair (Cart2D (Cart2D Q)):=
-({|X := -1; Y :=negY|},
+Definition minXY2 : (Cart2D NegPosition) * (Cart2D (Cart2D Q)):=
+({|X := (true, false); Y := (false, true)|},
 {| X := {|X :=  lengthBack cd; Y := tr + width cd |};
    Y := {|X :=  tr - width cd; Y :=  lengthBack cd |}
 |}).
 
 
-Definition maxXY2 : Pair (Cart2D (Cart2D Q)):=
-({|X := negY; Y :=1|},
+Definition maxXY2 : (Cart2D NegPosition) * (Cart2D (Cart2D Q)):=
+({|X := (false, true) ; Y :=(false, false)|},
 {| X := {|X := lengthFront cd; Y := tr - width cd |};
    Y := {|X :=  tr + width cd; Y :=  lengthFront cd |}
 |}).
+
+Definition negateIfTrue `{Negate A} (b:bool)(a:A) : A:=
+if b then (-a) else a.
+
+Definition decodeAsCos (n:NegPosition) (c:Cart2D Q) (θ:IR): IR :=
+let β :IR := '(polarTheta c) in
+let γ := θ + (negateIfTrue (snd n) β) in
+(negateIfTrue (fst n) (Cos γ)).
+
+Definition decodeAsCosXY (nc: (Cart2D NegPosition) * (Cart2D (Cart2D Q))) (θ:IR): Cart2D IR :=
+{|X := decodeAsCos (X (fst nc)) (X (snd nc)) θ;
+  Y := decodeAsCos (Y (fst nc)) (Y (snd nc)) θ|}.
+
+Local Notation init  := (0:Rigid2DState IR).
+Local Notation SWriggle := (Wriggle ('α) αNZ ('d)).
+
+(*Move*)
+Global Instance CastCarDim `{Cast A B} 
+  : Cast (CarDimensions A) (CarDimensions B) :=
+fun a =>  Build_CarDimensions 
+            ('lengthFront a)
+            ('lengthBack a) 
+            ('width a).
+
+Local Definition trr :IR := 'tr.
+
+Lemma WriggleFirstQSpace3 :  ∀  (confineRect: Line2D IR),
+(∀ θ:Q,
+(0 ≤ θ ≤ α * d
+ → {|
+     minxy :=  decodeAsCosXY minXY1 ('θ) ;
+     maxxy := decodeAsCosXY maxXY1 ('θ) + 'trr |} ⊆ confineRect)
+∧ (α * d ≤ θ ≤ 2 * α * d
+   → ' (' trr * {| X := 2 * Sin ('(α * d)); 
+                  Y := 1 - 2 * Cos ('(α * d)) |}) +
+   {|
+     minxy := decodeAsCosXY minXY2 ('θ);
+     maxxy := decodeAsCosXY maxXY2 ('θ) |} ⊆ confineRect))
+  <->
+  carConfinedDuringAMs ('cd) confineRect SWriggle init.
+Proof using All.
+Abort.
+
 End FirstQuadWriggleQ.
