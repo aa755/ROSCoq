@@ -829,6 +829,25 @@ Proof using ntriv turnCentreOut.
   split; simpl; autounfold with QMC; lra.
 Qed.
 
+(** exact same proof as above *)
+Lemma firstQuadβPlusFront:
+ (0:IR) ≤ ' polarTheta βPlusFront ≤  (½ * π).
+Proof using ntriv turnCentreOut.
+  rewrite PiBy2DesugarIR.
+  rewrite <- (IRasCRasIR_id (Pi [/]TwoNZ)).
+  rewrite <- CRPiBy2Correct1.
+  rewrite <- CRasIR0.
+  apply CR_leEq2_as_IR.
+  apply polarFirstQuad.
+  unfold nonTrivialCarDim in ntriv.
+  simpl in ntriv.
+  do 3 rewrite inj_Q_nneg in ntriv.
+  destruct ntriv as  [Ha Hbc]. destruct Hbc.
+  split; simpl; autounfold with QMC; lra.
+Qed.
+
+
+
 Require Import MathClasses.orders.semirings.
 Require Import MCMisc.rings.
 (**During the first of the 2 atomic moves of Wriggle,
@@ -837,16 +856,17 @@ Require Import MCMisc.rings.
   occurs at the starting position. So we can ignore the
   rest of the move while analyzing the extra space needed
   on the left side.*)
-Lemma isBoundLeft1 (minx: IR) :
-minx ≤ X (minxy (confineRect1 0))
+Lemma confineRect1LeftMonotoneRight (minx β: IR) :
+minx ≤ X (minxy (confineRect1 β))
+→ 0 ≤ β ≤  (½ * π)
 → (forall θ:IR,
-    0 ≤ θ ≤ 'α * 'd
+    β ≤ θ ≤  (½ * π) (* 'α * 'd *)
      → minx ≤ X (minxy (confineRect1 θ))).
-Proof using All. 
+Proof using firstQuadW ntriv turnCentreOut. 
   unfold isBoundLeft.
   simpl.
   setoid_rewrite plus_0_l.
-  intros Hh ? Hb.
+  intros Hh Hbb ? Hb.
   apply flip_le_negate.
   rewrite negate_involutive.
   apply flip_le_negate in Hh.
@@ -855,19 +875,29 @@ Proof using All.
   apply (@order_preserving _ _ _ _ _ _ _);
     [apply OrderPreserving_instance_0;
      apply Cart2DRadNNegIR |].
-  apply firstQuadW1 in Hb; trivial ;[].
+(*   apply firstQuadW1 in Hb; trivial ;[]. *)
   apply Cos_resp_leEq.
-  - rewrite commutativity. 
-    apply RingLeProp1.
+  - apply plus_resp_nonneg;[tauto|].
     apply firstQuadβMinusBack.
   - rewrite (divideBy2 Pi).
     apply plus_le_compat;[tauto| apply firstQuadβMinusBack].
   - apply plus_le_compat;[tauto| reflexivity].
 Qed.
-    
+
 Require Import CartIR.
 Require Import IRTrig.
 Require Import CoRNMisc.
+
+(* Move *)
+Lemma CosMinusSwap : forall a b:IR,
+  Cos (a - b) = Cos (b - a).
+Proof using.
+  intros ? ?.
+  rewrite <- Cos_inv.
+  apply Cos_wd.
+  IRring.
+Qed.
+
 
 (** The second move is much more difficult to analyse 
 w.r.t the leftmost point. The leftmost position
@@ -903,7 +933,7 @@ that [lengthBack < lengthFront] may imply that
 the 3rd case will always hold.
  *)
 
-
+Local Opaque confineRect1.
 Lemma maxTurnNeededConjecture (minx maxx miny: IR) :
 let βPlusFront :IR := 'polarTheta βPlusFront in
 (minx ≤ X (minxy (confineRect1 βPlusFront))
@@ -918,6 +948,33 @@ let βPlusFront :IR := 'polarTheta βPlusFront in
     /\ X (maxxy (confineRect1 θ)) ≤ maxx
     )
      ).
+Proof.
+  simpl.
+  intros H ? Hb.
+  split;[| split].
+  - eapply confineRect1LeftMonotoneRight;
+      [ | | apply Hb];[tauto | ].
+    apply firstQuadβPlusFront.
+  - apply proj2 in H. apply proj1 in H.
+    revert H.
+Local Transparent confineRect1.
+    unfold confineRect1. simpl.
+    rewrite <- (negate_swap_r _ (½ * π )).
+    rewrite (@simple_associativity _ _ plus _ _ ).
+    rewrite (@simple_associativity _ _ plus _ _ ).
+    rewrite CosMinusSwap.
+    setoid_rewrite CosMinusSwap at 2.
+    rewrite PiBy2DesugarIR.
+    setoid_rewrite Cos_HalfPi_minus.
+    intros Hh.
+    eapply transitivity;[apply Hh|].
+    apply (@order_preserving _ _ _ _ _ _ _ _).
+    apply flip_le_negate.
+    apply (@order_preserving _ _ _ _ _ _ _);
+    [apply OrderPreserving_instance_0;
+     apply Cart2DRadNNegIR |].
+     clear Hh.
+
 Abort.
 
 Lemma isBoundLeft2 (minx: IR) : isBoundLeft minx.
