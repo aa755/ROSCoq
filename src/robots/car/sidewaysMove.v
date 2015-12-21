@@ -608,7 +608,7 @@ only a small factor times width of the car. Note
 that in [CarDimensions], the [width] field actually
 denotes half the width.)
 *)
-Hypothesis turnCentreOut : (width cd ≤Qabs tr)%Q.
+Hypothesis turnCentreOut : (Qle (width cd) tr).
 
 (*not in use anymore?*)
 Definition negY `{One A}`{Negate A} : Cart2D A:= 
@@ -754,6 +754,8 @@ Proof using All.
     try IRring.
 Qed.
 
+Set Suggest Proof Using.
+
 (** Now lets consider all 4 sides one by one. They are
 too different to handle simulaneously *)
 Definition isBoundLeft (minx: IR) :=
@@ -771,8 +773,104 @@ Lemma βPlusMinusFront :
 '(polarTheta βMinusFront) ≤ cast CR IR (polarTheta βPlusFront).
 Abort.
 
-Lemma isBoundLeft1 (minx: IR) : isBoundLeft minx.
-Proof.
+
+(* Move *)
+Lemma Cart2DRadNNegIR : forall c:(Cart2D Q),
+(0:IR) ≤ ' (| c |).
+Proof using.
+  intros.
+  rewrite <- CRasIR0.
+  apply CR_leEq_as_IR.
+  apply Cart2PolarRadRange.
+Qed.
+
+Lemma inj_Q_nneg: forall q,
+  (0:IR) ≤ 'q  <-> (Qle 0  q)%Q.
+Proof using.
+  intros. autounfold with IRMC.
+  rewrite <- inj_Q_Zero.
+  split.
+  - apply leEq_inj_Q.
+  - apply inj_Q_leEq.
+Qed. 
+
+Lemma divideBy2: forall c:IR,
+  c = (½ * c) + (½ * c).
+Proof using.
+  intros. setoid_rewrite x_plus_x.
+  unfold half_num. unfold HalfNumIR.
+  setoid_rewrite mult_assoc_unfolded.
+  rewrite (mult_commut_unfolded  _ Two).
+  rewrite half_1. IRring.
+Qed. 
+
+
+Lemma 
+CR_leEq2_as_IR: ∀ x y z: CR, (x ≤ y ≤ z) ↔ 
+  (CRasIR x ≤ CRasIR y ≤ CRasIR z).
+Proof using.
+  intros ? ? ?. do 2 rewrite CR_leEq_as_IR.
+  tauto.
+Qed.
+  
+Lemma firstQuadβMinusBack:
+ (0:IR) ≤ ' polarTheta βMinusBack ≤  (½ * π).
+Proof using ntriv turnCentreOut.
+  rewrite PiBy2DesugarIR.
+  rewrite <- (IRasCRasIR_id (Pi [/]TwoNZ)).
+  rewrite <- CRPiBy2Correct1.
+  rewrite <- CRasIR0.
+  apply CR_leEq2_as_IR.
+  apply polarFirstQuad.
+  unfold nonTrivialCarDim in ntriv.
+  simpl in ntriv.
+  do 3 rewrite inj_Q_nneg in ntriv.
+  destruct ntriv as  [Ha Hbc]. destruct Hbc.
+  split; simpl; autounfold with QMC; lra.
+Qed.
+
+Require Import MathClasses.orders.semirings.
+Require Import MCMisc.rings.
+(**During the first of the 2 atomic moves of Wriggle,
+  the car's leftmost point shifts right*)
+Lemma isBoundLeft1 (minx: IR) :
+minx ≤ X (minxy (confineRect1 0))
+→ (forall θ:IR,
+    0 ≤ θ ≤ 'α * 'd
+     → minx ≤ X (minxy (confineRect1 θ))).
+Proof using All. 
+  unfold isBoundLeft.
+  simpl.
+  setoid_rewrite plus_0_l.
+  intros Hh ? Hb.
+  apply flip_le_negate.
+  rewrite negate_involutive.
+  apply flip_le_negate in Hh.
+  rewrite negate_involutive in Hh.
+  eapply transitivity;[| apply Hh].
+  apply (@order_preserving _ _ _ _ _ _ _);
+    [apply OrderPreserving_instance_0;
+     apply Cart2DRadNNegIR |].
+  apply firstQuadW1 in Hb; trivial ;[].
+  apply Cos_resp_leEq.
+  - rewrite commutativity. 
+    apply RingLeProp1.
+    apply firstQuadβMinusBack.
+  - rewrite (divideBy2 Pi).
+    apply plus_le_compat;[tauto| apply firstQuadβMinusBack].
+  - apply plus_le_compat;[tauto| reflexivity].
+Qed.
+    
+Require Import CartIR.
+Require Import IRTrig.
+Require Import CoRNMisc.
+  
+  
+  
+  
+
+Lemma isBoundLeft2 (minx: IR) : isBoundLeft minx.
+Proof using All.
   unfold isBoundLeft.
   intro θ.
   simpl.

@@ -44,6 +44,8 @@ Local Opaque Cosine.
 Local Opaque Sin.
 Local Opaque Cos.
 
+Definition nonTrivialCarDim (cd : CarDimensions IR) :=
+  0 ≤ lengthFront cd /\  0 ≤ width cd /\ 0 ≤ lengthBack cd.
 
   Local Notation minxy := (lstart).
   Local Notation maxxy := (lend).
@@ -72,7 +74,6 @@ Section Rigid2DState.
     apply unitVecNonNeg in theta90.
     unfold unitVec in theta90.
     destruct theta90 as [x y]. simpl in x, y.
-    apply less_leEq in c.
     unfold rightSideUnitVec. rewrite unitVecMinus90.
     unfold minCart. split; simpl;
     autounfold with IRMC.
@@ -103,7 +104,6 @@ Section Rigid2DState.
     apply unitVecNonNeg in theta90.
     unfold unitVec in theta90.
     destruct theta90 as [x y]. simpl in x, y.
-    apply less_leEq in c.
     unfold rightSideUnitVec. rewrite unitVecMinus90.
     unfold maxCart. split; simpl;
     autounfold with IRMC.

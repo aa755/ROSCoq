@@ -121,8 +121,6 @@ Qed.
 (**width needs to be nonzero so that we can take its reciprocal in an arctan.
   others can also be required to be strictly positive*)
 
-Definition nonTrivialCarDim (cd : CarDimensions IR) :=
-  0 ≤ lengthFront cd  and  0 [<] width cd and 0 ≤ lengthBack cd.
 
 Global Instance EquivalenceCarDim  `{e:Equiv A}
   `{Equivalence _ e}
