@@ -832,7 +832,11 @@ Qed.
 Require Import MathClasses.orders.semirings.
 Require Import MCMisc.rings.
 (**During the first of the 2 atomic moves of Wriggle,
-  the car's leftmost point shifts right*)
+  the car's leftmost point shifts right. Hence, the 
+  leftmost position of the leftmost point of the car
+  occurs at the starting position. So we can ignore the
+  rest of the move while analyzing the extra space needed
+  on the left side.*)
 Lemma isBoundLeft1 (minx: IR) :
 minx ≤ X (minxy (confineRect1 0))
 → (forall θ:IR,
@@ -864,16 +868,66 @@ Qed.
 Require Import CartIR.
 Require Import IRTrig.
 Require Import CoRNMisc.
-  
-  
-  
-  
+
+(** The second move is much more difficult to analyse 
+w.r.t the leftmost point. The leftmost position
+of the leftmost point of the car can be at:
+
+1) beginning of the move : if the car's rear plane is far away from the line joining the rear wheels (i.e. [lengthBack] is large), e.g. when a large 
+rigid trailer is attached to the back of the car.
+
+2) somewhere in the middle of the move
+
+3) at the end of the move, assuming usual dimensions of
+a car with no rear attachments.
+
+It turns that the earlier hypothesis that the car needs
+to turn by atmost 90 degrees while coming out of the parallel
+parking was too conservative. Pictorial inuition seems
+to suggest that the car need not turn by more than
+[polarTheta βPlusFront].
+
+onenote:https://d.docs.live.net/946e75b47b19a3b5/Documents/PhD6/ParallelParking.one#...into%203=%20to%20two&section-id={13BDE595-ACF2-4791-AAFC-6284FF953450}&page-id={670C8178-E541-483C-91A7-35F29052CCF3}&end
+
+This is because because from that angle to 90 degrees,
+the car's space requirement along the left, right and
+bottom sides seem to decrease. 
+
+ If so, the following must
+be provable:
+(the minx part was already proved above in [isBoundLeft1],
+ although its statement is weaker)
+
+Also, if so, assuming 
+that [lengthBack < lengthFront] may imply that
+the 3rd case will always hold.
+ *)
+
+
+Lemma maxTurnNeededConjecture (minx maxx miny: IR) :
+let βPlusFront :IR := 'polarTheta βPlusFront in
+(minx ≤ X (minxy (confineRect1 βPlusFront))
+/\ miny ≤ Y (minxy (confineRect1 βPlusFront))
+/\ X (maxxy (confineRect1 βPlusFront)) ≤ maxx
+)
+→ (forall θ:IR,
+    βPlusFront ≤ θ ≤ ½ * π
+     → 
+    (minx ≤ X (minxy (confineRect1 θ))
+    /\ miny ≤ Y (minxy (confineRect1 θ))
+    /\ X (maxxy (confineRect1 θ)) ≤ maxx
+    )
+     ).
+Abort.
 
 Lemma isBoundLeft2 (minx: IR) : isBoundLeft minx.
 Proof using All.
   unfold isBoundLeft.
   intro θ.
   simpl.
+  split.
+  Focus 2. 
+  Print βPlusBack.
 Abort.
 
 End FirstQuadWriggleQ.
