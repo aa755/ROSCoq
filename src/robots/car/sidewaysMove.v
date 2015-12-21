@@ -847,6 +847,23 @@ Proof using ntriv turnCentreOut.
 Qed.
 
 
+(** exact same proof as above *)
+Lemma firstQuadβPlusBack:
+ (0:IR) ≤ ' polarTheta βPlusBack ≤  (½ * π).
+Proof using ntriv turnCentreOut.
+  rewrite PiBy2DesugarIR.
+  rewrite <- (IRasCRasIR_id (Pi [/]TwoNZ)).
+  rewrite <- CRPiBy2Correct1.
+  rewrite <- CRasIR0.
+  apply CR_leEq2_as_IR.
+  apply polarFirstQuad.
+  unfold nonTrivialCarDim in ntriv.
+  simpl in ntriv.
+  do 3 rewrite inj_Q_nneg in ntriv.
+  destruct ntriv as  [Ha Hbc]. destruct Hbc.
+  split; simpl; autounfold with QMC; lra.
+Qed.
+
 
 Require Import MathClasses.orders.semirings.
 Require Import MCMisc.rings.
@@ -898,6 +915,19 @@ Proof using.
   IRring.
 Qed.
 
+Lemma Pi_minus_Sin: ∀ θ : ℝ, 
+  Sin (π - θ) = (Sin θ).
+Proof using.
+  intros ?.
+  rewrite negate_swap_r.
+  autounfold with IRMC.
+  rewrite  Sin_inv.
+  unfold π, Pi_Instance_IR.
+  fold (θ [-] Pi).
+  rewrite Sin_minus_Pi.
+  ring.
+Qed.
+
 
 (** The second move is much more difficult to analyse 
 w.r.t the leftmost point. The leftmost position
@@ -935,6 +965,8 @@ the 3rd case will always hold.
 
 Local Opaque confineRect1.
 Lemma maxTurnNeededConjecture (minx maxx miny: IR) :
+((½ * π ) ≤ (' polarTheta βPlusFront + ' polarTheta βPlusBack))
+→
 let βPlusFront :IR := 'polarTheta βPlusFront in
 (minx ≤ X (minxy (confineRect1 βPlusFront))
 /\ miny ≤ Y (minxy (confineRect1 βPlusFront))
@@ -949,7 +981,7 @@ let βPlusFront :IR := 'polarTheta βPlusFront in
     )
      ).
 Proof.
-  simpl.
+  intro Has. simpl.
   intros H ? Hb.
   split;[| split].
   - eapply confineRect1LeftMonotoneRight;
@@ -972,9 +1004,52 @@ Local Transparent confineRect1.
     apply flip_le_negate.
     apply (@order_preserving _ _ _ _ _ _ _);
     [apply OrderPreserving_instance_0;
-     apply Cart2DRadNNegIR |].
-     clear Hh.
+      apply Cart2DRadNNegIR |].
+    clear Hh.
+    rewrite <- Pi_minus_Sin.
+    setoid_rewrite <- Pi_minus_Sin at 2.
+    apply Sin_resp_leEq.
+    + eapply transitivity;[apply MinusPiBy2Le0|].
+      apply flip_le_minus_l.
+      rewrite negate_involutive.
+      setoid_rewrite plus_0_l.
+      rewrite (divideBy2 Pi).
+      apply plus_le_compat; [tauto| apply
+        firstQuadβPlusBack].
+    + apply flip_le_minus_l.
+      rewrite commutativity.
+      apply flip_le_minus_l.
+      eapply transitivity;[| apply Has].
+      apply eq_le.
+      rewrite (divideBy2 π) at 1.
+      rewrite PiBy2DesugarIR.
+      IRring.
+    + apply (@order_preserving _ _ _ _ _ _ _ _).
+      apply flip_le_negate.
+      rewrite commutativity.
+      setoid_rewrite commutativity at 2.
+      apply (@order_preserving _ _ _ _ _ _ _ _).
+      tauto.
+  - apply proj2 in H. apply proj2 in H.
+    revert H.
+    unfold confineRect1. simpl.
+    rewrite plus_0_l.
+    rewrite plus_0_l.
+    intros Hh.
+    eapply transitivity;[|apply Hh].
+    apply (@order_preserving _ _ _ _ _ _ _);
+      [apply OrderPreserving_instance_0;
+       apply Cart2DRadNNegIR |].
+    clear Hh.
+    rewrite plus_negate_r.
+    rewrite Cos_zero. apply Cos_leEq_One.
+Qed.
 
+Lemma hypothesisInAboveConjecture :
+((lengthBack cd)/(tr + width cd)≤(tr + width cd)/(lengthFront cd))%Q
+->
+((½ * π )
+≤ (' polarTheta βPlusFront + ' polarTheta βPlusBack)).
 Abort.
 
 Lemma isBoundLeft2 (minx: IR) : isBoundLeft minx.
@@ -984,7 +1059,6 @@ Proof using All.
   simpl.
   split.
   Focus 2. 
-  Print βPlusBack.
 Abort.
 
 End FirstQuadWriggleQ.
