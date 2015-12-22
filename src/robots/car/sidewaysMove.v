@@ -864,6 +864,22 @@ Proof using ntriv turnCentreOut.
   split; simpl; autounfold with QMC; lra.
 Qed.
 
+(** exact same proof as above *)
+Lemma firstQuadβMinusFront:
+ (0:IR) ≤ ' polarTheta βMinusFront ≤  (½ * π).
+Proof using ntriv turnCentreOut.
+  rewrite PiBy2DesugarIR.
+  rewrite <- (IRasCRasIR_id (Pi [/]TwoNZ)).
+  rewrite <- CRPiBy2Correct1.
+  rewrite <- CRasIR0.
+  apply CR_leEq2_as_IR.
+  apply polarFirstQuad.
+  unfold nonTrivialCarDim in ntriv.
+  simpl in ntriv.
+  do 3 rewrite inj_Q_nneg in ntriv.
+  destruct ntriv as  [Ha Hbc]. destruct Hbc.
+  split; simpl; autounfold with QMC; lra.
+Qed.
 
 Require Import MathClasses.orders.semirings.
 Require Import MCMisc.rings.
@@ -1095,17 +1111,20 @@ Qed.
 (** derive [firstQuadW] from this.*)
 Hypothesis maxNeededTurn 
   : (0 : ℝ) ≤ 2 * ' α * ' d ≤ (' polarTheta βPlusFront).
-  
-Lemma isBoundLeft2: 
+
+Definition leftBound : IR :=
 let m1 := (X (minxy (confineRect1 0))) in 
 let m2 := (X (minxy (confineRect2 (2 * 'α * 'd)))) in 
-isBoundLeft (min m1 m2).
+(min m1 m2).
+
+Lemma leftBoundCorrect: 
+isBoundLeft leftBound.
 Proof using All.
-  intros ? ? θ.
+  unfold leftBound.
+  intros θ.
   split.
   - intros H.
     eapply transitivity;[apply Min_leEq_lft|].
-    clear m2. subst m1.
     eapply confineRect1LeftMonotoneRight;
       [reflexivity| |].
     + split;[reflexivity|].
@@ -1114,7 +1133,6 @@ Proof using All.
   - simpl.
     intros H.
     eapply transitivity;[apply Min_leEq_rht|].
-    clear m1. subst m2.
     simpl.
     apply (@order_preserving _ _ _ _ _ _ _ _).
     apply flip_le_negate.
@@ -1145,5 +1163,104 @@ Proof using All.
       apply flip_le_negate.
       tauto.
 Qed.
+
+Lemma LeftBoundEqSimpl : leftBound = 
+(min (- ' lengthBack cd)
+  (' tr * (2 * Sin (' α * ' d)) -
+   (' lengthBack cd * cos (2 * ' α * ' d) +
+    ' (tr + width cd) * sin (2 * ' α * ' d)))).
+Proof using.
+  match goal with
+  [|- _= ?r] => remember r as rr
+  end.
+  unfold leftBound.
+  simpl.
+  rewrite plus_0_l.
+  fold CosClassIR.
+  fold (@cos IR _).
+  rewrite <- unitVDot.
+  rewrite <- unitVDot2.
+  do 2 rewrite multDotRight.
+  pose proof CartToPolarCorrect as H.
+  simpl in H. unfold norm, NormCart2DQ in H.
+  rewrite <- H.
+  rewrite <- H.
+  unfold inprod, InProductCart2D.
+  simpl. 
+  rewrite Cos_zero.
+  rewrite Sin_zero.
+  unfold trr.
+  subst rr. 
+  apply Min_wd_unfolded; split; simpl; try IRring.
+Qed.
+
+Definition isBoundRight (maxx: IR) :=
+forall θ:IR,
+(0 ≤ θ ≤ 'α * 'd
+ → X (maxxy (confineRect1 θ)) ≤ maxx)
+∧ ('α * 'd ≤ θ ≤ 2 * 'α * 'd
+   →  X (maxxy (confineRect2 θ)) ≤ maxx).
+
+Definition rightBound : IR :=
+  (X (maxxy (confineRect1 ('α * 'd)))).
+
+Lemma transitionMaxX : 
+trr * (2 * Sin (' α * ' d)) +
+' (| βMinusFront |) 
+* Cos (' α * ' d + ' polarTheta βMinusFront)
+= ' (| βPlusFront |) *
+Cos (' α * ' d - ' polarTheta βPlusFront).
+Admitted.
+
+(**actually only half of [maxNeededTurn] is needed.*)
+Lemma rightBoundCorrect (maxx: IR) 
+  : isBoundRight rightBound.
+Proof using dNN firstQuadW lengthFrontGreater maxNeededTurn ntriv ntrivStrict turnCentreOut αPos. 
+
+  unfold isBoundRight, rightBound.
+  intro. simpl.
+  split; intro Hb.
+  - do 2 rewrite plus_0_l.
+    apply (@order_preserving _ _ _ _ _ _ _);
+      [apply OrderPreserving_instance_0;
+       apply Cart2DRadNNegIR |].
+    rewrite CosMinusSwap.
+    setoid_rewrite CosMinusSwap at 2.
+    apply Cos_resp_leEq.
+    + apply flip_le_minus_l.
+      rewrite negate_involutive.
+      setoid_rewrite plus_0_l.
+      eapply transitivity;[|
+        apply maxNeededTurn].
+      rewrite <- (@simple_associativity _ _ plus _ _).
+      apply rings.RingLeProp2.
+      destruct Hb. eapply transitivity; eauto.
+    + rewrite (divideBy2 Pi).
+      apply plus_le_compat;
+        [apply firstQuadβPlusFront|].
+      rewrite PiBy2DesugarIR.
+      apply flip_le_negate.
+      rewrite negate_involutive.
+      eapply transitivity;[
+        apply MinusPiBy2Le0|].
+      apply Hb.
+    + apply (@order_preserving _ _ _ _ _ _ _ _).
+      apply flip_le_negate.
+      tauto.
+  - rewrite plus_0_l.
+    rewrite <- transitionMaxX.
+    apply (@order_preserving _ _ _ _ _ _ _ _).
+    apply (@order_preserving _ _ _ _ _ _ _);
+      [apply OrderPreserving_instance_0;
+       apply Cart2DRadNNegIR |].
+    apply Cos_resp_leEq.
+    + apply plus_resp_nonneg;[|apply firstQuadβMinusFront].
+      apply adNN; auto.
+    + rewrite (divideBy2 Pi).
+      apply plus_le_compat;[|apply firstQuadβMinusFront].
+      eapply transitivity;[apply Hb|]. tauto.
+   + apply plus_le_compat;[tauto| reflexivity].
+Qed.
+
 
 End FirstQuadWriggleQ.
