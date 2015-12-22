@@ -951,38 +951,37 @@ onenote:https://d.docs.live.net/946e75b47b19a3b5/Documents/PhD6/ParallelParking.
 
 This is because because from that angle to 90 degrees,
 the car's space requirement along the left, right and
-bottom sides seem to decrease. 
+bottom sides seem to decrease.
 
- If so, the following must
-be provable:
-(the minx part was already proved above in [isBoundLeft1],
- although its statement is weaker)
-
-Also, if so, assuming 
-that [lengthBack < lengthFront] may imply that
+If so, assuming 
+that [lengthBack ≤ lengthFront] implies that
 the 3rd case will always hold.
  *)
 
-Local Opaque confineRect1.
-Lemma maxTurnNeededConjecture (minx maxx miny: IR) :
-((½ * π ) ≤ (' polarTheta βPlusFront + ' polarTheta βPlusBack))
-→
-let βPlusFront :IR := 'polarTheta βPlusFront in
-(minx ≤ X (minxy (confineRect1 βPlusFront))
-/\ miny ≤ Y (minxy (confineRect1 βPlusFront))
-/\ X (maxxy (confineRect1 βPlusFront)) ≤ maxx
+Definition isMaxTurnNeeded (θmax : IR) :=
+∀ (minx maxx miny: IR),
+(minx ≤ X (minxy (confineRect1 θmax))
+/\ miny ≤ Y (minxy (confineRect1 θmax))
+/\ X (maxxy (confineRect1 θmax)) ≤ maxx
 )
-→ (forall θ:IR,
-    βPlusFront ≤ θ ≤ ½ * π
+→ (∀ θ:IR,
+    θmax ≤ θ ≤ ½ * π
      → 
     (minx ≤ X (minxy (confineRect1 θ))
     /\ miny ≤ Y (minxy (confineRect1 θ))
     /\ X (maxxy (confineRect1 θ)) ≤ maxx
     )
      ).
-Proof.
+     
+
+Local Opaque confineRect1.
+Lemma maxTurnNeededConjecture (minx maxx miny: IR) :
+((½ * π ) ≤ (' polarTheta βPlusFront + ' polarTheta βPlusBack))
+→
+isMaxTurnNeeded ('polarTheta βPlusFront).
+Proof using firstQuadW ntriv turnCentreOut.
   intro Has. simpl.
-  intros H ? Hb.
+  intros ? ? ? H ? Hb.
   split;[| split].
   - eapply confineRect1LeftMonotoneRight;
       [ | | apply Hb];[tauto | ].
@@ -1045,6 +1044,10 @@ Local Transparent confineRect1.
     rewrite Cos_zero. apply Cos_leEq_One.
 Qed.
 
+(** intuitively, it says that while turning left
+at min radius, the rightmost position of the rightmost
+point of the car is achieved after the bottommost
+position of the bottommost point of the car is achieved.*)
 Lemma hypothesisInAboveConjecture :
 ((lengthBack cd)/(tr + width cd)≤(tr + width cd)/(lengthFront cd))%Q
 ->
@@ -1052,13 +1055,95 @@ Lemma hypothesisInAboveConjecture :
 ≤ (' polarTheta βPlusFront + ' polarTheta βPlusBack)).
 Abort.
 
-Lemma isBoundLeft2 (minx: IR) : isBoundLeft minx.
-Proof using All.
-  unfold isBoundLeft.
-  intro θ.
-  simpl.
-  split.
-  Focus 2. 
+(** this version may not need any additional hypothesis,
+  but it may not be strong enough for the remaining proofs. *)
+Lemma conjecture2 :
+isMaxTurnNeeded (Max ('polarTheta βPlusFront)
+((½ * π ) - 'polarTheta βPlusBack)).
 Abort.
+
+(** Note that [lengthFront] and [lengthBack]
+    are measured w.r.t the line joining the 2 rear wheels.
+    This is a reasonable assumption for a car without
+    any rear attachments. *)
+Hypothesis lengthFrontGreater:
+  (lengthBack cd <= lengthFront cd)%Q.
+
+(**This assumption is innocuous. Perhaps [le] can be
+replaced by [lt] in the definition of [nonTrivialCarDim],
+so that this wont be needed.*)
+Hypothesis ntrivStrict :
+(0 < lengthFront cd /\ 0 < lengthBack cd)%Q.
+
+(** This is a direct consequence of the above hypothesis
+  [lengthFrontGreater] *)
+Lemma FrontLeBack : 
+  (' polarTheta βPlusFront) ≤ (' polarTheta βPlusBack).
+Proof using firstQuadW lengthFrontGreater ntriv ntrivStrict turnCentreOut.
+
+  unfold cast, Cart_CR_IR.
+  apply CR_leEq_as_IR.
+  apply polarFirstQuadMonotone; simpl;
+  autounfold with QMC; [tauto| tauto|].
+  unfold nonTrivialCarDim in ntriv. simpl in ntriv.
+  do 3 (rewrite inj_Q_nneg in ntriv).
+  apply Q.Qmult_le_compat_l;[| lra].
+  apply  Q.Qdiv_flip_le; lra.
+Qed.
+
+
+(** derive [firstQuadW] from this.*)
+Hypothesis maxNeededTurn 
+  : (0 : ℝ) ≤ 2 * ' α * ' d ≤ (' polarTheta βPlusFront).
+  
+Lemma isBoundLeft2: 
+let m1 := (X (minxy (confineRect1 0))) in 
+let m2 := (X (minxy (confineRect2 (2 * 'α * 'd)))) in 
+isBoundLeft (min m1 m2).
+Proof using All.
+  intros ? ? θ.
+  split.
+  - intros H.
+    eapply transitivity;[apply Min_leEq_lft|].
+    clear m2. subst m1.
+    eapply confineRect1LeftMonotoneRight;
+      [reflexivity| |].
+    + split;[reflexivity|].
+      rewrite PiBy2DesugarIR. apply PiBy2Ge0.
+    + eapply firstQuadW1; eauto. 
+  - simpl.
+    intros H.
+    eapply transitivity;[apply Min_leEq_rht|].
+    clear m1. subst m2.
+    simpl.
+    apply (@order_preserving _ _ _ _ _ _ _ _).
+    apply flip_le_negate.
+    apply (@order_preserving _ _ _ _ _ _ _);
+      [apply OrderPreserving_instance_0;
+       apply Cart2DRadNNegIR |].
+    rewrite CosMinusSwap.
+    setoid_rewrite CosMinusSwap at 2.
+    apply Cos_resp_leEq.
+    + apply flip_le_minus_l.
+      rewrite negate_involutive.
+      setoid_rewrite plus_0_l.
+      eapply transitivity;[|
+        apply FrontLeBack].
+      tauto.
+    + rewrite (divideBy2 Pi).
+      apply plus_le_compat;
+        [apply firstQuadβPlusBack|].
+      rewrite PiBy2DesugarIR.
+      apply flip_le_negate.
+      rewrite negate_involutive.
+      eapply transitivity;[
+        apply MinusPiBy2Le0|].
+        destruct H.
+      eapply transitivity;[|apply H].
+      apply adNN; eauto.
+    + apply (@order_preserving _ _ _ _ _ _ _ _).
+      apply flip_le_negate.
+      tauto.
+Qed.
 
 End FirstQuadWriggleQ.

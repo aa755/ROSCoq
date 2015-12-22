@@ -349,11 +349,45 @@ Proof.
     split.
     + apply rational_arctan_nonneg.
       autounfold  with QMC.
-      SearchAbout Qle Qdiv (0%Q).
       apply Q.Qle_shift_div_l; lra.
     + destruct (CRarctan_range ('(Y c/X c)%Q)) as [Hl Hr].
       clear Hl.
       rewrite arctan_Qarctan in Hr.
       apply CRweakenLt.
       exact Hr.
+Qed.
+
+Lemma rational_arctan_monotone : forall a b:Q,
+(a <= b)%Q
+→ (rational_arctan a <= rational_arctan b)%CR.
+Proof.
+  intros ? ? Hab.
+  rewrite  <- arctan_Qarctan.
+  rewrite  <- arctan_Qarctan.
+  apply CRArcTan_resp_leEq.
+  apply CRle_Qle.
+  exact Hab.
+Qed.
+
+Lemma polarFirstQuadMonotone : forall (a b: Cart2D Q),
+  0 < X a (* if 0, LHS is arbitrarily chosen to be Pi*)
+  → 0 < X b
+  → (Y a / X a ≤ Y b / X b)%Q
+  → polarTheta a ≤ polarTheta b.
+Proof.
+  intros ? ?. unfold polarTheta, QSignHalf,
+    QSign,
+  Zero_instance_Cart2D, Cart2D_instance_le.
+  autounfold with QMC.
+  simpl.
+  intros ? Hlt Hrle.
+  destruct (decide (X a == 0)%Q);[lra|].
+  destruct (decide (X a < 0)%Q);[lra|].
+  assert ((0 < X a)%Q) by lra.
+  destruct (decide (X b == 0)%Q);[lra|].
+  assert ((0 < X b)%Q) by lra.
+  destruct (decide (X b < 0)%Q);[lra|].
+  intro Hh.
+  apply rational_arctan_monotone.
+  exact Hrle.
 Qed.
