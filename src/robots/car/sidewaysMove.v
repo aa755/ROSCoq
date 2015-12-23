@@ -1296,69 +1296,78 @@ forall θ:IR,
    → miny ≤ Y (minxy (confineRect2 θ))).
 
 (** Based on intuition, which may be corrupted with
-some assumptions not yet made explicity *)
+some assumptions not yet made explicity 
 
-Definition bottomBound : IR :=
+Definition bottomBound2 : IR :=
   (Y (minxy (confineRect2 (2 * 'α * 'd)))).
-  
-Lemma bottomBoundCorrect
-  : isBoundBottom bottomBound.
-Proof.
+*)
 
+Lemma bottomBound2Correct : 
+let miny := (Y (minxy (confineRect2 (2 * 'α * 'd)))) in
+forall θ:IR,
+ 'α * 'd ≤ θ ≤ 2 * 'α * 'd
+   → miny ≤ Y (minxy (confineRect2 θ)).
+Proof using dNN firstQuadW ntriv turnCentreOut αPos. 
   unfold isBoundRight, rightBound.
   intro. simpl.
-  unfold bottomBound. simpl.
-  split; intro Hb.
-- rewrite plus_mult_distr_l.
-  rewrite mult_1_r.
-  rewrite <- (@simple_associativity _ _ plus _ _).
-  apply (@order_preserving _ _ _ _ _ _ _ _).
-  fold CosClassIR.
-  fold (@cos IR _).
-  fold SinClassIR.
-  fold (@sin IR _).
-  rewrite <- unitVDot.
-  rewrite <- unitVDot2.
-  do 2 rewrite multDotRight.
-  pose proof CartToPolarCorrect90Minus as H.
-  simpl in H. unfold norm, NormCart2DQ in H.
-  rewrite <- H.
-  rewrite <- H.
-  unfold inprod, InProductCart2D.
-  simpl.
-  apply flip_le_negate.
-  rewrite negate_involutive.
-  rewrite preserves_minus.
-  rewrite preserves_plus.
-  rewrite <- negate_mult_distr_r.
-  rewrite mult_1_l.
-  rewrite <- negate_mult_distr_l.
-  rewrite <- negate_mult_distr_r.
-  rewrite mult_1_l.
-  rewrite  negate_plus_distr.
-  rewrite negate_involutive.
-  fold trr.
-  rewrite <- negate_swap_r.
-  rewrite negate_mult_distr_l.
-  rewrite <- negate_swap_r. admit.
-- pose proof (firstQuadW2 _ αPos _ dNN firstQuadW _  Hb)
+  intro Hb.
+  pose proof (firstQuadW2 _ αPos _ dNN firstQuadW _  Hb)
     as Ht.
   apply (@order_preserving _ _ _ _ _ _ _ _).
     apply (@order_preserving _ _ _ _ _ _ _);
       [apply OrderPreserving_instance_0;
        apply Cart2DRadNNegIR |].
   apply Cos_resp_leEq.
-  + apply plus_resp_nonneg;[apply Ht|].
+  - apply plus_resp_nonneg;[apply Ht|].
     apply flip_le_minus_r.
     setoid_rewrite plus_0_l.
     apply firstQuadβMinusBack.
-  + rewrite (divideBy2 Pi).
+  - rewrite (divideBy2 Pi).
     apply plus_le_compat;
       [apply firstQuadW|].
     apply nonneg_minus_compat;[| reflexivity].
     apply firstQuadβMinusBack.
-  + apply plus_le_compat;
+  - apply plus_le_compat;
       [apply Hb| reflexivity]; fail.
-Abort.
+Qed.
+
+Lemma bottomBound1Correct : 
+let miny := (Y (minxy (confineRect1 ('α * 'd)))) in
+ ('α * 'd ≤ (½ * π - ' polarTheta βPlusBack))
+->
+forall θ:IR,
+ 0 ≤ θ ≤ 'α * 'd
+   → miny ≤ Y (minxy (confineRect1 θ)).
+Proof using dNN firstQuadW ntriv turnCentreOut αPos. 
+  simpl. intros Hu ?. simpl.
+  intro Hb.
+  pose proof (firstQuadW1 _ αPos _ dNN firstQuadW _  Hb)
+    as Ht.
+  apply (@order_preserving _ _ _ _ _ _ _ _).
+  apply flip_le_negate.
+    apply (@order_preserving _ _ _ _ _ _ _);
+      [apply OrderPreserving_instance_0;
+       apply Cart2DRadNNegIR |].
+  rewrite CosMinusSwap.
+  setoid_rewrite CosMinusSwap at 2.
+  apply Cos_resp_leEq.
+  - apply flip_le_minus_r.
+    setoid_rewrite plus_0_l.
+    apply Hu.
+  - rewrite (divideBy2 Pi).
+    apply plus_le_compat;[|].
+    + apply nonneg_minus_compat;[|reflexivity].
+      apply firstQuadβPlusBack.
+    + rewrite PiBy2DesugarIR.
+      eapply transitivity;[|apply PiBy2Ge0].
+      apply flip_le_negate.
+      rewrite negate_involutive.
+      setoid_rewrite negate_0.
+      apply Ht.
+  - apply plus_le_compat;
+      [reflexivity|].
+    apply flip_le_negate.
+    apply Hb.
+Qed.
 
 End FirstQuadWriggleQ.
