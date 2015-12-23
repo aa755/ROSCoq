@@ -1201,19 +1201,45 @@ forall θ:IR,
 ∧ ('α * 'd ≤ θ ≤ 2 * 'α * 'd
    →  X (maxxy (confineRect2 θ)) ≤ maxx).
 
+(** As shown below in [rightBoundCorrect],
+The extrema is achieved at the end of the first move. *)
+
 Definition rightBound : IR :=
   (X (maxxy (confineRect1 ('α * 'd)))).
 
+(*the equations for the the motion of the front RHS
+corner of the car for the 1st and the 2nd move must agree
+at the transition time.*)
 Lemma transitionMaxX : 
 trr * (2 * Sin (' α * ' d)) +
 ' (| βMinusFront |) 
 * Cos (' α * ' d + ' polarTheta βMinusFront)
 = ' (| βPlusFront |) *
 Cos (' α * ' d - ' polarTheta βPlusFront).
-Admitted.
+Proof using.
+  fold CosClassIR.
+  fold (@cos IR _).
+  fold SinClassIR.
+  fold (@sin IR _).
+  rewrite <- unitVDot.
+  rewrite <- unitVDot2.
+  do 2 rewrite multDotRight.
+  pose proof CartToPolarCorrect as H.
+  simpl in H. unfold norm, NormCart2DQ in H.
+  rewrite <- H.
+  rewrite <- H.
+  unfold inprod, InProductCart2D.
+  simpl.
+  (* the above part was copied from [LeftBoundEqSimpl]*)
+  unfold trr.
+  rewrite preserves_minus.
+  rewrite preserves_plus.
+  IRring.
+Qed.
 
-(**actually only half of [maxNeededTurn] is needed.*)
-Lemma rightBoundCorrect (maxx: IR) 
+(**actually only half of [maxNeededTurn] is needed.
+*)
+Lemma rightBoundCorrect 
   : isBoundRight rightBound.
 Proof using dNN firstQuadW lengthFrontGreater maxNeededTurn ntriv ntrivStrict turnCentreOut αPos. 
 
@@ -1262,5 +1288,77 @@ Proof using dNN firstQuadW lengthFrontGreater maxNeededTurn ntriv ntrivStrict tu
    + apply plus_le_compat;[tauto| reflexivity].
 Qed.
 
+Definition isBoundBottom (miny: IR) :=
+forall θ:IR,
+(0 ≤ θ ≤ 'α * 'd
+ → miny ≤ Y (minxy (confineRect1 θ)))
+∧ ('α * 'd ≤ θ ≤ 2 * 'α * 'd
+   → miny ≤ Y (minxy (confineRect2 θ))).
+
+(** Based on intuition, which may be corrupted with
+some assumptions not yet made explicity *)
+
+Definition bottomBound : IR :=
+  (Y (minxy (confineRect2 (2 * 'α * 'd)))).
+  
+Lemma bottomBoundCorrect
+  : isBoundBottom bottomBound.
+Proof.
+
+  unfold isBoundRight, rightBound.
+  intro. simpl.
+  unfold bottomBound. simpl.
+  split; intro Hb.
+- rewrite plus_mult_distr_l.
+  rewrite mult_1_r.
+  rewrite <- (@simple_associativity _ _ plus _ _).
+  apply (@order_preserving _ _ _ _ _ _ _ _).
+  fold CosClassIR.
+  fold (@cos IR _).
+  fold SinClassIR.
+  fold (@sin IR _).
+  rewrite <- unitVDot.
+  rewrite <- unitVDot2.
+  do 2 rewrite multDotRight.
+  pose proof CartToPolarCorrect90Minus as H.
+  simpl in H. unfold norm, NormCart2DQ in H.
+  rewrite <- H.
+  rewrite <- H.
+  unfold inprod, InProductCart2D.
+  simpl.
+  apply flip_le_negate.
+  rewrite negate_involutive.
+  rewrite preserves_minus.
+  rewrite preserves_plus.
+  rewrite <- negate_mult_distr_r.
+  rewrite mult_1_l.
+  rewrite <- negate_mult_distr_l.
+  rewrite <- negate_mult_distr_r.
+  rewrite mult_1_l.
+  rewrite  negate_plus_distr.
+  rewrite negate_involutive.
+  fold trr.
+  rewrite <- negate_swap_r.
+  rewrite negate_mult_distr_l.
+  rewrite <- negate_swap_r. admit.
+- pose proof (firstQuadW2 _ αPos _ dNN firstQuadW _  Hb)
+    as Ht.
+  apply (@order_preserving _ _ _ _ _ _ _ _).
+    apply (@order_preserving _ _ _ _ _ _ _);
+      [apply OrderPreserving_instance_0;
+       apply Cart2DRadNNegIR |].
+  apply Cos_resp_leEq.
+  + apply plus_resp_nonneg;[apply Ht|].
+    apply flip_le_minus_r.
+    setoid_rewrite plus_0_l.
+    apply firstQuadβMinusBack.
+  + rewrite (divideBy2 Pi).
+    apply plus_le_compat;
+      [apply firstQuadW|].
+    apply nonneg_minus_compat;[| reflexivity].
+    apply firstQuadβMinusBack.
+  + apply plus_le_compat;
+      [apply Hb| reflexivity]; fail.
+Abort.
 
 End FirstQuadWriggleQ.
