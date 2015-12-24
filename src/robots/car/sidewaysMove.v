@@ -1398,6 +1398,46 @@ Proof using dNN firstQuadW αPos.
   apply Cos_leEq_One.
 Qed.
 
+Let increase1 := Y (minxy (confineRect1 ('α * 'd))) - 
+(Y (minxy (confineRect1 minYCriticalAngle))).
+
+Let decrease2 := 
+Y (minxy (confineRect2 ( 'α * 'd))) - 
+(Y (minxy (confineRect2 (2* 'α * 'd)))).
+
+Lemma Increase1LeDecrease:
+  increase1 ≤ decrease2.
+Proof.
+  subst increase1 decrease2. simpl.
+  replace (½ * π - ' polarTheta βPlusBack) with 
+    minYCriticalAngle;[| reflexivity].
+  rewrite plus_negate_r.
+  rewrite Cos_zero.
+  setoid_rewrite mult_1_r.
+  match goal with
+  [|- ?l ≤ _] =>
+    assert (l= (' (| βPlusBack |)) * 
+      (1 - Cos (' α * ' d - minYCriticalAngle))) as H by IRring
+  end.
+  rewrite H.
+  set (tt := (½ * π - ' polarTheta βMinusBack)).
+  replace (½ * π - ' polarTheta βMinusBack) with tt;[|reflexivity].
+  clear H.
+  match goal with
+  [|- _ ≤ ?l] =>
+    assert (l= (' (| βMinusBack |)) * 
+      (Cos (' α * ' d + tt) 
+       -  Cos (2 * ' α * ' d + tt)
+      )) as H by IRring
+  end.
+  rewrite H. clear H.
+(*this does not seem to be probable. 
+in the LHS, the change in angle is less.
+in the RHS, the radius is less.
+*)
+Abort.
+  
+  
 Lemma bottomBound12Correct2 : 
 (minYCriticalAngle ≤ 'α * 'd )
 ->
