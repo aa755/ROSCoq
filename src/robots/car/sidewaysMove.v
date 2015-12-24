@@ -1400,19 +1400,69 @@ Definition bottomBoundCase2 : IR :=
   min
   (Y (minxy (confineRect1 minYCriticalAngle)))
   (Y (minxy (confineRect2 (2 * 'α * 'd)))).
-  
+
+(*the equations for the the motion of the car for the 1st and the 2nd move must agree
+at the transition time.*)
+Lemma transitionMinY : 
+Y (minxy (confineRect2 (' α * ' d)))
+= Y (minxy (confineRect1 (' α * ' d))).
+Proof using.
+  simpl.
+  fold CosClassIR.
+  fold (@cos IR _).
+  fold SinClassIR.
+  fold (@sin IR _).
+  rewrite <- unitVDot.
+  rewrite <- unitVDot2.
+  do 2 rewrite multDotRight.
+  pose proof CartToPolarCorrect90Minus as H.
+  simpl in H. unfold norm, NormCart2DQ in H.
+  rewrite <- H.
+  rewrite <- H.
+  unfold inprod, InProductCart2D.
+  simpl.
+  (* the above part was copied from [LeftBoundEqSimpl]*)
+  unfold trr.
+  rewrite preserves_minus.
+  rewrite preserves_plus.
+  IRring.
+Qed.
+
+
 
 Lemma bottomBoundCase1Correct : 
 ('α * 'd ≤ minYCriticalAngle)
 -> isBoundBottom bottomBoundCase1.
 Proof.
-Abort.
+  intros Hu ?.
+  split.
+- intros Hb. eapply transitivity;
+    [|apply move1BottomBoundCase1; trivial; fail].
+  unfold bottomBoundCase1.
+  rewrite <- transitionMinY.
+  apply move2BottomBound.
+  split;[reflexivity|].
+  rewrite <- (@simple_associativity _ _ mult _ _ _).
+  apply rings.RingLeProp2.
+  destruct Hb. eapply transitivity; eauto.
+- intros Hb. 
+  apply move2BottomBound. auto.
+Qed.
 
 Lemma bottomBoundCase2Correct : 
 (minYCriticalAngle ≤ 'α * 'd)
 -> isBoundBottom bottomBoundCase2.
-Proof.
-Abort.
+Proof using dNN firstQuadW ntriv turnCentreOut αPos.   
+  intros Hu ?.
+  split.
+- intros Hb. eapply transitivity;
+    [apply Min_leEq_lft|].
+  apply move1BottomBoundCase2; auto.
+- intros Hb.
+  eapply transitivity;
+    [apply Min_leEq_rht|].
+  apply move2BottomBound; auto.
+Qed.
 
 
 End  MinYCases.
