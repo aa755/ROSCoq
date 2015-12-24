@@ -1331,10 +1331,15 @@ Proof using dNN firstQuadW ntriv turnCentreOut αPos.
       [apply Hb| reflexivity]; fail.
 Qed.
 
-Lemma bottomBound1Correct : 
-let miny := (Y (minxy (confineRect1 ('α * 'd)))) in
- ('α * 'd ≤ (½ * π - ' polarTheta βPlusBack))
+Section MinYCases.
+
+Let minYCriticalAngle : IR
+  := (½ * π - ' polarTheta βPlusBack).
+
+Lemma bottomBound1Correct1 : 
+('α * 'd ≤ minYCriticalAngle)
 ->
+let miny := (Y (minxy (confineRect1 ('α * 'd)))) in
 forall θ:IR,
  0 ≤ θ ≤ 'α * 'd
    → miny ≤ Y (minxy (confineRect1 θ)).
@@ -1370,4 +1375,57 @@ Proof using dNN firstQuadW ntriv turnCentreOut αPos.
     apply Hb.
 Qed.
 
+Lemma bottomBound1Correct2 : 
+(minYCriticalAngle ≤ 'α * 'd )
+->
+let miny := (Y (minxy (confineRect1 minYCriticalAngle))) in
+forall θ:IR,
+ 0 ≤ θ ≤ 'α * 'd
+   → miny ≤ Y (minxy (confineRect1 θ)).
+Proof using dNN firstQuadW αPos.
+  simpl. intros Hu ?. simpl.
+  intro Hb.
+  unfold minYCriticalAngle.
+  rewrite plus_negate_r.
+  rewrite Cos_zero.
+  pose proof (firstQuadW1 _ αPos _ dNN firstQuadW _  Hb)
+    as Ht.
+  apply (@order_preserving _ _ _ _ _ _ _ _).
+  apply flip_le_negate.
+    apply (@order_preserving _ _ _ _ _ _ _);
+      [apply OrderPreserving_instance_0;
+       apply Cart2DRadNNegIR |].
+  apply Cos_leEq_One.
+Qed.
+
+Lemma bottomBound12Correct2 : 
+(minYCriticalAngle ≤ 'α * 'd )
+->
+let miny1 := (Y (minxy (confineRect1 minYCriticalAngle))) in
+let miny2 := (Y (minxy (confineRect2 (2 * 'α * 'd)))) in
+miny2 ≤ miny1.
+Proof.
+  simpl. intros Hu. simpl.
+  unfold minYCriticalAngle.
+  rewrite plus_negate_r.
+  rewrite Cos_zero.
+  setoid_rewrite mult_1_r.
+  fold CosClassIR.
+  fold (@cos IR _).
+  fold SinClassIR.
+  fold (@sin IR _).
+  rewrite  (@simple_associativity _ _ plus _ _).
+  pose proof CartToPolarCorrect as H.
+  rewrite plus_mult_distr_l.
+  rewrite mult_1_r.
+  rewrite <- (@simple_associativity _ _ plus _ _).
+  apply  (@order_preserving _ _ _ _ _ _ _ _).
+  apply flip_le_negate.
+  rewrite negate_involutive.
+  rewrite <- negate_mult_distr_r.
+  rewrite  negate_plus_distr.
+  rewrite negate_involutive.
+Abort.
+
+End  MinYCases.
 End FirstQuadWriggleQ.
