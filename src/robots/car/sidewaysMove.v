@@ -1295,14 +1295,8 @@ forall θ:IR,
 ∧ ('α * 'd ≤ θ ≤ 2 * 'α * 'd
    → miny ≤ Y (minxy (confineRect2 θ))).
 
-(** Based on intuition, which may be corrupted with
-some assumptions not yet made explicity 
 
-Definition bottomBound2 : IR :=
-  (Y (minxy (confineRect2 (2 * 'α * 'd)))).
-*)
-
-Lemma bottomBound2Correct : 
+Lemma move2BottomBound : 
 let miny := (Y (minxy (confineRect2 (2 * 'α * 'd)))) in
 forall θ:IR,
  'α * 'd ≤ θ ≤ 2 * 'α * 'd
@@ -1336,7 +1330,7 @@ Section MinYCases.
 Let minYCriticalAngle : IR
   := (½ * π - ' polarTheta βPlusBack).
 
-Lemma bottomBound1Correct1 : 
+Lemma move1BottomBoundCase1 : 
 ('α * 'd ≤ minYCriticalAngle)
 ->
 let miny := (Y (minxy (confineRect1 ('α * 'd)))) in
@@ -1375,7 +1369,8 @@ Proof using dNN firstQuadW ntriv turnCentreOut αPos.
     apply Hb.
 Qed.
 
-Lemma bottomBound1Correct2 : 
+
+Lemma move1BottomBoundCase2: 
 (minYCriticalAngle ≤ 'α * 'd )
 ->
 let miny := (Y (minxy (confineRect1 minYCriticalAngle))) in
@@ -1398,74 +1393,27 @@ Proof using dNN firstQuadW αPos.
   apply Cos_leEq_One.
 Qed.
 
-Let increase1 := Y (minxy (confineRect1 ('α * 'd))) - 
-(Y (minxy (confineRect1 minYCriticalAngle))).
+Definition bottomBoundCase1 : IR :=
+  (Y (minxy (confineRect2 (2 * 'α * 'd)))).
 
-Let decrease2 := 
-Y (minxy (confineRect2 ( 'α * 'd))) - 
-(Y (minxy (confineRect2 (2* 'α * 'd)))).
+Definition bottomBoundCase2 : IR :=
+  min
+  (Y (minxy (confineRect1 minYCriticalAngle)))
+  (Y (minxy (confineRect2 (2 * 'α * 'd)))).
+  
 
-Lemma Increase1LeDecrease:
-  increase1 ≤ decrease2.
+Lemma bottomBoundCase1Correct : 
+('α * 'd ≤ minYCriticalAngle)
+-> isBoundBottom bottomBoundCase1.
 Proof.
-  subst increase1 decrease2. simpl.
-  replace (½ * π - ' polarTheta βPlusBack) with 
-    minYCriticalAngle;[| reflexivity].
-  rewrite plus_negate_r.
-  rewrite Cos_zero.
-  setoid_rewrite mult_1_r.
-  match goal with
-  [|- ?l ≤ _] =>
-    assert (l= (' (| βPlusBack |)) * 
-      (1 - Cos (' α * ' d - minYCriticalAngle))) as H by IRring
-  end.
-  rewrite H.
-  set (tt := (½ * π - ' polarTheta βMinusBack)).
-  replace (½ * π - ' polarTheta βMinusBack) with tt;[|reflexivity].
-  clear H.
-  match goal with
-  [|- _ ≤ ?l] =>
-    assert (l= (' (| βMinusBack |)) * 
-      (Cos (' α * ' d + tt) 
-       -  Cos (2 * ' α * ' d + tt)
-      )) as H by IRring
-  end.
-  rewrite H. clear H.
-(*this does not seem to be probable. 
-in the LHS, the change in angle is less.
-in the RHS, the radius is less.
-*)
 Abort.
-  
-  
-Lemma bottomBound12Correct2 : 
-(minYCriticalAngle ≤ 'α * 'd )
-->
-let miny1 := (Y (minxy (confineRect1 minYCriticalAngle))) in
-let miny2 := (Y (minxy (confineRect2 (2 * 'α * 'd)))) in
-miny2 ≤ miny1.
+
+Lemma bottomBoundCase2Correct : 
+(minYCriticalAngle ≤ 'α * 'd)
+-> isBoundBottom bottomBoundCase2.
 Proof.
-  simpl. intros Hu. simpl.
-  unfold minYCriticalAngle.
-  rewrite plus_negate_r.
-  rewrite Cos_zero.
-  setoid_rewrite mult_1_r.
-  fold CosClassIR.
-  fold (@cos IR _).
-  fold SinClassIR.
-  fold (@sin IR _).
-  rewrite  (@simple_associativity _ _ plus _ _).
-  pose proof CartToPolarCorrect as H.
-  rewrite plus_mult_distr_l.
-  rewrite mult_1_r.
-  rewrite <- (@simple_associativity _ _ plus _ _).
-  apply  (@order_preserving _ _ _ _ _ _ _ _).
-  apply flip_le_negate.
-  rewrite negate_involutive.
-  rewrite <- negate_mult_distr_r.
-  rewrite  negate_plus_distr.
-  rewrite negate_involutive.
 Abort.
+
 
 End  MinYCases.
 End FirstQuadWriggleQ.
