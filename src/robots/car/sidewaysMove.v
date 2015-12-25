@@ -401,10 +401,9 @@ Require Import MathClasses.interfaces.vectorspace.
 Add Ring tempRingIR : (stdlib_ring_theory IR).
 *)
 
-Lemma WriggleFirstQSpace2 :  ∀  (confineRect: Line2D IR),
-(∀ θ:IR,
-(0 ≤ θ ≤ α * d
- → {|
+(** see [confineRect1] for a compact, but equivalent definition *)
+Definition confineRect1Raw (θ:IR): Line2D IR
+ := {|
    minxy := {|
              X := ⟨ {|
                     X := - lengthBack cd;
@@ -422,9 +421,10 @@ Lemma WriggleFirstQSpace2 :  ∀  (confineRect: Line2D IR),
            Y := (⟨ {|
                    X := - tr + width cd;
                    Y := lengthFront cd |}, 
-                 unitVec θ ⟩) + tr |} |} ⊆ confineRect)
-∧ (α * d ≤ θ ≤ 2 * α * d
-   → ' (' tr * {| X := 2 * sin (α * d); 
+                 unitVec θ ⟩) + tr |} |}.
+
+Definition confineRect2Raw (θ:IR): Line2D IR
+ := ' (' tr * {| X := 2 * sin (α * d); 
                   Y := 1 - 2 * cos (α * d) |}) +
      {|
      minxy := {|
@@ -445,12 +445,21 @@ Lemma WriggleFirstQSpace2 :  ∀  (confineRect: Line2D IR),
                      X := tr + width cd;
                      Y := lengthFront cd |}, 
                    unitVec θ ⟩)|} 
-                   |}
+                   |}.
+
+
+Lemma WriggleFirstQSpace2 :  ∀  (confineRect: Line2D IR),
+(∀ θ:IR,
+(0 ≤ θ ≤ α * d
+ →  confineRect1Raw θ ⊆ confineRect)
+∧ (α * d ≤ θ ≤ 2 * α * d
+   → confineRect1Raw θ
      ⊆ confineRect))
   <->
   carConfinedDuringAMs cd confineRect SWriggle init.
 Proof using All.
-  intros ?. rewrite <- WriggleFirstQSpace.
+  intros ?. unfold confineRect1Raw, confineRect2Raw.
+  rewrite <- WriggleFirstQSpace.
   apply iff_under_forall.
   intro θ.
   remember (f_rcpcl α (pos_ap_zero ℝ α αPos)) as trr.
@@ -627,33 +636,12 @@ Definition confineRect2 (θ:IR): Line2D IR
      minxy :=  decodeAsCosXY minXY2 θ ;
      maxxy := decodeAsCosXY maxXY2 θ  |}.
 
-
-Lemma WriggleFirstQSpace3 :  ∀  (confineRect: Line2D IR),
-(∀ θ:IR,
-(0 ≤ θ ≤ 'α * 'd
- → confineRect1 θ ⊆ confineRect)
-∧ ('α * 'd ≤ θ ≤ 2 * 'α * 'd
-   → confineRect2 θ ⊆ confineRect))
-  <->
-  carConfinedDuringAMs ('cd) confineRect SWriggle init.
-Proof using All.
+Lemma confineRectCorrect: ∀ θ:IR,
+confineRect1 θ = confineRect1Raw ('α) αPos ('cd) θ
+/\ confineRect2 θ = confineRect2Raw ('α) αPos ('d) ('cd) θ.
+Proof using.
   intro.
-  unfold confineRect2, confineRect1,
-    constW1, constW2.
-  rewrite <- WriggleFirstQSpace2; auto;[].
-  apply iff_under_forall.
-  intro θ. rewrite <- trComplicated.
-  apply and_iff_compat_lr.
-  eapply andWeakenL.
-  exact (@iff_under_imp2 _ _ _).
-  apply and_comm.
-  eapply andWeakenL.
-  exact (@iff_under_imp2 _ _ _).
-  eapply andWeakenL.
-  apply po_properL; eauto with typeclass_instances.
-  apply and_comm.
-  eapply andWeakenL.
-  apply po_properL; eauto with typeclass_instances.
+  unfold confineRect1, confineRect2, confineRect1Raw, confineRect2Raw.
   unfold decodeAsCosXY, decodeAsCos. simpl.
   fold CosClassIR SinClassIR.
   fold (@cos IR _) (@sin IR _).
@@ -666,20 +654,15 @@ Proof using All.
   pose proof CartToPolarCorrect as Hr.
   unfold norm, NormCart2DQ in Hr.
   do 4 (rewrite <- Hr). clear Hr.
-  replace (@cast _ _ (@castCart Q IR _)) with (@castCart Q IR _);[| reflexivity]. unfold castCart. simpl.
+  replace (@cast _ _ (@castCart Q IR _)) with (@castCart Q IR _);[| reflexivity].
+  unfold castCart. simpl.
   pose proof  (@preserves_plus _ _ _ _ _ _ _ _ _ _ _ _
    (cast Q IR) _ tr) as Hh.
    unfold transpose.
    simpl.
-   rewrite Hh at 1.
-   rewrite Hh at 1.
-   rewrite Hh at 1.
-   rewrite Hh at 1.
-   rewrite Hh at 1.
-   rewrite Hh at 1.
-   rewrite Hh at 1.
-   rewrite Hh at 1.
+  repeat rewrite Hh.
   rewrite  preserves_negate.
+  repeat rewrite <- trComplicated.
   fold trr.
    unfold inprod, InProductCart2D;split; split; split; simpl;
     try IRring.
@@ -704,73 +687,42 @@ Lemma βPlusMinusFront :
 '(polarTheta βMinusFront) ≤ cast CR IR (polarTheta βPlusFront).
 Abort.
 
+Ltac proveFirstQuad :=
+  rewrite PiBy2DesugarIR;
+  rewrite <- (IRasCRasIR_id (Pi [/]TwoNZ));
+  rewrite <- CRPiBy2Correct1;
+  rewrite <- CRasIR0;
+  apply CR_leEq2_as_IR;
+  apply polarFirstQuad;
+  unfold nonTrivialCarDim in ntriv;
+  simpl in ntriv;
+  do 3 rewrite inj_Q_nneg in ntriv;
+  destruct ntriv as  [Ha Hbc]; destruct Hbc;
+  split; simpl; autounfold with QMC; lra.
 
 Lemma firstQuadβMinusBack:
  (0:IR) ≤ ' polarTheta βMinusBack ≤  (½ * π).
 Proof using ntriv turnCentreOut.
-  rewrite PiBy2DesugarIR.
-  rewrite <- (IRasCRasIR_id (Pi [/]TwoNZ)).
-  rewrite <- CRPiBy2Correct1.
-  rewrite <- CRasIR0.
-  apply CR_leEq2_as_IR.
-  apply polarFirstQuad.
-  unfold nonTrivialCarDim in ntriv.
-  simpl in ntriv.
-  do 3 rewrite inj_Q_nneg in ntriv.
-  destruct ntriv as  [Ha Hbc]. destruct Hbc.
-  split; simpl; autounfold with QMC; lra.
+  proveFirstQuad.
 Qed.
 
-(** exact same proof as above *)
 Lemma firstQuadβPlusFront:
  (0:IR) ≤ ' polarTheta βPlusFront ≤  (½ * π).
 Proof using ntriv turnCentreOut.
-  rewrite PiBy2DesugarIR.
-  rewrite <- (IRasCRasIR_id (Pi [/]TwoNZ)).
-  rewrite <- CRPiBy2Correct1.
-  rewrite <- CRasIR0.
-  apply CR_leEq2_as_IR.
-  apply polarFirstQuad.
-  unfold nonTrivialCarDim in ntriv.
-  simpl in ntriv.
-  do 3 rewrite inj_Q_nneg in ntriv.
-  destruct ntriv as  [Ha Hbc]. destruct Hbc.
-  split; simpl; autounfold with QMC; lra.
+  proveFirstQuad.
 Qed.
 
 
-(** exact same proof as above *)
 Lemma firstQuadβPlusBack:
  (0:IR) ≤ ' polarTheta βPlusBack ≤  (½ * π).
 Proof using ntriv turnCentreOut.
-  rewrite PiBy2DesugarIR.
-  rewrite <- (IRasCRasIR_id (Pi [/]TwoNZ)).
-  rewrite <- CRPiBy2Correct1.
-  rewrite <- CRasIR0.
-  apply CR_leEq2_as_IR.
-  apply polarFirstQuad.
-  unfold nonTrivialCarDim in ntriv.
-  simpl in ntriv.
-  do 3 rewrite inj_Q_nneg in ntriv.
-  destruct ntriv as  [Ha Hbc]. destruct Hbc.
-  split; simpl; autounfold with QMC; lra.
+  proveFirstQuad.
 Qed.
 
-(** exact same proof as above *)
 Lemma firstQuadβMinusFront:
  (0:IR) ≤ ' polarTheta βMinusFront ≤  (½ * π).
 Proof using ntriv turnCentreOut.
-  rewrite PiBy2DesugarIR.
-  rewrite <- (IRasCRasIR_id (Pi [/]TwoNZ)).
-  rewrite <- CRPiBy2Correct1.
-  rewrite <- CRasIR0.
-  apply CR_leEq2_as_IR.
-  apply polarFirstQuad.
-  unfold nonTrivialCarDim in ntriv.
-  simpl in ntriv.
-  do 3 rewrite inj_Q_nneg in ntriv.
-  destruct ntriv as  [Ha Hbc]. destruct Hbc.
-  split; simpl; autounfold with QMC; lra.
+  proveFirstQuad.
 Qed.
 
 Require Import MathClasses.orders.semirings.
@@ -1042,29 +994,25 @@ Lemma LeftBoundEqSimpl : leftBound =
   (' tr * (2 * Sin (' α * ' d)) -
    (' lengthBack cd * cos (2 * ' α * ' d) +
     ' (tr + width cd) * sin (2 * ' α * ' d)))).
-Proof using.
+Proof using αPos.
   match goal with
   [|- _= ?r] => remember r as rr
   end.
   unfold leftBound.
+  rewrite  (proj2 (confineRectCorrect _)).
+  rewrite  (proj1 (confineRectCorrect _)).
   simpl.
-  rewrite plus_0_l.
+  rewrite <- trComplicated.
+  unfold inprod, InProductCart2D.
+  simpl.
   fold CosClassIR.
   fold (@cos IR _).
-  rewrite <- unitVDot.
-  rewrite <- unitVDot2.
-  do 2 rewrite multDotRight.
-  pose proof CartToPolarCorrect as H.
-  simpl in H. unfold norm, NormCart2DQ in H.
-  rewrite <- H.
-  rewrite <- H.
-  unfold inprod, InProductCart2D.
-  simpl. 
   rewrite Cos_zero.
   rewrite Sin_zero.
   unfold trr.
-  subst rr. 
-  apply Min_wd_unfolded; split; simpl; try IRring.
+  subst rr.
+  rewrite preserves_plus. 
+  apply Min_wd_unfolded; split; simpl; IRring.
 Qed.
 
 Definition isBoundRight (maxx: IR) :=
@@ -1279,25 +1227,13 @@ at the transition time.*)
 Lemma transitionMinY : 
 Y (minxy (confineRect2 (' α * ' d)))
 = Y (minxy (confineRect1 (' α * ' d))).
-Proof using.
+Proof using αPos.
+  rewrite  (proj2 (confineRectCorrect _)).
+  rewrite  (proj1 (confineRectCorrect _)).
   simpl.
-  fold CosClassIR.
-  fold (@cos IR _).
-  fold SinClassIR.
-  fold (@sin IR _).
-  rewrite <- unitVDot.
-  rewrite <- unitVDot2.
-  do 2 rewrite multDotRight.
-  pose proof CartToPolarCorrect90Minus as H.
-  simpl in H. unfold norm, NormCart2DQ in H.
-  rewrite <- H.
-  rewrite <- H.
+  rewrite <- trComplicated.
   unfold inprod, InProductCart2D.
   simpl.
-  (* the above part was copied from [LeftBoundEqSimpl]*)
-  unfold trr.
-  rewrite preserves_minus.
-  rewrite preserves_plus.
   IRring.
 Qed.
 
