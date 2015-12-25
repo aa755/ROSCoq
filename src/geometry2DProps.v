@@ -319,3 +319,9 @@ Ltac simpRemCart2D c1min Heqc1min :=
           ring_simplify y in Heqc1min
     end.
 
+Definition unitVecT `{SinClass R} `{CosClass R} (t:R) := transpose (unitVec t).
+
+Definition flipAngle (c:Polar2D IR) : Polar2D IR:=
+{| rad := rad c ; θ:= ½ * π -θ c|}.
+
+

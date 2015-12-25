@@ -286,5 +286,28 @@ Proof.
     destruct Hd; try congruence.
 Qed.
 
+(**  Duplicate! Use the squash type above *)
 Inductive Truncate (T:Type) : Prop :=
 | truncate : T -> Truncate T.
+
+Lemma and_iff_compat_lr: 
+  ∀ A B C D: Prop, ((A ↔ D)∧ (B ↔ C)) → (A ∧ B ↔ D ∧ C).
+Proof using.
+  intros. tauto.
+Qed.
+Lemma iff_under_imp: 
+  ∀ A B C: Prop, (A → (B ↔ C)) → ((A → B) ↔ (A → C)).
+Proof using.
+  intros. tauto.
+Qed.
+Lemma andWeakenL : forall (A B C :Prop),
+    (A -> B) -> (A /\ C) -> (B /\ C).
+Proof using.
+    tauto.
+Qed.
+Lemma iff_under_imp2: 
+  ∀ A B C: Prop, ((B ↔ C)) → ((A → B) ↔ (A → C)).
+Proof using.
+  intros. tauto.
+Qed.
+

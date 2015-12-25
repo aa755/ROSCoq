@@ -95,7 +95,6 @@ Definition Wriggle : list DAtomicMove :=
 Add Ring tempRingIR : (stdlib_ring_theory IR).
  *)
 
-Definition unitVecT `{SinClass R} `{CosClass R} (t:R) := transpose (unitVec t).
 
 Hint Unfold One_instance_IR : IRMC.
 
@@ -131,20 +130,6 @@ Proof using.
 Qed.
 
 End Wriggle.
-
-(*  Lemma Wriggleθ2  
-  `{CarExecutesAtomicMovesDuring (Wriggle tc distance) tstart tend p} :
-  {theta acs} tend =  {theta acs} tstart + 2 * tc * distance.
-  Proof.
-    
-    invertAtomicMoves. rename Hf into amscrl.
-    apply AtomicMoveθ in amscl.
-    apply AtomicMoveθ in amscrl.
-    simpl in amscl, amscrl. rewrite amscl in amscrl.
-    rewrite amscrl.
-    autounfold with IRMC. ring.    
-  Qed.
-*)
 
 Section Sideways.
 
@@ -303,16 +288,6 @@ Variable d : IR.
 Hypothesis dNN : 0≤d.
 Hypothesis firstQuadW: 0 ≤ 2*α*d ≤ ½ * π.
 
-(*Move*)
-Lemma inBetweenExpand `{PreOrder A r} : forall a b c a' c':A,
-(r a b /\ r b c) 
--> (r a' a /\ r c c')
--> (r a' b /\ r b c').
-Proof using.
-  intros. repnd.
-  split; eapply transitivity; eauto.
-Qed.
-
 Local Definition  adNN : 0≤α*d.
 Proof using αPos dNN.
 exact  (mult_resp_nonneg ℝ α d (less_leEq ℝ [0] α αPos) dNN).
@@ -353,38 +328,6 @@ Local Notation init  := (0:Rigid2DState IR).
 Local Notation SWriggle := (Wriggle α αNZ d).
 
 Local Notation tr := ((@f_rcpcl ℝ α (pos_ap_zero ℝ α αPos))).
-(*Move *)
-Lemma and_iff_compat_lr: 
-  ∀ A B C D: Prop, ((A ↔ D)∧ (B ↔ C)) → (A ∧ B ↔ D ∧ C).
-Proof using.
-  intros. tauto.
-Qed.
-Lemma iff_under_imp: 
-  ∀ A B C: Prop, (A → (B ↔ C)) → ((A → B) ↔ (A → C)).
-Proof using.
-  intros. tauto.
-Qed.
-Lemma andWeakenL : forall (A B C :Prop),
-    (A -> B) -> (A /\ C) -> (B /\ C).
-Proof using.
-    tauto.
-Qed.
-Lemma iff_under_imp2: 
-  ∀ A B C: Prop, ((B ↔ C)) → ((A → B) ↔ (A → C)).
-Proof using.
-  intros. tauto.
-Qed.
-Lemma po_properL:
-  ∀ (A : CProp) (Ae : Equiv A) (Ale : Le A) (a:A),
-  PartialOrder Ale → Equivalence (@equiv A _) → Proper (equiv ==> iff)
-    (fun x=> le x a).
-Proof using.
-  intros ? ? ? ? ? ? ? ? ?. apply po_proper; auto.
-Qed.
-
-
-
-(*apply mult_resp_nonneg; auto 2 with CoRN.*)
 
 Variable cd : CarDimensions ℝ.
 Hypothesis nTriv : nonTrivialCarDim cd.
@@ -514,10 +457,10 @@ Proof using All.
   clear Heqtrr.
   apply and_iff_compat_lr.
   eapply andWeakenL.
-  exact (iff_under_imp2 _ _ _).
+  exact (@iff_under_imp2 _ _ _).
   apply and_comm.
   eapply andWeakenL.
-  exact (iff_under_imp2 _ _ _).
+  exact (@iff_under_imp2 _ _ _).
   eapply andWeakenL.
   apply po_properL; eauto with typeclass_instances.
   apply and_comm.
@@ -539,14 +482,6 @@ Proof using All.
 Qed.
 
 End FirstQuadWriggle.
-
-(*Move*)
-Global Instance CastCarDim `{Cast A B} 
-  : Cast (CarDimensions A) (CarDimensions B) :=
-fun a =>  Build_CarDimensions 
-            ('lengthFront a)
-            ('lengthBack a) 
-            ('width a).
 
 Section FirstQuadWriggleQ.
 
@@ -664,10 +599,6 @@ let β :IR := θ c in
 let γ := theta + (negateIfTrue (negb (snd n)) β) in
 (negateIfTrue (fst n) ((rad c) * Cos γ)).
 
-(*Move *)
-Definition flipAngle (c:Polar2D IR) : Polar2D IR:=
-{| rad := rad c ; θ:= ½ * π -θ c|}.
-
 Definition decodeAsCosXY (nc: Cart2D ((Polar2D IR) * NegPosition))
  (θ:IR): Cart2D IR :=
 let ync := (flipAngle (fst (Y nc)), snd (Y nc)) in
@@ -714,10 +645,10 @@ Proof using All.
   intro θ. rewrite <- trComplicated.
   apply and_iff_compat_lr.
   eapply andWeakenL.
-  exact (iff_under_imp2 _ _ _).
+  exact (@iff_under_imp2 _ _ _).
   apply and_comm.
   eapply andWeakenL.
-  exact (iff_under_imp2 _ _ _).
+  exact (@iff_under_imp2 _ _ _).
   eapply andWeakenL.
   apply po_properL; eauto with typeclass_instances.
   apply and_comm.
@@ -774,45 +705,6 @@ Lemma βPlusMinusFront :
 Abort.
 
 
-(* Move *)
-Lemma Cart2DRadNNegIR : forall c:(Cart2D Q),
-(0:IR) ≤ ' (| c |).
-Proof using.
-  intros.
-  rewrite <- CRasIR0.
-  apply CR_leEq_as_IR.
-  apply Cart2PolarRadRange.
-Qed.
-
-Lemma inj_Q_nneg: forall q,
-  (0:IR) ≤ 'q  <-> (Qle 0  q)%Q.
-Proof using.
-  intros. autounfold with IRMC.
-  rewrite <- inj_Q_Zero.
-  split.
-  - apply leEq_inj_Q.
-  - apply inj_Q_leEq.
-Qed. 
-
-Lemma divideBy2: forall c:IR,
-  c = (½ * c) + (½ * c).
-Proof using.
-  intros. setoid_rewrite x_plus_x.
-  unfold half_num. unfold HalfNumIR.
-  setoid_rewrite mult_assoc_unfolded.
-  rewrite (mult_commut_unfolded  _ Two).
-  rewrite half_1. IRring.
-Qed. 
-
-
-Lemma 
-CR_leEq2_as_IR: ∀ x y z: CR, (x ≤ y ≤ z) ↔ 
-  (CRasIR x ≤ CRasIR y ≤ CRasIR z).
-Proof using.
-  intros ? ? ?. do 2 rewrite CR_leEq_as_IR.
-  tauto.
-Qed.
-  
 Lemma firstQuadβMinusBack:
  (0:IR) ≤ ' polarTheta βMinusBack ≤  (½ * π).
 Proof using ntriv turnCentreOut.
@@ -921,28 +813,7 @@ Require Import CartIR.
 Require Import IRTrig.
 Require Import CoRNMisc.
 
-(* Move *)
-Lemma CosMinusSwap : forall a b:IR,
-  Cos (a - b) = Cos (b - a).
-Proof using.
-  intros ? ?.
-  rewrite <- Cos_inv.
-  apply Cos_wd.
-  IRring.
-Qed.
 
-Lemma Pi_minus_Sin: ∀ θ : ℝ, 
-  Sin (π - θ) = (Sin θ).
-Proof using.
-  intros ?.
-  rewrite negate_swap_r.
-  autounfold with IRMC.
-  rewrite  Sin_inv.
-  unfold π, Pi_Instance_IR.
-  fold (θ [-] Pi).
-  rewrite Sin_minus_Pi.
-  ring.
-Qed.
 
 
 (** The second move is much more difficult to analyse 
@@ -1108,14 +979,15 @@ Proof using firstQuadW lengthFrontGreater ntriv ntrivStrict turnCentreOut.
 Qed.
 
 
-(** derive [firstQuadW] from this.*)
-Hypothesis maxNeededTurn 
-  : (0 : ℝ) ≤ 2 * ' α * ' d ≤ (' polarTheta βPlusFront).
 
 Definition leftBound : IR :=
 let m1 := (X (minxy (confineRect1 0))) in 
 let m2 := (X (minxy (confineRect2 (2 * 'α * 'd)))) in 
 (min m1 m2).
+
+(** derive [firstQuadW] from this.*)
+Hypothesis maxNeededTurn 
+  : (0 : ℝ) ≤ 2 * ' α * ' d ≤ (' polarTheta βPlusFront).
 
 Lemma leftBoundCorrect: 
 isBoundLeft leftBound.
@@ -1147,7 +1019,7 @@ Proof using All.
       setoid_rewrite plus_0_l.
       eapply transitivity;[|
         apply FrontLeBack].
-      tauto.
+      apply maxNeededTurn.
     + rewrite (divideBy2 Pi).
       apply plus_le_compat;
         [apply firstQuadβPlusBack|].
@@ -1163,6 +1035,7 @@ Proof using All.
       apply flip_le_negate.
       tauto.
 Qed.
+
 
 Lemma LeftBoundEqSimpl : leftBound = 
 (min (- ' lengthBack cd)
@@ -1433,7 +1306,7 @@ Qed.
 Lemma bottomBoundCase1Correct : 
 ('α * 'd ≤ minYCriticalAngle)
 -> isBoundBottom bottomBoundCase1.
-Proof.
+Proof using dNN firstQuadW ntriv turnCentreOut αPos. 
   intros Hu ?.
   split.
 - intros Hb. eapply transitivity;
@@ -1463,7 +1336,6 @@ Proof using dNN firstQuadW ntriv turnCentreOut αPos.
     [apply Min_leEq_rht|].
   apply move2BottomBound; auto.
 Qed.
-
 
 End  MinYCases.
 End FirstQuadWriggleQ.

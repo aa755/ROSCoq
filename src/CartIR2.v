@@ -97,4 +97,62 @@ Proof.
   IRring.
 Qed.
 
+(* Move *)
+Lemma CosMinusSwap : forall a b:IR,
+  Cos (a - b) = Cos (b - a).
+Proof using.
+  intros ? ?.
+  rewrite <- Cos_inv.
+  apply Cos_wd.
+  IRring.
+Qed.
+
+Lemma Pi_minus_Sin: ∀ θ : ℝ, 
+  Sin (π - θ) = (Sin θ).
+Proof using.
+  intros ?.
+  rewrite negate_swap_r.
+  autounfold with IRMC.
+  rewrite  Sin_inv.
+  unfold π, Pi_Instance_IR.
+  fold (θ [-] Pi).
+  rewrite Sin_minus_Pi.
+  ring.
+Qed.
+
+Lemma Cart2DRadNNegIR : forall c:(Cart2D Q),
+(0:IR) ≤ ' (| c |).
+Proof using.
+  intros.
+  rewrite <- CRasIR0.
+  apply CR_leEq_as_IR.
+  apply Cart2PolarRadRange.
+Qed.
+
+Lemma inj_Q_nneg: forall q,
+  (0:IR) ≤ 'q  <-> (Qle 0  q)%Q.
+Proof using.
+  intros. autounfold with IRMC.
+  rewrite <- inj_Q_Zero.
+  split.
+  - apply leEq_inj_Q.
+  - apply inj_Q_leEq.
+Qed. 
+
+Lemma divideBy2: forall c:IR,
+  c = (½ * c) + (½ * c).
+Proof using.
+  intros. setoid_rewrite x_plus_x.
+  unfold half_num. unfold HalfNumIR.
+  setoid_rewrite mult_assoc_unfolded.
+  rewrite (mult_commut_unfolded  _ Two).
+  rewrite half_1. IRring.
+Qed. 
+
+Lemma CR_leEq2_as_IR: ∀ x y z: CR, (x ≤ y ≤ z) ↔ 
+  (CRasIR x ≤ CRasIR y ≤ CRasIR z).
+Proof using.
+  intros ? ? ?. do 2 rewrite CR_leEq_as_IR.
+  tauto.
+Qed.
 

@@ -96,6 +96,13 @@ Proof.
   rewrite Heq; reflexivity.
 Qed.
 
+Global Instance CastCarDim `{Cast A B} 
+  : Cast (CarDimensions A) (CarDimensions B) :=
+fun a =>  Build_CarDimensions 
+            ('lengthFront a)
+            ('lengthBack a) 
+            ('width a).
+
 Global Instance EquivCarDim `{Equiv A}: Equiv (CarDimensions A) := fun a b => (width a = width b) 
   /\ (lengthFront a = lengthFront b)
   /\ (lengthBack a = lengthBack b).

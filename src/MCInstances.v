@@ -63,6 +63,7 @@ Hint Unfold canonical_names.negate
   Zero_instance_IR
   plus
   one zero
+  One_instance_IR
   equiv  mult
   dec_recip
   zero
@@ -73,6 +74,7 @@ Hint Unfold canonical_names.negate
   Mult_instance_IR : IRMC.
   
 Require Import MathClasses.orders.rings.
+
 
 Global Instance OrderPreservingLePlusIR (z : IR):  OrderPreserving (plus z).
 Proof.
