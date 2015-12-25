@@ -18,6 +18,8 @@
 
 (** printing ' $ $ #'# *)
 
+Set Suggest Proof Using.
+
 Require Import Vector.
 
 Require Import MathClasses.interfaces.canonical_names.
@@ -453,7 +455,7 @@ Lemma WriggleFirstQSpace2 :  ∀  (confineRect: Line2D IR),
 (0 ≤ θ ≤ α * d
  →  confineRect1Raw θ ⊆ confineRect)
 ∧ (α * d ≤ θ ≤ 2 * α * d
-   → confineRect1Raw θ
+   → confineRect2Raw θ
      ⊆ confineRect))
   <->
   carConfinedDuringAMs cd confineRect SWriggle init.
@@ -668,7 +670,6 @@ Proof using.
     try IRring.
 Qed.
 
-Set Suggest Proof Using.
 
 (** Now lets consider all 4 sides one by one. They are
 too different to handle simulaneously *)
@@ -679,13 +680,6 @@ forall θ:IR,
 ∧ ('α * 'd ≤ θ ≤ 2 * 'α * 'd
    → minx ≤ X (minxy (confineRect2 θ))).
 
-Lemma βPlusMinusBack : 
-'(polarTheta βMinusBack) ≤ cast CR IR (polarTheta βPlusBack).
-Abort.
-
-Lemma βPlusMinusFront : 
-'(polarTheta βMinusFront) ≤ cast CR IR (polarTheta βPlusFront).
-Abort.
 
 Ltac proveFirstQuad :=
   rewrite PiBy2DesugarIR;
@@ -930,6 +924,32 @@ Proof using firstQuadW lengthFrontGreater ntriv ntrivStrict turnCentreOut.
   apply  Q.Qdiv_flip_le; lra.
 Qed.
 
+Lemma βPlusMinusBack : 
+'(polarTheta βMinusBack) ≤ cast CR IR (polarTheta βPlusBack).
+Proof using firstQuadW ntriv ntrivStrict. 
+  unfold cast, Cart_CR_IR.
+  apply CR_leEq_as_IR.
+  apply polarFirstQuadMonotone; simpl;
+  autounfold with QMC; [tauto| tauto|].
+  unfold nonTrivialCarDim in ntriv. simpl in ntriv.
+  do 3 (rewrite inj_Q_nneg in ntriv).
+  apply Qmult_le_r;[| lra].
+  apply Qinv_lt_0_compat; lra.
+Qed.
+
+(*exact same proof as [βPlusMinusBack] above.*)
+Lemma βPlusMinusFront : 
+'(polarTheta βMinusFront) ≤ cast CR IR (polarTheta βPlusFront).
+Proof using firstQuadW ntriv ntrivStrict. 
+  unfold cast, Cart_CR_IR.
+  apply CR_leEq_as_IR.
+  apply polarFirstQuadMonotone; simpl;
+  autounfold with QMC; [tauto| tauto|].
+  unfold nonTrivialCarDim in ntriv. simpl in ntriv.
+  do 3 (rewrite inj_Q_nneg in ntriv).
+  apply Qmult_le_r;[| lra].
+  apply Qinv_lt_0_compat; lra.
+Qed.
 
 
 Definition leftBound : IR :=
@@ -988,32 +1008,7 @@ Proof using All.
       tauto.
 Qed.
 
-
-Lemma LeftBoundEqSimpl : leftBound = 
-(min (- ' lengthBack cd)
-  (' tr * (2 * Sin (' α * ' d)) -
-   (' lengthBack cd * cos (2 * ' α * ' d) +
-    ' (tr + width cd) * sin (2 * ' α * ' d)))).
-Proof using αPos.
-  match goal with
-  [|- _= ?r] => remember r as rr
-  end.
-  unfold leftBound.
-  rewrite  (proj2 (confineRectCorrect _)).
-  rewrite  (proj1 (confineRectCorrect _)).
-  simpl.
-  rewrite <- trComplicated.
-  unfold inprod, InProductCart2D.
-  simpl.
-  fold CosClassIR.
-  fold (@cos IR _).
-  rewrite Cos_zero.
-  rewrite Sin_zero.
-  unfold trr.
-  subst rr.
-  rewrite preserves_plus. 
-  apply Min_wd_unfolded; split; simpl; IRring.
-Qed.
+Require Import geometry2D.
 
 Definition isBoundRight (maxx: IR) :=
 forall θ:IR,
@@ -1108,6 +1103,7 @@ Proof using dNN firstQuadW lengthFrontGreater maxNeededTurn ntriv ntrivStrict tu
       eapply transitivity;[apply Hb|]. tauto.
    + apply plus_le_compat;[tauto| reflexivity].
 Qed.
+
 
 Definition isBoundBottom (miny: IR) :=
 forall θ:IR,
@@ -1220,7 +1216,7 @@ Definition bottomBoundCase1 : IR :=
 Definition bottomBoundCase2 : IR :=
   min
   (Y (minxy (confineRect1 minYCriticalAngle)))
-  (Y (minxy (confineRect2 (2 * 'α * 'd)))).
+  bottomBoundCase1.
 
 (*the equations for the the motion of the car for the 1st and the 2nd move must agree
 at the transition time.*)
@@ -1274,4 +1270,79 @@ Proof using dNN firstQuadW ntriv turnCentreOut αPos.
 Qed.
 
 End  MinYCases.
+
+Lemma LeftBoundSimpl : leftBound = 
+min 
+  (- ' lengthBack cd)
+  ( 2 * 'tr   * Sin (' α * ' d)
+     -⟨ '{| X := lengthBack cd; Y := tr + width cd |},unitVec (2 * ' α * ' d)⟩) .
+Proof using αPos.
+  match goal with
+  [|- _= ?r] => remember r as rr
+  end.
+  unfold leftBound.
+  rewrite  (proj2 (confineRectCorrect _)).
+  rewrite  (proj1 (confineRectCorrect _)).
+  simpl.
+  rewrite <- trComplicated.
+  subst rr.
+  unfold inprod, InProductCart2D.
+  simpl.
+  fold CosClassIR.
+  fold (@cos IR _).
+  rewrite Cos_zero.
+  rewrite Sin_zero.
+  unfold trr.
+  rewrite preserves_plus.
+  apply Min_wd_unfolded; split; simpl; IRring.
+Qed.
+
+Lemma RightBoundSimpl : rightBound = 
+⟨ ' {| X :=  lengthFront cd; Y :=  tr +  width cd |} , unitVec (' α * ' d)⟩.
+Proof using αPos.
+  match goal with
+  [|- _= ?r] => remember r as rr
+  end.
+  unfold rightBound.
+  rewrite  (proj1 (confineRectCorrect _)).
+  simpl.
+  rewrite <- trComplicated.
+  subst rr. 
+  unfold inprod, InProductCart2D.
+  simpl.
+  rewrite preserves_plus. 
+  reflexivity.
+Qed.
+
+Lemma BottomBoundCase1Simpl : bottomBoundCase1 = 
+' tr * (1 - 2 * cos (' α * ' d)) +
+(⟨ '{| X :=  tr -  width cd; Y := - lengthBack cd |}, unitVec (2 * ' α * ' d) ⟩).
+Proof using αPos.
+  match goal with
+  [|- _= ?r] => remember r as rr
+  end.
+  unfold bottomBoundCase1.
+  rewrite  (proj2 (confineRectCorrect _)).
+  simpl.
+  rewrite <- trComplicated.
+  subst rr. 
+  unfold inprod, InProductCart2D.
+  simpl.
+  rewrite preserves_plus.
+  do 2 rewrite preserves_negate.
+  reflexivity.
+Qed.
+
+Lemma BottomBoundCase2Simpl : bottomBoundCase2 = 
+min (trr - ' (| βPlusBack |)) bottomBoundCase1.
+Proof using αPos.
+  unfold bottomBoundCase2.
+  apply Min_wd_unfolded; split;[| reflexivity].
+  simpl.
+  rewrite plus_negate_r.
+  rewrite Cos_zero.
+  IRring.
+Qed.
+
+
 End FirstQuadWriggleQ.
