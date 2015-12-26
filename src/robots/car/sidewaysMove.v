@@ -1361,7 +1361,19 @@ Definition extraSpaceX :IR :=
 leftExtraSpace + rightExtraSpace.
 
 
-Lemma leftExtraSpaceSimpl : leftExtraSpace =
+(*
+Global Instance ProperInProductCart2DIR (a:Cart2D IR) :
+  Proper ( equiv ==> equiv) (@inprod IR (Cart2D IR) _ a).
+Proof using.
+apply ProperInProductCart2D. reflexivity.
+Qed.
+*)
+
+Require Import MathClasses.interfaces.additional_operations. 
+Definition βPlus2Back :(Cart2D Q) :=
+({|X :=  2 * lengthBack cd; Y := tr + width cd |}).
+
+Lemma leftExtraSpaceSimpl1 : leftExtraSpace =
 max 0
   (⟨' {| X := lengthBack cd; Y := tr + width cd |}, unitVec (2 * ' α * ' d)⟩ 
      - ' lengthBack cd 
@@ -1376,6 +1388,65 @@ Proof using αPos.
   rewrite plus_negate_r.
   rewrite negateMinAsMax.
   subst. apply Max_wd_unfolded; IRring.
+Qed.
+
+
+Lemma leftExtraSpaceSimpl2 : leftExtraSpace =
+let dot := decodeAsCos (flipAngle ('βPlusBack),(false, true)) ('α * 'd) in
+max 0 (2 * sin (' α * ' d) * (dot - 'tr)).
+Proof using αPos.
+  simpl.
+  hideRight. rewrite leftExtraSpaceSimpl1.
+  pose proof (unitVDouble (' α * ' d)) as Hh.
+  rewrite  (@simple_associativity _ _ mult _ _ _) in Hh.
+  rewrite Hh. clear Hh.
+  subst.  apply Max_wd_unfolded; [IRring|].
+  simpl.
+  fold CosClassIR.
+  fold (@cos IR _).
+  rewrite <- unitVDot2.
+  rewrite multDotRight.
+  pose proof CartToPolarCorrect90Minus as Hr.
+  unfold norm, NormCart2DQ in Hr.
+  rewrite <- Hr.
+  unfold inprod, InProductCart2D. simpl.
+  rewrite preserves_plus.
+  rewrite nat_pow.nat_pow_2.
+  IRring.
+Qed.
+
+(**from this representation, it is clear that at small angles,
+  [dot] is closer to [| βPlusBack |], which is slight larger than
+  [tr+width cd], and hence larger than [tr]. Hence the second argument
+  of [max] will be positive.
+  
+  On the other hand, when [' α * ' d] is large, [cos] will be closer to [0],
+  and [max] will be equal to the left argument, i.e. minima achieved at
+  the initial position.
+  Note that [(½ * π - ' polarTheta βPlusBack)] typically a small angle.
+  *)
+Lemma leftExtraSpaceSimpl3 : leftExtraSpace =
+let dot := 
+  (' (| βPlusBack |) * Cos (' α * ' d + (½ * π - ' polarTheta βPlusBack))) in
+max 0 (2 * sin (' α * ' d) * (dot - 'tr)).
+Proof using αPos.
+  simpl.
+  hideRight. rewrite leftExtraSpaceSimpl1.
+  pose proof (unitVDouble (' α * ' d)) as Hh.
+  rewrite  (@simple_associativity _ _ mult _ _ _) in Hh.
+  rewrite Hh. clear Hh.
+  subst.  apply Max_wd_unfolded; [IRring|].
+  fold CosClassIR.
+  fold (@cos IR _).
+  rewrite <- unitVDot2.
+  rewrite multDotRight.
+  pose proof CartToPolarCorrect90Minus as Hr.
+  unfold norm, NormCart2DQ in Hr.
+  rewrite <- Hr.
+  unfold inprod, InProductCart2D. simpl.
+  rewrite preserves_plus.
+  rewrite nat_pow.nat_pow_2.
+  IRring.
 Qed.
 
 Lemma rightExtraSpaceSimpl : rightExtraSpace =

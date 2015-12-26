@@ -173,11 +173,13 @@ Qed.
 Require Import MathClasses.interfaces.additional_operations. 
 
 Require Import MCMisc.rings.
-Lemma unitVDouble : ∀ (θ :IR) ,
-  unitVec (2*θ) = {|X:=1-2*(sin θ)^2; Y:=  2*(sin θ)*(cos θ)|}.
-Proof.
-  intros ?; split; simpl.
-- rewrite nat_pow.nat_pow_2.
+
+Lemma cosDouble :
+∀ (θ :IR) ,
+  cos (2*θ) =1-2*(sin θ)^2.
+Proof using.
+  intros.
+  rewrite nat_pow.nat_pow_2.
   autounfold with IRMC.
    unfold cos, CosClassIR.
   setoid_rewrite one_plus_one.
@@ -186,14 +188,28 @@ Proof.
   rewrite  <- (FFT θ).
   subst s.
   IRring.
-- setoid_rewrite one_plus_one.
-  apply Sin_double. 
+Qed.
+
+Lemma sinDouble :
+∀ (θ :IR) ,
+ sin (2*θ) =2*(sin θ)*(cos θ).
+Proof using.
+  intros. setoid_rewrite one_plus_one.
+  apply Sin_double.
+Qed. 
+
+Lemma unitVDouble : ∀ (θ :IR) ,
+  unitVec (2*θ) = {|X:=1-2*(sin θ)^2; Y:=  2*(sin θ)*(cos θ)|}.
+Proof using.
+  intros ?; split; simpl.
+- apply cosDouble.
+- apply sinDouble.
 Qed.
 
 Lemma cosAsSinRight : ∀ (θ :IR) ,
 0 ≤ θ ≤ ½ * π
 -> cos θ = √ (1 - ((sin θ)^2)).
-Proof.
+Proof using.
   intros ? Hb.
   rewrite PiBy2DesugarIR in Hb.
   destruct Hb.
