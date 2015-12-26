@@ -1142,10 +1142,111 @@ Proof using dNN firstQuadW ntriv turnCentreOut αPos.
       [apply Hb| reflexivity]; fail.
 Qed.
 
+Require Import MathClasses.interfaces.additional_operations. 
+
 Section MinYCases.
 
 Let minYCriticalAngle : IR
   := (½ * π - ' polarTheta βPlusBack).
+
+Let increase1 := Y (minxy (confineRect1 ('α * 'd))) - 
+(Y (minxy (confineRect1 minYCriticalAngle))).
+
+Let decrease2 := 
+Y (minxy (confineRect2 ( 'α * 'd))) - 
+(Y (minxy (confineRect2 (2* 'α * 'd)))).
+
+Section MCring.
+
+Lemma multDotLeft : forall (a:IR) (b c : Cart2D IR),
+a * (⟨b,c⟩) = ⟨('a) * b, c⟩.
+Proof using.
+  intros.   unfold inprod, InProductCart2D.
+  simpl. IRring.
+Qed.  
+
+  Add Ring tempRingIR : (stdlib_ring_theory IR).
+
+Lemma Increase1LeDecrease:
+  increase1 ≤ decrease2.
+Proof.
+  subst increase1 decrease2.
+  rewrite (proj1 (confineRectCorrect _)).
+  rewrite (proj2 (confineRectCorrect _)).
+  rewrite (proj2 (confineRectCorrect _)).
+  simpl.
+  rewrite <-trComplicated.
+  replace (½ * π - ' polarTheta βPlusBack) with 
+    minYCriticalAngle;[| reflexivity].
+  rewrite plus_negate_r.
+  rewrite Cos_zero.
+  setoid_rewrite mult_1_r.
+  simpl.
+  rewrite <- (@simple_associativity _ _ mult _ _ _ _).
+  rewrite unitVDoubleAsCos.
+  rewrite nat_pow.nat_pow_2.
+  unfold inprod, InProductCart2D. simpl.
+  fold trr.
+  match goal with
+  [|- ?l ≤ _] =>
+  ring_simplify l
+  end.
+  ring_simplify (trr * (1 - 2 * cos (' α * ' d)) +
+  ((trr - ' width cd) * cos (' α * ' d) + - ' lengthBack cd * sin (' α * ' d))).
+  setoid_rewrite (@commutativity _ _ _ plus _ _) at 10.
+  rewrite <- flip_le_minus_l.
+  match goal with
+  [|- ?l ≤ _] =>
+  ring_simplify l
+  end.
+  rewrite  negate_swap_l.
+  apply flip_le_negate.
+  rewrite plus_mult_distr_l.
+  rewrite mult_1_r.
+  rewrite <- (@simple_associativity _ _ plus _ _).
+  apply (@order_preserving _ _ _ _ _ _ _ _ _).
+  apply flip_le_negate.
+  rewrite negate_involutive.
+  rewrite <- negate_mult_distr_r.
+  rewrite  negate_plus_distr.
+  rewrite negate_involutive.
+  rewrite <- negate_mult_distr_l.
+  rewrite <- negate_swap_l.
+  rewrite negate_mult_distr_r.
+  rewrite <- negate_swap_r.
+  rewrite plus_mult_distr_l.
+  rewrite mult_1_r.
+  rewrite commutativity.
+  remember (cos (' α * ' d)) as c.
+  remember (sin (' α * ' d)) as s.
+  match goal with
+  [|- _ ≤ ?l] =>
+    assert (l= trr - ' width cd 
+    + 2*c*(trr - ((trr - ' width cd)*c - ( ' lengthBack cd)*s))
+    ) as H by ring
+  end.
+  rewrite H. clear H.
+  subst c s.
+  assert (
+  ((trr - ' width cd) * cos (' α * ' d) - ' lengthBack cd * sin (' α * ' d))
+  = 
+   ⟨ {|X:=1;Y:=-1|} *  transpose ('βMinusBack) , unitVec (' α * ' d)⟩
+  ) as H by
+  (unfold inprod, InProductCart2D; simpl;
+  rewrite preserves_minus; fold trr; ring).
+  rewrite H.
+  rewrite CartToPolarCorrect90Minus.
+  rewrite (@commutativity _ _ _ (@mult (@Cart2D IR) _) _ _).
+  rewrite <- (@simple_associativity _ _  (@mult (@Cart2D IR) _) _ _).
+  rewrite <- multDotLeft.
+  rewrite (@commutativity _ _ _ (@mult (@Cart2D IR) _) _ _).
+  rewrite  unitVDot2.
+  (*further simplification may lead to a characterization of 
+  the [min] in [bottomBoundCase2] below.*)
+Abort.
+
+End  MCring.
+
 
 Lemma move1BottomBoundCase1 : 
 ('α * 'd ≤ minYCriticalAngle)
@@ -1369,7 +1470,6 @@ apply ProperInProductCart2D. reflexivity.
 Qed.
 *)
 
-Require Import MathClasses.interfaces.additional_operations. 
 Definition βPlus2Back :(Cart2D Q) :=
 ({|X :=  2 * lengthBack cd; Y := tr + width cd |}).
 
@@ -1390,9 +1490,9 @@ Proof using αPos.
   subst. apply Max_wd_unfolded; IRring.
 Qed.
 
-
 Lemma leftExtraSpaceSimpl2 : leftExtraSpace =
-let dot := decodeAsCos (flipAngle ('βPlusBack),(false, true)) ('α * 'd) in
+let dot := 
+  ⟨'{|X := tr + width cd; Y:= -lengthBack cd|}, unitVec (' α * ' d)⟩ in
 max 0 (2 * sin (' α * ' d) * (dot - 'tr)).
 Proof using αPos.
   simpl.
@@ -1402,16 +1502,9 @@ Proof using αPos.
   rewrite Hh. clear Hh.
   subst.  apply Max_wd_unfolded; [IRring|].
   simpl.
-  fold CosClassIR.
-  fold (@cos IR _).
-  rewrite <- unitVDot2.
-  rewrite multDotRight.
-  pose proof CartToPolarCorrect90Minus as Hr.
-  unfold norm, NormCart2DQ in Hr.
-  rewrite <- Hr.
-  unfold inprod, InProductCart2D. simpl.
-  rewrite preserves_plus.
   rewrite nat_pow.nat_pow_2.
+  unfold inprod, InProductCart2D. simpl.
+  rewrite preserves_negate.
   IRring.
 Qed.
 
@@ -1427,14 +1520,11 @@ Qed.
   *)
 Lemma leftExtraSpaceSimpl3 : leftExtraSpace =
 let dot := 
-  (' (| βPlusBack |) * Cos (' α * ' d + (½ * π - ' polarTheta βPlusBack))) in
+  (' (| βPlusBack |) * cos (' α * ' d + (½ * π - ' polarTheta βPlusBack))) in
 max 0 (2 * sin (' α * ' d) * (dot - 'tr)).
 Proof using αPos.
   simpl.
-  hideRight. rewrite leftExtraSpaceSimpl1.
-  pose proof (unitVDouble (' α * ' d)) as Hh.
-  rewrite  (@simple_associativity _ _ mult _ _ _) in Hh.
-  rewrite Hh. clear Hh.
+  hideRight. rewrite leftExtraSpaceSimpl2. simpl.
   subst.  apply Max_wd_unfolded; [IRring|].
   fold CosClassIR.
   fold (@cos IR _).
@@ -1445,7 +1535,7 @@ Proof using αPos.
   rewrite <- Hr.
   unfold inprod, InProductCart2D. simpl.
   rewrite preserves_plus.
-  rewrite nat_pow.nat_pow_2.
+  rewrite preserves_negate.
   IRring.
 Qed.
 

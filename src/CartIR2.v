@@ -174,6 +174,18 @@ Require Import MathClasses.interfaces.additional_operations.
 
 Require Import MCMisc.rings.
 
+Lemma cosDoubleAsCos :
+∀ (θ :IR) ,
+  cos (2*θ) =2*(cos θ)^2 -1.
+Proof using.
+  intros.
+  rewrite nat_pow.nat_pow_2.
+  setoid_rewrite one_plus_one.
+  autounfold with IRMC.
+  rewrite Cos_double.
+  IRring.
+Qed.
+
 Lemma cosDouble :
 ∀ (θ :IR) ,
   cos (2*θ) =1-2*(sin θ)^2.
@@ -203,6 +215,14 @@ Lemma unitVDouble : ∀ (θ :IR) ,
 Proof using.
   intros ?; split; simpl.
 - apply cosDouble.
+- apply sinDouble.
+Qed.
+
+Lemma unitVDoubleAsCos : ∀ (θ :IR) ,
+  unitVec (2*θ) = {|X:=2*(cos θ)^2 -1 ; Y:=  2*(sin θ)*(cos θ)|}.
+Proof using.
+  intros ?; split; simpl.
+- apply cosDoubleAsCos.
 - apply sinDouble.
 Qed.
 
