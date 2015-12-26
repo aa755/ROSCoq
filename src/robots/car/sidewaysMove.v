@@ -1271,11 +1271,13 @@ Qed.
 
 End  MinYCases.
 
+(**can some reasonable assumption replace [min] by either of its arguments?*)
 Lemma LeftBoundSimpl : leftBound = 
 min 
-  (- ' lengthBack cd)
+  (- ' lengthBack cd) (**initial state , i.e. start of the first move*)
   ( 2 * 'tr   * Sin (' α * ' d)
      -⟨ '{| X := lengthBack cd; Y := tr + width cd |},unitVec (2 * ' α * ' d)⟩) .
+     (**end of the second move*)
 Proof using αPos.
   match goal with
   [|- _= ?r] => remember r as rr
@@ -1297,6 +1299,7 @@ Proof using αPos.
   apply Min_wd_unfolded; split; simpl; IRring.
 Qed.
 
+(** achieved at end of 1st move *)
 Lemma RightBoundSimpl : rightBound = 
 ⟨ ' {| X :=  lengthFront cd; Y :=  tr +  width cd |} , unitVec (' α * ' d)⟩.
 Proof using αPos.
@@ -1314,6 +1317,7 @@ Proof using αPos.
   reflexivity.
 Qed.
 
+(** achieved at end of 2nd move *)
 Lemma BottomBoundCase1Simpl : bottomBoundCase1 = 
 ' tr * (1 - 2 * cos (' α * ' d)) +
 (⟨ '{| X :=  tr -  width cd; Y := - lengthBack cd |}, unitVec (2 * ' α * ' d) ⟩).
@@ -1333,8 +1337,10 @@ Proof using αPos.
   reflexivity.
 Qed.
 
+(**can some reasonable assumption replace [min] by either of its arguments?*)
 Lemma BottomBoundCase2Simpl : bottomBoundCase2 = 
-min (trr - ' (| βPlusBack |)) bottomBoundCase1.
+min (trr - ' (| βPlusBack |)) (** extrema inside the 1st move*)
+    bottomBoundCase1. (** end of 2nd move *)
 Proof using αPos.
   unfold bottomBoundCase2.
   apply Min_wd_unfolded; split;[| reflexivity].
@@ -1344,5 +1350,41 @@ Proof using αPos.
   IRring.
 Qed.
 
+(**subtract the initially needed space*)
+Definition leftExtraSpace :IR :=
+-(leftBound - (- 'lengthBack cd)).
+
+Definition rightExtraSpace :IR :=
+(rightBound - 'lengthFront cd).
+
+Definition extraSpaceX :IR :=
+leftExtraSpace + rightExtraSpace.
+
+
+Lemma leftExtraSpaceSimpl : leftExtraSpace =
+max 0
+  (⟨' {| X := lengthBack cd; Y := tr + width cd |}, unitVec (2 * ' α * ' d)⟩ 
+     - ' lengthBack cd 
+     - 2 * ' tr * Sin (' α * ' d)).
+Proof using αPos.
+  hideRight.
+  unfold leftExtraSpace.
+  rewrite <- negate_swap_r.
+  rewrite <- negate_plus_distr.
+  rewrite  LeftBoundSimpl.
+  rewrite <- Min_plusl.
+  rewrite plus_negate_r.
+  rewrite negateMinAsMax.
+  subst. apply Max_wd_unfolded; IRring.
+Qed.
+
+Lemma rightExtraSpaceSimpl : rightExtraSpace =
+⟨ ' {| X := lengthFront cd; Y := tr + width cd |}, unitVec (' α * ' d) ⟩ -
+' lengthFront cd .
+Proof using αPos.
+  unfold rightExtraSpace.
+  rewrite  RightBoundSimpl.
+  reflexivity.
+Qed.
 
 End FirstQuadWriggleQ.

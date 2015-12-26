@@ -156,3 +156,65 @@ Proof using.
   tauto.
 Qed.
 
+Lemma negateMinAsMax : forall (a b :IR), -min a b = max (-a) (-b).
+Proof using.
+  intros ? ?. unfold min, MinClassIR, max, MaxClassIR. 
+  simpl. unfold MIN. setoid_rewrite negate_involutive.
+  reflexivity.
+Qed.
+
+Lemma negateMaxAsMin : forall (a b :IR), -max a b = min (-a) (-b).
+Proof using.
+  intros ? ?. unfold min, MinClassIR, max, MaxClassIR. 
+  simpl. unfold MIN. setoid_rewrite negate_involutive.
+  reflexivity.
+Qed.
+
+Require Import MathClasses.interfaces.additional_operations. 
+
+Require Import MCMisc.rings.
+Lemma unitVDouble : ∀ (θ :IR) ,
+  unitVec (2*θ) = {|X:=1-2*(sin θ)^2; Y:=  2*(sin θ)*(cos θ)|}.
+Proof.
+  intros ?; split; simpl.
+- rewrite nat_pow.nat_pow_2.
+  autounfold with IRMC.
+   unfold cos, CosClassIR.
+  setoid_rewrite one_plus_one.
+  rewrite Cos_double.
+  remember Two.
+  rewrite  <- (FFT θ).
+  subst s.
+  IRring.
+- setoid_rewrite one_plus_one.
+  apply Sin_double. 
+Qed.
+
+Lemma cosAsSinRight : ∀ (θ :IR) ,
+0 ≤ θ ≤ ½ * π
+-> cos θ = √ (1 - ((sin θ)^2)).
+Proof.
+  intros ? Hb.
+  rewrite PiBy2DesugarIR in Hb.
+  destruct Hb.
+  erewrite <- (sqrt_to_nonneg (cos θ));
+    [| apply Cos_nonneg; try assumption;
+       eapply transitivity; eauto using MinusPiBy2Le0].
+  apply sqrt_wd.
+  rewrite nat_pow.nat_pow_2.
+  rewrite AbsIR_eq_x;
+    [rewrite  <- (FFT θ); IRring|].
+  apply shift_leEq_minus'.
+  ring_simplify.
+  fold Le_instance_IR.
+  fold (@le IR _).
+  assert ((sin θ * sin θ) = ((sin θ) [^] 2)) as Heq by IRring.
+  rewrite Heq.
+  apply nexp_resp_leEq_one;[| apply Sin_leEq_One].
+  apply Sin_nonneg;[assumption|].
+  eapply transitivity;[apply H0|].
+  pose proof HalfPi_less_Pi.
+  eauto with CoRN.
+  Grab Existential Variables.
+  apply sqr_nonneg.
+Qed.
