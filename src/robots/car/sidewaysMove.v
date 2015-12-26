@@ -1518,12 +1518,13 @@ Qed.
   the initial position.
   Note that [(½ * π - ' polarTheta βPlusBack)] typically a small angle.
   *)
+Let dot := 
+  (' (| βPlusBack |) * cos (' α * ' d + (½ * π - ' polarTheta βPlusBack))).
+
 Lemma leftExtraSpaceSimpl3 : leftExtraSpace =
-let dot := 
-  (' (| βPlusBack |) * cos (' α * ' d + (½ * π - ' polarTheta βPlusBack))) in
 max 0 (2 * sin (' α * ' d) * (dot - 'tr)).
 Proof using αPos.
-  simpl.
+  subst dot.
   hideRight. rewrite leftExtraSpaceSimpl2. simpl.
   subst.  apply Max_wd_unfolded; [IRring|].
   fold CosClassIR.
@@ -1537,6 +1538,106 @@ Proof using αPos.
   rewrite preserves_plus.
   rewrite preserves_negate.
   IRring.
+Qed.
+
+Lemma normβPlusBackPos : [0] [<] ' (| βPlusBack |).
+Proof using.
+SearchAbout sqrt cof_less.
+Admitted.
+
+(*
+Lemma cos_o_arctan_east2:
+  ∀ (cy cx: CR)
+  (p: (λ y : CR, y ≶ 0) cx),
+   cast CR IR cx = (cast CR IR (√ (cx * cx + cy * cy)))
+                   * Cos (cast CR IR (arctan (cy // (cx ↾ p)))).
+Proof using.
+Admitted.
+*)
+
+Lemma cos_o_arctan_east2Q:
+  ∀ (cy: CR) (cx:Q),
+   cast Q IR cx = (cast CR IR (√ ('(cx * cx) + cy * cy)))
+                   * Cos (cast CR IR (arctan (cy *'(/cx)))).
+Proof using.
+Admitted.
+
+Let cyyQ : Q :=  ((width cd)^2 + (lengthBack cd)^2 + 2* tr* (width cd))%mc.
+
+Let cyy : CR :=  √cyyQ.
+
+Lemma ProperCRsqrt : Proper (equiv ==> equiv) CRsqrt.
+Proof using.
+ intros ? ? H1.
+ rewrite H1.
+ reflexivity.
+Qed.
+
+Lemma cyyQNonneg: (0  ≤ cyyQ).
+Proof using ntriv ntrivStrict turnCentreOut. 
+  destruct ntrivStrict.
+  unfold nonTrivialCarDim in ntriv.
+  simpl in ntriv.
+  do 3 rewrite inj_Q_nneg in ntriv.
+  destruct ntriv as [H11 H12]. destruct H12.
+  unfold cyyQ.
+  rewrite nat_pow.nat_pow_2.
+  rewrite nat_pow.nat_pow_2.
+  autounfold with QMC.
+  pose proof (Qmult_le_0_compat _ _ H2 H2).
+  pose proof (Qmult_le_0_compat _ _ H1 H1).
+  assert (0 <= tr)%Q as X by lra.
+  pose proof (Qmult_le_0_compat _ _  X H1).
+  lra.
+Qed.
+  
+
+Lemma cyyCorrect: 
+√ ('(tr * tr) + cyy * cyy) = (| βPlusBack | : CR).
+Proof.
+  simpl. unfold cyy. unfold CanonicalNotations.norm, NormSpace_instance_Cart2D.
+  unfold sqrtFun, rational_sqrt_SqrtFun_instance, CRsqrt_SqrtFun_instance.
+  rewrite <- CRsqrt_Qsqrt.
+  rewrite <- CRsqrt_Qsqrt.
+  apply ProperCRsqrt.
+  let tac := (apply CRle_Qle;apply cyyQNonneg) in
+    rewrite <- CRsqrt_mult;[rewrite CRsqrt_ofsqr_nonneg;[|tac]| tac|tac].
+  fold (cast Q CR).
+  rewrite <- (@preserves_plus Q CR _ _ _ _ _ _ _ _ _ _ _ _ ).
+  apply sm_proper.
+  unfold cyyQ.
+  rewrite nat_pow.nat_pow_2.
+  rewrite nat_pow.nat_pow_2.
+  autounfold with QMC.
+  simpl.
+  autounfold with QMC.
+  ring.
+Qed.
+
+Lemma nonTrivialExtraSpaceIf :
+' α * ' d ≤ ' arctan (cyy * ' (/ tr)) - (½ * π - ' polarTheta βPlusBack)
+→ 'tr ≤ dot.
+Proof using dNN ntriv ntrivStrict turnCentreOut αPos. 
+  intro.
+  eapply transitivity.
+  - apply eq_le. 
+    apply cos_o_arctan_east2Q with (cy:=cyy).
+  - subst dot. rewrite cyyCorrect.
+    apply (@order_preserving _ _ _ _ _ _ _);
+      [apply OrderPreserving_instance_0;
+       apply Cart2DRadNNegIR |].
+    apply Cos_resp_leEq.
+    + apply plus_resp_nonneg; [apply adNN; auto|].
+      apply flip_le_minus_r.
+      setoid_rewrite plus_0_l.
+      apply firstQuadβPlusBack.
+    + rewrite arctan_correct_CR.
+      rewrite (divideBy2 Pi).
+      eapply transitivity.
+      * apply less_leEq. apply ArcTan_range.
+      * rewrite PiBy2DesugarIR. apply RingLeProp1.
+        apply PiBy2Ge0.
+    + apply flip_le_minus_r. assumption.
 Qed.
 
 Lemma rightExtraSpaceSimpl : rightExtraSpace =
