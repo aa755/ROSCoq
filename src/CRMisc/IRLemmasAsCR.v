@@ -886,6 +886,13 @@ Proof.
   apply Qmult_integral in Hx0.
   tauto.
 Qed.
+
+
+
+Require  Import orders.rings.
+Require  Import theory.rings.
+Require  Import MCMisc.fields.
+
   
 (* useful for conversion from 
     cartesian to polar co-ordinates*)
@@ -1282,6 +1289,81 @@ Proof.
   apply QSumOfSqr0Implies in Hc. assumption.
 Qed.
 
+Require Import MCMisc.rings.
+Lemma sqr_o_cos_o_arctan_o_div : forall (x y :CR) p,
+ (x^2 + y^2) * (cos (arctan (y//(x ↾ p)))) ^2 =  x^2.
+Proof.
+  intros ? ? H. rewrite sqr_o_cos_o_arctan2.
+  symmetry.
+  rewrite (@simple_associativity _ _ mult _ _).
+  rewrite (@rings.mult_1_r _ _ _ _ _ _ _ _).
+  symmetry.
+  apply equal_quotientsl.
+  Local Opaque CR.
+  simpl.
+  rewrite rings.plus_mult_distr_l.
+  rewrite  rings.mult_1_r.
+  apply sg_op_proper;[reflexivity|].
+  do 3 rewrite nat_pow.nat_pow_2.
+  remember (// x ↾ H) as xh.
+  assert (x * x * (y * xh * (y * xh))
+    = (y*y)*(x*xh)*(x*xh)) as Heq by (unfoldMC;ring).
+  rewrite Heq. clear Heq.
+  subst xh. rewrite fields.reciperse_alt.
+  rewrite rings.mult_1_r.
+  rewrite rings.mult_1_r.
+  reflexivity.
+Qed.
+
+Lemma cos_o_Rarctan_east: ∀ (cy cx : CR) p, 
+    (0 < cx)
+    → cx = √ (cx * cx + cy * cy) * cos (arctan (cy//(cx ↾ p))).
+Proof.
+  intros ? ? ? Hcx. simpl in Hcx. simpl in p.
+  pose proof (CRweakenLt _ _ Hcx) as Hle.
+  apply EqIfSqrEqNonNeg; [assumption |   |].
+  - apply orders.nonneg_mult_compat; unfold PropHolds;
+      [| apply cos_o_arctan_nonneg].
+    apply CRsqrt_nonneg.
+    apply nonneg_plus_compat; simpl; apply square_nonneg.
+  - rewrite <- (@nat_pow.nat_pow_2 CR _ _ _ _ _ _ _ _ _ _ _ _ _ _
+      CRpower_N _ cy).
+    rewrite <- (@nat_pow.nat_pow_2 CR _ _ _ _ _ _ _ _ _ _ _ _ _ _
+      CRpower_N _ cx).
+    rewrite (@simple_associativity  _ _ mult _ _).
+    rewrite MultSqrMix.
+    rewrite <- (@nat_pow.nat_pow_2 CR _ _ _ _ _ _ _ _ _ _ _ _ _ _ CRpower_N 
+      _ _).
+    rewrite <- (@nat_pow.nat_pow_2 CR _ _ _ _ _ _ _ _ _ _ _ _ _ _ CRpower_N 
+      _ _).
+    unfold sqrtFun, CRsqrt_SqrtFun_instance.
+    rewrite CRsqrt_sqr1.
+    symmetry.
+    apply sqr_o_cos_o_arctan_o_div.
+Qed.
+
+
+Lemma cos_o_RQarctan_east:
+  ∀ (cy: CR) (cx:Q),
+    (0<cx)%Q
+  -> 'cx = ((√ ('(cx * cx) + cy * cy)))
+                   * cos ((arctan (cy *'(/cx)))).
+Proof using.
+  intros ? ? Hb.
+  rewrite preserves_mult.
+  pose proof Hb as Hbb.
+  apply (@preserves_pos _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (cast Q CR) _ _) in Hb.
+  rewrite <- CRinv_Qinv.
+  rewrite CRinv_CRinvT.
+  apply cos_o_Rarctan_east.
+  exact Hb.
+  Grab Existential Variables.
+  apply CR_apart_apartT.
+  symmetry.
+  apply lt_apart.
+  assumption.
+Qed.
+
 Lemma CRSin_nonneg:
   ∀ θ, 0 ≤ θ ≤  π   → 0 ≤ sin θ.
 Proof.
@@ -1561,6 +1643,14 @@ Lemma CR_minus_asIR2: ∀ x y : CR, CRasIR (x [-] y) [=] CRasIR x[-]CRasIR y.
 Proof.
   intros. apply CR_minus_asIR.
 Qed.
+
+Lemma ProperCRsqrt : Proper (equiv ==> equiv) CRsqrt.
+Proof using.
+ intros ? ? H1.
+ rewrite H1.
+ reflexivity.
+Qed.
+
 
 (*
 Definition badapproxNum (r: CR) (den : positive) : Z:=

@@ -323,6 +323,14 @@ Proof using firstQuadW αPos  dNN.
   tauto.
 Qed.
 
+Require Import MCMisc.rings.
+Lemma adPiBy2:  α *  d ≤ ½ * Pi.
+Proof using dNN firstQuadW αPos.
+  eapply transitivity;[| apply firstQuadW].
+  rewrite <- (@simple_associativity _ _ mult _ _).
+  apply RingLeProp2.
+  apply adNN; auto.
+Qed.
 
 Local Notation  αNZ := ((pos_ap_zero _ _ αPos): α[#]0).
 Local Notation init  := (0:Rigid2DState IR).
@@ -1149,6 +1157,7 @@ Section MinYCases.
 Let minYCriticalAngle : IR
   := (½ * π - ' polarTheta βPlusBack).
 
+(*
 Let increase1 := Y (minxy (confineRect1 ('α * 'd))) - 
 (Y (minxy (confineRect1 minYCriticalAngle))).
 
@@ -1246,6 +1255,8 @@ Proof.
 Abort.
 
 End  MCring.
+
+*)
 
 
 Lemma move1BottomBoundCase1 : 
@@ -1520,7 +1531,7 @@ Qed.
   *)
 Let dot := 
   (' (| βPlusBack |) * cos (' α * ' d + (½ * π - ' polarTheta βPlusBack))).
-
+SearchAbout  mult.
 Lemma leftExtraSpaceSimpl3 : leftExtraSpace =
 max 0 (2 * sin (' α * ' d) * (dot - 'tr)).
 Proof using αPos.
@@ -1540,36 +1551,11 @@ Proof using αPos.
   IRring.
 Qed.
 
-
-(*
-Lemma cos_o_arctan_east2:
-  ∀ (cy cx: CR)
-  (p: (λ y : CR, y ≶ 0) cx),
-   cast CR IR cx = (cast CR IR (√ (cx * cx + cy * cy)))
-                   * Cos (cast CR IR (arctan (cy // (cx ↾ p)))).
-Proof using.
-Admitted.
-*)
-
-Lemma cos_o_arctan_east2Q:
-  ∀ (cy: CR) (cx:Q),
-   cast Q IR cx = (cast CR IR (√ ('(cx * cx) + cy * cy)))
-                   * Cos (cast CR IR (arctan (cy *'(/cx)))).
-Proof using.
-Admitted.
-
 Let cyyQ : Q :=  ((width cd)^2 + (lengthBack cd)^2 + 2* tr* (width cd))%mc.
 
 Let cyy : CR :=  √cyyQ.
 
-Lemma ProperCRsqrt : Proper (equiv ==> equiv) CRsqrt.
-Proof using.
- intros ? ? H1.
- rewrite H1.
- reflexivity.
-Qed.
 
-Print ProperCRsqrt.
 Lemma cyyQNonneg: (0  ≤ cyyQ).
 Proof using ntriv ntrivStrict turnCentreOut. 
   destruct ntrivStrict.
@@ -1611,23 +1597,17 @@ Proof using ntriv ntrivStrict turnCentreOut.
   ring.
 Qed.
 
-Lemma adPiBy2: ' α * ' d ≤ ½ * Pi.
-Proof using dNN firstQuadW αPos.
-  eapply transitivity;[| apply firstQuadW].
-  rewrite <- (@simple_associativity _ _ mult _ _).
-  apply RingLeProp2.
-  apply adNN; auto.
-Qed.
-
+Hypothesis widthLt: (0 < width cd)%Q.
 
 Lemma nonTrivialExtraSpaceIf :
 ' α * ' d ≤ ' arctan (cyy * ' (/ tr)) - (½ * π - ' polarTheta βPlusBack)
 → 'tr ≤ dot.
-Proof using dNN ntriv ntrivStrict turnCentreOut αPos. 
+Proof using dNN ntriv ntrivStrict turnCentreOut αPos widthLt. 
   intro.
   eapply transitivity.
   - apply eq_le. 
     apply cos_o_arctan_east2Q with (cy:=cyy).
+    lra.
   - subst dot. rewrite cyyCorrect.
     apply (@order_preserving _ _ _ _ _ _ _);
       [apply OrderPreserving_instance_0;
@@ -1645,41 +1625,17 @@ Proof using dNN ntriv ntrivStrict turnCentreOut αPos.
         apply PiBy2Ge0.
     + apply flip_le_minus_r. assumption.
 Qed.
-
-Lemma ArcTan_nonneg : ∀ x : ℝ, 0 ≤ x → 0 ≤ ArcTan x.
-Proof using.
-  intros ? Hl.
-  rewrite <- ArcTan_zero.
-  apply ArcTan_resp_leEq.
-  assumption.
-Qed.
-
-Lemma CRsqrt_nonneg: forall q:CR,
-  0 ≤ q 
-  -> (0:CR) ≤ √ q.
-Proof using.
-  intros ? Hl.
-  rewrite <- (CRasIRasCR_id q).
-  unfold sqrtFun, rational_sqrt_SqrtFun_instance, CRsqrt_SqrtFun_instance.
-  rewrite <- CRsqrt_correct.
-  rewrite <- IR_Zero_as_CR.
-  apply IR_leEq_as_CR.
-  apply sqrt_nonneg.
-  Grab Existential Variables.
-  rewrite <- CRasIR0.
-  apply CR_leEq_as_IR.
-  assumption.
-Qed.
   
+
 Lemma trivialExtraSpaceIf :
 ' arctan (cyy * ' (/ tr)) - (½ * π - ' polarTheta βPlusBack) ≤ ' α * ' d
 → dot ≤ 'tr.
-Proof. 
+Proof using dNN firstQuadW ntriv ntrivStrict turnCentreOut widthLt αPos. 
   intro.
   eapply transitivity.
   Focus 2.
   - apply eq_le. symmetry. 
-    apply cos_o_arctan_east2Q with (cy:=cyy); fail.
+    apply cos_o_arctan_east2Q with (cy:=cyy). lra.
   - subst dot. rewrite cyyCorrect.
     apply (@order_preserving _ _ _ _ _ _ _);
       [apply OrderPreserving_instance_0;
@@ -1703,7 +1659,7 @@ Proof.
         do 3 rewrite inj_Q_nneg in ntriv.
         lra.
     + rewrite (divideBy2 Pi).
-      apply plus_le_compat;[apply adPiBy2|].
+      apply plus_le_compat;[apply adPiBy2; assumption|].
       apply  flip_le_minus_r.
       rewrite negate_involutive.
       rewrite (@commutativity _ _ _ plus _ _).

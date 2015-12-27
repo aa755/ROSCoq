@@ -191,4 +191,5 @@ Proof.
   rewrite cg_zero_inv, cg_inv_inv.
   apply PiBy2Ge0.
 Qed.
+
 Hint Resolve PiBy2Ge0 MinusPiBy2Le0 AbsIR_nonneg: CoRN.

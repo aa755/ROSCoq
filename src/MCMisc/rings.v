@@ -45,6 +45,13 @@ Proof using All.
   intros ? ? ? . ring.
 Qed.
 
+Lemma MultSqrMix: 
+∀ a b c d : A, 
+ (a * b * c * d = (a * c) * (b * d)).
+Proof using All.
+  intros.
+  ring.
+Qed.
 
 Section Le.
 Require Export MathClasses.orders.rings.
@@ -71,6 +78,7 @@ Proof using All.
   apply RingLeProp1.
   assumption.
 Qed.
+
 
 
 End Le.

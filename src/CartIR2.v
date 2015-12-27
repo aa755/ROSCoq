@@ -254,3 +254,37 @@ Proof using.
   Grab Existential Variables.
   apply sqr_nonneg.
 Qed.
+
+Lemma ArcTan_nonneg : ∀ x : ℝ, 0 ≤ x → 0 ≤ ArcTan x.
+Proof using.
+  intros ? Hl.
+  rewrite <- ArcTan_zero.
+  apply ArcTan_resp_leEq.
+  assumption.
+Qed.
+
+(*
+Lemma cos_o_arctan_east2:
+  ∀ (cy cx: CR)
+  (p: (λ y : CR, y ≶ 0) cx),
+   cast CR IR cx = (cast CR IR (√ (cx * cx + cy * cy)))
+                   * Cos (cast CR IR (arctan (cy // (cx ↾ p)))).
+Proof using.
+Admitted.
+*)
+
+Lemma cos_o_arctan_east2Q:
+  ∀ (cy: CR) (cx:Q),
+   (0 < cx)%Q
+   -> cast Q IR cx = (cast CR IR (√ ('(cx * cx) + cy * cy)))
+                   * Cos (cast CR IR (arctan (cy *'(/cx)))).
+Proof using.
+  intros.
+  unfold cast, Cast_instace_Q_IR, Cart_CR_IR.
+  rewrite <- CRasIRInj.
+  rewrite <- cos_correct_CR.
+  setoid_rewrite <- CR_mult_asIR.
+  apply CRasIR_wd.
+  apply cos_o_RQarctan_east.
+  assumption.
+Qed.
