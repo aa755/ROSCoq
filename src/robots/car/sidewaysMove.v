@@ -1540,10 +1540,6 @@ Proof using αPos.
   IRring.
 Qed.
 
-Lemma normβPlusBackPos : [0] [<] ' (| βPlusBack |).
-Proof using.
-SearchAbout sqrt cof_less.
-Admitted.
 
 (*
 Lemma cos_o_arctan_east2:
@@ -1573,6 +1569,7 @@ Proof using.
  reflexivity.
 Qed.
 
+Print ProperCRsqrt.
 Lemma cyyQNonneg: (0  ≤ cyyQ).
 Proof using ntriv ntrivStrict turnCentreOut. 
   destruct ntrivStrict.
@@ -1594,7 +1591,7 @@ Qed.
 
 Lemma cyyCorrect: 
 √ ('(tr * tr) + cyy * cyy) = (| βPlusBack | : CR).
-Proof.
+Proof using ntriv ntrivStrict turnCentreOut. 
   simpl. unfold cyy. unfold CanonicalNotations.norm, NormSpace_instance_Cart2D.
   unfold sqrtFun, rational_sqrt_SqrtFun_instance, CRsqrt_SqrtFun_instance.
   rewrite <- CRsqrt_Qsqrt.
@@ -1613,6 +1610,15 @@ Proof.
   autounfold with QMC.
   ring.
 Qed.
+
+Lemma adPiBy2: ' α * ' d ≤ ½ * Pi.
+Proof using dNN firstQuadW αPos.
+  eapply transitivity;[| apply firstQuadW].
+  rewrite <- (@simple_associativity _ _ mult _ _).
+  apply RingLeProp2.
+  apply adNN; auto.
+Qed.
+
 
 Lemma nonTrivialExtraSpaceIf :
 ' α * ' d ≤ ' arctan (cyy * ' (/ tr)) - (½ * π - ' polarTheta βPlusBack)
@@ -1638,6 +1644,73 @@ Proof using dNN ntriv ntrivStrict turnCentreOut αPos.
       * rewrite PiBy2DesugarIR. apply RingLeProp1.
         apply PiBy2Ge0.
     + apply flip_le_minus_r. assumption.
+Qed.
+
+Lemma ArcTan_nonneg : ∀ x : ℝ, 0 ≤ x → 0 ≤ ArcTan x.
+Proof using.
+  intros ? Hl.
+  rewrite <- ArcTan_zero.
+  apply ArcTan_resp_leEq.
+  assumption.
+Qed.
+
+Lemma CRsqrt_nonneg: forall q:CR,
+  0 ≤ q 
+  -> (0:CR) ≤ √ q.
+Proof using.
+  intros ? Hl.
+  rewrite <- (CRasIRasCR_id q).
+  unfold sqrtFun, rational_sqrt_SqrtFun_instance, CRsqrt_SqrtFun_instance.
+  rewrite <- CRsqrt_correct.
+  rewrite <- IR_Zero_as_CR.
+  apply IR_leEq_as_CR.
+  apply sqrt_nonneg.
+  Grab Existential Variables.
+  rewrite <- CRasIR0.
+  apply CR_leEq_as_IR.
+  assumption.
+Qed.
+  
+Lemma trivialExtraSpaceIf :
+' arctan (cyy * ' (/ tr)) - (½ * π - ' polarTheta βPlusBack) ≤ ' α * ' d
+→ dot ≤ 'tr.
+Proof. 
+  intro.
+  eapply transitivity.
+  Focus 2.
+  - apply eq_le. symmetry. 
+    apply cos_o_arctan_east2Q with (cy:=cyy); fail.
+  - subst dot. rewrite cyyCorrect.
+    apply (@order_preserving _ _ _ _ _ _ _);
+      [apply OrderPreserving_instance_0;
+       apply Cart2DRadNNegIR |].
+    apply Cos_resp_leEq.
+    + rewrite arctan_correct_CR.
+      apply ArcTan_nonneg.
+      rewrite <- CRasIR0.
+      apply CR_leEq_as_IR.
+      apply nonneg_mult_compat; unfold PropHolds.
+      * unfold cyy. rewrite <- CRsqrt_Qsqrt.
+        apply CRsqrt_nonneg.
+        apply preserves_nonneg.
+        unfold PropHolds.
+        apply cyyQNonneg.
+      * apply preserves_nonneg.
+        unfold PropHolds.
+        apply Qinv_le_0_compat.
+        unfold nonTrivialCarDim in ntriv.
+        simpl in ntriv.
+        do 3 rewrite inj_Q_nneg in ntriv.
+        lra.
+    + rewrite (divideBy2 Pi).
+      apply plus_le_compat;[apply adPiBy2|].
+      apply  flip_le_minus_r.
+      rewrite negate_involutive.
+      rewrite (@commutativity _ _ _ plus _ _).
+      apply RingLeProp1.
+      apply firstQuadβPlusBack.
+
+    + apply flip_le_minus_l. assumption.
 Qed.
 
 Lemma rightExtraSpaceSimpl : rightExtraSpace =
