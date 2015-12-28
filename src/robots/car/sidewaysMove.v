@@ -695,12 +695,21 @@ Qed.
 
 (** Now lets consider all 4 sides one by one. They are
 too different to handle simulaneously *)
-Definition isBoundLeft (minx: IR) :=
+
+Definition isBoundLeftWriggle1 (minx: IR) :=
 forall θ:IR,
 (0 ≤ θ ≤ 'α * 'd
- → minx ≤ X (minxy (confineRect1 θ)))
-∧ ('α * 'd ≤ θ ≤ 2 * 'α * 'd
+ → minx ≤ X (minxy (confineRect1 θ))).
+
+Definition isBoundLeftWriggle2 (minx: IR) :=
+forall θ:IR,
+('α * 'd ≤ θ ≤ 2 * 'α * 'd
    → minx ≤ X (minxy (confineRect2 θ))).
+
+Definition isBoundLeftWriggle (minx: IR) :=
+isBoundLeftWriggle1 minx
+∧ isBoundLeftWriggle2 minx.
+
 
 
 Ltac proveFirstQuad :=
@@ -756,7 +765,6 @@ minx ≤ X (minxy (confineRect1 β))
     β ≤ θ ≤  (½ * π) (* 'α * 'd *)
      → minx ≤ X (minxy (confineRect1 θ))).
 Proof using firstQuadW ntriv turnCentreOut. 
-  unfold isBoundLeft.
   simpl.
   setoid_rewrite plus_0_l.
   intros Hh Hbb ? Hb.
@@ -1026,71 +1034,91 @@ Proof using firstQuadW ntriv ntrivStrict.
 Qed.
 
 
+Definition leftBoundWriggle1 : IR := 
+  (X (minxy (confineRect1 0))).
+Definition leftBoundWriggle2 : IR := 
+  (X (minxy (confineRect2 (2 * 'α * 'd)))).
+
 Definition leftBound : IR :=
-let m1 := (X (minxy (confineRect1 0))) in 
-let m2 := (X (minxy (confineRect2 (2 * 'α * 'd)))) in 
-(min m1 m2).
+(min leftBoundWriggle1 leftBoundWriggle2).
 
 (** derive [firstQuadW] from this.*)
 Hypothesis maxNeededTurn 
   : (0 : ℝ) ≤ 2 * ' α * ' d ≤ (' polarTheta βPlusFront).
 
-Lemma leftBoundCorrect: 
-isBoundLeft leftBound.
-Proof using All.
-  unfold leftBound.
-  intros θ.
-  split.
-  - intros H.
-    eapply transitivity;[apply Min_leEq_lft|].
-    eapply confineRect1LeftMonotoneRight;
-      [reflexivity| |].
-    + split;[reflexivity|].
-      rewrite PiBy2DesugarIR. apply PiBy2Ge0.
-    + eapply firstQuadW1; eauto. 
-  - simpl.
-    intros H.
-    eapply transitivity;[apply Min_leEq_rht|].
-    simpl.
-    apply (@order_preserving _ _ _ _ _ _ _ _).
-    apply flip_le_negate.
-    apply (@order_preserving _ _ _ _ _ _ _);
+Lemma leftBoundWriggle1Correct: 
+isBoundLeftWriggle1 leftBoundWriggle1.
+Proof using dNN firstQuadW ntriv turnCentreOut αPos.   
+  intros θ Hb. unfold leftBoundWriggle1.
+  eapply confineRect1LeftMonotoneRight;
+      [reflexivity| |eapply firstQuadW1; eauto].
+  split;[reflexivity|].
+  rewrite PiBy2DesugarIR. apply PiBy2Ge0.
+Qed.
+
+Lemma leftBoundWriggle2Correct: 
+isBoundLeftWriggle2 leftBoundWriggle2.
+Proof using dNN firstQuadW lengthFrontGreater maxNeededTurn ntriv 
+      ntrivStrict turnCentreOut αPos. 
+  intros θ Hb. unfold leftBoundWriggle2.
+  simpl.
+  apply (@order_preserving _ _ _ _ _ _ _ _).
+  apply flip_le_negate.
+  apply (@order_preserving _ _ _ _ _ _ _);
       [apply OrderPreserving_instance_0;
        apply Cart2DRadNNegIR |].
-    rewrite CosMinusSwap.
-    setoid_rewrite CosMinusSwap at 2.
-    apply Cos_resp_leEq.
-    + apply flip_le_minus_l.
-      rewrite negate_involutive.
-      setoid_rewrite plus_0_l.
-      eapply transitivity;[|
-        apply FrontLeBack].
-      apply maxNeededTurn.
-    + rewrite (divideBy2 Pi).
-      apply plus_le_compat;
+  rewrite CosMinusSwap.
+  setoid_rewrite CosMinusSwap at 2.
+  apply Cos_resp_leEq.
+  - apply flip_le_minus_l.
+    rewrite negate_involutive.
+    setoid_rewrite plus_0_l.
+    eapply transitivity;[|
+      apply FrontLeBack].
+    apply maxNeededTurn.
+
+  - rewrite (divideBy2 Pi).
+    apply plus_le_compat;
         [apply firstQuadβPlusBack|].
-      rewrite PiBy2DesugarIR.
-      apply flip_le_negate.
-      rewrite negate_involutive.
-      eapply transitivity;[
+    rewrite PiBy2DesugarIR.
+    apply flip_le_negate.
+    rewrite negate_involutive.
+    eapply transitivity;[
         apply MinusPiBy2Le0|].
-        destruct H.
-      eapply transitivity;[|apply H].
-      apply adNN; eauto.
-    + apply (@order_preserving _ _ _ _ _ _ _ _).
-      apply flip_le_negate.
-      tauto.
+        destruct Hb.
+    eapply transitivity;[|apply H].
+    apply adNN; eauto.
+
+  - apply (@order_preserving _ _ _ _ _ _ _ _).
+    apply flip_le_negate.
+    tauto.
+Qed.
+
+Lemma leftBoundCorrect: 
+isBoundLeftWriggle leftBound.
+Proof.
+  unfold leftBound.
+  split; intros θ H.
+  - eapply transitivity;[apply Min_leEq_lft|].
+    apply leftBoundWriggle1Correct. assumption.
+  - eapply transitivity;[apply Min_leEq_rht|].
+    apply leftBoundWriggle2Correct. assumption.
 Qed.
 
 Require Import geometry2D.
 
-Definition isBoundRight (maxx: IR) :=
+Definition isBoundRightWriggle1 (maxx: IR) :=
 forall θ:IR,
 (0 ≤ θ ≤ 'α * 'd
- → X (maxxy (confineRect1 θ)) ≤ maxx)
-∧ ('α * 'd ≤ θ ≤ 2 * 'α * 'd
+ → X (maxxy (confineRect1 θ)) ≤ maxx).
+ 
+Definition isBoundRightWriggle2 (maxx: IR) :=
+forall θ:IR,
+ ('α * 'd ≤ θ ≤ 2 * 'α * 'd
    →  X (maxxy (confineRect2 θ)) ≤ maxx).
 
+Definition isBoundRight (maxx: IR) :=
+isBoundRightWriggle1 maxx /\ isBoundRightWriggle2 maxx.
 (** As shown below in [rightBoundCorrect],
 The extrema is achieved at the end of the first move. *)
 
@@ -1129,71 +1157,87 @@ Qed.
 
 (**actually only half of [maxNeededTurn] is needed.
 *)
+Lemma rightBoundCorrectWriggle1 
+  : isBoundRightWriggle1 rightBound.
+Proof using firstQuadW maxNeededTurn ntriv ntrivStrict turnCentreOut.
+  unfold  rightBound.
+  intros ? Hb. simpl.
+  do 2 rewrite plus_0_l.
+  apply (@order_preserving _ _ _ _ _ _ _);
+      [apply OrderPreserving_instance_0;
+       apply Cart2DRadNNegIR |].
+  rewrite CosMinusSwap.
+  setoid_rewrite CosMinusSwap at 2.
+  apply Cos_resp_leEq.
+  - apply flip_le_minus_l.
+    rewrite negate_involutive.
+    setoid_rewrite plus_0_l.
+    eapply transitivity;[|
+      apply maxNeededTurn].
+    rewrite <- (@simple_associativity _ _ plus _ _).
+    apply rings.RingLeProp2.
+    destruct Hb. eapply transitivity; eauto.
+  - rewrite (divideBy2 Pi).
+    apply plus_le_compat;
+      [apply firstQuadβPlusFront|].
+    rewrite PiBy2DesugarIR.
+    apply flip_le_negate.
+    rewrite negate_involutive.
+    eapply transitivity;[
+      apply MinusPiBy2Le0|].
+    apply Hb.
+  - apply (@order_preserving _ _ _ _ _ _ _ _).
+    apply flip_le_negate.
+    tauto.
+Qed.
+
+Lemma rightBoundCorrectWriggle2
+  : isBoundRightWriggle2 rightBound.
+Proof using dNN firstQuadW maxNeededTurn ntriv ntrivStrict turnCentreOut αPos.
+  unfold  rightBound.
+  intros ? Hb. simpl.
+  rewrite plus_0_l.
+  rewrite <- transitionMaxX.
+  apply (@order_preserving _ _ _ _ _ _ _ _).
+  apply (@order_preserving _ _ _ _ _ _ _);
+      [apply OrderPreserving_instance_0;
+       apply Cart2DRadNNegIR |].
+  apply Cos_resp_leEq.
+  - apply plus_resp_nonneg;[|apply firstQuadβMinusFront].
+    apply adNN; auto.
+  - rewrite (divideBy2 Pi).
+    apply plus_le_compat;[|apply firstQuadβMinusFront].
+    eapply transitivity;[apply Hb|]. tauto.
+  - apply plus_le_compat;[tauto| reflexivity].
+Qed.
+
 Lemma rightBoundCorrect 
   : isBoundRight rightBound.
-Proof using dNN firstQuadW lengthFrontGreater maxNeededTurn ntriv ntrivStrict turnCentreOut αPos. 
-
-  unfold isBoundRight, rightBound.
-  intro. simpl.
-  split; intro Hb.
-  - do 2 rewrite plus_0_l.
-    apply (@order_preserving _ _ _ _ _ _ _);
-      [apply OrderPreserving_instance_0;
-       apply Cart2DRadNNegIR |].
-    rewrite CosMinusSwap.
-    setoid_rewrite CosMinusSwap at 2.
-    apply Cos_resp_leEq.
-    + apply flip_le_minus_l.
-      rewrite negate_involutive.
-      setoid_rewrite plus_0_l.
-      eapply transitivity;[|
-        apply maxNeededTurn].
-      rewrite <- (@simple_associativity _ _ plus _ _).
-      apply rings.RingLeProp2.
-      destruct Hb. eapply transitivity; eauto.
-    + rewrite (divideBy2 Pi).
-      apply plus_le_compat;
-        [apply firstQuadβPlusFront|].
-      rewrite PiBy2DesugarIR.
-      apply flip_le_negate.
-      rewrite negate_involutive.
-      eapply transitivity;[
-        apply MinusPiBy2Le0|].
-      apply Hb.
-    + apply (@order_preserving _ _ _ _ _ _ _ _).
-      apply flip_le_negate.
-      tauto.
-  - rewrite plus_0_l.
-    rewrite <- transitionMaxX.
-    apply (@order_preserving _ _ _ _ _ _ _ _).
-    apply (@order_preserving _ _ _ _ _ _ _);
-      [apply OrderPreserving_instance_0;
-       apply Cart2DRadNNegIR |].
-    apply Cos_resp_leEq.
-    + apply plus_resp_nonneg;[|apply firstQuadβMinusFront].
-      apply adNN; auto.
-    + rewrite (divideBy2 Pi).
-      apply plus_le_compat;[|apply firstQuadβMinusFront].
-      eapply transitivity;[apply Hb|]. tauto.
-   + apply plus_le_compat;[tauto| reflexivity].
+Proof using dNN firstQuadW maxNeededTurn ntriv ntrivStrict turnCentreOut αPos.
+  split;[apply rightBoundCorrectWriggle1|apply rightBoundCorrectWriggle2].
 Qed.
 
 
-Definition isBoundBottom (miny: IR) :=
+Definition isBoundBottomWriggle1 (miny: IR) :=
 forall θ:IR,
 (0 ≤ θ ≤ 'α * 'd
- → miny ≤ Y (minxy (confineRect1 θ)))
-∧ ('α * 'd ≤ θ ≤ 2 * 'α * 'd
+ → miny ≤ Y (minxy (confineRect1 θ))).
+
+Definition isBoundBottomWriggle2 (miny: IR) :=
+forall θ:IR,
+('α * 'd ≤ θ ≤ 2 * 'α * 'd
    → miny ≤ Y (minxy (confineRect2 θ))).
 
+Definition isBoundBottom (miny: IR) :=
+isBoundBottomWriggle1 miny ∧ isBoundBottomWriggle2 miny.
 
-Lemma move2BottomBound : 
-let miny := (Y (minxy (confineRect2 (2 * 'α * 'd)))) in
-forall θ:IR,
- 'α * 'd ≤ θ ≤ 2 * 'α * 'd
-   → miny ≤ Y (minxy (confineRect2 θ)).
+Definition bottomBoundWriggle2 :IR :=
+(Y (minxy (confineRect2 (2 * 'α * 'd)))).
+
+Lemma bottomBoundWriggle2Correct : 
+  isBoundBottomWriggle2 bottomBoundWriggle2.
 Proof using dNN firstQuadW ntriv turnCentreOut αPos. 
-  unfold isBoundRight, rightBound.
+  unfold bottomBoundWriggle2.
   intro. simpl.
   intro Hb.
   pose proof (firstQuadW2 _ αPos _ dNN firstQuadW _  Hb)
@@ -1218,10 +1262,11 @@ Qed.
 
 Require Import MathClasses.interfaces.additional_operations. 
 
+Definition minYCriticalAngle : IR
+  := (½ * π - ' polarTheta βPlusBack).
+
 Section MinYCases.
 
-Let minYCriticalAngle : IR
-  := (½ * π - ' polarTheta βPlusBack).
 
 (*
 Let increase1 := Y (minxy (confineRect1 ('α * 'd))) - 
@@ -1324,19 +1369,18 @@ End  MCring.
 
 *)
 
+Definition bottomBoundWriggle1Case1 :IR :=
+(Y (minxy (confineRect1 ('α * 'd)))).
 
-Lemma move1BottomBoundCase1 : 
+Lemma bottomBoundWriggle1Case1Correct :
 ('α * 'd ≤ minYCriticalAngle)
-->
-let miny := (Y (minxy (confineRect1 ('α * 'd)))) in
-forall θ:IR,
- 0 ≤ θ ≤ 'α * 'd
-   → miny ≤ Y (minxy (confineRect1 θ)).
+-> isBoundBottomWriggle1 bottomBoundWriggle1Case1.
 Proof using dNN firstQuadW ntriv turnCentreOut αPos. 
   simpl. intros Hu ?. simpl.
   intro Hb.
   pose proof (firstQuadW1 _ αPos _ dNN firstQuadW _  Hb)
     as Ht.
+  unfold bottomBoundWriggle1Case1. simpl.
   apply (@order_preserving _ _ _ _ _ _ _ _).
   apply flip_le_negate.
     apply (@order_preserving _ _ _ _ _ _ _);
@@ -1364,16 +1408,15 @@ Proof using dNN firstQuadW ntriv turnCentreOut αPos.
     apply Hb.
 Qed.
 
+Definition bottomBoundWriggle1Case2 :IR :=
+(Y (minxy (confineRect1 minYCriticalAngle))).
 
-Lemma move1BottomBoundCase2: 
+Lemma bottomBoundWriggle1Case2Correct: 
 (minYCriticalAngle ≤ 'α * 'd )
-->
-let miny := (Y (minxy (confineRect1 minYCriticalAngle))) in
-forall θ:IR,
- 0 ≤ θ ≤ 'α * 'd
-   → miny ≤ Y (minxy (confineRect1 θ)).
+-> isBoundBottomWriggle1 bottomBoundWriggle1Case2.
 Proof using dNN firstQuadW αPos.
-  simpl. intros Hu ?. simpl.
+  simpl. intros Hu ?. unfold bottomBoundWriggle1Case2.
+  simpl.
   intro Hb.
   unfold minYCriticalAngle.
   rewrite plus_negate_r.
@@ -1389,12 +1432,12 @@ Proof using dNN firstQuadW αPos.
 Qed.
 
 Definition bottomBoundCase1 : IR :=
-  (Y (minxy (confineRect2 (2 * 'α * 'd)))).
+  bottomBoundWriggle2.
 
 Definition bottomBoundCase2 : IR :=
   min
-  (Y (minxy (confineRect1 minYCriticalAngle)))
-  bottomBoundCase1.
+    bottomBoundWriggle1Case2
+    bottomBoundCase1.
 
 (*the equations for the the motion of the car for the 1st and the 2nd move must agree
 at the transition time.*)
@@ -1416,35 +1459,35 @@ Qed.
 Lemma bottomBoundCase1Correct : 
 ('α * 'd ≤ minYCriticalAngle)
 -> isBoundBottom bottomBoundCase1.
-Proof using dNN firstQuadW ntriv turnCentreOut αPos. 
-  intros Hu ?.
-  split.
+Proof using dNN firstQuadW ntriv turnCentreOut αPos.
+  intros Hu.
+  split; intro.
 - intros Hb. eapply transitivity;
-    [|apply move1BottomBoundCase1; trivial; fail].
+    [|apply bottomBoundWriggle1Case1Correct; trivial; fail].
   unfold bottomBoundCase1.
   rewrite <- transitionMinY.
-  apply move2BottomBound.
+  apply bottomBoundWriggle2Correct.
   split;[reflexivity|].
   rewrite <- (@simple_associativity _ _ mult _ _ _).
   apply rings.RingLeProp2.
   destruct Hb. eapply transitivity; eauto.
-- intros Hb. 
-  apply move2BottomBound. auto.
+- intros Hb.
+  apply bottomBoundWriggle2Correct. auto.
 Qed.
 
 Lemma bottomBoundCase2Correct : 
 (minYCriticalAngle ≤ 'α * 'd)
 -> isBoundBottom bottomBoundCase2.
-Proof using dNN firstQuadW ntriv turnCentreOut αPos.   
-  intros Hu ?.
-  split.
+Proof using dNN firstQuadW ntriv turnCentreOut αPos.
+  intros Hu.
+  split; intro.
 - intros Hb. eapply transitivity;
     [apply Min_leEq_lft|].
-  apply move1BottomBoundCase2; auto.
+  apply bottomBoundWriggle1Case2Correct; trivial.
 - intros Hb.
   eapply transitivity;
     [apply Min_leEq_rht|].
-  apply move2BottomBound; auto.
+  apply bottomBoundWriggle2Correct; auto.
 Qed.
 
 End  MinYCases.
@@ -1460,7 +1503,7 @@ Proof using αPos.
   match goal with
   [|- _= ?r] => remember r as rr
   end.
-  unfold leftBound.
+  unfold leftBound, leftBoundWriggle1, leftBoundWriggle2.
   rewrite  (proj2 (confineRectCorrect _)).
   rewrite  (proj1 (confineRectCorrect _)).
   simpl.
@@ -1503,7 +1546,7 @@ Proof using αPos.
   match goal with
   [|- _= ?r] => remember r as rr
   end.
-  unfold bottomBoundCase1.
+  unfold bottomBoundCase1, bottomBoundWriggle2.
   rewrite  (proj2 (confineRectCorrect _)).
   simpl.
   rewrite <- trComplicated.
@@ -1520,7 +1563,7 @@ Lemma BottomBoundCase2Simpl : bottomBoundCase2 =
 min (trr - ' (| βPlusBack |)) (** extrema inside the 1st move*)
     bottomBoundCase1. (** end of 2nd move *)
 Proof using αPos.
-  unfold bottomBoundCase2.
+  unfold bottomBoundCase2, bottomBoundWriggle1Case2.
   apply Min_wd_unfolded; split;[| reflexivity].
   simpl.
   rewrite plus_negate_r.
@@ -1538,17 +1581,16 @@ Definition rightExtraSpace :IR :=
 Definition extraSpaceX :IR :=
 leftExtraSpace + rightExtraSpace.
 
-
-(*
-Global Instance ProperInProductCart2DIR (a:Cart2D IR) :
-  Proper ( equiv ==> equiv) (@inprod IR (Cart2D IR) _ a).
-Proof using.
-apply ProperInProductCart2D. reflexivity.
+Lemma rightExtraSpaceSimpl : rightExtraSpace =
+⟨ ' {| X := lengthFront cd; Y := tr + width cd |}, unitVec (' α * ' d) ⟩ -
+' lengthFront cd .
+Proof using αPos.
+  unfold rightExtraSpace.
+  rewrite  RightBoundSimpl.
+  reflexivity.
 Qed.
-*)
 
-Definition βPlus2Back :(Cart2D Q) :=
-({|X :=  2 * lengthBack cd; Y := tr + width cd |}).
+
 
 Lemma leftExtraSpaceSimpl1 : leftExtraSpace =
 max 0
@@ -1597,7 +1639,6 @@ Qed.
   *)
 Let dot := 
   (' (| βPlusBack |) * cos (' α * ' d + (½ * π - ' polarTheta βPlusBack))).
-SearchAbout  mult.
 Lemma leftExtraSpaceSimpl3 : leftExtraSpace =
 max 0 (2 * sin (' α * ' d) * (dot - 'tr)).
 Proof using αPos.
@@ -1667,6 +1708,12 @@ Hypothesis widthLt: (0 < width cd)%Q.
 
 Definition leftCriticalAngle :IR :=
 ' arctan (cyy * ' (/ tr)) - (½ * π - ' polarTheta βPlusBack).
+
+Lemma leftCriticalAngleVsMiny :
+leftCriticalAngle = ' arctan (cyy * ' (/ tr)) - minYCriticalAngle.
+Proof.
+  reflexivity.
+Qed.
 
 Lemma nonTrivialExtraSpaceIf :
 ' α * ' d ≤ leftCriticalAngle
@@ -1805,7 +1852,9 @@ Definition approximateAngleAsDegrees (a:CR) : Z :=
  R2ZApprox (a*CRPiInv* ('180%positive)) (QposMake 1 100).
 
 
-(*
+(** 
+does not compute:
+
 Eval vm_compute in  
   (approximateAngleAsDegrees
     (polarTheta 
@@ -1813,6 +1862,17 @@ Eval vm_compute in
         ('carDim Mazda3Sedan2014sGT)
         (' minTR Mazda3Sedan2014sGT)
          ))).
+
+Perhaps this is the root cause, which does not compute either.
+Eval vm_compute in  
+ (approximate (CRPiInv) (QposMake 1 1)).
+
+Is there a fast implementation of reciprocal for CR?
+It does not even look at the positivity proof, so it is 
+perhaps wasting time computing already available info.
+
+Perhaps switch to AR? The reciprocal function there (ARinv) also does not
+seem to look at the positivity proof.
 *)
 
 Lemma Mazda3βPlusFront:
@@ -1827,15 +1887,6 @@ Proof using.
   unfold lt, CRlt.
   split; exists 10%nat;
   simpl; vm_compute; reflexivity.
-Qed.
-
-Lemma rightExtraSpaceSimpl : rightExtraSpace =
-⟨ ' {| X := lengthFront cd; Y := tr + width cd |}, unitVec (' α * ' d) ⟩ -
-' lengthFront cd .
-Proof using αPos.
-  unfold rightExtraSpace.
-  rewrite  RightBoundSimpl.
-  reflexivity.
 Qed.
 
 End FirstQuadWriggleQ.
