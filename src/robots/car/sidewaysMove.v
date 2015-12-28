@@ -500,9 +500,9 @@ Proof using All.
     try IRring.
 Qed.
 
+
 End FirstQuadWriggle.
 
-Section FirstQuadWriggleQ.
 
 (** 
 In the above lemma [WriggleFirstQSpace2] each of
@@ -523,7 +523,38 @@ Because cartesian to polar conversion is currently
     Eventually, they can be reals 
     along with constructive proofs of whether
     they are 0 or away from it.
-  *)
+
+In the  "constant times cosine" explained above, the value 
+in the representation, the angle β can for
+the 4 coordinates can only take one of the following
+4 values, or ½ * π -  one of these values: *)
+
+Require Import robots.car.exampleDimensions.
+
+Module CornerAngles.
+Section CornerAngles.
+
+Variable cd : CarDimensions Q.
+Variable tr: Q.
+
+Definition βMinusBack :(Cart2D Q) :=
+({|X :=  lengthBack cd; Y := tr - width cd |}).
+
+Definition βPlusBack :(Cart2D Q) :=
+({|X :=  lengthBack cd; Y := tr + width cd |}).
+
+Definition βMinusFront :(Cart2D Q) :=
+( {|X :=  lengthFront cd; Y := tr - width cd |}).
+
+Definition βPlusFront :(Cart2D Q) :=
+( {|X :=  lengthFront cd; Y := tr + width cd |}).
+
+End CornerAngles.
+End CornerAngles.
+
+
+Section FirstQuadWriggleQ.
+
 Variable α : Q.
 Hypothesis αPos : ((0:IR)[<]'α).
 Variable d : Q.
@@ -554,13 +585,6 @@ Qed.
 (** The turn center cannot be inside the car. for that,
 one of the front wheels have to rotate by more than 90 along 
 the vertical axis. 
-(Also, on some wide roads, I can
-make a U turn in just one maneouver. So, the
-minimum turn radius is less than half the width 
-of such roads. So, the minimum turn radius is
-only a small factor times width of the car. Note
-that in [CarDimensions], the [width] field actually
-denotes half the width.)
 *)
 Hypothesis turnCentreOut : (Qle (width cd) tr).
 
@@ -571,24 +595,14 @@ Definition negY `{One A}`{Negate A} : Cart2D A:=
 
 Definition NegPosition : Type := bool (*outside*) * bool(*inside*).
 
-(** In the  "constant times cosine" explained at the  beginning of this section, the value 
-in the representation, the angle β can for
-the 4 coordinates can only take one of the following
-4 values: *)
+
 
 Require Import CartIR2.
-Definition βMinusBack :(Cart2D Q) :=
-({|X :=  lengthBack cd; Y := tr - width cd |}).
 
-Definition βPlusBack :(Cart2D Q) :=
-({|X :=  lengthBack cd; Y := tr + width cd |}).
-
-Definition βMinusFront :(Cart2D Q) :=
-( {|X :=  lengthFront cd; Y := tr - width cd |}).
-
-Definition βPlusFront :(Cart2D Q) :=
-( {|X :=  lengthFront cd; Y := tr + width cd |}).
-
+Local Definition βMinusBack : Cart2D Q := CornerAngles.βMinusBack cd tr.
+Local Definition βMinusFront : Cart2D Q := CornerAngles.βMinusFront cd tr.
+Local Definition βPlusBack : Cart2D Q := CornerAngles.βPlusBack cd tr.
+Local Definition βPlusFront : Cart2D Q := CornerAngles.βPlusFront cd tr.
 
 Definition minXY1 : (Cart2D ((Polar2D IR) * NegPosition)) :=
 {|X := ('βMinusBack,(true, true));
@@ -816,12 +830,14 @@ Definition isMaxTurnNeeded (θmax : IR) :=
      
 
 Local Opaque confineRect1.
+Definition extraHyp1 : Prop := 
+((½ * π ) ≤ (' polarTheta βPlusFront + ' polarTheta βPlusBack)).
 Lemma maxTurnNeededConjecture (minx maxx miny: IR) :
-((½ * π ) ≤ (' polarTheta βPlusFront + ' polarTheta βPlusBack))
+extraHyp1
 →
 isMaxTurnNeeded ('polarTheta βPlusFront).
 Proof using firstQuadW ntriv turnCentreOut.
-  intro Has. simpl.
+  intro Has. unfold extraHyp1 in Has. simpl.
   intros ? ? ? H ? Hb.
   split;[| split].
   - eapply confineRect1LeftMonotoneRight;
@@ -891,10 +907,60 @@ point of the car is achieved after the bottommost
 position of the bottommost point of the car is achieved.*)
 Lemma hypothesisInAboveConjecture :
 ((lengthBack cd)/(tr + width cd)≤(tr + width cd)/(lengthFront cd))%Q
-->
-((½ * π )
-≤ (' polarTheta βPlusFront + ' polarTheta βPlusBack)).
+-> extraHyp1.
 Abort.
+
+(**This is definitely true for the geometry of Mazda 3 sedan*)
+
+Definition thisCarHasSameGeometryAs (cg : CarGeometry Q) :=
+  cd ≡ carDim cg /\ tr ≡ minTR cg.
+
+(* Move *)
+Lemma PiBy2IRCR:
+CRasIR (½ * π) =  ½ * π.
+Proof using.
+  rewrite PiBy2DesugarIR.
+  rewrite <- (IRasCRasIR_id (Pi [/]TwoNZ)).
+  rewrite <- CRPiBy2Correct.
+  rewrite commutativity.
+  reflexivity.
+Qed.
+
+Lemma Mazda3Hyp1True :
+thisCarHasSameGeometryAs ('Mazda3Sedan2014sGT)
+-> extraHyp1.
+Proof using.
+  intro H.
+  unfold extraHyp1.
+  rewrite <- PiBy2IRCR.
+  unfold cast, Cart_CR_IR.
+  setoid_rewrite <- CR_plus_asIR.
+  apply CR_leEq_as_IR.
+  unfold βPlusFront, βPlusBack.
+  destruct H as [Hl Hr].
+  subst.
+  rewrite Hr. clear Hr.
+  apply CRweakenLt.
+  unfold lt, CRlt. exists 1%nat.
+  simpl. vm_compute. reflexivity.
+Qed.
+
+(** In fact, it is true by a large margin; Not only is it greater than
+half pi, it is also greater than quarter 72/100 Pi. 
+On the other hand, it is less than  75/100 Pi.
+*)
+Lemma Mazda3Hyp1TrueByLargeMargin :
+thisCarHasSameGeometryAs ('Mazda3Sedan2014sGT)
+-> (('(Qmake 72 100) * π ) < ( polarTheta βPlusFront +  polarTheta βPlusBack)).
+Proof using.
+  intro H. destruct H as [Hl Hr].
+  unfold βPlusFront, βPlusBack.
+  subst.
+  rewrite Hr. clear Hr.
+  unfold lt, CRlt. exists 4%nat.
+  simpl. vm_compute. reflexivity.
+Qed.
+
 
 (** this version may not need any additional hypothesis,
   but it may not be strong enough for the remaining proofs. *)
@@ -1599,10 +1665,14 @@ Qed.
 
 Hypothesis widthLt: (0 < width cd)%Q.
 
+Definition leftCriticalAngle :IR :=
+' arctan (cyy * ' (/ tr)) - (½ * π - ' polarTheta βPlusBack).
+
 Lemma nonTrivialExtraSpaceIf :
-' α * ' d ≤ ' arctan (cyy * ' (/ tr)) - (½ * π - ' polarTheta βPlusBack)
+' α * ' d ≤ leftCriticalAngle
 → 'tr ≤ dot.
 Proof using dNN ntriv ntrivStrict turnCentreOut αPos widthLt. 
+  unfold leftCriticalAngle.
   intro.
   eapply transitivity.
   - apply eq_le. 
@@ -1631,6 +1701,7 @@ Lemma trivialExtraSpaceIf :
 ' arctan (cyy * ' (/ tr)) - (½ * π - ' polarTheta βPlusBack) ≤ ' α * ' d
 → dot ≤ 'tr.
 Proof using dNN firstQuadW ntriv ntrivStrict turnCentreOut widthLt αPos. 
+  unfold leftCriticalAngle.
   intro.
   eapply transitivity.
   Focus 2.
@@ -1667,6 +1738,95 @@ Proof using dNN firstQuadW ntriv ntrivStrict turnCentreOut widthLt αPos.
       apply firstQuadβPlusBack.
 
     + apply flip_le_minus_l. assumption.
+Qed.
+
+Definition leftCriticalAngleCR :CR :=
+ arctan (cyy * ' (/ tr)) - (½ * π - polarTheta βPlusBack).
+
+
+Lemma leftCriticalAngleCRCorrect :
+'leftCriticalAngleCR = leftCriticalAngle.
+Proof using.
+  unfold leftCriticalAngleCR, leftCriticalAngle.
+  rewrite CR_minus_asIR.
+  rewrite CR_minus_asIR.
+  rewrite <- PiBy2IRCR.
+  reflexivity.
+Qed.
+
+(** for Mazda 3, it is between 23 and 24 degrees *)
+Lemma Mazda3LeftCriticalAngle:
+thisCarHasSameGeometryAs ('Mazda3Sedan2014sGT)
+-> ('(Qmake 23 180) * π ) < leftCriticalAngleCR < ('(Qmake 24 180) * π ).
+Proof using.
+  intro H. destruct H as [Hl Hr].
+  unfold leftCriticalAngleCR.
+  unfold cyy, cyyQ, βPlusBack.
+  subst.
+  rewrite Hr. clear Hr.
+  unfold lt, CRlt.
+  split; exists 7%nat;
+  simpl; vm_compute; reflexivity.
+Qed.
+
+(** lets consider the two subcomponents of the above angle *)
+Lemma Mazda3LeftCriticalAngle1:
+thisCarHasSameGeometryAs ('Mazda3Sedan2014sGT)
+-> ('(Qmake 33 180) * π ) < arctan (cyy * ' (/ tr)) < ('(Qmake 34 180) * π ).
+Proof using.
+  intro H. destruct H as [Hl Hr].
+  unfold leftCriticalAngleCR.
+  unfold cyy, cyyQ.
+  subst.
+  rewrite Hr. clear Hr.
+  unfold lt, CRlt.
+  split; exists 10%nat;
+  simpl; vm_compute; reflexivity.
+Qed.
+
+Lemma Mazda3βPlusBack:
+thisCarHasSameGeometryAs ('Mazda3Sedan2014sGT)
+-> ('(Qmake 79 180) * π ) < polarTheta βPlusBack < ('(Qmake 80 180) * π ).
+Proof using.
+  intro H. destruct H as [Hl Hr].
+  unfold leftCriticalAngleCR.
+  unfold βPlusBack.
+  subst.
+  rewrite Hr. clear Hr.
+  unfold lt, CRlt.
+  split; exists 10%nat;
+  simpl; vm_compute; reflexivity.
+Qed.
+
+Definition CRPiInv : CR := CRinvT CRpi (inr CRpi_pos).
+
+
+Definition approximateAngleAsDegrees (a:CR) : Z :=
+ R2ZApprox (a*CRPiInv* ('180%positive)) (QposMake 1 100).
+
+
+(*
+Eval vm_compute in  
+  (approximateAngleAsDegrees
+    (polarTheta 
+      (CornerAngles.βPlusFront 
+        ('carDim Mazda3Sedan2014sGT)
+        (' minTR Mazda3Sedan2014sGT)
+         ))).
+*)
+
+Lemma Mazda3βPlusFront:
+thisCarHasSameGeometryAs ('Mazda3Sedan2014sGT)
+-> ('(Qmake 51 180) * π ) < polarTheta βPlusFront < ('(Qmake 52 180) * π ).
+Proof using.
+  intro H. destruct H as [Hl Hr].
+  unfold leftCriticalAngleCR.
+  unfold βPlusFront.
+  subst.
+  rewrite Hr. clear Hr.
+  unfold lt, CRlt.
+  split; exists 10%nat;
+  simpl; vm_compute; reflexivity.
 Qed.
 
 Lemma rightExtraSpaceSimpl : rightExtraSpace =

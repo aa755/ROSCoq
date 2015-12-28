@@ -355,7 +355,6 @@ Require Export MathClasses.theory.naturals.
 Require Export MathClasses.implementations.ne_list.
 Require Export MathClasses.implementations.nonneg_integers_naturals.
 Require Export MathClasses.implementations.ZType_integers.
-Require Export MathClasses.implementations.modular_ring.
 Require Export MathClasses.implementations.intfrac_rationals.
 Require Export MathClasses.implementations.nonneg_semiring_elements.
 Require Export MathClasses.implementations.positive_semiring_elements.
