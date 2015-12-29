@@ -166,10 +166,14 @@ to where we started.
      [θAtW] denotes the car's orientation at the completion of the [SWriggle] move. 
      For any [v], [sameXY v] denotes [{|X:=v; Y:=v|}].
      *)
+  
+  Definition sidewaysDisp (init : Rigid2DState ℝ) : Cart2D IR :=
+     '(d') * unitVec ((θ2D init) + 2 * α * d).
+     
   Lemma SidewaysAuxState : forall init,
   stateAfterAtomicMoves SidewaysAux init
   = {|pos2D := pos2D init 
-      + '(d') * unitVec ((θ2D init) + 2 * α * d);
+      + sidewaysDisp init;
       θ2D := θ2D init |}.
   Proof using.
     intros.
@@ -182,15 +186,17 @@ to where we started.
 
     Local Opaque conjugate.
     Local Opaque Wriggle.
+  
+  Definition sidewaysRect (w1rect : Line2D IR) (init : Rigid2DState ℝ) :=
+  let w2rect := w1rect + 'sidewaysDisp init in
+  boundingUnion w1rect w2rect.
+  
   Lemma SidewaysAuxSpace :
   ∀  (cd : CarDimensions ℝ)
   (init : Rigid2DState ℝ)
-  (confineRect: Line2D IR), 
-  let rectR := confineRect 
-    + '('(d') * unitVec ((θ2D init) + 2 * α * d)) in
-  let cmr := boundingUnion confineRect rectR in
-carConfinedDuringAMs cd confineRect SWriggle init
--> carConfinedDuringAMs cd cmr SidewaysAux init.
+  (w1rect: Line2D IR), 
+carConfinedDuringAMs cd w1rect SWriggle init
+-> carConfinedDuringAMs cd (sidewaysRect w1rect init) SidewaysAux init.
   Proof using.
     intros ? ? ?. simpl. intros H.
     eapply straightConjugateSpace with (d:=d')in H.
@@ -253,7 +259,8 @@ Qed.
     fold stateAfterAtomicMoves.
     rewrite SidewaysAuxState.
     unfold stateAfterAtomicMove.
-    simpl. rewrite mult_0_l, plus_0_r.
+    simpl. unfold sidewaysDisp.
+     rewrite mult_0_l, plus_0_r.
     split;[| reflexivity].
     simpl. 
     rewrite <- (@simple_associativity  _ _ plus _ _).
@@ -565,7 +572,7 @@ Hypothesis firstQuadW: (0:IR) ≤ (2*'α*'d) ≤ ½ * π.
 Local Definition tr := ((Qinv α):Q).
 
 
-Local Notation  αNZ := ((pos_ap_zero _ _ αPos): 'α[#](0:IR)).
+Let αNZ := ((pos_ap_zero _ _ αPos): 'α[#](0:IR)).
 
 
 Local Definition trComplicated : 'tr = f_rcpcl ('α) αNZ.
@@ -686,6 +693,7 @@ Proof using.
    simpl.
   repeat rewrite Hh.
   rewrite  preserves_negate.
+  fold αNZ.
   repeat rewrite <- trComplicated.
   fold trr.
    unfold inprod, InProductCart2D;split; split; split; simpl;
@@ -1447,7 +1455,7 @@ Y (minxy (confineRect2 (' α * ' d)))
 Proof using αPos.
   rewrite  (proj2 (confineRectCorrect _)).
   rewrite  (proj1 (confineRectCorrect _)).
-  simpl.
+  simpl. fold αNZ.
   rewrite <- trComplicated.
   unfold inprod, InProductCart2D.
   simpl.
@@ -1492,6 +1500,185 @@ Qed.
 
 End  MinYCases.
 
+(** Even though the extra space needed in the upward direction
+ is not at all a concern, some bound, possibly very sloppy,
+  is needed because most lemmas
+ about space analysis of a sequence of moves are in terms of bounds
+ in all 4 directions. *)
+Definition isBoundUpWriggle1 (maxy: IR) :=
+forall θ:IR,
+(0 ≤ θ ≤ 'α * 'd
+ → Y (maxxy (confineRect1 θ)) ≤ maxy).
+ 
+Definition isBoundUpWriggle2 (maxy: IR) :=
+forall θ:IR,
+ ('α * 'd ≤ θ ≤ 2 * 'α * 'd
+   →  Y (maxxy (confineRect2 θ)) ≤ maxy).
+
+Definition isBoundUp (maxy: IR) :=
+isBoundUpWriggle1 maxy /\ isBoundUpWriggle2 maxy.
+
+Definition upBoundWriggle1 : IR :=
+Y (maxxy (confineRect1 ('α * 'd))).
+
+Lemma upBoundWriggle1Correct 
+  : isBoundUpWriggle1 upBoundWriggle1.
+Proof using dNN firstQuadW maxNeededTurn ntriv ntrivStrict turnCentreOut αPos.
+  intros ? Hb. unfold upBoundWriggle1. simpl.
+  apply (@order_preserving _ _ _ _ _ _ _ _).
+  apply flip_le_negate.
+  apply (@order_preserving _ _ _ _ _ _ _);
+      [apply OrderPreserving_instance_0;
+       apply Cart2DRadNNegIR |].
+  apply Cos_resp_leEq.
+  - apply nonneg_plus_compat; unfold PropHolds;
+      [ eapply firstQuadW1; eauto|].
+    apply flip_le_minus_l.
+    rewrite negate_involutive.
+    setoid_rewrite plus_0_l.
+    apply firstQuadβMinusFront.
+  - rewrite (divideBy2 Pi).
+    apply plus_le_compat;
+      [ apply adPiBy2; assumption|].
+    apply flip_le_minus_l.
+    rewrite (@commutativity _ _ _ plus _ _).
+    apply RingLeProp1.
+    apply firstQuadβMinusFront.
+  - apply plus_le_compat; unfold PropHolds;
+      [| reflexivity].
+    tauto.
+Qed.
+
+(**perhaps a sloppy bound, but as mentioned above, the extra space 
+used at the upward side is not a concern at all.
+It appears that in some cases, this bound is tight, and the 
+highest point of the circle is achieved.
+*)
+Definition upBoundWriggle2 : IR :=
+(trr * (1 - 2 * Cos (' α * ' d)) +' (| βPlusFront |)).
+
+Lemma upBoundWriggle2Correct
+  : isBoundUpWriggle2 upBoundWriggle2.
+Proof using.
+  intros ? Hb. unfold upBoundWriggle2. simpl.
+  apply (@order_preserving _ _ _ _ _ _ _ _).
+  setoid_rewrite <- (mult_1_r (' (| βPlusFront |))) at 3.
+  apply (@order_preserving _ _ _ _ _ _ _);
+      [apply OrderPreserving_instance_0;
+       apply Cart2DRadNNegIR |].
+  apply Cos_leEq_One.
+Qed.
+
+(**perhaps a sloppy bound, but as mentioned above, the extra space 
+used at the upward side is not a concern at all. *)
+Definition upBound  :IR :=
+max upBoundWriggle1 upBoundWriggle2.
+
+
+Lemma upBoundCorrect 
+  : isBoundUp upBound.
+Proof using dNN firstQuadW maxNeededTurn ntriv ntrivStrict turnCentreOut αPos.
+  unfold upBound.
+  split; intros θ H.
+  - eapply transitivity;[|apply lft_leEq_Max].
+    apply upBoundWriggle1Correct. assumption.
+  - eapply transitivity;[|apply rht_leEq_Max].
+    apply upBoundWriggle2Correct. assumption.
+Qed.
+
+Definition WriggleConfineRectFirstQ (bottomBound : IR): Line2D IR :=
+{| minxy := {| X := leftBound ; Y:= bottomBound|};
+  maxxy := {| X := rightBound ; Y:= upBound |}
+|}.
+
+
+
+  Local Opaque confineRect1.
+  Local Opaque confineRect2.
+
+Lemma WriggleConfineRectFirstQCase1Correct :
+('α * 'd ≤ minYCriticalAngle)
+→ carConfinedDuringAMs ('cd) 
+    (WriggleConfineRectFirstQ bottomBoundCase1)
+    SWriggle
+    (0 : Rigid2DState ℝ).
+Proof using dNN firstQuadW lengthFrontGreater maxNeededTurn ntriv 
+ntrivStrict turnCentreOut.
+  intro Hcase1.
+  apply WriggleFirstQSpace2; try assumption; [].
+  intro.
+  rewrite <- (proj1 (confineRectCorrect _)).
+  rewrite <- (proj2 (confineRectCorrect _)).
+  split; intro Hb; split; split; simpl; revert Hb; revert θ;
+  try apply leftBoundCorrect;
+  try apply rightBoundCorrect; 
+  try apply upBoundCorrect; 
+  try apply bottomBoundCase1Correct; 
+  auto.
+Qed.
+
+Lemma WriggleConfineRectFirstQCase2Correct :
+(minYCriticalAngle ≤ 'α * 'd)
+→ carConfinedDuringAMs ('cd) 
+    (WriggleConfineRectFirstQ bottomBoundCase2)
+    SWriggle
+    (0 : Rigid2DState ℝ).
+Proof using dNN firstQuadW lengthFrontGreater maxNeededTurn ntriv 
+ntrivStrict turnCentreOut.
+  intro Hcase1.
+  apply WriggleFirstQSpace2; try assumption; [].
+  intro.
+  rewrite <- (proj1 (confineRectCorrect _)).
+  rewrite <- (proj2 (confineRectCorrect _)).
+  split; intro Hb; split; split; simpl; revert Hb; revert θ;
+  try apply leftBoundCorrect;
+  try apply rightBoundCorrect; 
+  try apply upBoundCorrect; 
+  try apply bottomBoundCase2Correct; 
+  auto.
+Qed.
+
+  Local Transparent confineRect1.
+  Local Transparent confineRect2.
+
+Variable d':IR.
+Hypothesis d'NN : 0 ≤ d'.
+
+Let sidewaysMove : list DAtomicMove 
+  := SidewaysAux ('α) αNZ ('d) (d').
+
+Definition sidewaysFirstQ bottomBound :=
+(sidewaysRect  ('α) ('d) (d') (WriggleConfineRectFirstQ bottomBound) 0).
+
+Lemma SidewaysConfineRectFirstQCase1Correct :
+('α * 'd ≤ minYCriticalAngle)
+→ carConfinedDuringAMs ('cd) 
+    (sidewaysFirstQ bottomBoundCase1)
+    sidewaysMove
+    (0 : Rigid2DState ℝ).
+Proof using dNN firstQuadW lengthFrontGreater maxNeededTurn
+     ntriv ntrivStrict turnCentreOut αNZ.
+  intro Hcase1. unfold sidewaysFirstQ.
+  apply SidewaysAuxSpace.
+  apply WriggleConfineRectFirstQCase1Correct.
+  assumption.
+Qed.
+
+Lemma SidewaysConfineRectFirstQCase2Correct :
+(minYCriticalAngle ≤ 'α * 'd)
+→ carConfinedDuringAMs ('cd) 
+    (sidewaysFirstQ bottomBoundCase2)
+    sidewaysMove
+    (0 : Rigid2DState ℝ).
+Proof using dNN firstQuadW lengthFrontGreater 
+    maxNeededTurn ntriv ntrivStrict turnCentreOut αNZ.
+  intro Hcase1. unfold sidewaysFirstQ.
+  apply SidewaysAuxSpace.
+  apply WriggleConfineRectFirstQCase2Correct.
+  assumption.
+Qed.
+
+
 (**can some reasonable assumption replace [min] by either of its arguments?*)
 Lemma LeftBoundSimpl : leftBound = 
 min 
@@ -1506,7 +1693,7 @@ Proof using αPos.
   unfold leftBound, leftBoundWriggle1, leftBoundWriggle2.
   rewrite  (proj2 (confineRectCorrect _)).
   rewrite  (proj1 (confineRectCorrect _)).
-  simpl.
+  simpl. fold αNZ.
   rewrite <- trComplicated.
   subst rr.
   unfold inprod, InProductCart2D.
@@ -1529,7 +1716,7 @@ Proof using αPos.
   end.
   unfold rightBound.
   rewrite  (proj1 (confineRectCorrect _)).
-  simpl.
+  simpl. fold αNZ.
   rewrite <- trComplicated.
   subst rr. 
   unfold inprod, InProductCart2D.
@@ -1548,7 +1735,7 @@ Proof using αPos.
   end.
   unfold bottomBoundCase1, bottomBoundWriggle2.
   rewrite  (proj2 (confineRectCorrect _)).
-  simpl.
+  simpl.  fold αNZ.
   rewrite <- trComplicated.
   subst rr. 
   unfold inprod, InProductCart2D.
