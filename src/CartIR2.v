@@ -288,3 +288,13 @@ Proof using.
   apply cos_o_RQarctan_east.
   assumption.
 Qed.
+
+
+Definition IIR :Type :=
+(st_car
+     (cs_crr
+        (csg_crr
+           (cm_crr
+              (cg_crr
+                 (cag_crr (cr_crr (cf_crr (cof_crr (crl_crr IR)))))))))).
+

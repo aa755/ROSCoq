@@ -1609,12 +1609,13 @@ Proof using αPos.
   subst. apply Max_wd_unfolded; IRring.
 Qed.
 
+Definition leftExtraSpaceTerm := 
+⟨'{|X := tr + width cd; Y:= -lengthBack cd|}, unitVec (' α * ' d)⟩.
+
 Lemma leftExtraSpaceSimpl2 : leftExtraSpace =
-let dot := 
-  ⟨'{|X := tr + width cd; Y:= -lengthBack cd|}, unitVec (' α * ' d)⟩ in
-max 0 (2 * sin (' α * ' d) * (dot - 'tr)).
+max 0 (2 * sin (' α * ' d) * (leftExtraSpaceTerm - 'tr)).
 Proof using αPos.
-  simpl.
+  unfold leftExtraSpaceTerm.
   hideRight. rewrite leftExtraSpaceSimpl1.
   pose proof (unitVDouble (' α * ' d)) as Hh.
   rewrite  (@simple_associativity _ _ mult _ _ _) in Hh.
@@ -1627,24 +1628,12 @@ Proof using αPos.
   IRring.
 Qed.
 
-(**from this representation, it is clear that at small angles,
-  [dot] is closer to [| βPlusBack |], which is slight larger than
-  [tr+width cd], and hence larger than [tr]. Hence the second argument
-  of [max] will be positive.
-  
-  On the other hand, when [' α * ' d] is large, [cos] will be closer to [0],
-  and [max] will be equal to the left argument, i.e. minima achieved at
-  the initial position.
-  Note that [(½ * π - ' polarTheta βPlusBack)] typically a small angle.
-  *)
-Let dot := 
+Lemma leftExtraSpaceTermSimpl : leftExtraSpaceTerm =
   (' (| βPlusBack |) * cos (' α * ' d + (½ * π - ' polarTheta βPlusBack))).
-Lemma leftExtraSpaceSimpl3 : leftExtraSpace =
-max 0 (2 * sin (' α * ' d) * (dot - 'tr)).
-Proof using αPos.
-  subst dot.
-  hideRight. rewrite leftExtraSpaceSimpl2. simpl.
-  subst.  apply Max_wd_unfolded; [IRring|].
+Proof using.
+  unfold leftExtraSpaceTerm.
+  hideRight. simpl.
+  subst.
   fold CosClassIR.
   fold (@cos IR _).
   rewrite <- unitVDot2.
@@ -1657,6 +1646,18 @@ Proof using αPos.
   rewrite preserves_negate.
   IRring.
 Qed.
+
+(**from the above representation, it is clear that at small angles,
+  [leftExtraSpaceTerm] is closer to [| βPlusBack |], which is slight larger than
+  [tr+width cd], and hence larger than [tr]. Hence the second argument
+  of [max] in [leftExtraSpaceSimpl2 ]will be positive.
+  
+  On the other hand, when [' α * ' d] is large, [cos] will be closer to [0],
+  and [max] will be equal to the left argument, i.e. minima achieved at
+  the initial position.
+  Note that [(½ * π - ' polarTheta βPlusBack)] typically a small angle.
+  See [Mazda3βPlusBack] below.
+  *)
 
 Let cyyQ : Q :=  ((width cd)^2 + (lengthBack cd)^2 + 2* tr* (width cd))%mc.
 
@@ -1711,21 +1712,21 @@ Definition leftCriticalAngle :IR :=
 
 Lemma leftCriticalAngleVsMiny :
 leftCriticalAngle = ' arctan (cyy * ' (/ tr)) - minYCriticalAngle.
-Proof.
+Proof using.
   reflexivity.
 Qed.
 
 Lemma nonTrivialExtraSpaceIf :
 ' α * ' d ≤ leftCriticalAngle
-→ 'tr ≤ dot.
-Proof using dNN ntriv ntrivStrict turnCentreOut αPos widthLt. 
+→ 'tr ≤ leftExtraSpaceTerm.
+Proof using dNN ntriv ntrivStrict turnCentreOut αPos widthLt.
   unfold leftCriticalAngle.
-  intro.
+  intro. rewrite leftExtraSpaceTermSimpl.
   eapply transitivity.
   - apply eq_le. 
     apply cos_o_arctan_east2Q with (cy:=cyy).
     lra.
-  - subst dot. rewrite cyyCorrect.
+  - unfold leftExtraSpaceTerm. rewrite cyyCorrect.
     apply (@order_preserving _ _ _ _ _ _ _);
       [apply OrderPreserving_instance_0;
        apply Cart2DRadNNegIR |].
@@ -1742,19 +1743,18 @@ Proof using dNN ntriv ntrivStrict turnCentreOut αPos widthLt.
         apply PiBy2Ge0.
     + apply flip_le_minus_r. assumption.
 Qed.
-  
 
 Lemma trivialExtraSpaceIf :
-' arctan (cyy * ' (/ tr)) - (½ * π - ' polarTheta βPlusBack) ≤ ' α * ' d
-→ dot ≤ 'tr.
-Proof using dNN firstQuadW ntriv ntrivStrict turnCentreOut widthLt αPos. 
+leftCriticalAngle ≤ ' α * ' d
+→ leftExtraSpaceTerm ≤ 'tr.
+Proof using dNN firstQuadW ntriv ntrivStrict turnCentreOut widthLt αPos.
   unfold leftCriticalAngle.
-  intro.
+  intro.  rewrite leftExtraSpaceTermSimpl.
   eapply transitivity.
   Focus 2.
   - apply eq_le. symmetry. 
     apply cos_o_arctan_east2Q with (cy:=cyy). lra.
-  - subst dot. rewrite cyyCorrect.
+  - rewrite cyyCorrect.
     apply (@order_preserving _ _ _ _ _ _ _);
       [apply OrderPreserving_instance_0;
        apply Cart2DRadNNegIR |].
@@ -1888,5 +1888,92 @@ Proof using.
   split; exists 10%nat;
   simpl; vm_compute; reflexivity.
 Qed.
+
+Section LeftNontrivialCase.
+
+(*Move *)
+Lemma PiBy2LePiMC : ½ * Pi [<=] Pi.
+Proof using.
+  rewrite PiBy2DesugarIR. apply less_leEq. apply HalfPi_less_Pi.
+Qed.
+
+(** It almost-suffices to just consider this case, which is defined by
+  [' α * ' d ≤ leftCriticalAngle].
+We know that it suffices to pick ['d] such that [2*' α * ' d ≤ polarTheta βPlusFront].
+The latter is about 51 degrees. [' α * ' d] is half of that, so we loose nothing if
+we consider the case when [' α * ' d ≤ 26].
+[leftCriticalAngle] is around 24 degrees for Mazda3. 
+Therefore, ensuring [' α * ' d ≤ 24] may be only slightly suboptimal.
+Note that we get to control [d].
+Also, as the available space gets smaller, other constraints will anyways force us
+to choose a smaller positive value of [d], reaching 0 in the limit.
+
+  In this case, the [max] in
+  [leftExtraSpaceSimpl2] above can be simplified to its RHS.
+*)
+
+Lemma leftExtraSpaceSimplCase1 :
+' α * ' d ≤ leftCriticalAngle
+→ leftExtraSpace =
+    (2 * sin (' α * ' d) * (leftExtraSpaceTerm - 'tr)).
+Proof using dNN firstQuadW ntriv ntrivStrict turnCentreOut widthLt αPos. 
+  intro.
+  rewrite leftExtraSpaceSimpl2.
+  apply leEq_imp_Max_is_rht.
+  rewrite <- (@simple_associativity _ _ mult _ _ ).
+  apply RingLeProp3.
+  apply nonneg_mult_compat; unfold PropHolds.
+  - apply Sin_nonneg;[apply adNN; assumption|].
+    eapply transitivity;[apply adPiBy2; assumption|].
+    apply PiBy2LePiMC.
+  - apply flip_le_minus_r. rewrite plus_0_l.
+    apply nonTrivialExtraSpaceIf. assumption.
+Qed.
+
+Definition extraSpaceXCase1 :IR :=
+(2 * sin (' α * ' d) * (leftExtraSpaceTerm - 'tr)) + rightExtraSpace.
+
+Lemma extraSpaceXCase1Correct :
+' α * ' d ≤ leftCriticalAngle
+→ extraSpaceXCase1 = extraSpaceX.
+Proof using dNN firstQuadW ntriv ntrivStrict turnCentreOut widthLt αPos.
+  unfold extraSpaceXCase1, extraSpaceX.
+  intro H. rewrite leftExtraSpaceSimplCase1;[| assumption].
+  reflexivity.
+Qed.
+
+
+(**Lets try to further simplify [extraSpaceXCase1].
+Below, it is expressed entiredly as a function of [(' α * ' d)].
+More specifically, only in terms or [sin (' α * ' d)] and [cos (' α * ' d)]
+[cos (' α * ' d)] can be expressed as [sin (' α * ' d)], and hence, we
+can get rid of trigonometry altogether in the upcoming optimization needed
+to pick the value of [d], given the amount of extra space available.
+[(' α * ' d)] is between 0 and quarter Pi.
+So  [sin (' α * ' d)] is between 0 and 1/sqrt 2.
+*)
+
+Lemma extraSpaceXCase1Simpl2 :
+  let θ :IR := (' α * ' d) in 
+  extraSpaceXCase1 = 
+  2 * (trr + ' width cd) * sin θ * cos θ 
+  - 2 * ' lengthBack cd * (sin θ) ^2
+  + (' width cd - trr) * sin θ
+  + ' lengthFront cd * cos θ
+  - ' lengthFront cd.
+Proof using αPos. 
+  simpl.
+  hideRight.
+  unfold extraSpaceXCase1.
+  rewrite rightExtraSpaceSimpl.
+  unfold leftExtraSpaceTerm.
+  unfold inprod, InProductCart2D.
+  simpl. rewrite preserves_plus.
+  rewrite preserves_negate.
+  fold trr. subst.
+  rewrite nat_pow.nat_pow_2.
+  IRring.
+Qed.
+End LeftNontrivialCase.
 
 End FirstQuadWriggleQ.

@@ -79,7 +79,15 @@ Proof using All.
   assumption.
 Qed.
 
-
+Lemma RingLeProp3  : forall 
+  a : A,
+  0 ≤ a
+  ->0 ≤ 2*a.
+Proof using All.
+  intros ? Hh.
+  rewrite <- RingProp3.
+  apply nonneg_plus_compat; assumption.
+Qed.
 
 End Le.
 
