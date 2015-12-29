@@ -324,4 +324,40 @@ Definition unitVecT `{SinClass R} `{CosClass R} (t:R) := transpose (unitVec t).
 Definition flipAngle (c:Polar2D IR) : Polar2D IR:=
 {| rad := rad c ; θ:= ½ * π -θ c|}.
 
+  Local Notation minxy := (lstart).
+  Local Notation maxxy := (lend).
 
+Lemma minCartIsLeft : forall (a b : Cart2D IR),
+  a ≤ b
+  -> minCart a b = a.
+Proof using.
+  intros ? ? Hle.
+  destruct Hle.
+  split; simpl; apply leEq_imp_Min_is_lft; assumption.
+Qed.
+
+Lemma maxCartIsRight : forall (a b : Cart2D IR),
+  a ≤ b
+  -> maxCart a b = b.
+Proof using.
+  intros ? ? Hle.
+  destruct Hle.
+  split; simpl; apply leEq_imp_Max_is_rht; assumption.
+Qed.
+
+Require Import MCMisc.rings.
+
+Lemma unionWithNonNegDisplacement : forall (a: Line2D IR) (d : Cart2D IR),
+  0 ≤ d
+  -> boundingUnion a (a+'d)
+    = {| minxy := lstart a ; maxxy := lend a + d |}.
+Proof using.
+  intros ? ? Hle.
+  split; simpl.
+  - rewrite minCartIsLeft; auto.
+    rewrite commutativity.
+    apply RingLeProp1. assumption.
+  - rewrite maxCartIsRight; auto.
+    rewrite commutativity.
+    apply RingLeProp1. assumption.
+Qed.
