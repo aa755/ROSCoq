@@ -324,8 +324,6 @@ Definition unitVecT `{SinClass R} `{CosClass R} (t:R) := transpose (unitVec t).
 Definition flipAngle (c:Polar2D IR) : Polar2D IR:=
 {| rad := rad c ; θ:= ½ * π -θ c|}.
 
-  Local Notation minxy := (lstart).
-  Local Notation maxxy := (lend).
 
 Lemma minCartIsLeft : forall (a b : Cart2D IR),
   a ≤ b
@@ -347,7 +345,11 @@ Qed.
 
 Require Import MCMisc.rings.
 
-Lemma unionWithNonNegDisplacement : forall (a: Line2D IR) (d : Cart2D IR),
+  Local Notation ConfineRect := (Line2D).
+  Local Notation minxy := (lstart).
+  Local Notation maxxy := (lend).
+
+Lemma unionWithNonNegDisplacement : forall (a: ConfineRect IR) (d : Cart2D IR),
   0 ≤ d
   -> boundingUnion a (a+'d)
     = {| minxy := lstart a ; maxxy := lend a + d |}.
@@ -361,3 +363,8 @@ Proof using.
     rewrite commutativity.
     apply RingLeProp1. assumption.
 Qed.
+
+
+Definition totalSpaceX (c : ConfineRect IR) :IR :=
+  X (maxxy c) - X (minxy c).
+

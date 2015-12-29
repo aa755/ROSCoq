@@ -42,6 +42,7 @@ Hint Unfold One_instance_IR : IRMC.
   Local Notation minxy := (lstart).
   Local Notation maxxy := (lend).
   Local Notation  "∫" := Cintegral.
+  Local Notation ConfineRect := (Line2D).
 
   
 Local Opaque CSine.
@@ -465,6 +466,42 @@ Definition confineRect2Raw (θ:IR): Line2D IR
                    |}.
 
 
+Lemma WriggleMove1FirstQSpace2 :  ∀  (confineRect: Line2D IR),
+(∀ θ:IR, 0 ≤ θ ≤ α * d
+ →  confineRect1Raw θ ⊆ confineRect)
+  <->
+  carConfinedDuringAM cd confineRect (steerAndDrive α αNZ d) init.
+Proof using All.
+  intros ?. unfold confineRect1Raw, confineRect2Raw.
+  simpl.
+  apply iff_under_forall.
+  intro θ. simpl.
+  remember (f_rcpcl α (pos_ap_zero ℝ α αPos)) as trr.
+  clear Heqtrr.
+  unfold inBetweenR.
+  rewrite plus_0_l.
+  rewrite leEq_imp_Min_is_lft;
+    [| exact adNN].
+  rewrite leEq_imp_Max_is_rht;
+    [| exact adNN].
+  apply iff_under_imp. intros Hb.
+  rewrite carMinMaxXYAM;
+  [| assumption |apply firstQuadW1; exact Hb].
+  eapply po_properL; eauto with typeclass_instances.
+  rewrite <- carMinMaxXYAtθ2Same.
+  unfold carMinMaxXYAtθ2.
+  simpl.
+  rewrite Sin_zero.
+  rewrite Cos_zero.
+  fold Zero_instance_IR.
+  fold (@zero IR _).
+  fold One_instance_IR.
+  fold (@one IR _).
+  rewrite preserves_0.
+  unfold inprod, InProductCart2D;split; split; simpl;
+    try IRring.
+Qed.
+
 Lemma WriggleFirstQSpace2 :  ∀  (confineRect: Line2D IR),
 (∀ θ:IR,
 (0 ≤ θ ≤ α * d
@@ -527,9 +564,9 @@ Because cartesian to polar conversion is currently
     only defined for rational coordinates, we now
     assume that the turn radius and the car's dimensions
     are rationals.
-    Eventually, they can be reals 
-    along with constructive proofs of whether
-    they are 0 or away from it.
+    Eventually, they can be real-valued coordinates,
+    as long as the X coordinate is constructively away from 0.
+    Even classically, the polar angle is undefined at [{|X:=0; Y:=0|}]
 
 In the  "constant times cosine" explained above, the value 
 in the representation, the angle β can for
@@ -562,9 +599,18 @@ End CornerAngles.
 
 Section FirstQuadWriggleQ.
 
+(**We will typically use the maximum turn curvature α, 
+is based on the geometry of the car.*)
 Variable α : Q.
 Hypothesis αPos : ((0:IR)[<]'α).
+
+(** Unlike α and cd, [d] will be determined from a solution to an optimization problem.
+The ideal value may be irrational. Being forced to use a rational value may complicate
+the proofs, and may foil the idea of dealing with inaccuracies separately. 
+Making it a real number should not break proofs. This value is not needed in polar 
+conversion. *)
 Variable d : Q.
+
 Variable cd : CarDimensions Q.
 Hypothesis ntriv : nonTrivialCarDim (' cd).
 Hypothesis dNN : ((0:IR)≤'d).
@@ -1165,7 +1211,7 @@ Qed.
 
 (**actually only half of [maxNeededTurn] is needed.
 *)
-Lemma rightBoundCorrectWriggle1 
+Lemma rightBoundWriggle1Correct
   : isBoundRightWriggle1 rightBound.
 Proof using firstQuadW maxNeededTurn ntriv ntrivStrict turnCentreOut.
   unfold  rightBound.
@@ -1199,7 +1245,7 @@ Proof using firstQuadW maxNeededTurn ntriv ntrivStrict turnCentreOut.
     tauto.
 Qed.
 
-Lemma rightBoundCorrectWriggle2
+Lemma rightBoundWriggle2Correct
   : isBoundRightWriggle2 rightBound.
 Proof using dNN firstQuadW maxNeededTurn ntriv ntrivStrict turnCentreOut αPos.
   unfold  rightBound.
@@ -1222,7 +1268,7 @@ Qed.
 Lemma rightBoundCorrect 
   : isBoundRight rightBound.
 Proof using dNN firstQuadW maxNeededTurn ntriv ntrivStrict turnCentreOut αPos.
-  split;[apply rightBoundCorrectWriggle1|apply rightBoundCorrectWriggle2].
+  split;[apply rightBoundWriggle1Correct |apply rightBoundWriggle2Correct].
 Qed.
 
 
@@ -1586,20 +1632,62 @@ Proof using dNN firstQuadW maxNeededTurn ntriv ntrivStrict turnCentreOut αPos.
     apply upBoundWriggle2Correct. assumption.
 Qed.
 
-Definition WriggleConfineRectFirstQ (bottomBound : IR): Line2D IR :=
+Definition WriggleMove1SpaceFirstQ (bottomBound : IR): ConfineRect IR :=
+{| minxy := {| X := leftBoundWriggle1 ; Y:= bottomBound |};
+  maxxy := {| X := rightBound ; Y:= upBoundWriggle1 |}
+|}.
+
+
+Definition WriggleSpaceFirstQ (bottomBound : IR): Line2D IR :=
 {| minxy := {| X := leftBound ; Y:= bottomBound|};
   maxxy := {| X := rightBound ; Y:= upBound |}
 |}.
 
-
-
   Local Opaque confineRect1.
   Local Opaque confineRect2.
 
-Lemma WriggleConfineRectFirstQCase1Correct :
+Lemma WriggleMove1SpaceFirstQCase1Correct :
+('α * 'd ≤ minYCriticalAngle)
+→ carConfinedDuringAM ('cd) 
+    (WriggleMove1SpaceFirstQ bottomBoundWriggle1Case1)
+    (steerAndDrive ('α) αNZ ('d))
+    (0 : Rigid2DState ℝ).
+Proof using dNN firstQuadW maxNeededTurn ntriv ntrivStrict turnCentreOut αPos.
+  intro Hcase1. simpl.
+  apply WriggleMove1FirstQSpace2; auto.
+  intro.
+  rewrite <- (proj1 (confineRectCorrect _)).
+  intro Hb; split; split; simpl; revert Hb; revert θ;
+  try apply leftBoundWriggle1Correct;
+  try apply rightBoundWriggle1Correct; 
+  try apply upBoundWriggle1Correct; 
+  try apply bottomBoundWriggle1Case1Correct; 
+  auto.
+Qed.
+
+Lemma WriggleMove1SpaceFirstQCase2Correct :
+(minYCriticalAngle ≤ 'α * 'd)
+→ carConfinedDuringAM ('cd) 
+    (WriggleMove1SpaceFirstQ bottomBoundWriggle1Case2)
+    (steerAndDrive ('α) αNZ ('d))
+    (0 : Rigid2DState ℝ).
+Proof using dNN firstQuadW maxNeededTurn ntriv ntrivStrict turnCentreOut αPos.
+  intro Hcase1. simpl.
+  apply WriggleMove1FirstQSpace2; auto.
+  intro.
+  rewrite <- (proj1 (confineRectCorrect _)).
+  intro Hb; split; split; simpl; revert Hb; revert θ;
+  try apply leftBoundWriggle1Correct;
+  try apply rightBoundWriggle1Correct; 
+  try apply upBoundWriggle1Correct; 
+  try apply bottomBoundWriggle1Case2Correct; 
+  auto.
+Qed.
+
+Lemma WriggleSpaceFirstQCase1Correct :
 ('α * 'd ≤ minYCriticalAngle)
 → carConfinedDuringAMs ('cd) 
-    (WriggleConfineRectFirstQ bottomBoundCase1)
+    (WriggleSpaceFirstQ bottomBoundCase1)
     SWriggle
     (0 : Rigid2DState ℝ).
 Proof using dNN firstQuadW lengthFrontGreater maxNeededTurn ntriv 
@@ -1617,10 +1705,10 @@ ntrivStrict turnCentreOut.
   auto.
 Qed.
 
-Lemma WriggleConfineRectFirstQCase2Correct :
+Lemma WriggleSpaceFirstQCase2Correct :
 (minYCriticalAngle ≤ 'α * 'd)
 → carConfinedDuringAMs ('cd) 
-    (WriggleConfineRectFirstQ bottomBoundCase2)
+    (WriggleSpaceFirstQ bottomBoundCase2)
     SWriggle
     (0 : Rigid2DState ℝ).
 Proof using dNN firstQuadW lengthFrontGreater maxNeededTurn ntriv 
@@ -1647,36 +1735,53 @@ Hypothesis d'NN : 0 ≤ d'.
 Let sidewaysMove : list DAtomicMove 
   := SidewaysAux ('α) αNZ ('d) (d').
 
-Definition sidewaysFirstQ bottomBound :=
-(sidewaysRect  ('α) ('d) (d') (WriggleConfineRectFirstQ bottomBound) 0).
+Definition sidewaysRectFirstQ bottomBound :=
+(sidewaysRect  ('α) ('d) (d') (WriggleSpaceFirstQ bottomBound) 0).
 
-Lemma SidewaysConfineRectFirstQCase1Correct :
+Lemma SidewaysSpaceFirstQCase1Correct :
 ('α * 'd ≤ minYCriticalAngle)
 → carConfinedDuringAMs ('cd) 
-    (sidewaysFirstQ bottomBoundCase1)
+    (sidewaysRectFirstQ bottomBoundCase1)
     sidewaysMove
     (0 : Rigid2DState ℝ).
 Proof using dNN firstQuadW lengthFrontGreater maxNeededTurn
      ntriv ntrivStrict turnCentreOut αNZ.
-  intro Hcase1. unfold sidewaysFirstQ.
+  intro Hcase1. unfold sidewaysRectFirstQ.
   apply SidewaysAuxSpace.
-  apply WriggleConfineRectFirstQCase1Correct.
+  apply WriggleSpaceFirstQCase1Correct.
   assumption.
 Qed.
 
 Lemma SidewaysConfineRectFirstQCase2Correct :
 (minYCriticalAngle ≤ 'α * 'd)
 → carConfinedDuringAMs ('cd) 
-    (sidewaysFirstQ bottomBoundCase2)
+    (sidewaysRectFirstQ bottomBoundCase2)
     sidewaysMove
     (0 : Rigid2DState ℝ).
 Proof using dNN firstQuadW lengthFrontGreater 
     maxNeededTurn ntriv ntrivStrict turnCentreOut αNZ.
-  intro Hcase1. unfold sidewaysFirstQ.
+  intro Hcase1. unfold sidewaysRectFirstQ.
   apply SidewaysAuxSpace.
-  apply WriggleConfineRectFirstQCase2Correct.
+  apply WriggleSpaceFirstQCase2Correct.
   assumption.
 Qed.
+
+Lemma sidewaysRectFirstQSimpl1 : forall  b,
+sidewaysRectFirstQ b =
+  {| minxy := minxy (WriggleSpaceFirstQ b);
+     maxxy := maxxy (WriggleSpaceFirstQ b) + ' (d') * unitVec (2 * ' α * ' d)
+  |}.
+Proof using d'NN firstQuadW.
+  intro. unfold sidewaysRectFirstQ, sidewaysRect.
+  unfold sidewaysDisp.
+  simpl θ2D.
+  rewrite plus_0_l.  
+  rewrite unionWithNonNegDisplacement;[reflexivity|].
+  apply nonneg_mult_compat; unfold PropHolds;[split; assumption|].
+  apply unitVecNonNeg.
+  assumption.
+Qed.
+
 
 
 (**can some reasonable assumption replace [min] by either of its arguments?*)
