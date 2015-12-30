@@ -149,6 +149,9 @@ Record CarDimensions (A:Type):=
    width :A
 }.
 
+Definition totalLength `{Plus A} (cd : CarDimensions A) : A := 
+lengthFront cd + lengthBack cd.
+
 Require Import geometry2D.
 
 (** enough data to render a car in a picture, which will be a part of an animation*)

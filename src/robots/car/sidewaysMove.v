@@ -977,17 +977,6 @@ Abort.
 Definition thisCarHasSameGeometryAs (cg : CarGeometry Q) :=
   cd ≡ carDim cg /\ tr ≡ minTR cg.
 
-(* Move *)
-Lemma PiBy2IRCR:
-CRasIR (½ * π) =  ½ * π.
-Proof using.
-  rewrite PiBy2DesugarIR.
-  rewrite <- (IRasCRasIR_id (Pi [/]TwoNZ)).
-  rewrite <- CRPiBy2Correct.
-  rewrite commutativity.
-  reflexivity.
-Qed.
-
 Lemma Mazda3Hyp1True :
 thisCarHasSameGeometryAs ('Mazda3Sedan2014sGT)
 -> extraHyp1.
@@ -1150,7 +1139,8 @@ Qed.
 
 Lemma leftBoundCorrect: 
 isBoundLeftWriggle leftBound.
-Proof.
+Proof using dNN firstQuadW lengthFrontGreater maxNeededTurn 
+      ntriv ntrivStrict turnCentreOut αNZ.
   unfold leftBound.
   split; intros θ H.
   - eapply transitivity;[apply Min_leEq_lft|].
@@ -1782,6 +1772,17 @@ Proof using d'NN firstQuadW.
   assumption.
 Qed.
 
+Definition sidewaysTotalSpaceX : IR :=
+rightBound - leftBound +  (d') * cos (2 * ' α * ' d).
+
+Lemma sidewaysTotalSpaceXCorrect : forall  b,
+totalSpaceX (sidewaysRectFirstQ b) =
+ rightBound - leftBound +  (d') * cos (2 * ' α * ' d).
+Proof using d'NN firstQuadW.
+  intro. unfold totalSpaceX, sidewaysTotalSpaceX.
+  rewrite sidewaysRectFirstQSimpl1. simpl.
+  IRring.
+Qed.
 
 
 (**can some reasonable assumption replace [min] by either of its arguments?*)
@@ -1850,6 +1851,30 @@ Proof using αPos.
   reflexivity.
 Qed.
 
+Lemma BottomBoundCase1Simpl2 : 
+let θ :IR := (' α * ' d) in
+  bottomBoundCase1 =
+  2 *  (- 'lengthBack cd) * sin θ * cos θ
+  - 2 * (trr - 'width cd) * (sin θ) ^2
+  - 2 *trr * cos θ
+  + 2* trr - ' width cd.
+Proof using αPos.
+  intro.
+  match goal with
+  [|- _= ?r] => remember r as rr
+  end.
+  rewrite BottomBoundCase1Simpl.
+  pose proof (unitVDouble (' α * ' d)) as Hh.
+  rewrite  (@simple_associativity _ _ mult _ _ _) in Hh.
+  rewrite Hh. clear Hh.
+  unfold inprod, InProductCart2D. simpl.
+  fold θ. 
+  rewrite preserves_negate.
+  rewrite preserves_minus.
+  subst rr. fold trr.
+  IRring.
+Qed.
+
 (**can some reasonable assumption replace [min] by either of its arguments?*)
 Lemma BottomBoundCase2Simpl : bottomBoundCase2 = 
 min (trr - ' (| βPlusBack |)) (** extrema inside the 1st move*)
@@ -1864,34 +1889,34 @@ Proof using αPos.
 Qed.
 
 (**subtract the initially needed space*)
-Definition leftExtraSpace :IR :=
+Definition leftExtraSpaceWriggle :IR :=
 -(leftBound - (- 'lengthBack cd)).
 
-Definition rightExtraSpace :IR :=
+Definition rightExtraSpaceWriggle :IR :=
 (rightBound - 'lengthFront cd).
 
-Definition extraSpaceX :IR :=
-leftExtraSpace + rightExtraSpace.
+Definition extraSpaceXWriggle :IR :=
+leftExtraSpaceWriggle + rightExtraSpaceWriggle.
 
-Lemma rightExtraSpaceSimpl : rightExtraSpace =
+Lemma rightExtraSpaceSimpl : rightExtraSpaceWriggle =
 ⟨ ' {| X := lengthFront cd; Y := tr + width cd |}, unitVec (' α * ' d) ⟩ -
 ' lengthFront cd .
 Proof using αPos.
-  unfold rightExtraSpace.
+  unfold rightExtraSpaceWriggle.
   rewrite  RightBoundSimpl.
   reflexivity.
 Qed.
 
 
 
-Lemma leftExtraSpaceSimpl1 : leftExtraSpace =
+Lemma leftExtraSpaceSimpl1 : leftExtraSpaceWriggle =
 max 0
   (⟨' {| X := lengthBack cd; Y := tr + width cd |}, unitVec (2 * ' α * ' d)⟩ 
      - ' lengthBack cd 
      - 2 * ' tr * Sin (' α * ' d)).
 Proof using αPos.
   hideRight.
-  unfold leftExtraSpace.
+  unfold leftExtraSpaceWriggle.
   rewrite <- negate_swap_r.
   rewrite <- negate_plus_distr.
   rewrite  LeftBoundSimpl.
@@ -1904,7 +1929,7 @@ Qed.
 Definition leftExtraSpaceTerm := 
 ⟨'{|X := tr + width cd; Y:= -lengthBack cd|}, unitVec (' α * ' d)⟩.
 
-Lemma leftExtraSpaceSimpl2 : leftExtraSpace =
+Lemma leftExtraSpaceSimpl2 : leftExtraSpaceWriggle =
 max 0 (2 * sin (' α * ' d) * (leftExtraSpaceTerm - 'tr)).
 Proof using αPos.
   unfold leftExtraSpaceTerm.
@@ -2183,11 +2208,6 @@ Qed.
 
 Section LeftNontrivialCase.
 
-(*Move *)
-Lemma PiBy2LePiMC : ½ * Pi [<=] Pi.
-Proof using.
-  rewrite PiBy2DesugarIR. apply less_leEq. apply HalfPi_less_Pi.
-Qed.
 
 (** It almost-suffices to just consider this case, which is defined by
   [' α * ' d ≤ leftCriticalAngle].
@@ -2204,9 +2224,9 @@ to choose a smaller positive value of [d], reaching 0 in the limit.
   [leftExtraSpaceSimpl2] above can be simplified to its RHS.
 *)
 
-Lemma leftExtraSpaceSimplCase1 :
+Lemma leftExtraSpaceWriggleSimplCase1 :
 ' α * ' d ≤ leftCriticalAngle
-→ leftExtraSpace =
+→ leftExtraSpaceWriggle =
     (2 * sin (' α * ' d) * (leftExtraSpaceTerm - 'tr)).
 Proof using dNN firstQuadW ntriv ntrivStrict turnCentreOut widthLt αPos. 
   intro.
@@ -2222,15 +2242,15 @@ Proof using dNN firstQuadW ntriv ntrivStrict turnCentreOut widthLt αPos.
     apply nonTrivialExtraSpaceIf. assumption.
 Qed.
 
-Definition extraSpaceXCase1 :IR :=
-(2 * sin (' α * ' d) * (leftExtraSpaceTerm - 'tr)) + rightExtraSpace.
+Definition extraSpaceXWriggleCase1 :IR :=
+(2 * sin (' α * ' d) * (leftExtraSpaceTerm - 'tr)) + rightExtraSpaceWriggle.
 
-Lemma extraSpaceXCase1Correct :
+Lemma extraSpaceXWriggleCase1Correct :
 ' α * ' d ≤ leftCriticalAngle
-→ extraSpaceXCase1 = extraSpaceX.
+→ extraSpaceXWriggleCase1 = extraSpaceXWriggle.
 Proof using dNN firstQuadW ntriv ntrivStrict turnCentreOut widthLt αPos.
-  unfold extraSpaceXCase1, extraSpaceX.
-  intro H. rewrite leftExtraSpaceSimplCase1;[| assumption].
+  unfold extraSpaceXWriggleCase1, extraSpaceXWriggle.
+  intro H. rewrite leftExtraSpaceWriggleSimplCase1;[| assumption].
   reflexivity.
 Qed.
 
@@ -2245,9 +2265,9 @@ to pick the value of [d], given the amount of extra space available.
 So  [sin (' α * ' d)] is between 0 and 1/sqrt 2.
 *)
 
-Lemma extraSpaceXCase1Simpl2 :
+Lemma extraSpaceXWriggleCase1Simpl2 :
   let θ :IR := (' α * ' d) in 
-  extraSpaceXCase1 = 
+  extraSpaceXWriggleCase1 = 
   2 * (trr + ' width cd) * sin θ * cos θ 
   - 2 * ' lengthBack cd * (sin θ) ^2
   + (' width cd - trr) * sin θ
@@ -2256,7 +2276,7 @@ Lemma extraSpaceXCase1Simpl2 :
 Proof using αPos. 
   simpl.
   hideRight.
-  unfold extraSpaceXCase1.
+  unfold extraSpaceXWriggleCase1.
   rewrite rightExtraSpaceSimpl.
   unfold leftExtraSpaceTerm.
   unfold inprod, InProductCart2D.
@@ -2266,6 +2286,29 @@ Proof using αPos.
   rewrite nat_pow.nat_pow_2.
   IRring.
 Qed.
+
+
+Definition extraSpaceXSidewaysCase1 :IR :=
+extraSpaceXWriggleCase1 
++ d' * cos (2 * ' α * ' d).
+
+Lemma extraSpaceXSidewaysCase1Correct :
+' α * ' d ≤ leftCriticalAngle
+->
+extraSpaceXSidewaysCase1=
+sidewaysTotalSpaceX 
+- ' totalLength cd (** subtracting the initially needed space*).
+Proof using dNN firstQuadW ntriv ntrivStrict turnCentreOut widthLt αNZ.
+  intros Hle. unfold extraSpaceXSidewaysCase1.
+  rewrite extraSpaceXWriggleCase1Correct;[| assumption].
+  unfold extraSpaceXWriggle, leftExtraSpaceWriggle, rightExtraSpaceWriggle,
+    sidewaysTotalSpaceX.
+  unfold totalLength.
+  rewrite preserves_plus.
+  IRring.
+Qed.
+
+
 End LeftNontrivialCase.
 
 End FirstQuadWriggleQ.

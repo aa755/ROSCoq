@@ -298,3 +298,18 @@ Definition IIR :Type :=
               (cg_crr
                  (cag_crr (cr_crr (cf_crr (cof_crr (crl_crr IR)))))))))).
 
+Lemma PiBy2LePiMC : ½ * Pi [<=] Pi.
+Proof using.
+  rewrite PiBy2DesugarIR. apply less_leEq. apply HalfPi_less_Pi.
+Qed.
+
+(* Move *)
+Lemma PiBy2IRCR:
+CRasIR (½ * π) =  ½ * π.
+Proof using.
+  rewrite PiBy2DesugarIR.
+  rewrite <- (IRasCRasIR_id (Pi [/]TwoNZ)).
+  rewrite <- CRPiBy2Correct.
+  rewrite commutativity.
+  reflexivity.
+Qed.
