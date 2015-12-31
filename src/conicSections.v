@@ -85,10 +85,10 @@ Definition evalConic (c : ConicSection A) (p : Cart2D A) :=
 
 Require Import MathClasses.interfaces.additional_operations. 
 
-(** B*B - 4*A*C*)
+(** B^2 - 4*A*C*)
 Definition discriminant (c : ConicSection A): A :=
   (xyCoeff c)^2 - 4* (X (sqrCoeff c)) * (Y (sqrCoeff c)).
-  
+
 End Conic.
 
 Global Instance CastConicSection `{Cast A B} 

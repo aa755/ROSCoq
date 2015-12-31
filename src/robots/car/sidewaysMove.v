@@ -2311,6 +2311,35 @@ Proof using αPos.
   IRring.
 Qed.
 
+(**Positive! Hence a hyperbola*)
+Lemma extraSpaceXWriggleAsConicDiscriminant :
+discriminant extraSpaceXWriggleAsConic = 
+((2 * (tr + width cd)) ^ 2)%Q.
+Proof using.
+  unfold discriminant.
+  simpl.
+  rewrite mult_0_r.
+  rewrite mult_0_l.
+  rewrite minus_0_r.
+  rewrite nat_pow.nat_pow_2.
+  autounfold with QMC.
+  simpl. ring.
+Qed.
+
+(**Positive! Hence a hyperbola*)
+Lemma BottomBoundCase1AsConicDiscriminant :
+discriminant BottomBoundCase1AsConic = 
+((2 * lengthBack cd) ^ 2)%Q.
+Proof using.
+  unfold discriminant.
+  simpl.
+  rewrite mult_0_r.
+  rewrite mult_0_l.
+  rewrite minus_0_r.
+  rewrite nat_pow.nat_pow_2.
+  autounfold with QMC.
+  simpl. ring.
+Qed.
 
 Definition extraSpaceXSidewaysCase1 :IR :=
 extraSpaceXWriggleCase1 
