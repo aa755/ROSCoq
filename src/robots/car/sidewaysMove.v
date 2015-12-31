@@ -1851,27 +1851,40 @@ Proof using αPos.
   reflexivity.
 Qed.
 
-Lemma BottomBoundCase1Simpl2 : 
-let θ :IR := (' α * ' d) in
-  bottomBoundCase1 =
-  2 *  (- 'lengthBack cd) * sin θ * cos θ
-  - 2 * (trr - 'width cd) * (sin θ) ^2
-  - 2 *trr * cos θ
-  + 2* trr - ' width cd.
-Proof using αPos.
+Require Import conicSections.
+
+Definition BottomBoundCase1AsConic : ConicSection Q :=
+{| 
+  sqrCoeff := {|X:=0; Y:= - 2 * (tr - width cd) |};
+  linCoeff := {|X:= - 2 *tr ; Y:= 0 |};
+  xyCoeff := - 2 * lengthBack cd;
+  constCoeff :=  2* tr -  width cd
+|}.
+
+Lemma BottomBoundCase1AsConicCorrect :
+  let θ :IR := (' α * ' d) in 
+  bottomBoundCase1 = 
+  evalConic ('BottomBoundCase1AsConic) (unitVec θ).
+Proof using αPos. 
   intro.
-  match goal with
-  [|- _= ?r] => remember r as rr
-  end.
+  hideRight.
   rewrite BottomBoundCase1Simpl.
   pose proof (unitVDouble (' α * ' d)) as Hh.
   rewrite  (@simple_associativity _ _ mult _ _ _) in Hh.
   rewrite Hh. clear Hh.
-  unfold inprod, InProductCart2D. simpl.
+  subst. unfold evalConic,  sqrEach. simpl.
+  unfold inprod, InProductCart2D.
+  simpl. 
   fold θ. 
-  rewrite preserves_negate.
-  rewrite preserves_minus.
-  subst rr. fold trr.
+  do 3 rewrite preserves_mult.
+  do 2 rewrite preserves_plus.
+  do 1 rewrite preserves_mult.
+  do 3 rewrite preserves_negate.
+  fold trr. 
+  rewrite preserves_0.
+  rewrite preserves_2.
+  rewrite nat_pow.nat_pow_2.
+  unfold cast.
   IRring.
 Qed.
 
@@ -2265,25 +2278,36 @@ to pick the value of [d], given the amount of extra space available.
 So  [sin (' α * ' d)] is between 0 and 1/sqrt 2.
 *)
 
-Lemma extraSpaceXWriggleCase1Simpl2 :
+
+
+Definition extraSpaceXWriggleAsConic : ConicSection Q :=
+{| 
+  sqrCoeff := {|X:=0; Y:= - 2 *  lengthBack cd |};
+  linCoeff := {|X:= lengthFront cd; Y:= ( width cd - tr) |};
+  xyCoeff := 2 * (tr + width cd);
+  constCoeff := - lengthFront cd
+|}.
+
+Lemma extraSpaceXWriggleAsConicCorrect :
   let θ :IR := (' α * ' d) in 
   extraSpaceXWriggleCase1 = 
-  2 * (trr + ' width cd) * sin θ * cos θ 
-  - 2 * ' lengthBack cd * (sin θ) ^2
-  + (' width cd - trr) * sin θ
-  + ' lengthFront cd * cos θ
-  - ' lengthFront cd.
+  evalConic ('extraSpaceXWriggleAsConic) (unitVec θ).
 Proof using αPos. 
   simpl.
   hideRight.
   unfold extraSpaceXWriggleCase1.
   rewrite rightExtraSpaceSimpl.
   unfold leftExtraSpaceTerm.
+  subst. unfold evalConic,  sqrEach. simpl.
   unfold inprod, InProductCart2D.
-  simpl. rewrite preserves_plus.
-  rewrite preserves_negate.
-  fold trr. subst.
-  rewrite nat_pow.nat_pow_2.
+  simpl. 
+  do 2 rewrite preserves_mult.
+  do 2 rewrite preserves_plus.
+  do 4 rewrite preserves_negate.
+  fold trr. 
+  rewrite preserves_0.
+  rewrite preserves_2.
+  unfold cast.
   IRring.
 Qed.
 
