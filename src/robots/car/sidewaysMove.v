@@ -2268,31 +2268,47 @@ Proof using dNN firstQuadW ntriv ntrivStrict turnCentreOut widthLt αPos.
 Qed.
 
 
-(**Lets try to further simplify [extraSpaceXCase1].
-Below, it is expressed entiredly as a function of [(' α * ' d)].
-More specifically, only in terms or [sin (' α * ' d)] and [cos (' α * ' d)]
-[cos (' α * ' d)] can be expressed as [sin (' α * ' d)], and hence, we
-can get rid of trigonometry altogether in the upcoming optimization needed
-to pick the value of [d], given the amount of extra space available.
-[(' α * ' d)] is between 0 and quarter Pi.
-So  [sin (' α * ' d)] is between 0 and 1/sqrt 2.
-*)
+(** 
+The inverse probelem, i.e. to find the parameter d, given the available space
+can be expressed as a problem of finding the intersection of a unit
+circle with these conic sections, as suggested by Trold at:
+http://math.stackexchange.com/questions/1593502/solving-a-sin-theta-b-cos-theta-c-sin-2-theta-d-cos-2-theta-k
 
+There is a choice. Cos 2θ can be written in terms of either Sin^2 θ,
+or Cos^2 θ, or both.
+The rotation angle needed in each of these 3 cases seems to be the same.
+But, in the last choice, it is immediately clear that the
+asypmtotes of the hyperbola are orthogonal.
+For the rotation angle in the Sin^2 θ case, look at the commit 
+https://github.com/aa755/ROSCoq/commit/227e0d239723f7accbf58f4fdd6233645b6670e1
+*)
 
 
 Definition extraSpaceXWriggleAsConic : ConicSection Q :=
 {| 
-  sqrCoeff := {|X:=0; Y:= - 2 *  lengthBack cd |};
-  linCoeff := {|X:= lengthFront cd; Y:= ( width cd - tr) |};
+  sqrCoeff := negY * 'lengthBack cd;
+  linCoeff := negY * βMinusFront;
   xyCoeff := 2 * (tr + width cd);
-  constCoeff := - lengthFront cd
+  constCoeff := - (totalLength cd)
 |}.
+
+(*typeclass resolution happens right here, when declaring the database,
+and not while rewriting. leaving out arguments here can confuse
+the resolution later*)
+Hint Rewrite  
+(@preserves_2 Q IR _ _ _ _ _ _ _ _ _ _ (@cast Q IR _) _)
+(@preserves_1 Q IR _ _ _ _ _ _ _ _ _ _ (@cast Q IR _) _) 
+(@preserves_0 Q IR _ _ _ _ _ _ _ _ _ _ (@cast Q IR _) _) 
+(@preserves_negate Q _ _ _ _ _ _ _ IR _ _ _ _ _ _ _  (@cast Q IR _) _)
+(@preserves_plus Q IR _ _ _ _ _ _ _ _ _ _ (@cast Q IR _) _)
+(@preserves_mult Q IR  _ _ _ _ _ _ _ _ _ _ (@cast Q IR _) _)
+ : Q2RMC.
 
 Lemma extraSpaceXWriggleAsConicCorrect :
   let θ :IR := (' α * ' d) in 
   extraSpaceXWriggleCase1 = 
   evalConic ('extraSpaceXWriggleAsConic) (unitVec θ).
-Proof using αPos. 
+Proof using αPos.
   simpl.
   hideRight.
   unfold extraSpaceXWriggleCase1.
@@ -2300,27 +2316,24 @@ Proof using αPos.
   unfold leftExtraSpaceTerm.
   subst. unfold evalConic,  sqrEach. simpl.
   unfold inprod, InProductCart2D.
-  simpl. 
-  do 2 rewrite preserves_mult.
-  do 2 rewrite preserves_plus.
-  do 4 rewrite preserves_negate.
-  fold trr. 
-  rewrite preserves_0.
-  rewrite preserves_2.
+  simpl.
+  unfold totalLength.
+  autorewrite with Q2RMC.
+  fold trr.
   unfold cast.
+  fold (@ cast Q IR _).
+  rewrite FFT3.
   IRring.
 Qed.
 
 (**Positive! Hence a hyperbola*)
 Lemma extraSpaceXWriggleAsConicDiscriminant :
 discriminant extraSpaceXWriggleAsConic = 
-((2 * (tr + width cd)) ^ 2)%Q.
+((2 * (tr + width cd)) ^ 2)%Q
++((2 * (lengthBack cd)) ^ 2)%Q.
 Proof using.
   unfold discriminant.
   simpl.
-  rewrite mult_0_r.
-  rewrite mult_0_l.
-  rewrite minus_0_r.
   rewrite nat_pow.nat_pow_2.
   autounfold with QMC.
   simpl. ring.
@@ -2333,7 +2346,6 @@ rotateConicXYTerm extraSpaceXWriggleAsConic
 Proof using.
   unfold rotateConicXYTerm.
   simpl.
-  rewrite minus_0_r.
   split; simpl; autounfold with QMC; ring.
 Qed.
 
@@ -2402,6 +2414,13 @@ Proof.
   split; reflexivity.
 Qed.
 
+Global Instance ProperxyBuildConic `{Equiv A} : 
+Proper (equiv ==>equiv ==>equiv ==>equiv ==> equiv) (@Build_ConicSection A).
+Proof using.
+  intros ? ? H1 ? ? H2 ? ? H3 ? ? H4.
+  split; simpl; eauto 3 with typeclass_instances.
+Qed.
+
 (** The goal is to make it 0, and thus make the conic axis aligned,
   by choosing an appropriate rotation θ*)
 Lemma rotateConicXYCoeff : forall (θ:IR),
@@ -2428,16 +2447,53 @@ Proof.
   unfold negY.
   change (@cast _ _ (@castCart Q IR _)) with (@castCart Q IR _).
   unfold castCart. simpl.
-  rewrite preserves_1.
-  rewrite preserves_negate.
-  rewrite preserves_1.
-  rewrite preserves_2.
+  autorewrite with Q2RMC.
   rewrite unitVDot2.
   unfold norm, NormCart2DQ.
   rewrite  (@simple_associativity _ _ mult _ _).
   reflexivity.
 Qed.
-  
+
+
+Definition rotateConicXspaceArbitrary (θ:IR) : ConicSection IR:=
+let p : Polar2D IR := ' βPlusBack in
+{|
+sqrCoeff := negY * ' ((rad p) * (cos (Vector.θ p - 2 * θ)));
+linCoeff := {|
+            X := ⟨ ' (negY * βMinusFront), unitVec θ ⟩;
+            Y := ⟨ nflip (' (negY * βMinusFront)), unitVec θ ⟩ |};
+xyCoeff := 2 * (rad p) * sin (Vector.θ p - 2 * θ);
+constCoeff := ' (- totalLength cd) |}.
+
+Lemma rotateConicXspace : forall (θ:IR),
+(rotateConic θ ('extraSpaceXWriggleAsConic)) 
+= rotateConicXspaceArbitrary θ.
+Proof using.
+  intros ?.
+  unfold rotateConic, rotateConicXspaceArbitrary.
+  rewrite <- unitVDot.
+  rewrite multDotLeft.
+  rewrite <- (CartToPolarCorrect βPlusBack).
+  setoid_rewrite rotateConicXYCoeff.
+  assert (
+    (½ * π - Vector.θ (' βPlusBack) + 2 * θ)
+    = (½ * π - (Vector.θ (' βPlusBack) - 2 * θ))
+  ) as Heq by IRring.
+  rewrite Heq. clear Heq.
+  unfold sin, SinClassIR.
+  rewrite  <- (Cos_HalfPi_minus (Vector.θ (' βPlusBack) - 2 * θ)).
+  rewrite <- PiBy2DesugarIR.
+  simpl.
+  rewrite unitVDouble.
+  do 3 rewrite nat_pow.nat_pow_2.
+  rewrite FFT3.
+  unfold inprod, InProductCart2D, nflip.
+  simpl.
+  split;[|dands]; simpl; try reflexivity; try IRring;[].
+  autorewrite with Q2RMC.
+  split; simpl;  try IRring.
+Qed.
+
 (**Positive! Hence a hyperbola*)
 Lemma BottomBoundCase1AsConicDiscriminant :
 discriminant BottomBoundCase1AsConic = 
