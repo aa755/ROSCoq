@@ -84,7 +84,7 @@ Definition sqrEach : (Cart2D A) -> (Cart2D A) :=
 
 Global Instance ProperSqrEach : 
 Proper (equiv  ==> equiv) (@sqrEach).
-Proof.
+Proof using H.
   intros ? ? h1.
   unfold  sqrEach, cast, castCart.
   simpl.
@@ -103,7 +103,7 @@ Definition evalConic (c : ConicSection A) (p : Cart2D A) :=
 
 Global Instance ProperEvalConic : 
 Proper (equiv ==> equiv ==> equiv) evalConic.
-Proof.
+Proof using H.
   intros ? ? h1 ? ? h2.
   unfold evalConic, sqrEach.
   unfold cast, castCart, sqrEach.
@@ -120,6 +120,12 @@ Require Import MathClasses.interfaces.additional_operations.
 Definition discriminant (c : ConicSection A): A :=
   (xyCoeff c)^2 - 4* (X (sqrCoeff c)) * (Y (sqrCoeff c)).
 
+Definition conicAxisAligned (c : ConicSection A) :=
+xyCoeff c = 0.
+
+Definition rotateConicXYTerm  (cs : ConicSection A)  : Cart2D A :=
+{| X := xyCoeff cs; Y := Y (sqrCoeff cs) - X (sqrCoeff cs) |}.
+
 Definition rotateConic `{SinClass A} `{CosClass A} 
 (θ:A) (cs : ConicSection A)  : ConicSection A :=
 let a := X (sqrCoeff cs) in 
@@ -132,7 +138,7 @@ let b := xyCoeff cs in
   linCoeff := 
     {|X:= ⟨linCoeff cs, unitVec θ⟩; 
       Y:= ⟨nflip (linCoeff cs), unitVec θ⟩ |};
-  xyCoeff := ⟨{|X:=b; Y:= c-a|}, unitVec (2*θ)⟩;
+  xyCoeff := ⟨rotateConicXYTerm cs, unitVec (2*θ)⟩;
   constCoeff := constCoeff cs
 |}.
 
@@ -145,14 +151,26 @@ Require Import CartIR2.
 Require Import geometry2DProps.
 Require Import geometry2D.
 Require Import CartIR.
-Require Import fastReals.interface.
 Require Import IRMisc.LegacyIRRing.
+Require Import fastReals.interface.
+
+Local Opaque Sin.
+Local Opaque Cos.
+(* Move *)
+Lemma FFT3 : forall (θ:IR),
+cos θ * cos θ  = 1 - sin θ * sin θ.
+Proof using.
+  intro.
+  rewrite <- (FFT θ).
+  simpl.
+  IRring.
+Qed.
 
 Lemma rotateConicCorrect : forall (θ:IR)
 (cs : ConicSection IR)
 (p : Cart2D IR) ,
 evalConic (rotateConic θ cs)  p = evalConic cs (rotateAxis (-θ) p).
-Proof.
+Proof using.
   intros ? ? ?.
   rewrite rotateAxisInvSimpl.
   unfold rotateConic, evalConic.
@@ -213,10 +231,23 @@ c * X1 * X0 + c * Y1 * Y0 - xy * sqr s 2 * X1 * Y1 +
 sqr s 2 * Y * sqr X1 2 + s * X1 * Y0 - s * Y1 * X0 + cc )
   as Heq by  (subst sqr; simpl; clear ; IRring)
   end.
-Abort.
+  rewrite Heq. clear Heq.
+  subst.
+  rewrite FFT3.
+  IRring.
+Qed.
 
-End ConicProps.
-
+Lemma rotateConicCorrect2 : forall (θ:IR)
+(cs : ConicSection IR)
+(p : Cart2D IR) ,
+evalConic (rotateConic θ cs) (rotateAxis θ p) = evalConic cs p.
+Proof using.
+  intros.
+  remember (rotateAxis θ p) as pp.
+  rewrite <- (rotateAxisInvertibleIR p θ).
+  subst pp.
+  apply rotateConicCorrect.
+Qed.
 
 Global Instance CastConicSection `{Cast A B} 
   : Cast (ConicSection A) (ConicSection B) :=
@@ -225,3 +256,43 @@ fun a =>  Build_ConicSection
             ('linCoeff a) 
             ('xyCoeff a)
             ('constCoeff a).
+
+Lemma multDotLeft `{Ring A}:
+  ∀ (a:A) (b c : Cart2D A), a * (⟨ b, c ⟩) = ⟨ ' a * b, c ⟩.
+Proof using.
+  intros. unfold inprod, InProductCart2D.
+  simpl.
+  do 2 rewrite <- (@simple_associativity _ _ mult _ _).
+  rewrite <- plus_mult_distr_l.
+  reflexivity.
+Qed.
+
+Require Import geometry2D.
+Require Import geometry2DProps.
+
+(** The goal is to make it 0, and thus make the conic axis aligned*)
+Lemma rotateConicXYCoeff : forall (θ:IR)
+(cs : ConicSection Q),
+let p : Polar2D IR := ' rotateConicXYTerm cs in
+xyCoeff (rotateConic θ ('cs) )=  (rad p) * cos (Vector.θ p - 2 * θ).
+Proof using.
+  intros.
+  hideRight.
+  simpl.
+  unfold rotateConicXYTerm.
+  simpl.
+  rewrite <- preserves_minus.
+  change 
+  ({| X := ' xyCoeff cs; Y := ' (Y (sqrCoeff cs) - X (sqrCoeff cs)) |})
+  with
+  (@cast _ (Cart2D IR) _ (rotateConicXYTerm cs)).
+  rewrite CartToPolarCorrect.
+  rewrite <- multDotLeft.
+  rewrite unitVDot.
+  subst.
+  reflexivity.
+Qed.
+
+End ConicProps.
+
+

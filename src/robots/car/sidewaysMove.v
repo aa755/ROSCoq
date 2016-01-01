@@ -2326,6 +2326,118 @@ Proof using.
   simpl. ring.
 Qed.
 
+
+Lemma extraSpaceXWriggleRotateConicXYTerm :
+rotateConicXYTerm extraSpaceXWriggleAsConic 
+  = '(2:Q) * negY * (transpose βPlusBack).
+Proof using.
+  unfold rotateConicXYTerm.
+  simpl.
+  rewrite minus_0_r.
+  split; simpl; autounfold with QMC; ring.
+Qed.
+
+(*Move *)
+Lemma preserves_RotateConicXYTerm `{c:Cast A B} 
+ `{@Ring A ae apl am az ao an}
+ `{@Ring B be bp bm bz bo bn}
+ `{@SemiRing_Morphism A B ae be apl am az ao bp bm bz bo c}
+ (cs : ConicSection A)  : 
+ (rotateConicXYTerm ('cs) : Cart2D B) = ' (rotateConicXYTerm cs) .
+Proof.
+  simpl. unfold rotateConicXYTerm.
+  simpl.
+  rewrite <- preserves_minus.
+  split; reflexivity.
+Qed.
+
+Global Instance srm_CastCart `{c:Cast A B} 
+ `{@Ring A ae apl am az ao an}
+ `{@Ring B be bp bm bz bo bn}
+  `{@SemiRing_Morphism A B ae be apl am az ao bp bm bz bo c}:
+    SemiRing_Morphism (@cast (Cart2D A) (Cart2D B) _).
+Proof using.
+repeat (split; unfold cast, castCart; simpl; try apply _);
+try rewrite H2; try reflexivity.
+- apply preserves_plus.
+- apply preserves_plus.
+- apply preserves_0.
+- apply preserves_0.
+- apply preserves_mult.
+- apply preserves_mult.
+- apply preserves_1.
+- apply preserves_1.
+Qed.
+
+(*
+Not useful because typically A and B will be a ring, so the above 
+Instance can be used instead. SemiRing_Morphism implies Setoid_Morphism
+
+Global Instance ProperCastCart `{c:Cast A B} 
+ `{H:Setoid_Morphism A B c}  : 
+    Setoid_Morphism (@cast (Cart2D A) (Cart2D B) _).
+Proof using.
+  destruct H.
+  split; unfold Setoid;  eauto 2 with typeclass_instances.
+  intros ? ? H1.
+  unfold cast, castCart.
+  rewrite H1.
+  reflexivity.
+Qed.
+*)
+
+Lemma castCartCommute `{c:Cast A B} `{e:Equiv B} `{Equivalence B e}:
+ forall a:A,
+  @cast B (Cart2D B) _ ('a) =  '(@cast A (Cart2D A) _ a).
+Proof.
+  intros ?.
+  split; reflexivity.
+Qed.
+
+Lemma transposeCastCommute `{c:Cast A B} `{e:Equiv B} `{Equivalence B e}:
+ forall a: Cart2D A,
+  transpose ('a) =  '(transpose a).
+Proof.
+  intros ?.
+  split; reflexivity.
+Qed.
+
+(** The goal is to make it 0, and thus make the conic axis aligned,
+  by choosing an appropriate rotation θ*)
+Lemma rotateConicXYCoeff : forall (θ:IR),
+let p : Polar2D IR := ' βPlusBack in
+xyCoeff (rotateConic θ ('extraSpaceXWriggleAsConic) )
+  =  2 * (rad p) * cos (½ * π - Vector.θ p + 2 * θ).
+Proof.
+  intros ?. simpl.
+  rewrite preserves_RotateConicXYTerm.
+  rewrite extraSpaceXWriggleRotateConicXYTerm.
+  rewrite preserves_mult.
+  rewrite preserves_mult.
+  rewrite <-  castCartCommute.
+  rewrite <- (@simple_associativity _ _ mult _ _).
+  rewrite <- multDotLeft.
+  rewrite <- transposeCastCommute.
+  rewrite  CartToPolarCorrect90Minus.
+  rewrite  (@simple_associativity _ _ mult _ _).
+  rewrite  (@commutativity (Cart2D IR) _ _ mult _ _).
+  rewrite  (@simple_associativity _ _ mult _ _).
+  rewrite  (@commutativity (Cart2D IR) _ _ mult _ _).
+  rewrite <- multDotLeft.
+  rewrite  (@commutativity (Cart2D IR) _ _ mult _ _).
+  unfold negY.
+  change (@cast _ _ (@castCart Q IR _)) with (@castCart Q IR _).
+  unfold castCart. simpl.
+  rewrite preserves_1.
+  rewrite preserves_negate.
+  rewrite preserves_1.
+  rewrite preserves_2.
+  rewrite unitVDot2.
+  unfold norm, NormCart2DQ.
+  rewrite  (@simple_associativity _ _ mult _ _).
+  reflexivity.
+Qed.
+  
 (**Positive! Hence a hyperbola*)
 Lemma BottomBoundCase1AsConicDiscriminant :
 discriminant BottomBoundCase1AsConic = 
