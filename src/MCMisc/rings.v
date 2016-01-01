@@ -53,6 +53,26 @@ Proof using All.
   ring.
 Qed.
 
+(*
+ Lemma X:
+ forall 
+(X Y X0 Y0 xy cc X1 Y1 s c : A),
+
+((X * (c * c) + xy * s * c + Y * (s * s)) * (X1 * X1) +
+(Y * (c * c) - xy * s * c + X * (s * s)) * (Y1 * Y1) +
+((X0 * c + Y0 * s) * X1 + (Y0 * c + - X0 * s) * Y1 +
+ (xy * (1 - 2 * (s * s)) + (Y - X) * (2 * s * c)) * X1 *
+ Y1 + cc))  =
+X * ((X1 * c - Y1 * s) * (X1 * c - Y1 * s)) +
+Y * ((Y1 * c + X1 * s) * (Y1 * c + X1 * s)) +
+(X0 * (X1 * c - Y1 * s) + Y0 * (Y1 * c + X1 * s) +
+ xy * (X1 * c - Y1 * s) * (Y1 * c + X1 * s) + cc)
+.
+ Proof.
+ intros.
+ ring_simplify.
+*)
+
 Section Le.
 Require Export MathClasses.orders.rings.
 Context `{Le A}

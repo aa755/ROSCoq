@@ -364,7 +364,53 @@ Proof using.
     apply RingLeProp1. assumption.
 Qed.
 
+Require Import MathClasses.interfaces.vectorspace.
+
+Require Import IRMisc.LegacyIRRing.
+
+Require Import CartIR.
+(* Move *)
+Lemma FFT2 : forall (θ:IR),
+(Cos θ * Cos θ + Sin θ * Sin θ) = 1.
+Proof using.
+  intro.
+  rewrite <- (FFT θ).
+  simpl.
+  IRring.
+Qed.
+
+Require Import fastReals.interface.
+Lemma rotateAxisInvSimpl :
+forall (p : Cart2D IR) (θ:IR),
+(rotateAxis (-θ) p) =   
+  {| X := X p * cos θ - Y p * sin θ;
+    Y := Y p * cos θ + X p * sin θ
+  |}.
+Proof using.
+  intros ? ?.  unfold rotateAxis. simpl.
+  unfold inprod, InProductCart2D.
+  split; simpl; 
+  autounfold with IRMC;
+  rewrite Cos_inv;
+  rewrite Sin_inv; ring.
+Qed.  
+  
+Lemma rotateAxisInvertibleIR :
+forall (p : Cart2D IR) (θ:IR),
+(rotateAxis (-θ)) ((rotateAxis θ) p) = p.
+Proof using.
+  intros ? ?. rewrite rotateAxisInvSimpl.
+  unfold rotateAxis, inprod, InProductCart2D.
+  split; simpl;
+  autounfold with IRMC;
+  ring_simplify.
+  - setoid_rewrite <- (mult_1_r (X p)) at 3.
+    rewrite <- (FFT θ).
+    simpl. IRring.
+  - setoid_rewrite <- (mult_1_r (Y p)) at 3.
+    rewrite <- (FFT θ).
+    simpl. IRring.
+Qed.
 
 Definition totalSpaceX (c : ConfineRect IR) :IR :=
   X (maxxy c) - X (minxy c).
-

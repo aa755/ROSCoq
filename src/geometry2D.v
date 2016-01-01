@@ -322,3 +322,12 @@ Proof using .
   reflexivity.
 Qed.
 
+(** This operation shows up again and again.
+Is there a good name for it?*)
+Definition nflip `{Negate R} (p : Cart2D R) := 
+{| X:= Y p ; Y:= -X p|}.
+
+Definition rotateAxis `{Ring R} `{CosClass R} `{SinClass R} 
+(θ:R) (p : Cart2D R)  :=
+{|X := ⟨p, unitVec θ⟩; 
+  Y:= ⟨nflip p, unitVec θ⟩ |}.

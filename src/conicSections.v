@@ -61,6 +61,12 @@ Proof.
 Qed.
 
 
+Global Instance ProperxyCoeff `{Equiv A} : 
+Proper (equiv ==> equiv) (@xyCoeff A).
+Proof.
+  intros ? ? Heq. destruct Heq. tauto.
+Qed.
+
 Section Conic.
 (** A is the type of coefficients of the conic section.
 We assume that it is an instance of a ring, and has an
@@ -76,6 +82,17 @@ Context (A:Type) `{Ring A} `{Le A}
 Definition sqrEach : (Cart2D A) -> (Cart2D A) :=
 @castCart A A (fun x => x*x). 
 
+Global Instance ProperSqrEach : 
+Proper (equiv  ==> equiv) (@sqrEach).
+Proof.
+  intros ? ? h1.
+  unfold  sqrEach, cast, castCart.
+  simpl.
+  unfold cast.
+  rewrite h1.
+  reflexivity.
+Qed.
+
 Require Import MathClasses.interfaces.vectorspace.
 
 Definition evalConic (c : ConicSection A) (p : Cart2D A) :=
@@ -83,13 +100,123 @@ Definition evalConic (c : ConicSection A) (p : Cart2D A) :=
 + (xyCoeff c) * (X p) * (Y p)
 + constCoeff c.
 
+
+Global Instance ProperEvalConic : 
+Proper (equiv ==> equiv ==> equiv) evalConic.
+Proof.
+  intros ? ? h1 ? ? h2.
+  unfold evalConic, sqrEach.
+  unfold cast, castCart, sqrEach.
+  simpl.
+  unfold cast.
+  rewrite h1.
+  rewrite h2.
+  reflexivity.
+Qed.
+
 Require Import MathClasses.interfaces.additional_operations. 
 
 (** B^2 - 4*A*C*)
 Definition discriminant (c : ConicSection A): A :=
   (xyCoeff c)^2 - 4* (X (sqrCoeff c)) * (Y (sqrCoeff c)).
 
+Definition rotateConic `{SinClass A} `{CosClass A} 
+(θ:A) (cs : ConicSection A)  : ConicSection A :=
+let a := X (sqrCoeff cs) in 
+let c := Y (sqrCoeff cs) in 
+let b := xyCoeff cs in 
+{| 
+  sqrCoeff := {|
+    X:= a*(cos θ)^2 + b *(sin θ)*(cos θ)  + c*(sin θ)^2; 
+    Y:= c*(cos θ)^2 - b *(sin θ)*(cos θ)  + a*(sin θ)^2;|};
+  linCoeff := 
+    {|X:= ⟨linCoeff cs, unitVec θ⟩; 
+      Y:= ⟨nflip (linCoeff cs), unitVec θ⟩ |};
+  xyCoeff := ⟨{|X:=b; Y:= c-a|}, unitVec (2*θ)⟩;
+  constCoeff := constCoeff cs
+|}.
+
+
 End Conic.
+
+Section ConicProps.
+
+Require Import CartIR2.
+Require Import geometry2DProps.
+Require Import geometry2D.
+Require Import CartIR.
+Require Import fastReals.interface.
+Require Import IRMisc.LegacyIRRing.
+
+Lemma rotateConicCorrect : forall (θ:IR)
+(cs : ConicSection IR)
+(p : Cart2D IR) ,
+evalConic (rotateConic θ cs)  p = evalConic cs (rotateAxis (-θ) p).
+Proof.
+  intros ? ? ?.
+  rewrite rotateAxisInvSimpl.
+  unfold rotateConic, evalConic.
+  simpl. rewrite unitVDouble.
+  do 2 rewrite nat_pow.nat_pow_2.
+  simpl.
+  unfold rotateAxis, inprod, InProductCart2D.
+  simpl.
+  unfold cast.
+  remember (sin θ) as s.
+  remember (cos θ) as c.
+  destruct cs.
+  destruct sqrCoeff0.
+  destruct linCoeff0.
+  destruct p.
+  simpl.
+  rename xyCoeff0 into xy.
+  rename constCoeff0 into cc.
+  remember (fun x _ :IR => x*x) as sqr.
+  (*ring_simplify takes all of the 16GB memory in a few seconds, and never returns.
+    The current workaround is to change to a different ring.
+    Both on Z, and any abstract MathClasses.abstract_algebra.ring,
+    ring_simlify returns within a second.
+    On Z, power terms are also reconized in the output.
+    Here are the steps.
+    1) remember all the non-ring terms. Express constants like 2,3
+        inside the ring, e.g. 1+1, 1+1+1
+    2) revert all variable to get a closed equality lemma. 
+    3) Paste it in a new file containing  
+        Require Import ZArith.
+         Open Scope Z_scope.
+    4) Replace ℝ by Z in the lemma statement.
+        intros and then ring_simplify. Copy the simplified terms here and use
+        ring to prove the correctness of the simplification. 
+        Fortunately, unlike ring_simlify, ring works quickly.
+    *)
+  match goal with
+  [|- ?l = _] => assert
+  (l=
+X * sqr c 2 * sqr X1 2 - 2 * X * c * s * X1 * Y1 +
+X * sqr s 2 * sqr Y1 2 + sqr c 2 * Y * sqr Y1 2 + 
+c * xy * s * sqr X1 2 - c * xy * s * sqr Y1 2 + 
+2 * c * s * Y * X1 * Y1 + c * X1 * X0 + c * Y1 * Y0 -
+2 * xy * sqr s 2 * X1 * Y1 + xy * X1 * Y1 + sqr s 2 * Y * sqr X1 2 +
+s * X1 * Y0 - s * Y1 * X0 + cc )
+  as Heq by  (subst sqr; simpl; clear ; IRring)
+  end.
+  rewrite Heq. clear Heq.
+
+  match goal with
+  [|- _ = ?l] => assert
+  (l=
+X * sqr c 2 * sqr X1 2 - 2 * X * c * s * X1 * Y1 +
+X * sqr s 2 * sqr Y1 2 + sqr c 2 * xy * X1 * Y1 +
+sqr c 2 * Y * sqr Y1 2 + c * xy * s * sqr X1 2 - 
+c * xy * s * sqr Y1 2 + 2 * c * s * Y * X1 * Y1 + 
+c * X1 * X0 + c * Y1 * Y0 - xy * sqr s 2 * X1 * Y1 +
+sqr s 2 * Y * sqr X1 2 + s * X1 * Y0 - s * Y1 * X0 + cc )
+  as Heq by  (subst sqr; simpl; clear ; IRring)
+  end.
+Abort.
+
+End ConicProps.
+
 
 Global Instance CastConicSection `{Cast A B} 
   : Cast (ConicSection A) (ConicSection B) :=
