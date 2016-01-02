@@ -2272,18 +2272,23 @@ For the rotation angle in the Sin^2 θ case, look at the commit
 https://github.com/aa755/ROSCoq/commit/227e0d239723f7accbf58f4fdd6233645b6670e1
 *)
 
+(** Extra X space for available for wriggle *)
+Variable  εwx : Q.
+Hypothesis εwxNNeg : (0≤εwx).
 
 Definition extraSpaceXWriggleAsConic : ConicSection Q :=
 {| 
   sqrCoeff := negY * 'lengthBack cd;
   linCoeff := negY * βMinusFront;
   xyCoeff := 2 * (tr + width cd);
-  constCoeff := - (totalLength cd)
+  constCoeff := - (totalLength cd + εwx)
 |}.
 
+Local Opaque inj_Q Q2R.
+(** We have to solve the inverse problem, which is LHS=0*)
 Lemma extraSpaceXWriggleAsConicCorrect :
   let θ :IR := (' α * ' d) in 
-  extraSpaceXWriggleCase1 = 
+  extraSpaceXWriggleCase1 - εwx= 
   evalConic ('extraSpaceXWriggleAsConic) (unitVec θ).
 Proof using αPos.
   simpl.
@@ -2327,45 +2332,29 @@ Proof using.
 Qed.
 
 
-(** The goal is to make it 0, and thus make the conic axis aligned,
-  by choosing an appropriate rotation θ*)
-Lemma rotateConicXYCoeff : forall (θ:IR),
-let p : Polar2D IR := ' βPlusBack in
-xyCoeff (rotateConic θ ('extraSpaceXWriggleAsConic) )
-  =  2 * (rad p) * sin (Vector.θ p - 2 * θ).
-Proof using.
-  intros ?. simpl.
-  rewrite preserves_RotateConicXYTerm.
-  rewrite extraSpaceXWriggleRotateConicXYTerm.
-  rewrite preserves_mult.
-  rewrite <-  castCartCommute.
-  rewrite <- multDotLeft.
-  rewrite unitVDotRAsPolarNflip.
-  simpl.
-  rewrite preserves_2.
-  rewrite  (@simple_associativity _ _ mult _ _).
-  reflexivity.
-Qed.
-
-
-Definition rotateConicXspaceArbitrary (θ:IR) : ConicSection IR:=
+Definition rotateConicXspaceArbitrary (θr:IR) : ConicSection IR:=
 let pb : Polar2D IR := ' βPlusBack in
 let pf : Polar2D IR := ' βMinusFront in
 {|
-sqrCoeff := negY * ' ((rad pb) * (cos (Vector.θ pb - 2 * θ)));
-linCoeff := negY * ('(rad pf) * (unitVec (Vector.θ pf + θ)));
-xyCoeff := 2 * (rad pb) * sin (Vector.θ pb - 2 * θ);
-constCoeff := ' (- totalLength cd) |}.
+sqrCoeff := negY * ' ((rad pb) * (cos (θ pb - 2 * θr)));
+linCoeff := negY * ('(rad pf) * (unitVec (θ pf + θr)));
+xyCoeff := 2 * (rad pb) * sin (θ pb - 2 * θr);
+constCoeff := ' - (totalLength cd  + εwx) |}.
 
-Lemma rotateConicXspace : forall (θ:IR),
-(rotateConic θ ('extraSpaceXWriggleAsConic)) 
-= rotateConicXspaceArbitrary θ.
+Lemma rotateConicXspace : forall (θr:IR),
+(rotateConic θr ('extraSpaceXWriggleAsConic)) 
+= rotateConicXspaceArbitrary θr.
 Proof using.
   intros ?.
   unfold rotateConic, rotateConicXspaceArbitrary.
   rewrite <- (unitVDotRAsPolar βPlusBack).
-  setoid_rewrite rotateConicXYCoeff.
   simpl.
+  rewrite preserves_RotateConicXYTerm.
+  rewrite extraSpaceXWriggleRotateConicXYTerm.
+  rewrite (preserves_mult ('2) (nflip βPlusBack)).
+  rewrite <-  castCartCommute.
+  rewrite <- multDotLeft.
+  rewrite unitVDotRAsPolarNflip.
   rewrite unitVDouble.
   do 2 rewrite nat_pow.nat_pow_2.
   rewrite FFT3.
@@ -2382,8 +2371,176 @@ Proof using.
     rewrite <- (unitVDotRAsPolarTranspose βMinusFront).
     unfold inprod, InProductCart2D, negY. simpl.
     autorewrite with Q2RMC. split; simpl; IRring.
+  - rewrite preserves_2. IRring.
 Qed.
 
+Definition conicXspaceRotated : ConicSection IR:=
+let pb : Polar2D IR := ' βPlusBack in
+let pf : Polar2D IR := ' βMinusFront in
+{|
+sqrCoeff := '(rad pb) * negY ;
+linCoeff := '(rad pf) * (negY * (unitVec (θ pf + ½ * θ pb)));
+xyCoeff := 0; (** making this 0 was the main goal of rotation*)
+constCoeff := ' - (totalLength cd  + εwx) |}.
+
+(**Move*)
+Lemma rotateAxisUnitVec: forall (θ β : IR),
+  (rotateAxis β (unitVec θ))
+  = unitVec (θ - β).
+Proof using.
+  intros ? ?.
+  unfold rotateAxis.
+  simpl.
+  rewrite unitVDot.
+  split; simpl;[reflexivity|].
+  unfold inprod, InProductCart2D.
+  simpl.
+  symmetry.
+  rewrite <- negate_mult_distr_l.
+  apply Sine_minus.
+Qed.
+
+
+Lemma twoMultHalf :
+2 * ½ = (1:IR).
+Proof using.
+  rewrite commutativity.
+  remember (Two:IR).
+  autounfold with IRMC.
+  rewrite one_plus_one.
+  apply half_1.
+Qed.
+
+Lemma conicXspaceRotatedCorrect:
+  extraSpaceXWriggleCase1 - εwx =
+  evalConic 
+    conicXspaceRotated
+    (unitVec (' α * ' d - ½ * 'polarTheta βPlusBack)).
+Proof using αNZ.
+  rewrite extraSpaceXWriggleAsConicCorrect.
+  rewrite <- rotateConicCorrect2 with 
+    (θ:= ½ * 'polarTheta βPlusBack).
+  rewrite rotateAxisUnitVec.
+  apply ProperEvalConic;[| reflexivity].
+  rewrite rotateConicXspace.
+  unfold rotateConicXspaceArbitrary.
+  rewrite (@simple_associativity _ _ mult _ _).
+  rewrite twoMultHalf.
+  rewrite mult_1_l.
+  simpl.
+  rewrite plus_negate_r.
+  rewrite Cos_zero.
+  rewrite Sin_zero.
+  unfold conicXspaceRotated.
+  split;[|dands]; simpl; try reflexivity; try IRring;
+  split; simpl; try IRring.
+Qed.
+
+(**Move*)
+Lemma rational_sqrt_correct2: ∀ (a : Q) (H : [0] [<=] inj_Q ℝ a),
+     CRasIR (rational_sqrt a) =  (sqrt (inj_Q ℝ a) H).
+Proof using.
+  intros ? ?.
+  apply (injective IRasCR).
+  rewrite CRasIRasCR_id.
+  apply rational_sqrt_correct.
+Qed.
+
+Lemma  QNormSqrPosX : forall (q : Cart2D Q),
+  0 < X q
+  -> 0 < normSqr q.
+Proof using.
+  intros ? Hlt. unfold normSqr.
+  pose proof Qpower.Qsqr_nonneg (Y q) as H1.
+  simpl in H1.
+  pose proof (@Q.Qmult_lt_0_compat _ _  Hlt Hlt).
+  autounfold with QMC.
+  lra.
+Qed.
+
+Lemma  QNormSqrPosY : forall (q : Cart2D Q),
+  0 < Y q
+  -> 0 < normSqr q.
+Proof using.
+  intros ? Hlt. unfold normSqr.
+  pose proof Qpower.Qsqr_nonneg (X q) as H1.
+  simpl in H1.
+  pose proof (@Q.Qmult_lt_0_compat _ _  Hlt Hlt).
+  autounfold with QMC.
+  lra.
+Qed.
+
+Lemma  βPlusBackNormSqrPos :
+  0< normSqr βPlusBack.
+Proof using ntrivStrict.
+  simpl.
+  apply QNormSqrPosX.
+  simpl.
+  apply ntrivStrict.
+Qed.
+
+Lemma βPlusBackNormPos : 0[<] '|βPlusBack|.
+Proof using ntrivStrict.
+  unfold CanonicalNotations.norm, NormSpace_instance_Cart2D.
+  unfold sqrtFun, rational_sqrt_SqrtFun_instance.
+  pose proof βPlusBackNormSqrPos as Hp.
+  apply Qpos_adaptor in Hp.
+  eapply less_wdr;[| symmetry; apply rational_sqrt_correct2].
+  apply sqrt_less.
+  eapply less_wdl;[apply Hp|].
+  simpl. IRring.
+  
+  Unshelve.
+  eauto 2 with CoRN.
+Qed.
+
+Lemma βPlusBackNormPos2 : 0[<] normIR ('βPlusBack).
+Proof using ntrivStrict.
+  eapply less_wdr; [ apply βPlusBackNormPos|].
+  symmetry. apply QNormSqrIR. 
+Qed.
+
+Definition βPlusBackNormInv :IR :=  normIRInv _ βPlusBackNormPos2.
+
+Definition conicXspaceRotatedScaled : ConicSection IR:=
+let pb : Polar2D IR := ' βPlusBack in
+let pf : Polar2D IR := ' βMinusFront in
+{|
+sqrCoeff := negY;
+linCoeff := '(βPlusBackNormInv  * (rad pf))
+        * (negY * (unitVec (θ pf + ½ * θ pb)));
+xyCoeff := 0;
+constCoeff := βPlusBackNormInv * ' - (totalLength cd  + εwx) |}.
+
+Lemma conicXspaceRotatedScaledCorrect : 
+βPlusBackNormInv*(extraSpaceXWriggleCase1 - εwx) =
+evalConic 
+    conicXspaceRotatedScaled
+    (unitVec (' α * ' d - ½ * 'polarTheta βPlusBack)).
+Proof using αPos.
+  rewrite conicXspaceRotatedCorrect.
+  generalize ((unitVec (' α * ' d - ½ * ' polarTheta βPlusBack))).
+  intros ?.
+  unfold βPlusBackNormInv, evalConic.
+  simpl.
+  rewrite mult_0_l.
+  rewrite mult_0_l.
+  remember ((negY *
+      unitVec (' polarTheta βMinusFront + ½ * ' polarTheta βPlusBack))).
+  setoid_rewrite <- Heqy.
+  clear Heqy.
+  rewrite <- multDotLeft.
+  rewrite <- multDotLeft.
+  rewrite plus_0_r.
+  rewrite plus_0_r.
+  rewrite plus_mult_distr_l.
+  rewrite (@simple_associativity _ _ mult _ _).
+  rewrite <- QNormSqrIR.
+  rewrite normIRInvSpecInvLeft.
+  fold βPlusBackNormInv.
+  rewrite <- multDotLeft.
+  IRring.
+Qed.
 
 (**Positive! Hence a hyperbola*)
 Lemma BottomBoundCase1AsConicDiscriminant :
