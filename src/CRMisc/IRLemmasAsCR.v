@@ -255,6 +255,15 @@ Proof.
   CRRing.
 Qed.
 
+Lemma rational_sqrt_correct2: ∀ (a : Q) (H : [0] [<=] inj_Q IR a),
+     CRasIR (rational_sqrt a) =  (sqrt (inj_Q IR a) H).
+Proof using.
+  intros ? ?.
+  apply (injective IRasCR).
+  rewrite CRasIRasCR_id.
+  apply rational_sqrt_correct.
+Qed.
+
 Close Scope Q_scope.
 
 Definition QCRM := CR_Q_ring_morphism.

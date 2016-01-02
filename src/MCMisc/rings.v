@@ -45,6 +45,22 @@ Proof using All.
   intros ? ? ? . ring.
 Qed.
 
+Lemma MultShuffle3l: 
+∀ a b c : A, 
+ a * (b * c) = b * a * c.
+Proof using All.
+  intros.
+  ring.
+Qed.
+
+Lemma MultShuffle3r: 
+∀ a b c : A, 
+ a * b * c = a * c * b.
+Proof using All.
+  intros.
+  ring.
+Qed.
+
 Lemma MultSqrMix: 
 ∀ a b c d : A, 
  (a * b * c * d = (a * c) * (b * d)).

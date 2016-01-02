@@ -2379,7 +2379,7 @@ let pb : Polar2D IR := ' βPlusBack in
 let pf : Polar2D IR := ' βMinusFront in
 {|
 sqrCoeff := '(rad pb) * negY ;
-linCoeff := '(rad pf) * (negY * (unitVec (θ pf + ½ * θ pb)));
+linCoeff := '(rad pf) * (unitVec (-(θ pf + ½ * θ pb)));
 xyCoeff := 0; (** making this 0 was the main goal of rotation*)
 constCoeff := ' - (totalLength cd  + εwx) |}.
 
@@ -2431,44 +2431,16 @@ Proof using αNZ.
   rewrite plus_negate_r.
   rewrite Cos_zero.
   rewrite Sin_zero.
+  setoid_rewrite mult_1_r.
+  rewrite (@simple_associativity _ _ mult _ _).
+  setoid_rewrite (@commutativity _ _ _ mult _ negY) at 2.
+  rewrite <- (@simple_associativity _ _ mult _ _).
+  rewrite <- unitVNegate.
   unfold conicXspaceRotated.
   split;[|dands]; simpl; try reflexivity; try IRring;
   split; simpl; try IRring.
 Qed.
 
-(**Move*)
-Lemma rational_sqrt_correct2: ∀ (a : Q) (H : [0] [<=] inj_Q ℝ a),
-     CRasIR (rational_sqrt a) =  (sqrt (inj_Q ℝ a) H).
-Proof using.
-  intros ? ?.
-  apply (injective IRasCR).
-  rewrite CRasIRasCR_id.
-  apply rational_sqrt_correct.
-Qed.
-
-Lemma  QNormSqrPosX : forall (q : Cart2D Q),
-  0 < X q
-  -> 0 < normSqr q.
-Proof using.
-  intros ? Hlt. unfold normSqr.
-  pose proof Qpower.Qsqr_nonneg (Y q) as H1.
-  simpl in H1.
-  pose proof (@Q.Qmult_lt_0_compat _ _  Hlt Hlt).
-  autounfold with QMC.
-  lra.
-Qed.
-
-Lemma  QNormSqrPosY : forall (q : Cart2D Q),
-  0 < Y q
-  -> 0 < normSqr q.
-Proof using.
-  intros ? Hlt. unfold normSqr.
-  pose proof Qpower.Qsqr_nonneg (X q) as H1.
-  simpl in H1.
-  pose proof (@Q.Qmult_lt_0_compat _ _  Hlt Hlt).
-  autounfold with QMC.
-  lra.
-Qed.
 
 Lemma  βPlusBackNormSqrPos :
   0< normSqr βPlusBack.
@@ -2506,9 +2478,9 @@ Definition conicXspaceRotatedScaled : ConicSection IR:=
 let pb : Polar2D IR := ' βPlusBack in
 let pf : Polar2D IR := ' βMinusFront in
 {|
-sqrCoeff := negY;
+sqrCoeff := negY; (**the goal here wasy make these +-1*)
 linCoeff := '(βPlusBackNormInv  * (rad pf))
-        * (negY * (unitVec (θ pf + ½ * θ pb)));
+        * (unitVec (-(θ pf + ½ * θ pb)));
 xyCoeff := 0;
 constCoeff := βPlusBackNormInv * ' - (totalLength cd  + εwx) |}.
 
@@ -2519,16 +2491,18 @@ evalConic
     (unitVec (' α * ' d - ½ * 'polarTheta βPlusBack)).
 Proof using αPos.
   rewrite conicXspaceRotatedCorrect.
-  generalize ((unitVec (' α * ' d - ½ * ' polarTheta βPlusBack))).
+  match goal with
+  [|- context [unitVec ?k]] => generalize (unitVec k)
+  end.
   intros ?.
   unfold βPlusBackNormInv, evalConic.
   simpl.
+  match goal with
+  [|- context [unitVec ?k]] => generalize (unitVec k)
+  end.
+  intros ?.
   rewrite mult_0_l.
   rewrite mult_0_l.
-  remember ((negY *
-      unitVec (' polarTheta βMinusFront + ½ * ' polarTheta βPlusBack))).
-  setoid_rewrite <- Heqy.
-  clear Heqy.
   rewrite <- multDotLeft.
   rewrite <- multDotLeft.
   rewrite plus_0_r.
@@ -2541,6 +2515,29 @@ Proof using αPos.
   rewrite <- multDotLeft.
   IRring.
 Qed.
+
+Definition translateXConst : Q :=
+ (normSqr βMinusFront)/ (normSqr βPlusBack).
+
+Definition conicXspaceStandardForm : ConicSection IR:=
+let pb : Polar2D IR := ' βPlusBack in
+let pf : Polar2D IR := ' βMinusFront in
+{|
+sqrCoeff := negY;
+linCoeff := 0; (** the goal here was to make this 0 by translating axes*)
+xyCoeff := 0;
+constCoeff := βPlusBackNormInv * ' - (totalLength cd  + εwx) - translateXConst |}.
+
+(*
+Lemma conicXspaceStandardFormCorrect : forall (p:Cart2D IR),
+evalConic conicXspaceRotatedScaled p
+= 
+evalConic 
+    conicXspaceStandardForm
+    (shiftOrigin).
+*)
+
+(** Check that angle 0 is a solution for the final hyperbola  for εwx=0*)
 
 (**Positive! Hence a hyperbola*)
 Lemma BottomBoundCase1AsConicDiscriminant :

@@ -393,6 +393,7 @@ Qed.
 Definition negY `{One A}`{Negate A} : Cart2D A:= 
 {|X:=1;Y:=-1|}.
 
+Require Import geometry2D.
 Lemma unitVNegate :
   forall (β : IR), unitVec (- β) = negY * unitVec β.
 Proof using.
@@ -467,6 +468,31 @@ Proof using.
   rewrite <- plus_mult_distr_l.
   reflexivity.
 Qed.
+
+Lemma  QNormSqrPosX : forall (q : Cart2D Q),
+  0 < X q
+  -> 0 < normSqr q.
+Proof using.
+  intros ? Hlt. unfold normSqr.
+  pose proof Qpower.Qsqr_nonneg (Y q) as H1.
+  simpl in H1.
+  pose proof (@Q.Qmult_lt_0_compat _ _  Hlt Hlt).
+  autounfold with QMC.
+  lra.
+Qed.
+
+Lemma  QNormSqrPosY : forall (q : Cart2D Q),
+  0 < Y q
+  -> 0 < normSqr q.
+Proof using.
+  intros ? Hlt. unfold normSqr.
+  pose proof Qpower.Qsqr_nonneg (X q) as H1.
+  simpl in H1.
+  pose proof (@Q.Qmult_lt_0_compat _ _  Hlt Hlt).
+  autounfold with QMC.
+  lra.
+Qed.
+
 
 Definition totalSpaceX (c : ConfineRect IR) :IR :=
   X (maxxy c) - X (minxy c).
