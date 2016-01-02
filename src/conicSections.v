@@ -6,7 +6,19 @@ Require Import fastReals.interface.
 
 
 Set Implicit Arguments.
+Require Import MathClasses.interfaces.vectorspace.
 
+(**Move*)
+Lemma inProd0L `{Ring A}: forall (p:Cart2D A), ⟨ 0, p⟩ = 0.
+Proof.
+  intros ?.
+  unfold inprod, InProductCart2D.
+  simpl.
+  rewrite mult_0_l.
+  rewrite mult_0_l.
+  rewrite plus_0_l.
+  reflexivity.
+Qed.
 
 Record ConicSection (A:Type):Type :=
 {
@@ -100,7 +112,6 @@ Proof using H.
   reflexivity.
 Qed.
 
-Require Import MathClasses.interfaces.vectorspace.
 
 Definition evalConic (c : ConicSection A) (p : Cart2D A) :=
 ⟨sqrCoeff c, sqrEach p⟩ + ⟨linCoeff c, p⟩ 
@@ -150,6 +161,42 @@ let b := xyCoeff cs in
 |}.
 
 Require Import MathClasses.theory.rings.
+
+Add Ring tempRingA : (stdlib_ring_theory A).
+
+Require Import geometry2DProps.
+Require Import geometry2D.
+
+Lemma translateNegYConic : ∀ (centre : Cart2D A) (k:A),
+let c1:=
+{| 
+  sqrCoeff := negY;
+  linCoeff := negY * 2 * centre;
+  xyCoeff := 0;
+  constCoeff := k
+|} in
+let c2:=
+{| 
+  sqrCoeff := negY;
+  linCoeff := 0;
+  xyCoeff := 0;
+  constCoeff := k - sqr (X centre) + sqr (Y centre)
+|} in
+forall p,
+evalConic c1 p = evalConic c2 (p+centre).
+Proof using.
+  intros ? ?.
+  simpl. intros ?.
+  unfold evalConic.
+  simpl.
+  rewrite inProd0L.
+  unfold inprod, InProductCart2D.
+  simpl. unfold normSqr.
+  unfold sqr.
+  unfold cast.
+  ring.
+Qed.
+
 
 End Conic.
 
@@ -272,6 +319,10 @@ Qed.
 Require Import geometry2D.
 Require Import geometry2DProps.
 
+
+  
+  
+  
 (** The goal is to make it 0, and thus make the conic axis aligned*)
 Lemma rotateConicXYCoeff : forall (θ:IR)
 (cs : ConicSection Q),

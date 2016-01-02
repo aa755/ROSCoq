@@ -1,8 +1,11 @@
-Section RingMisc.
 Require Import MathClasses.theory.rings.
 Require Import MathClasses.interfaces.abstract_algebra.
 Require Import MCMisc.tactics.
 Require Import Ring.
+(*less annoying than ^2 which multiplies by 1 as well*)
+Definition sqr `{Mult A} (a:A) := a*a.
+
+Section RingMisc.
 
 (**some miscelleneous convenience props about rings.
 The ring tactic can prove these. However, to use that tactic,
@@ -60,6 +63,7 @@ Proof using All.
   intros.
   ring.
 Qed.
+
 
 Lemma MultSqrMix: 
 ∀ a b c d : A, 
