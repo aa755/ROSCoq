@@ -27,6 +27,18 @@ repeat (split; try apply _).
 - intros. apply inj_Q_One.
 Qed.
 
+Require Import MathClasses.theory.rings.
+(*typeclass resolution happens right here, when declaring the database,
+and not while rewriting. leaving out arguments here can confuse
+the resolution later*)
+Hint Rewrite  
+(@preserves_2 Q IR _ _ _ _ _ _ _ _ _ _ (@cast Q IR _) _)
+(@preserves_1 Q IR _ _ _ _ _ _ _ _ _ _ (@cast Q IR _) _) 
+(@preserves_0 Q IR _ _ _ _ _ _ _ _ _ _ (@cast Q IR _) _) 
+(@preserves_negate Q _ _ _ _ _ _ _ IR _ _ _ _ _ _ _  (@cast Q IR _) _)
+(@preserves_plus Q IR _ _ _ _ _ _ _ _ _ _ (@cast Q IR _) _)
+(@preserves_mult Q IR  _ _ _ _ _ _ _ _ _ _ (@cast Q IR _) _)
+ : Q2RMC.
 
 Hint Unfold cos CosClassIR sin SinClassIR min MinClassIR max MaxClassIR One_instance_IR: IRMC.
 

@@ -67,6 +67,13 @@ Proof.
   intros ? ? Heq. destruct Heq. tauto.
 Qed.
 
+Global Instance ProperxyBuildConic `{Equiv A} : 
+Proper (equiv ==>equiv ==>equiv ==>equiv ==> equiv) (@Build_ConicSection A).
+Proof using.
+  intros ? ? H1 ? ? H2 ? ? H3 ? ? H4.
+  split; simpl; eauto 3 with typeclass_instances.
+Qed.
+
 Section Conic.
 (** A is the type of coefficients of the conic section.
 We assume that it is an instance of a ring, and has an
@@ -142,10 +149,32 @@ let b := xyCoeff cs in
   constCoeff := constCoeff cs
 |}.
 
+Require Import MathClasses.theory.rings.
 
 End Conic.
 
 Section ConicProps.
+Global Instance CastConicSection `{Cast A B} 
+  : Cast (ConicSection A) (ConicSection B) :=
+fun a =>  Build_ConicSection 
+            ('sqrCoeff a)
+            ('linCoeff a) 
+            ('xyCoeff a)
+            ('constCoeff a).
+
+Lemma preserves_RotateConicXYTerm `{c:Cast A B} 
+ `{@Ring A ae apl am az ao an}
+ `{@Ring B be bp bm bz bo bn}
+ `{@SemiRing_Morphism A B ae be apl am az ao bp bm bz bo c}
+ (cs : ConicSection A)  : 
+ (rotateConicXYTerm ('cs) : Cart2D B) = ' (rotateConicXYTerm cs) .
+Proof.
+  simpl. unfold rotateConicXYTerm.
+  simpl.
+  rewrite <- preserves_minus.
+  split; reflexivity.
+Qed.
+
 
 Require Import CartIR2.
 Require Import geometry2DProps.
@@ -156,15 +185,6 @@ Require Import fastReals.interface.
 
 Local Opaque Sin.
 Local Opaque Cos.
-(* Move *)
-Lemma FFT3 : forall (θ:IR),
-cos θ * cos θ  = 1 - sin θ * sin θ.
-Proof using.
-  intro.
-  rewrite <- (FFT θ).
-  simpl.
-  IRring.
-Qed.
 
 Lemma rotateConicCorrect : forall (θ:IR)
 (cs : ConicSection IR)
@@ -247,24 +267,6 @@ Proof using.
   rewrite <- (rotateAxisInvertibleIR p θ).
   subst pp.
   apply rotateConicCorrect.
-Qed.
-
-Global Instance CastConicSection `{Cast A B} 
-  : Cast (ConicSection A) (ConicSection B) :=
-fun a =>  Build_ConicSection 
-            ('sqrCoeff a)
-            ('linCoeff a) 
-            ('xyCoeff a)
-            ('constCoeff a).
-
-Lemma multDotLeft `{Ring A}:
-  ∀ (a:A) (b c : Cart2D A), a * (⟨ b, c ⟩) = ⟨ ' a * b, c ⟩.
-Proof using.
-  intros. unfold inprod, InProductCart2D.
-  simpl.
-  do 2 rewrite <- (@simple_associativity _ _ mult _ _).
-  rewrite <- plus_mult_distr_l.
-  reflexivity.
 Qed.
 
 Require Import geometry2D.

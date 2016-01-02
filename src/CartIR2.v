@@ -313,3 +313,69 @@ Proof using.
   rewrite commutativity.
   reflexivity.
 Qed.
+
+
+Lemma unitVDotRAsPolar :
+  forall (q: Cart2D Q) (β : ℝ), ⟨'q, unitVec β ⟩ = 
+  let p : Polar2D IR := 'q in
+  (rad p) * cos (θ p - β).
+Proof using.
+  intros ? ?.
+  simpl.
+  rewrite CartToPolarCorrect.
+  rewrite <- multDotLeft.
+  rewrite unitVDot.
+  reflexivity.
+Qed.  
+
+
+Lemma unitVDotRAsPolarNegY :
+  forall (q: Cart2D Q) (β : ℝ), ⟨'(negY * q), unitVec β ⟩ = 
+  let p : Polar2D IR := 'q in
+  (rad p) * cos (θ p + β).
+Proof using.
+  intros ? ?.
+  simpl.
+  rewrite <- (negate_involutive β) at 2.
+  rewrite <- (unitVDotRAsPolar q).
+  rewrite unitVNegate.
+  unfold inprod, InProductCart2D. simpl.
+  do 2 rewrite preserves_mult.
+  rewrite preserves_negate.
+  rewrite preserves_1.
+  IRring.
+Qed.
+
+Lemma unitVDotRAsPolarTranspose :
+  forall (q: Cart2D Q) (β : ℝ), ⟨'(transpose q), unitVec β ⟩ = 
+  let p : Polar2D IR := 'q in
+  (rad p) * sin (θ p + β).
+Proof using.
+  intros ? ?.
+  simpl.
+  rewrite <- transposeCastCommute.
+  rewrite (CartToPolarCorrect90Minus q).
+  rewrite <- multDotLeft.
+  rewrite unitVDot.
+  unfold sin, SinClassIR.
+  rewrite  <- Cos_HalfPi_minus.
+  rewrite PiBy2DesugarIR.
+  rewrite <- (@simple_associativity _ _ plus _ _).
+  rewrite  negate_swap_l.
+  rewrite negate_involutive.
+  reflexivity.
+Qed.  
+
+Lemma unitVDotRAsPolarNflip :
+  forall (q: Cart2D Q) (β : ℝ), ⟨'(nflip q), unitVec β ⟩ = 
+  let p : Polar2D IR := 'q in
+  (rad p) * sin (θ p - β).
+Proof using.
+  intros ? ?.
+  simpl.
+  rewrite <- unitVDotRAsPolarTranspose with (q:=q).
+  rewrite unitVNegate.
+  unfold inprod, InProductCart2D. simpl.
+  rewrite preserves_negate.
+  IRring.
+Qed.

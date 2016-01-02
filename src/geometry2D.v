@@ -322,6 +322,8 @@ Proof using .
   reflexivity.
 Qed.
 
+(*Move *)
+
 (** This operation shows up again and again.
 Is there a good name for it?*)
 Definition nflip `{Negate R} (p : Cart2D R) := 
@@ -331,3 +333,56 @@ Definition rotateAxis `{Ring R} `{CosClass R} `{SinClass R}
 (θ:R) (p : Cart2D R)  :=
 {|X := ⟨p, unitVec θ⟩; 
   Y:= ⟨nflip p, unitVec θ⟩ |}.
+  
+
+Global Instance srm_CastCart `{c:Cast A B} 
+ `{@Ring A ae apl am az ao an}
+ `{@Ring B be bp bm bz bo bn}
+  `{@SemiRing_Morphism A B ae be apl am az ao bp bm bz bo c}:
+    SemiRing_Morphism (@cast (Cart2D A) (Cart2D B) _).
+Proof using.
+repeat (split; unfold cast, castCart; simpl; try apply _);
+try rewrite H2; try reflexivity.
+- apply preserves_plus.
+- apply preserves_plus.
+- apply preserves_0.
+- apply preserves_0.
+- apply preserves_mult.
+- apply preserves_mult.
+- apply preserves_1.
+- apply preserves_1.
+Qed.
+
+(*
+Not useful because typically A and B will be a ring, so the above 
+Instance can be used instead. SemiRing_Morphism implies Setoid_Morphism
+
+Global Instance ProperCastCart `{c:Cast A B} 
+ `{H:Setoid_Morphism A B c}  : 
+    Setoid_Morphism (@cast (Cart2D A) (Cart2D B) _).
+Proof using.
+  destruct H.
+  split; unfold Setoid;  eauto 2 with typeclass_instances.
+  intros ? ? H1.
+  unfold cast, castCart.
+  rewrite H1.
+  reflexivity.
+Qed.
+*)
+
+Lemma castCartCommute `{c:Cast A B} `{e:Equiv B} `{Equivalence B e}:
+ forall a:A,
+  @cast B (Cart2D B) _ ('a) =  '(@cast A (Cart2D A) _ a).
+Proof.
+  intros ?.
+  split; reflexivity.
+Qed.
+
+Lemma transposeCastCommute `{c:Cast A B} `{e:Equiv B} `{Equivalence B e}:
+ forall a: Cart2D A,
+  transpose ('a) =  '(transpose a).
+Proof.
+  intros ?.
+  split; reflexivity.
+Qed.
+

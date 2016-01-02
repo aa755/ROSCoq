@@ -641,10 +641,6 @@ the vertical axis.
 *)
 Hypothesis turnCentreOut : (Qle (width cd) tr).
 
-(*not in use anymore?*)
-Definition negY `{One A}`{Negate A} : Cart2D A:= 
-{|X:=1;Y:=-1|}.
-
 
 Definition NegPosition : Type := bool (*outside*) * bool(*inside*).
 
@@ -1321,13 +1317,6 @@ Y (minxy (confineRect2 ( 'α * 'd))) -
 (Y (minxy (confineRect2 (2* 'α * 'd)))).
 
 Section MCring.
-
-Lemma multDotLeft : forall (a:IR) (b c : Cart2D IR),
-a * (⟨b,c⟩) = ⟨('a) * b, c⟩.
-Proof using.
-  intros.   unfold inprod, InProductCart2D.
-  simpl. IRring.
-Qed.  
 
   Add Ring tempRingIR : (stdlib_ring_theory IR).
 
@@ -2292,18 +2281,6 @@ Definition extraSpaceXWriggleAsConic : ConicSection Q :=
   constCoeff := - (totalLength cd)
 |}.
 
-(*typeclass resolution happens right here, when declaring the database,
-and not while rewriting. leaving out arguments here can confuse
-the resolution later*)
-Hint Rewrite  
-(@preserves_2 Q IR _ _ _ _ _ _ _ _ _ _ (@cast Q IR _) _)
-(@preserves_1 Q IR _ _ _ _ _ _ _ _ _ _ (@cast Q IR _) _) 
-(@preserves_0 Q IR _ _ _ _ _ _ _ _ _ _ (@cast Q IR _) _) 
-(@preserves_negate Q _ _ _ _ _ _ _ IR _ _ _ _ _ _ _  (@cast Q IR _) _)
-(@preserves_plus Q IR _ _ _ _ _ _ _ _ _ _ (@cast Q IR _) _)
-(@preserves_mult Q IR  _ _ _ _ _ _ _ _ _ _ (@cast Q IR _) _)
- : Q2RMC.
-
 Lemma extraSpaceXWriggleAsConicCorrect :
   let θ :IR := (' α * ' d) in 
   extraSpaceXWriggleCase1 = 
@@ -2342,127 +2319,42 @@ Qed.
 
 Lemma extraSpaceXWriggleRotateConicXYTerm :
 rotateConicXYTerm extraSpaceXWriggleAsConic 
-  = '(2:Q) * negY * (transpose βPlusBack).
+  = '(2:Q) * (nflip βPlusBack).
 Proof using.
   unfold rotateConicXYTerm.
   simpl.
   split; simpl; autounfold with QMC; ring.
 Qed.
 
-(*Move *)
-Lemma preserves_RotateConicXYTerm `{c:Cast A B} 
- `{@Ring A ae apl am az ao an}
- `{@Ring B be bp bm bz bo bn}
- `{@SemiRing_Morphism A B ae be apl am az ao bp bm bz bo c}
- (cs : ConicSection A)  : 
- (rotateConicXYTerm ('cs) : Cart2D B) = ' (rotateConicXYTerm cs) .
-Proof.
-  simpl. unfold rotateConicXYTerm.
-  simpl.
-  rewrite <- preserves_minus.
-  split; reflexivity.
-Qed.
-
-Global Instance srm_CastCart `{c:Cast A B} 
- `{@Ring A ae apl am az ao an}
- `{@Ring B be bp bm bz bo bn}
-  `{@SemiRing_Morphism A B ae be apl am az ao bp bm bz bo c}:
-    SemiRing_Morphism (@cast (Cart2D A) (Cart2D B) _).
-Proof using.
-repeat (split; unfold cast, castCart; simpl; try apply _);
-try rewrite H2; try reflexivity.
-- apply preserves_plus.
-- apply preserves_plus.
-- apply preserves_0.
-- apply preserves_0.
-- apply preserves_mult.
-- apply preserves_mult.
-- apply preserves_1.
-- apply preserves_1.
-Qed.
-
-(*
-Not useful because typically A and B will be a ring, so the above 
-Instance can be used instead. SemiRing_Morphism implies Setoid_Morphism
-
-Global Instance ProperCastCart `{c:Cast A B} 
- `{H:Setoid_Morphism A B c}  : 
-    Setoid_Morphism (@cast (Cart2D A) (Cart2D B) _).
-Proof using.
-  destruct H.
-  split; unfold Setoid;  eauto 2 with typeclass_instances.
-  intros ? ? H1.
-  unfold cast, castCart.
-  rewrite H1.
-  reflexivity.
-Qed.
-*)
-
-Lemma castCartCommute `{c:Cast A B} `{e:Equiv B} `{Equivalence B e}:
- forall a:A,
-  @cast B (Cart2D B) _ ('a) =  '(@cast A (Cart2D A) _ a).
-Proof.
-  intros ?.
-  split; reflexivity.
-Qed.
-
-Lemma transposeCastCommute `{c:Cast A B} `{e:Equiv B} `{Equivalence B e}:
- forall a: Cart2D A,
-  transpose ('a) =  '(transpose a).
-Proof.
-  intros ?.
-  split; reflexivity.
-Qed.
-
-Global Instance ProperxyBuildConic `{Equiv A} : 
-Proper (equiv ==>equiv ==>equiv ==>equiv ==> equiv) (@Build_ConicSection A).
-Proof using.
-  intros ? ? H1 ? ? H2 ? ? H3 ? ? H4.
-  split; simpl; eauto 3 with typeclass_instances.
-Qed.
 
 (** The goal is to make it 0, and thus make the conic axis aligned,
   by choosing an appropriate rotation θ*)
 Lemma rotateConicXYCoeff : forall (θ:IR),
 let p : Polar2D IR := ' βPlusBack in
 xyCoeff (rotateConic θ ('extraSpaceXWriggleAsConic) )
-  =  2 * (rad p) * cos (½ * π - Vector.θ p + 2 * θ).
-Proof.
+  =  2 * (rad p) * sin (Vector.θ p - 2 * θ).
+Proof using.
   intros ?. simpl.
   rewrite preserves_RotateConicXYTerm.
   rewrite extraSpaceXWriggleRotateConicXYTerm.
   rewrite preserves_mult.
-  rewrite preserves_mult.
   rewrite <-  castCartCommute.
-  rewrite <- (@simple_associativity _ _ mult _ _).
   rewrite <- multDotLeft.
-  rewrite <- transposeCastCommute.
-  rewrite  CartToPolarCorrect90Minus.
-  rewrite  (@simple_associativity _ _ mult _ _).
-  rewrite  (@commutativity (Cart2D IR) _ _ mult _ _).
-  rewrite  (@simple_associativity _ _ mult _ _).
-  rewrite  (@commutativity (Cart2D IR) _ _ mult _ _).
-  rewrite <- multDotLeft.
-  rewrite  (@commutativity (Cart2D IR) _ _ mult _ _).
-  unfold negY.
-  change (@cast _ _ (@castCart Q IR _)) with (@castCart Q IR _).
-  unfold castCart. simpl.
-  autorewrite with Q2RMC.
-  rewrite unitVDot2.
-  unfold norm, NormCart2DQ.
+  rewrite unitVDotRAsPolarNflip.
+  simpl.
+  rewrite preserves_2.
   rewrite  (@simple_associativity _ _ mult _ _).
   reflexivity.
 Qed.
 
 
 Definition rotateConicXspaceArbitrary (θ:IR) : ConicSection IR:=
-let p : Polar2D IR := ' βPlusBack in
+let pb : Polar2D IR := ' βPlusBack in
+let pf : Polar2D IR := ' βMinusFront in
 {|
-sqrCoeff := negY * ' ((rad p) * (cos (Vector.θ p - 2 * θ)));
-linCoeff := {|
-            X := ⟨ ' (negY * βMinusFront), unitVec θ ⟩;
-            Y := ⟨ nflip (' (negY * βMinusFront)), unitVec θ ⟩ |};
-xyCoeff := 2 * (rad p) * sin (Vector.θ p - 2 * θ);
+sqrCoeff := negY * ' ((rad pb) * (cos (Vector.θ pb - 2 * θ)));
+linCoeff := negY * ('(rad pf) * (unitVec (Vector.θ pf + θ)));
+xyCoeff := 2 * (rad pb) * sin (Vector.θ pb - 2 * θ);
 constCoeff := ' (- totalLength cd) |}.
 
 Lemma rotateConicXspace : forall (θ:IR),
@@ -2471,28 +2363,27 @@ Lemma rotateConicXspace : forall (θ:IR),
 Proof using.
   intros ?.
   unfold rotateConic, rotateConicXspaceArbitrary.
-  rewrite <- unitVDot.
-  rewrite multDotLeft.
-  rewrite <- (CartToPolarCorrect βPlusBack).
+  rewrite <- (unitVDotRAsPolar βPlusBack).
   setoid_rewrite rotateConicXYCoeff.
-  assert (
-    (½ * π - Vector.θ (' βPlusBack) + 2 * θ)
-    = (½ * π - (Vector.θ (' βPlusBack) - 2 * θ))
-  ) as Heq by IRring.
-  rewrite Heq. clear Heq.
-  unfold sin, SinClassIR.
-  rewrite  <- (Cos_HalfPi_minus (Vector.θ (' βPlusBack) - 2 * θ)).
-  rewrite <- PiBy2DesugarIR.
   simpl.
   rewrite unitVDouble.
-  do 3 rewrite nat_pow.nat_pow_2.
+  do 2 rewrite nat_pow.nat_pow_2.
   rewrite FFT3.
   unfold inprod, InProductCart2D, nflip.
   simpl.
-  split;[|dands]; simpl; try reflexivity; try IRring;[].
-  autorewrite with Q2RMC.
-  split; simpl;  try IRring.
+  split;[|dands]; simpl; try reflexivity; try IRring.
+  - autorewrite with Q2RMC.
+    split; simpl;  try IRring.
+  - unfold unitVec. unfold mult, Mutt_instance_Cart2D.
+    simpl.
+    fold (@mult IR _).
+    fold (@mult Q _).
+    rewrite <- (unitVDotRAsPolarNegY βMinusFront).
+    rewrite <- (unitVDotRAsPolarTranspose βMinusFront).
+    unfold inprod, InProductCart2D, negY. simpl.
+    autorewrite with Q2RMC. split; simpl; IRring.
 Qed.
+
 
 (**Positive! Hence a hyperbola*)
 Lemma BottomBoundCase1AsConicDiscriminant :

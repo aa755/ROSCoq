@@ -380,6 +380,31 @@ Proof using.
 Qed.
 
 Require Import fastReals.interface.
+
+Lemma FFT3 : forall (θ:IR),
+cos θ * cos θ  = 1 - sin θ * sin θ.
+Proof using.
+  intro.
+  rewrite <- (FFT θ).
+  simpl.
+  IRring.
+Qed.
+
+Definition negY `{One A}`{Negate A} : Cart2D A:= 
+{|X:=1;Y:=-1|}.
+
+Lemma unitVNegate :
+  forall (β : IR), unitVec (- β) = negY * unitVec β.
+Proof using.
+  intros.
+  split; simpl.
+  - rewrite mult_1_l. apply Cos_inv.
+  - rewrite <- negate_mult_distr_l.
+    rewrite mult_1_l. apply Sin_inv.
+Qed.
+
+
+
 Lemma rotateAxisInvSimpl :
 forall (p : Cart2D IR) (θ:IR),
 (rotateAxis (-θ) p) =   
@@ -410,6 +435,37 @@ Proof using.
   - setoid_rewrite <- (mult_1_r (Y p)) at 3.
     rewrite <- (FFT θ).
     simpl. IRring.
+Qed.
+
+Lemma nflipAsTranspose  `{Ring R} : forall (p : Cart2D R),
+  nflip p = negY * transpose p.
+Proof using.
+  intros ?.
+  split; simpl.
+  - symmetry. apply mult_1_l.
+  - rewrite <- negate_mult_distr_l.
+    rewrite mult_1_l. reflexivity.
+Qed.
+
+Lemma nflipNegY `{Ring R} : forall (p : Cart2D R),
+  nflip (negY * p) =  - transpose p.
+Proof using.
+  intros ?.
+  split; simpl.
+  - rewrite <- negate_mult_distr_l.
+    rewrite mult_1_l. reflexivity.
+  - symmetry. rewrite mult_1_l. reflexivity.
+Qed.
+
+
+Lemma multDotLeft `{Ring A}:
+  ∀ (a:A) (b c : Cart2D A), a * (⟨ b, c ⟩) = ⟨ ' a * b, c ⟩.
+Proof using.
+  intros. unfold inprod, InProductCart2D.
+  simpl.
+  do 2 rewrite <- (@simple_associativity _ _ mult _ _).
+  rewrite <- plus_mult_distr_l.
+  reflexivity.
 Qed.
 
 Definition totalSpaceX (c : ConfineRect IR) :IR :=
