@@ -167,6 +167,8 @@ Add Ring tempRingA : (stdlib_ring_theory A).
 Require Import geometry2DProps.
 Require Import geometry2D.
 
+Require Import MCMisc.rings.
+
 Lemma translateNegYConic : ∀ (centre : Cart2D A) (k:A),
 let c1:=
 {| 
@@ -319,10 +321,6 @@ Qed.
 Require Import geometry2D.
 Require Import geometry2DProps.
 
-
-  
-  
-  
 (** The goal is to make it 0, and thus make the conic axis aligned*)
 Lemma rotateConicXYCoeff : forall (θ:IR)
 (cs : ConicSection Q),

@@ -379,3 +379,21 @@ Proof using.
   rewrite preserves_negate.
   IRring.
 Qed.
+
+Lemma rotateAxisUnitVec: forall (θ β : IR),
+  (rotateAxis β (unitVec θ))
+  = unitVec (θ - β).
+Proof using.
+  intros ? ?.
+  unfold rotateAxis.
+  simpl.
+  rewrite unitVDot.
+  split; simpl;[reflexivity|].
+  unfold inprod, InProductCart2D.
+  simpl.
+  symmetry.
+  rewrite <- negate_mult_distr_l.
+  apply Sine_minus.
+Qed.
+
+

@@ -300,3 +300,14 @@ Proof.
   intros. destruct x, y. eapply leEq_imp_eq; eauto.
 Qed.
 
+Lemma twoMultHalf :
+2 * ½ = (1:IR).
+Proof using.
+  rewrite commutativity.
+  remember (Two:IR).
+  autounfold with IRMC.
+  rewrite one_plus_one.
+  apply half_1.
+Qed.
+
+
