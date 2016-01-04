@@ -396,4 +396,113 @@ Proof using.
   apply Sine_minus.
 Qed.
 
+(*Move*)
+Lemma halfCorrectQR : 
+(½:IR)='(½:Q).
+Proof using.
+(*LHS was defined for nearly-arbitrary fields as 1/(1+1)*)
+  unfold half_num, Q_Half_instance, cast, 
+    Cast_instace_Q_IR, HalfNumIR, Half.
+  change (Qmake 1 2)%Q with (1/2)%Q.
+  autounfold with QMC.
+  rewrite inj_Q_div.
+  unfold cf_div.
+  rewrite inj_Q_One.
+  apply mult_wd;[reflexivity|].
+  apply f_rcpcl_wd.
+  setoid_rewrite inj_Q_plus.  
+  rewrite inj_Q_One.
+  unfold Two.
+  IRring.
+  
+  Grab Existential Variables.
+  Local Opaque inj_Q.
+  simpl.
+  eapply ap_wdl;[apply two_ap_zero|].
+  setoid_rewrite inj_Q_plus.  
+  rewrite inj_Q_One.
+  unfold Two.
+  IRring.
+Qed.
+
+Lemma qnormSqrIR : forall (a : Cart2D Q),
+((' (| a |) * ' (| a |)):IR) = normSqr ('a).
+Proof using.
+  intros.
+  rewrite <- normIRSpec.
+  rewrite  QNormSqrIR.
+  reflexivity.
+Qed.
+
+Lemma normSqrCastCommute  `{c:Cast A B} 
+ `{@Ring A ae apl am az ao an}
+ `{@Ring B be bp bm bz bo bn}
+  `{@SemiRing_Morphism A B ae be apl am az ao bp bm bz bo c}:
+  forall (a : Cart2D A),
+    (' (normSqr a):B) = normSqr ('a).
+Proof using.
+  intros ?.
+  unfold normSqr.
+  rewrite preserves_plus.
+  do 2 rewrite preserves_mult.
+  reflexivity.
+Qed.
+
+Lemma  normIRPosAux : forall {q:Cart2D Q},
+  0< normSqr q
+  -> (0:IR) [<] '|q|.
+Proof using.
+  intros ? H.
+  unfold CanonicalNotations.norm, NormSpace_instance_Cart2D.
+  unfold sqrtFun, rational_sqrt_SqrtFun_instance.
+  apply Qpos_adaptor in H.
+  eapply less_wdr;[| symmetry; apply rational_sqrt_correct2].
+  apply sqrt_less.
+  eapply less_wdl;[apply H|].
+  simpl. IRring.
+  
+  Unshelve.
+  eauto 2 with CoRN.
+Qed.
+
+Lemma  normIRPos : forall {q:Cart2D Q},
+  0< normSqr q
+  -> (0:IR) [<] normIR ('q).
+Proof using.
+  intros ? H.
+  apply normIRPosAux in H.
+  eapply less_wdr; [apply H |].
+  symmetry. apply QNormSqrIR. 
+Qed.
+
+Definition normQIRInv (q:Cart2D Q) (p: 0< normSqr q) :IR :=
+normIRInv ('q) (normIRPos p).
+
+Lemma normRatioSqr : forall (a b : Cart2D Q)  pb,
+'(normSqr a / normSqr b)
+  = sqr (' (| a |)  * (normQIRInv b pb)).
+Proof using.
+  intros ? ? ?.
+  unfold sqr.
+  rewrite <- MultSqrMix.
+  rewrite qnormSqrIR.
+  rewrite <- (@simple_associativity _ _ mult _ _).
+  pose proof pb as pbb.
+  apply Qpos_adaptor in pbb.
+  apply less_imp_ap in pbb.
+  apply ap_symmetric in pbb.
+  setoid_rewrite inj_Q_div with (H:=pbb).
+  rewrite <- normSqrCastCommute.
+  unfold cf_div.
+  apply sg_op_proper;[reflexivity|].
+  unfold normQIRInv.
+  apply mult_cancel_lft with (z:=(inj_Q ℝ (normSqr b)));[exact pbb|].
+  rewrite field_mult_inv.
+  setoid_rewrite  (@simple_associativity _ _ mult _ _).
+  fold Cast_instace_Q_IR.
+  fold (@cast Q IR _).
+  rewrite normSqrCastCommute.
+  rewrite normIRInv2.
+  reflexivity.
+Qed.
 

@@ -1911,7 +1911,7 @@ Qed.
 
 Lemma leftExtraSpaceSimpl1 : leftExtraSpaceWriggle =
 max 0
-  (⟨' {| X := lengthBack cd; Y := tr + width cd |}, unitVec (2 * ' α * ' d)⟩ 
+  (⟨'βPlusBack , unitVec (2 * ' α * ' d)⟩ 
      - ' lengthBack cd 
      - 2 * ' tr * Sin (' α * ' d)).
 Proof using αPos.
@@ -1923,21 +1923,26 @@ Proof using αPos.
   rewrite <- Min_plusl.
   rewrite plus_negate_r.
   rewrite negateMinAsMax.
-  subst. apply Max_wd_unfolded; IRring.
+  subst. unfold βPlusBack, CornerAngles.βPlusBack.
+  apply Max_wd_unfolded; IRring.
 Qed.
 
 Definition leftExtraSpaceTerm := 
 ⟨'{|X := tr + width cd; Y:= -lengthBack cd|}, unitVec (' α * ' d)⟩.
 
-Lemma leftExtraSpaceSimpl2 : leftExtraSpaceWriggle =
-max 0 (2 * sin (' α * ' d) * (leftExtraSpaceTerm - 'tr)).
+Lemma leftExtraSpaceSimpl2 : 
+(⟨' βPlusBack, unitVec (2 * ' α * ' d)⟩ 
+     - ' lengthBack cd 
+     - 2 * ' tr * Sin (' α * ' d))
+ =
+(2 * sin (' α * ' d) * (leftExtraSpaceTerm - 'tr)).
 Proof using αPos.
-  unfold leftExtraSpaceTerm.
-  hideRight. rewrite leftExtraSpaceSimpl1.
+  hideRight.
   pose proof (unitVDouble (' α * ' d)) as Hh.
   rewrite  (@simple_associativity _ _ mult _ _ _) in Hh.
   rewrite Hh. clear Hh.
-  subst.  apply Max_wd_unfolded; [IRring|].
+  subst.
+  unfold leftExtraSpaceTerm.
   simpl.
   rewrite nat_pow.nat_pow_2.
   unfold inprod, InProductCart2D. simpl.
@@ -2230,6 +2235,7 @@ Lemma leftExtraSpaceWriggleSimplCase1 :
     (2 * sin (' α * ' d) * (leftExtraSpaceTerm - 'tr)).
 Proof using dNN firstQuadW ntriv ntrivStrict turnCentreOut widthLt αPos. 
   intro.
+  rewrite leftExtraSpaceSimpl1.
   rewrite leftExtraSpaceSimpl2.
   apply leEq_imp_Max_is_rht.
   rewrite <- (@simple_associativity _ _ mult _ _ ).
@@ -2254,6 +2260,58 @@ Proof using dNN firstQuadW ntriv ntrivStrict turnCentreOut widthLt αPos.
   reflexivity.
 Qed.
 
+Lemma extraSpaceXWriggleCase1Simpl2: 
+extraSpaceXWriggleCase1
+= ' (| βPlusBack |) * cos (2 * ' α * ' d - ' polarTheta βPlusBack)
++ ' (| βMinusFront |) * cos (' α * ' d  +  ' polarTheta βMinusFront)
+ - '(totalLength cd).
+Proof using αPos.
+  hideRight.
+  unfold extraSpaceXWriggleCase1.
+  rewrite <- leftExtraSpaceSimpl2.
+  rewrite unitVDotRAsPolar.
+  simpl.
+  unfold cos, CosClassIR.
+  rewrite CosMinusSwap.
+  subst.
+  rewrite <- (@simple_associativity _ _ plus _ _).
+  rewrite <- (@simple_associativity _ _ plus _ _).
+  rewrite <- (@simple_associativity _ _ plus _ _).
+  apply sg_op_proper;[reflexivity|].
+  rewrite (@commutativity _ _ _ plus _ _).
+  unfold totalLength.
+  rewrite preserves_plus.
+  rewrite negate_plus_distr.
+  rewrite  (@simple_associativity _ _ plus _ _).
+  apply sg_op_proper ;[|reflexivity].
+  rewrite rightExtraSpaceSimpl.
+  pose proof (unitVDotRAsPolarNegY βMinusFront) as Hh.
+  simpl in Hh.
+  rewrite (@commutativity _ _ _ plus _ (' α * ' d )).
+  rewrite <- Hh.
+  unfold inprod, InProductCart2D.
+  simpl.
+  autorewrite with Q2RMC.
+  IRring.
+Qed.
+
+(* this is NOT a quadratic equation in cos θ. delete.*)
+Lemma extraSpaceXWriggleCase1Simpl3: 
+let θ := (' α * ' d  +  ' polarTheta βMinusFront) in
+extraSpaceXWriggleCase1
+= ' (| βPlusBack |) * 
+    cos (2 * θ 
+        -  (' polarTheta βPlusBack + 2 *  ' polarTheta βMinusFront))
++ ' (| βMinusFront |) * cos θ
+ - '(totalLength cd).
+Proof using αPos.
+  simpl. rewrite extraSpaceXWriggleCase1Simpl2.
+  apply sg_op_proper;[|reflexivity].
+  apply sg_op_proper;[|reflexivity].
+  apply sg_op_proper;[reflexivity|].
+  apply Cos_wd.
+  IRring.
+Qed.
 
 (** 
 The inverse probelem, i.e. to find the parameter d, given the available space
@@ -2423,39 +2481,6 @@ Proof using ntrivStrict.
   apply ntrivStrict.
 Qed.
 
-(*Move*)
-Lemma  normIRPosAux : forall {q:Cart2D Q},
-  0< normSqr q
-  -> (0:IR) [<] '|q|.
-Proof using.
-  intros ? H.
-  unfold CanonicalNotations.norm, NormSpace_instance_Cart2D.
-  unfold sqrtFun, rational_sqrt_SqrtFun_instance.
-  apply Qpos_adaptor in H.
-  eapply less_wdr;[| symmetry; apply rational_sqrt_correct2].
-  apply sqrt_less.
-  eapply less_wdl;[apply H|].
-  simpl. IRring.
-  
-  Unshelve.
-  eauto 2 with CoRN.
-Qed.
-
-(*Move*)
-Lemma  normIRPos : forall {q:Cart2D Q},
-  0< normSqr q
-  -> (0:IR) [<] normIR ('q).
-Proof using.
-  intros ? H.
-  apply normIRPosAux in H.
-  eapply less_wdr; [apply H |].
-  symmetry. apply QNormSqrIR. 
-Qed.
-
-(*Move*)
-Definition normQIRInv (q:Cart2D Q) (p: 0< normSqr q) :IR :=
-normIRInv ('q) (normIRPos p).
-
 Definition βPlusBackNormInv :IR :=
   normQIRInv  βPlusBack βPlusBackNormSqrPos.
 
@@ -2546,88 +2571,6 @@ constCoeff := βPlusBackNormInv * (' - (totalLength cd  + εwx))
    - 'translateXConst * cos (2 * θ pf + θ pb)
 |}.
 
-(*Move*)
-Lemma halfCorrectQR : 
-(½:IR)='(½:Q).
-Proof using.
-(*LHS was defined for nearly-arbitrary fields as 1/(1+1)*)
-  unfold half_num, Q_Half_instance, cast, 
-    Cast_instace_Q_IR, HalfNumIR, Half.
-  change (Qmake 1 2)%Q with (1/2)%Q.
-  autounfold with QMC.
-  rewrite inj_Q_div.
-  unfold cf_div.
-  rewrite inj_Q_One.
-  apply mult_wd;[reflexivity|].
-  apply f_rcpcl_wd.
-  setoid_rewrite inj_Q_plus.  
-  rewrite inj_Q_One.
-  unfold Two.
-  IRring.
-  
-  Grab Existential Variables.
-  simpl.
-  eapply ap_wdl;[apply two_ap_zero|].
-  setoid_rewrite inj_Q_plus.  
-  rewrite inj_Q_One.
-  unfold Two.
-  IRring.
-Qed.
-
-(*Move*)
-Lemma qnormSqrIR : forall (a : Cart2D Q),
-((' (| a |) * ' (| a |)):IR) = normSqr ('a).
-Proof using.
-  intros.
-  rewrite <- normIRSpec.
-  rewrite  QNormSqrIR.
-  reflexivity.
-Qed.
-
-(*Move*)
-Lemma normSqrCastCommute  `{c:Cast A B} 
- `{@Ring A ae apl am az ao an}
- `{@Ring B be bp bm bz bo bn}
-  `{@SemiRing_Morphism A B ae be apl am az ao bp bm bz bo c}:
-  forall (a : Cart2D A),
-    (' (normSqr a):B) = normSqr ('a).
-Proof using.
-  intros ?.
-  unfold normSqr.
-  rewrite preserves_plus.
-  do 2 rewrite preserves_mult.
-  reflexivity.
-Qed.
-
-(*Move*)
-Lemma normRatioSqr : forall (a b : Cart2D Q)  pb,
-'(normSqr a / normSqr b)
-  = sqr (' (| a |)  * (normQIRInv b pb)).
-Proof using.
-  intros ? ? ?.
-  unfold sqr.
-  rewrite <- MultSqrMix.
-  rewrite qnormSqrIR.
-  rewrite <- (@simple_associativity _ _ mult _ _).
-  pose proof pb as pbb.
-  apply Qpos_adaptor in pbb.
-  apply less_imp_ap in pbb.
-  apply ap_symmetric in pbb.
-  setoid_rewrite inj_Q_div with (H:=pbb).
-  rewrite <- normSqrCastCommute.
-  unfold cf_div.
-  apply sg_op_proper;[reflexivity|].
-  unfold normQIRInv.
-  apply mult_cancel_lft with (z:=(inj_Q ℝ (normSqr b)));[exact pbb|].
-  rewrite field_mult_inv.
-  setoid_rewrite  (@simple_associativity _ _ mult _ _).
-  fold Cast_instace_Q_IR.
-  fold (@cast Q IR _).
-  rewrite normSqrCastCommute.
-  rewrite normIRInv2.
-  reflexivity.
-Qed.
-
 Lemma conicXspaceStandardFormCorrect : forall (p:Cart2D IR),
 evalConic conicXspaceRotatedScaled p
 = 
@@ -2694,6 +2637,16 @@ the value of [εwx], has thus been reduced to the problem of
 finding the intersection of a unit-radius circle 
 centered at [XspaceCircleCenter] and the hyperbola
 [XspaceStandardHyperbola] which is in standard form.
+
+Unfortunately, the solution still remains elusive.
+We know that the Y coordinate of [XspaceCircleCenter] is positive,
+but is not clear
+whether its X coordinate is positive or negative, or whether
+its distance from origin is less or greater than 1.
+Also, it is not clear whether the hyperbola is symmetric along the X
+axis or along the Y axis.
+It depends on the sign of [constCoeff XspaceStandardHyperbola].
+All these factors depend on the dimensions of the car.
 *)
 Lemma conicXspaceStandardFormCorrect3 : 
 (extraSpaceXWriggleCase1 = 'εwx) 
