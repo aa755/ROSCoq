@@ -2261,11 +2261,13 @@ Proof using dNN firstQuadW ntriv ntrivStrict turnCentreOut widthLt αPos.
 Qed.
 
 Lemma extraSpaceXWriggleCase1Simpl2: 
+let θ := (' α * ' d) in
 extraSpaceXWriggleCase1
-= ' (| βPlusBack |) * cos (2 * ' α * ' d - ' polarTheta βPlusBack)
-+ ' (| βMinusFront |) * cos (' α * ' d  +  ' polarTheta βMinusFront)
+= ' (| βPlusBack |) * cos (2 *  θ - ' polarTheta βPlusBack)
++ ' (| βMinusFront |) * cos ( θ  +  ' polarTheta βMinusFront)
  - '(totalLength cd).
 Proof using αPos.
+  simpl.
   hideRight.
   unfold extraSpaceXWriggleCase1.
   rewrite <- leftExtraSpaceSimpl2.
@@ -2277,6 +2279,7 @@ Proof using αPos.
   rewrite <- (@simple_associativity _ _ plus _ _).
   rewrite <- (@simple_associativity _ _ plus _ _).
   rewrite <- (@simple_associativity _ _ plus _ _).
+  rewrite  (@simple_associativity _ _ mult _ 2).
   apply sg_op_proper;[reflexivity|].
   rewrite (@commutativity _ _ _ plus _ _).
   unfold totalLength.
@@ -2295,24 +2298,39 @@ Proof using αPos.
   IRring.
 Qed.
 
-(* this is NOT a quadratic equation in cos θ. delete.*)
-Lemma extraSpaceXWriggleCase1Simpl3: 
-let θ := (' α * ' d  +  ' polarTheta βMinusFront) in
-extraSpaceXWriggleCase1
-= ' (| βPlusBack |) * 
-    cos (2 * θ 
-        -  (' polarTheta βPlusBack + 2 *  ' polarTheta βMinusFront))
-+ ' (| βMinusFront |) * cos θ
- - '(totalLength cd).
-Proof using αPos.
-  simpl. rewrite extraSpaceXWriggleCase1Simpl2.
-  apply sg_op_proper;[|reflexivity].
-  apply sg_op_proper;[|reflexivity].
-  apply sg_op_proper;[reflexivity|].
-  apply Cos_wd.
-  IRring.
-Qed.
+Definition XSpaceDeriv (θ:IR) :=
+2* ' (| βPlusBack |) * sin (' polarTheta βPlusBack - 2 *  θ)
+- ' (| βMinusFront |) * sin ( θ  +  ' polarTheta βMinusFront).
 
+Lemma XSpaceDerivNNeg : forall (θ:IR),
+0 ≤ XSpaceDeriv θ
+↔
+'normSqr (βMinusFront) * (sqr (sin ( θ  +  ' polarTheta βMinusFront)))
+≤ 4 * ' normSqr ( βPlusBack) * (sqr (sin (' polarTheta βPlusBack - 2 *  θ))).
+Abort.
+
+Lemma XSpaceDerivNNegIf : forall (θ:IR),
+θ ≤ (' polarTheta βPlusBack - ' polarTheta βMinusFront) * '(Qmake 1 3)
+→ (normSqr (βMinusFront) ≤ 4 * normSqr ( βPlusBack))
+→ 0 ≤ XSpaceDeriv θ.
+Abort.
+
+Lemma Mazda3Ratio:
+thisCarHasSameGeometryAs ('Mazda3Sedan2014sGT)
+->(normSqr (βMinusFront) ≤ 4 * normSqr ( βPlusBack)).
+Proof using.
+  intro.
+  destruct H.
+  unfold βMinusFront, βPlusBack.
+  subst.
+  rewrite H0.
+  Local Opaque Qle.
+  cbv.
+  (** this is true by a large margin 
+  (34484 # 1 <= 130832 # 1)%Q *)
+  Local Transparent Qle.
+  lra.
+Qed.  
 (** 
 The inverse probelem, i.e. to find the parameter d, given the available space
 can be expressed as a problem of finding the intersection of a unit
