@@ -563,8 +563,7 @@ Because cartesian to polar conversion is currently
     assume that the turn radius and the car's dimensions
     are rationals.
     Eventually, they can be real-valued coordinates,
-    as long as the X coordinate is constructively away from 0.
-    Even classically, the polar angle is undefined at [{|X:=0; Y:=0|}]
+    as long as the X coordinate is constructively away from 0, or equal to 0.
 
 In the  "constant times cosine" explained above, the value 
 in the representation, the angle β can for
@@ -856,7 +855,7 @@ It turns that the earlier hypothesis that the car needs
 to turn by atmost 90 degrees while coming out of the parallel
 parking was too conservative. Pictorial inuition seems
 to suggest that the car need not turn by more than
-[polarTheta βPlusFront].
+[polarTheta βPlusFront]. See [maxTurnNeededConjecture] below.
 
 onenote:https://d.docs.live.net/946e75b47b19a3b5/Documents/PhD6/ParallelParking.one#...into%203=%20to%20two&section-id={13BDE595-ACF2-4791-AAFC-6284FF953450}&page-id={670C8178-E541-483C-91A7-35F29052CCF3}&end
 
@@ -961,7 +960,7 @@ Qed.
 at min radius, the rightmost position of the rightmost
 point of the car is achieved after the bottommost
 position of the bottommost point of the car is achieved.*)
-Lemma hypothesisInAboveConjecture :
+Lemma extraHyp1If :
 ((lengthBack cd)/(tr + width cd)≤(tr + width cd)/(lengthFront cd))%Q
 -> extraHyp1.
 Abort.
@@ -2303,17 +2302,63 @@ Definition XSpaceDeriv (θ:IR) :=
 - ' (| βMinusFront |) * sin ( θ  +  ' polarTheta βMinusFront).
 
 Lemma XSpaceDerivNNeg : forall (θ:IR),
-0 ≤ XSpaceDeriv θ
+0≤θ ≤ min (½ * ' polarTheta βPlusBack) (½ - ' polarTheta βMinusFront)
+→
+(0 ≤ XSpaceDeriv θ
 ↔
 'normSqr (βMinusFront) * (sqr (sin ( θ  +  ' polarTheta βMinusFront)))
-≤ 4 * ' normSqr ( βPlusBack) * (sqr (sin (' polarTheta βPlusBack - 2 *  θ))).
+≤ 4 * ' normSqr ( βPlusBack) * (sqr (sin (' polarTheta βPlusBack - 2 *  θ)))).
 Abort.
 
+Definition XSpaceMonotoneUB :=
+min 
+         ((' polarTheta βPlusBack - ' polarTheta βMinusFront) * '(Qmake 1 3))
+         (½ - ' polarTheta βMinusFront).
+
 Lemma XSpaceDerivNNegIf : forall (θ:IR),
-θ ≤ (' polarTheta βPlusBack - ' polarTheta βMinusFront) * '(Qmake 1 3)
+0 ≤ θ ≤ XSpaceMonotoneUB
 → (normSqr (βMinusFront) ≤ 4 * normSqr ( βPlusBack))
 → 0 ≤ XSpaceDeriv θ.
 Abort.
+
+Lemma XSpaceDerivNNegIf2 : forall (θ:IR),
+½* ' (| βPlusBack |) * ' (| βMinusFront |)
+≤  (sin (' polarTheta βPlusBack - 2 *  θ))
+→
+0 ≤ XSpaceDeriv θ.
+Abort.
+
+Lemma βMinusFrontLeβPlusBack : ((' polarTheta βMinusFront:IR) ≤ ' polarTheta βPlusBack).
+Proof using firstQuadW lengthFrontGreater ntriv ntrivStrict turnCentreOut.
+  eapply transitivity;[apply βPlusMinusFront|].
+  apply FrontLeBack.
+Qed.
+
+Lemma XSpaceMonotoneUBPos : 0[<]XSpaceMonotoneUB.
+Abort.
+
+Lemma Mazda3βMinusFront:
+thisCarHasSameGeometryAs ('Mazda3Sedan2014sGT)
+-> ('(Qmake 41 180) * π ) < polarTheta βMinusFront < ('(Qmake 42 180) * π ).
+Proof using.
+  intro H. destruct H as [Hl Hr].
+  unfold leftCriticalAngleCR.
+  unfold βMinusFront.
+  subst.
+  rewrite Hr. clear Hr.
+  unfold lt, CRlt.
+  split; exists 10%nat;
+  simpl; vm_compute; reflexivity.
+Qed.
+
+(*
+Check Mazda3βPlusBack.
+Mazda3βPlusBack
+     : thisCarHasSameGeometryAs (' Mazda3Sedan2014sGT)
+       → ' (79 # 180)%Q * π < polarTheta βPlusBack <
+         ' (80 # 180)%Q * π
+*)
+
 
 Lemma Mazda3Ratio:
 thisCarHasSameGeometryAs ('Mazda3Sedan2014sGT)
@@ -2330,8 +2375,21 @@ Proof using.
   (34484 # 1 <= 130832 # 1)%Q *)
   Local Transparent Qle.
   lra.
-Qed.  
+Qed.
+
 (** 
+
+The general solution for quartic equations is extremely horrendous:
+https://upload.wikimedia.org/wikipedia/commons/9/99/Quartic_Formula.svg
+It involves both square and cube roots.
+It may be impossible to decide whether a root is real of imaginary, 
+even though we started with rational coefficients.
+Roots are nested. After taking a root, the decidability properties may be gone.
+Only real roots are of use to us.
+
+Delete? The conic exercise below seems to be useless, as the closed form solution remains
+elusive.
+
 The inverse probelem, i.e. to find the parameter d, given the available space
 can be expressed as a problem of finding the intersection of a unit
 circle with these conic sections, as suggested by Trold at:
