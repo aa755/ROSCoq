@@ -287,6 +287,40 @@ c * xy * s * sqr X1 2 - c * xy * s * sqr Y1 2 +
 s * X1 * Y0 - s * Y1 * X0 + cc )
   as Heq by  (subst sqr; simpl; clear ; IRring)
   end.
+  autounfold with IRMC in Heq.
+  match type of Heq with
+  ?r [=] _ => assert (([0]:IR) [=] [1])
+  end.
+  
+  Opaque IR.
+  Opaque cr_one.
+  Opaque cm_unit.
+  Opaque crl_crr.
+  Opaque st_eq.
+  Opaque cof_crr.
+  Opaque cf_crr.
+  Opaque cr_crr.
+  Opaque cag_crr.
+  Opaque cg_crr.
+  Opaque cm_crr.
+  Opaque csg_crr.
+  Opaque cs_crr.
+  Opaque csg_op.
+  Opaque cr_mult.
+  Opaque cg_minus.
+  Opaque cg_inv.
+  Print CRing_Ring.
+  
+  compute. (* does nothing  *)
+  
+  ring_simplify. (* hangs  *)
+
+
+  match type of Heq with
+  ?r [=] _ => assert (([0]:IR) [=] [0])
+  end.
+  hnf.
+  ring_simplify.
   rewrite Heq. clear Heq.
 
   match goal with
