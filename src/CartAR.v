@@ -6,9 +6,6 @@ Require Export CoRN.ftc.IntegrationRules.
 (*bigD_approx*)
 Require Export Coq.Program.Tactics.
 
-
-Definition R2QPrec : Qpos := QposMake 1 100.
-
 Definition threeBy2 : bigD .
 exact ((inject_Z_bigD 3) ≪ (-1)).
 Defined.
@@ -18,7 +15,24 @@ Definition val : ARbigD .
 exact ('threeBy2*ARpi).
 Defined.
 
+Require Import MathClasses.theory.rings.
+Definition ARPiInv : ARbigD.
+  eapply ARinvT with (x:=ARpi).
+  right.
+  unfold ARltT.
+  apply AR_epsilon_sign_dec_pos  with (k:=(-1)%Z).
+  vm_compute.
+  reflexivity.
+Defined.
+
+Definition R2QPrec : Qpos := QposMake 1 1000.
+
+
+
+(** these compute immediately
+Eval vm_compute in (cast bigD Q  (approximate ARPiInv R2QPrec)).
 Eval vm_compute in (cast bigD Q  (approximate val R2QPrec)).
+*)
 
 Definition crNum : CR := ((('(3#2)%Q)*CRpi)).
 Eval vm_compute in (approximate crNum R2QPrec).

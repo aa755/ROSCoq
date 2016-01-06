@@ -2166,15 +2166,29 @@ Proof using.
   simpl; vm_compute; reflexivity.
 Qed.
 
-Definition CRPiInv : CR := CRinvT CRpi (inr CRpi_pos).
+(* Move *)
+(** Unlike CRpi_pos, this is transparent, so that we can compute pi inverse*)
+Lemma CRpi_posT : (0 < CRpi)%CR.
+Proof using.
+  unfold CRltT.
+  apply CR_epsilon_sign_dec_pos.
+  exists (QposMake 1 1).
+  vm_compute.
+  reflexivity.
+Defined.
 
+(* Move *)
+Definition CRPiInv : CR := CRinvT CRpi (inr CRpi_posT).
 
+(* Move *)
 Definition approximateAngleAsDegrees (a:CR) : Z :=
  R2ZApprox (a*CRPiInv* ('180%positive)) (QposMake 1 100).
 
+(**
+These compute fast now:
 
-(** 
-does not compute:
+Eval vm_compute in  
+ (approximate (CRPiInv) (QposMake 1 1000)).
 
 Eval vm_compute in  
   (approximateAngleAsDegrees
@@ -2183,17 +2197,6 @@ Eval vm_compute in
         ('carDim Mazda3Sedan2014sGT)
         (' minTR Mazda3Sedan2014sGT)
          ))).
-
-Perhaps this is the root cause, which does not compute either.
-Eval vm_compute in  
- (approximate (CRPiInv) (QposMake 1 1)).
-
-Is there a fast implementation of reciprocal for CR?
-It does not even look at the positivity proof, so it is 
-perhaps wasting time computing already available info.
-
-Perhaps switch to AR? The reciprocal function there (ARinv) also does not
-seem to look at the positivity proof.
 *)
 
 Lemma Mazda3βPlusFront:
