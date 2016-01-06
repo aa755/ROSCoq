@@ -107,6 +107,16 @@ Proof using.
   IRring.
 Qed.
 
+Lemma SinMinusSwap : forall a b:IR,
+  sin (a - b) = - sin (b - a).
+Proof using.
+  intros ? ?.
+  autounfold with IRMC.
+  rewrite <- Sin_inv.
+  apply Sin_wd.
+  IRring.
+Qed.
+
 Lemma Pi_minus_Sin: ∀ θ : ℝ, 
   Sin (π - θ) = (Sin θ).
 Proof using.
@@ -506,3 +516,111 @@ Proof using.
   reflexivity.
 Qed.
 
+(*Move*)
+(** countinous functions from reals to reals, 
+a special case of continuous functions over an interval*)
+Notation "ℝ-c->ℝ" := (IContR realline I) (at level 100).
+
+Definition RConst (a:IR) : ℝ-c->ℝ := ContConstFun _ _ a.
+Definition RFId : ℝ-c->ℝ := IContRId _ _ .
+
+Definition linearCosine (c a b :IR) : ℝ-c->ℝ :=
+RConst c [*]  (CCos [∘]  (RConst b [+]  RConst a [*] RFId )).
+
+Definition linearSine (c a b :IR) : ℝ-c->ℝ :=
+RConst c [*]  (CSine [∘]  (RConst b [+] RConst a [*] RFId  )).
+
+Global Instance CastRInIntvl : Cast IR (@RInIntvl realline):=
+fun r => {|scs_elem :=r ; scs_prf := I|}.
+
+(* Move *)
+Definition crepresents (F:(ℝ-c->ℝ)) (f: ℝ -> ℝ) : Prop :=
+forall x:ℝ, {F} ('x) = f x.
+
+Lemma linearCosineAp (c a b :IR) :
+forall (θ:IR),
+{linearCosine c a b} ('θ)=
+let θ :IR := a*θ + b in 
+c*(cos θ).
+Proof using.
+  intros ?. unfold
+  linearCosine, RConst, RFId.
+  rewrite IContRMultAp.
+  rewrite composeIContAp.
+  simpl.
+  apply sg_op_proper;[reflexivity|].
+  Local Transparent CCos Cos.
+  simpl.
+  unfold cos,CosClassIR, Cos.
+  Local Opaque CCos Cos.
+  simpl.
+  apply pfwdef.
+  IRring.
+Qed.
+
+(* exact same proof as [linearCosineAp ]above *)
+Lemma linearSineAp (c a b :IR) :
+forall (θ:IR),
+{linearSine c a b} ('θ)=
+let θ :IR := a*θ + b in 
+c*(sin θ).
+Proof using.
+  intros ?. unfold
+  linearSine, RConst, RFId.
+  rewrite IContRMultAp.
+  rewrite composeIContAp.
+  simpl.
+  apply sg_op_proper;[reflexivity|].
+  Local Transparent CCos Cos.
+  simpl.
+  unfold cos,CosClassIR, Cos.
+  Local Opaque CCos Cos.
+  simpl.
+  apply pfwdef.
+  simpl. IRring.
+Qed.
+
+Lemma  composeIContRNegate :
+∀ (I0 : interval) (pI : proper I0)
+       (F: ℝ-c->ℝ) (G: IContR I0 pI),
+        (composeIContR ([--]F) G) [=] [--] (composeIContR (F) G).
+Proof using.
+  intros ? ? ? ?.
+  apply ExtEqIContR.
+  intro a.
+  rewrite composeIContAp.
+  rewrite IContRInvAp.
+  rewrite IContRInvAp.
+  rewrite composeIContAp.
+  reflexivity.
+Qed.
+  
+Lemma linearCosSineDeriv (c a b :IR):
+  isIDerivativeOf (linearSine (c*(-a)) a b) (linearCosine c a b).
+Proof using.
+  unfold linearSine, linearCosine.
+  unfold RConst.
+  autounfold with IRMC.
+  eapply isIDerivativeOfWdl;
+    [rewrite <- FConstMult; rewrite <- mult_assoc_unfolded;reflexivity|].
+  apply TContRDerivativeMultConstL.
+  remember (ContConstFun realline I b [+] ContConstFun realline I a [*] RFId)
+  as F.
+  apply (@isIDerivativeOfWdl _ _ (([--] CSine [∘] F) [*] (RConst a)) _ _);
+    [|apply IContRDerivativeCos].
+  - rewrite composeIContRNegate.
+    rewrite cring_inv_mult_rht.
+    rewrite <- cring_inv_mult_lft.
+    rewrite mult_commut_unfolded.
+    rewrite <-FConstOppIn.
+    reflexivity.
+  - subst. apply TContRDerivativeLinear.
+Qed.
+
+
+(* Move *)
+Definition isDerivOf (f' f : IR -> IR) : Prop :=
+exists (F' F : (ℝ-c->ℝ)),
+crepresents F' f'
+∧ crepresents F f
+∧ Squash (@ContField.isIDerivativeOf realline _ F' F).

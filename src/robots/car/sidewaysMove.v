@@ -2247,6 +2247,7 @@ Proof using dNN firstQuadW ntriv ntrivStrict turnCentreOut widthLt αPos.
     apply nonTrivialExtraSpaceIf. assumption.
 Qed.
 
+
 Definition extraSpaceXWriggleCase1 :IR :=
 (2 * sin (' α * ' d) * (leftExtraSpaceTerm - 'tr)) + rightExtraSpaceWriggle.
 
@@ -2259,14 +2260,16 @@ Proof using dNN firstQuadW ntriv ntrivStrict turnCentreOut widthLt αPos.
   reflexivity.
 Qed.
 
-Lemma extraSpaceXWriggleCase1Simpl2: 
-let θ := (' α * ' d) in
-extraSpaceXWriggleCase1
-= ' (| βPlusBack |) * cos (2 *  θ - ' polarTheta βPlusBack)
+Definition extraSpaceX1 (θ:IR) :=
+' (| βPlusBack |) * cos (2 *  θ - ' polarTheta βPlusBack)
 + ' (| βMinusFront |) * cos ( θ  +  ' polarTheta βMinusFront)
  - '(totalLength cd).
+ 
+Lemma extraSpaceXWriggleCase1Simpl2: 
+extraSpaceXWriggleCase1
+= extraSpaceX1 (' α * ' d).
 Proof using αPos.
-  simpl.
+  simpl. unfold extraSpaceX1.
   hideRight.
   unfold extraSpaceXWriggleCase1.
   rewrite <- leftExtraSpaceSimpl2.
@@ -2297,14 +2300,63 @@ Proof using αPos.
   IRring.
 Qed.
 
-Definition XSpaceDeriv (θ:IR) :=
+(** extra needed space is a continuous function over θ,
+which is  (' α * ' d) *)
+Definition extraSpaceX1Continuous: ℝ-c->ℝ :=
+linearCosine  ('| βPlusBack |) 2 (- ' polarTheta βPlusBack)
+[+] linearCosine  ('| βMinusFront |) 1 (' polarTheta βMinusFront)
+[+] RConst (- '(totalLength cd)).
+
+
+Lemma extraSpaceX1ContinuousCorrect:
+crepresents extraSpaceX1Continuous extraSpaceX1.
+Proof using.
+  intros ?. unfold extraSpaceX1Continuous, extraSpaceX1.
+  rewrite IContRPlusAp.
+  rewrite IContRPlusAp.
+  rewrite linearCosineAp.
+  rewrite linearCosineAp.
+  simpl. rewrite mult_1_l.
+  IRring.
+Qed.
+
+Definition extraSpaceX1Deriv (θ:IR) :=
 2* ' (| βPlusBack |) * sin (' polarTheta βPlusBack - 2 *  θ)
 - ' (| βMinusFront |) * sin ( θ  +  ' polarTheta βMinusFront).
+
+(** derivative of extra needed space is a continuous function over θ,
+which is  (' α * ' d) *)
+Definition extraSpaceX1DerivContinuous: ℝ-c->ℝ :=
+linearSine  (('| βPlusBack |) * (-2)) 2 (- ' polarTheta βPlusBack)
+[+] linearSine  (('| βMinusFront |) * (-1)) 1 (' polarTheta βMinusFront).
+
+Lemma extraSpaceX1DerivContinuousCorrect:
+crepresents extraSpaceX1DerivContinuous extraSpaceX1Deriv.
+Proof using.
+  intros ?. unfold extraSpaceX1DerivContinuous, extraSpaceX1Deriv.
+  rewrite IContRPlusAp.
+  rewrite linearSineAp.
+  rewrite linearSineAp.
+  simpl.
+   rewrite mult_1_l.
+  rewrite SinMinusSwap.
+  IRring.
+Qed.
+
+Lemma XSpaceDerivCorrect (θ:IR) : 
+  isIDerivativeOf extraSpaceX1DerivContinuous extraSpaceX1Continuous.
+Proof using.
+  unfold extraSpaceX1DerivContinuous, extraSpaceX1Continuous.
+  eapply isIDerivativeOfWdl;
+    [apply cm_rht_unit_unfolded|].
+  apply TContRDerivativePlus;[|apply TContRDerivativeConst].
+  apply TContRDerivativePlus; apply linearCosSineDeriv.
+Qed.
 
 Lemma XSpaceDerivNNeg : forall (θ:IR),
 0≤θ ≤ min (½ * ' polarTheta βPlusBack) (½ - ' polarTheta βMinusFront)
 →
-(0 ≤ XSpaceDeriv θ
+(0 ≤ extraSpaceX1Deriv θ
 ↔
 'normSqr (βMinusFront) * (sqr (sin ( θ  +  ' polarTheta βMinusFront)))
 ≤ 4 * ' normSqr ( βPlusBack) * (sqr (sin (' polarTheta βPlusBack - 2 *  θ)))).
@@ -2318,14 +2370,14 @@ min
 Lemma XSpaceDerivNNegIf : forall (θ:IR),
 0 ≤ θ ≤ XSpaceMonotoneUB
 → (normSqr (βMinusFront) ≤ 4 * normSqr ( βPlusBack))
-→ 0 ≤ XSpaceDeriv θ.
+→ 0 ≤ extraSpaceX1Deriv θ.
 Abort.
 
 Lemma XSpaceDerivNNegIf2 : forall (θ:IR),
 ½* ' (| βPlusBack |) * ' (| βMinusFront |)
 ≤  (sin (' polarTheta βPlusBack - 2 *  θ))
 →
-0 ≤ XSpaceDeriv θ.
+0 ≤ extraSpaceX1Deriv θ.
 Abort.
 
 Lemma βMinusFrontLeβPlusBack : ((' polarTheta βMinusFront:IR) ≤ ' polarTheta βPlusBack).
@@ -2376,6 +2428,18 @@ Proof using.
   Local Transparent Qle.
   lra.
 Qed.
+
+
+(** is it provable using existing assumptions?*)
+Lemma extraSpaceX1IfNormSqr:
+(normSqr (βMinusFront) ≤ 4 * normSqr ( βPlusBack)).
+Proof.
+  unfold normSqr. simpl.
+  apply flip_nonneg_minus.
+  autounfold with QMC.
+  ring_simplify.
+  (**looks promising*)
+Abort.
 
 (** 
 
