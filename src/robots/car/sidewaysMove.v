@@ -2356,24 +2356,99 @@ Proof using.
   apply TContRDerivativePlus; apply linearCosSineDeriv.
 Qed.
 
-Lemma XSpaceDerivNNeg : forall (θ:IR),
-0≤θ ≤ min (½ * ' polarTheta βPlusBack) (½ - ' polarTheta βMinusFront)
-→
-(0 ≤ extraSpaceX1Deriv θ
-↔
-'normSqr (βMinusFront) * (sqr (sin ( θ  +  ' polarTheta βMinusFront)))
-≤ 4 * ' normSqr ( βPlusBack) * (sqr (sin (' polarTheta βPlusBack - 2 *  θ)))).
-Abort.
-
 Definition XSpaceMonotoneUB :=
-min 
+(*min *)
          ((' polarTheta βPlusBack - ' polarTheta βMinusFront) * '(Qmake 1 3))
-         (½ - ' polarTheta βMinusFront).
+        (* (½ - ' polarTheta βMinusFront) *).
 
+
+Lemma βMinusFrontLeβPlusBack : ((' polarTheta βMinusFront:IR) ≤ ' polarTheta βPlusBack).
+Proof using firstQuadW lengthFrontGreater ntriv ntrivStrict turnCentreOut.
+  eapply transitivity;[apply βPlusMinusFront|].
+  apply FrontLeBack.
+Qed.
+  
+
+(*TODO : make the LHS strict, so that we know that we make 
+  some nonzero progress in one move*)
+Lemma XSpaceMonotoneUBFirstQuad :
+0 ≤ XSpaceMonotoneUB ≤ ½ * π.
+Proof using firstQuadW lengthFrontGreater ntriv ntrivStrict turnCentreOut.
+  unfold XSpaceMonotoneUB.
+  split.
+- apply nonneg_mult_compat; unfold PropHolds;
+    [apply flip_nonneg_minus, βMinusFrontLeβPlusBack|].
+  apply preserves_nonneg. unfold PropHolds.
+  compute. intro. discriminate.
+- apply le_1_mult_le_compat_r;
+    [apply preserves_le_1;compute; intro; discriminate 
+      |apply flip_nonneg_minus, βMinusFrontLeβPlusBack |].
+  rewrite <- (plus_0_r  (½ * π)).
+  apply plus_le_compat;
+    [apply firstQuadβPlusBack|].
+  apply flip_nonneg_negate.
+  apply firstQuadβMinusFront.
+Qed.
+  
 Lemma XSpaceDerivNNegIf : forall (θ:IR),
 0 ≤ θ ≤ XSpaceMonotoneUB
-→ (normSqr (βMinusFront) ≤ 4 * normSqr ( βPlusBack))
+→ ' (| βMinusFront |) ≤  2 * ' (| βPlusBack |)
 → 0 ≤ extraSpaceX1Deriv θ.
+Proof using firstQuadW lengthFrontGreater ntriv ntrivStrict turnCentreOut.
+  intros ? h1 h2.
+  unfold extraSpaceX1Deriv.
+  apply flip_nonneg_minus.
+  apply mult_le_compat;
+    [apply Cart2DRadNNegIR;fail | | assumption; fail|].
+- apply Sin_nonneg;[| rewrite (divideBy2 Pi)].
+  + apply nonneg_plus_compat; unfold PropHolds.
+    tauto. apply firstQuadβMinusFront.
+  + apply plus_le_compat; 
+      [| apply firstQuadβMinusFront].
+    eapply transitivity;[ apply h1 |].
+    apply XSpaceMonotoneUBFirstQuad.
+
+- apply Sin_resp_leEq.
+  + eapply transitivity;[apply MinusPiBy2Le0|].
+    apply nonneg_plus_compat; unfold PropHolds.
+    tauto. apply firstQuadβMinusFront.
+  + rewrite <- PiBy2DesugarIR.
+    rewrite <- (plus_0_r  (½ * π)).
+    apply plus_le_compat;
+      [apply firstQuadβPlusBack|].
+    apply flip_nonneg_negate.
+    rewrite <- RingProp3.
+    apply nonneg_plus_compat; apply h1.
+  + apply flip_le_minus_l. rewrite negate_involutive.
+    rewrite <- PlusShuffle3r.
+    apply flip_le_minus_r.
+    unfold XSpaceMonotoneUB in h1.
+    specialize (proj2 h1). clear.
+    intro H.
+    apply (@order_preserving IR IR _ _ _ _ (mult 3)) in H;
+      [|apply semirings.OrderPreserving_instance_0].
+    Focus 2. unfold PropHolds.
+      rewrite <- (@preserves_3 Q IR  _ _ _ _ _ _ _ _ _ _ (cast Q IR) _).
+      apply preserves_nonneg. compute. intro ; discriminate.       
+    assert (θ + 2 * θ= 3 * θ) as Heq by IRring.
+    rewrite Heq. clear Heq.
+    eapply transitivity;[apply H|].
+    apply eq_le. clear.
+    rewrite  MultShuffle3l.
+    rewrite <- (@preserves_3 Q IR  _ _ _ _ _ _ _ _ _ _ (cast Q IR) _).
+    rewrite <- (@simple_associativity _ _ mult _ _ _ ).
+    rewrite <- (preserves_mult).
+    assert  (3 * (1 # 3)%Q = 1) as Heq by (compute; reflexivity).
+    rewrite Heq. clear Heq.
+    rewrite (@preserves_1 Q IR  _ _ _ _ _ _ _ _ _ _ (cast Q IR) _).
+    rewrite mult_1_r.
+    reflexivity.
+Qed.        
+    
+
+Lemma XSpaceDerivNNegIfHyp:
+(' (| βMinusFront |) ≤  2 * ' (| βPlusBack |))
+↔ (normSqr (βMinusFront) ≤ 4 * normSqr ( βPlusBack)).
 Abort.
 
 Lemma XSpaceDerivNNegIf2 : forall (θ:IR),
@@ -2383,11 +2458,6 @@ Lemma XSpaceDerivNNegIf2 : forall (θ:IR),
 0 ≤ extraSpaceX1Deriv θ.
 Abort.
 
-Lemma βMinusFrontLeβPlusBack : ((' polarTheta βMinusFront:IR) ≤ ' polarTheta βPlusBack).
-Proof using firstQuadW lengthFrontGreater ntriv ntrivStrict turnCentreOut.
-  eapply transitivity;[apply βPlusMinusFront|].
-  apply FrontLeBack.
-Qed.
 
 Lemma XSpaceMonotoneUBPos : 0[<]XSpaceMonotoneUB.
 Abort.
@@ -2416,7 +2486,7 @@ Mazda3βPlusBack
 
 
 Lemma Mazda3Ratio:
-thisCarHasSameGeometryAs ('Mazda3Sedan2014sGT)
+thisCarHasSameGeometryAs (' Mazda3Sedan2014sGT)
 ->(normSqr (βMinusFront) ≤ 4 * normSqr ( βPlusBack)).
 Proof using.
   intro.
@@ -2433,7 +2503,17 @@ Proof using.
 Qed.
 
 
-(** is it provable using existing assumptions?*)
+(** is it provable using existing assumptions?
+While this is likely to be true for most cars, so far
+we never assumed any upper bound on [lengthFront].
+When it becomes too large in comparison to other dimensions,
+this may not hold.
+
+If we dont want to assume this for all cars,
+it may still be possible to prove
+the unitial monotonicity by replacing sin by 1 or -1 depending
+on which side of ≤ it occurs.
+*)
 Lemma extraSpaceX1IfNormSqr:
 (normSqr (βMinusFront) ≤ 4 * normSqr ( βPlusBack)).
 Proof.
@@ -2441,7 +2521,6 @@ Proof.
   apply flip_nonneg_minus.
   autounfold with QMC.
   ring_simplify.
-  (**looks promising*)
 Abort.
 
 (** 

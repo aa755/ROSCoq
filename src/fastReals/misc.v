@@ -27,6 +27,7 @@ repeat (split; try apply _).
 - intros. apply inj_Q_One.
 Qed.
 
+
 Require Import MathClasses.theory.rings.
 (*typeclass resolution happens right here, when declaring the database,
 and not while rewriting. leaving out arguments here can confuse
@@ -39,6 +40,14 @@ Hint Rewrite
 (@preserves_plus Q IR _ _ _ _ _ _ _ _ _ _ (@cast Q IR _) _)
 (@preserves_mult Q IR  _ _ _ _ _ _ _ _ _ _ (@cast Q IR _) _)
  : Q2RMC.
+
+Require Import MathClasses.interfaces.orders.
+
+Global Instance OrderPreservingQR : OrderPreserving (cast Q ℝ).
+Proof using.
+  split;[split; try apply _|].
+  intros ? ? H. apply inj_Q_leEq. exact H.
+Qed.
 
 Hint Unfold cos CosClassIR sin SinClassIR min MinClassIR max MaxClassIR One_instance_IR: IRMC.
 

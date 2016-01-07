@@ -56,9 +56,25 @@ Proof using All.
   ring.
 Qed.
 
+Lemma PlusShuffle3l: 
+∀ a b c : A, 
+ a + (b + c) = b + a + c.
+Proof using All.
+  intros.
+  ring.
+Qed.
+
 Lemma MultShuffle3r: 
 ∀ a b c : A, 
  a * b * c = a * c * b.
+Proof using All.
+  intros.
+  ring.
+Qed.
+
+Lemma PlusShuffle3r: 
+∀ a b c : A, 
+ a + b + c = a + c + b.
 Proof using All.
   intros.
   ring.
@@ -107,6 +123,15 @@ Proof using All.
   apply flip_le_minus_l. rewrite plus_negate_r.
   assumption.
 Qed.
+
+(** Proof is the dual of MathClasses.orders.rings.ge_1_mult_le_compat_r*)
+Lemma le_1_mult_le_compat_r x y z : z ≤ 1 → 0 ≤ x → x ≤ y → x * z ≤ y .
+  Proof.
+    intros.
+    transitivity x;[| easy].
+    rewrite <-(mult_1_r x) at 2.
+    now apply (order_preserving_nonneg (.*.) x).
+  Qed.
 
 Lemma RingLeProp2  : forall 
   a : A,
