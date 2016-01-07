@@ -1660,6 +1660,61 @@ Proof using.
  reflexivity.
 Qed.
 
+Lemma rational_arctan_increasing : forall a b:Q,
+(a <= b)%Q
+→ (rational_arctan a <= rational_arctan b)%CR.
+Proof.
+  intros ? ? Hab.
+  rewrite  <- arctan_Qarctan.
+  rewrite  <- arctan_Qarctan.
+  apply CRArcTan_resp_leEq.
+  apply CRle_Qle.
+  exact Hab.
+Qed.
+
+Lemma CRasIRless : ∀ x y:CR,
+ (CRasIR x [<] CRasIR y IFF  x <  y).
+Proof.
+  intros  ? ?.
+  split; intro H.
+  - rewrite <- CRasIRasCR_id.
+    setoid_rewrite <- CRasIRasCR_id at 3.
+    apply CR_lt_ltT.
+    apply IRasCR_preserves_less. assumption.
+  - rewrite <- CRasIRasCR_id in H.
+    setoid_rewrite <- CRasIRasCR_id at 3 in H.
+    apply CR_less_as_IR.
+    apply CR_lt_ltT.
+    assumption.
+Qed.
+
+  
+Lemma CRArcTan_resp_less : ∀ x y, (x < y -> arctan x < arctan y).
+Proof.
+  intros ? ? Hless.
+  apply CRasIRless in Hless.
+  pose proof (ArcTan_resp_less (CRasIR x) (CRasIR y) Hless) as Hir.
+  eapply less_wdl in Hir; [| symmetry; apply arctan_correct_CR].
+  eapply less_wdr in Hir; [| symmetry; apply arctan_correct_CR].
+  apply CRasIRless in Hir.
+  assumption.
+Qed.
+
+
+Lemma rational_arctan_increasing_strict : forall a b:Q,
+(a < b)%Q
+→ (rational_arctan a < rational_arctan b)%CR.
+Proof.
+  intros ? ? Hab.
+  apply CR_lt_ltT.
+  rewrite  <- arctan_Qarctan.
+  rewrite  <- arctan_Qarctan.
+  apply CRArcTan_resp_less.
+  apply CR_lt_ltT.
+  apply CRlt_Qlt.
+  assumption.
+Qed.
+
 
 (*
 Definition badapproxNum (r: CR) (den : positive) : Z:=

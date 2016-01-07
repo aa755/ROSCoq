@@ -357,19 +357,8 @@ Proof.
       exact Hr.
 Qed.
 
-Lemma rational_arctan_monotone : forall a b:Q,
-(a <= b)%Q
-→ (rational_arctan a <= rational_arctan b)%CR.
-Proof.
-  intros ? ? Hab.
-  rewrite  <- arctan_Qarctan.
-  rewrite  <- arctan_Qarctan.
-  apply CRArcTan_resp_leEq.
-  apply CRle_Qle.
-  exact Hab.
-Qed.
 
-Lemma polarFirstQuadMonotone : forall (a b: Cart2D Q),
+Lemma polarFirstQuadIncreasing : forall (a b: Cart2D Q),
   0 < X a (* if 0, LHS is arbitrarily chosen to be Pi*)
   → 0 < X b
   → (Y a / X a ≤ Y b / X b)%Q
@@ -387,7 +376,29 @@ Proof.
   destruct (decide (X b == 0)%Q);[lra|].
   assert ((0 < X b)%Q) by lra.
   destruct (decide (X b < 0)%Q);[lra|].
-  intro Hh.
-  apply rational_arctan_monotone.
+  apply rational_arctan_increasing.
+  exact Hrle.
+Qed.
+
+Lemma polarFirstQuadIncreasingStrict : forall (a b: Cart2D Q),
+  0 < X a (* if 0, LHS is arbitrarily chosen to be Pi*)
+  → 0 < X b
+  → (Y a / X a < Y b / X b)%Q
+  → polarTheta a < polarTheta b.
+Proof using.
+  intros ? ?. unfold polarTheta, QSignHalf,
+    QSign,
+  Zero_instance_Cart2D, Cart2D_instance_le.
+  autounfold with QMC.
+  simpl.
+  intros ? Hlt Hrle.
+  destruct (decide (X a == 0)%Q);[lra|].
+  destruct (decide (X a < 0)%Q);[lra|].
+  assert ((0 < X a)%Q) by lra.
+  destruct (decide (X b == 0)%Q);[lra|].
+  assert ((0 < X b)%Q) by lra.
+  destruct (decide (X b < 0)%Q);[lra|].
+  apply CR_lt_ltT.
+  apply rational_arctan_increasing_strict.
   exact Hrle.
 Qed.

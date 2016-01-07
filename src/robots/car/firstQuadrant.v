@@ -44,9 +44,21 @@ Local Opaque Cosine.
 Local Opaque Sin.
 Local Opaque Cos.
 
-Definition nonTrivialCarDim (cd : CarDimensions IR) :=
+Definition plausibleCarDim (cd : CarDimensions IR) : Prop :=
   0 ≤ lengthFront cd /\  0 ≤ width cd /\ 0 ≤ lengthBack cd.
 
+Definition nonTrivialCarDim (cd : CarDimensions Q) :=
+  0 < lengthFront cd  ∧  0 < width cd ∧ 0 < lengthBack cd.
+  
+Lemma nonTrivialCarDimPlausible : forall (cd : CarDimensions Q),
+  nonTrivialCarDim cd
+  -> plausibleCarDim ('cd).
+Proof.
+  unfold nonTrivialCarDim, plausibleCarDim.
+  intros ? H. repnd;
+  dands; simpl; apply preserves_nonneg; apply lt_le; assumption.
+Qed.
+  
   Local Notation minxy := (lstart).
   Local Notation maxxy := (lend).
   Local Notation  "∫" := Cintegral.
@@ -63,7 +75,7 @@ in terms of the coordinates of the four corners of the car*)
 Section Rigid2DState.
   Variable cs :Rigid2DState IR.
   Variable cd :CarDimensions IR.
-  Hypothesis nonTriv : nonTrivialCarDim cd.
+  Hypothesis nonTriv : plausibleCarDim cd.
   Hypothesis theta90 : 0 ≤ θ2D cs ≤ (½ * π).
   
   Lemma carBoundsAMAuxMin : 
@@ -142,7 +154,7 @@ Section Rigid2DState.
     apply leEq_imp_Min_is_lft.
     apply shift_leEq_rht.
     unfold cg_minus. revert nonTriv.
-    unfold nonTrivialCarDim.
+    unfold plausibleCarDim.
     autounfold with IRMC.
     intros.
     rewrite cg_inv_inv.
@@ -165,7 +177,7 @@ Section Rigid2DState.
     apply leEq_imp_Max_is_rht.
     apply shift_leEq_rht.
     unfold cg_minus. revert nonTriv.
-    unfold nonTrivialCarDim.
+    unfold plausibleCarDim.
     autounfold with IRMC.
     intros.
     rewrite cg_inv_inv.
@@ -295,7 +307,7 @@ Proof using.
   split;split;simpl;IRring.
 Qed.
   
-  Hypothesis nonTriv : nonTrivialCarDim cd.
+  Hypothesis nonTriv : plausibleCarDim cd.
   
   Lemma carMinMaxXYAM : forall init tr θ,
   (0 ≤ θ ≤ (½ * π))
