@@ -777,6 +777,85 @@ Definition mkIntBnd {a b : RInIntvl}
   exact p.
 Defined.
 
+Lemma IDerivativeLB :forall {F F' : IContR}
+   (ta tb : RInIntvl) (Hab : ta[<]tb) (c : IR),
+   isIDerivativeOf F' F
+   -> LBoundInCompInt Hab (toPart F') c
+   -> c[*](tb[-]ta) [<=] ((getF F) tb[-] (getF F) ta).
+Proof.
+ intros ? ? ? ? ? ? Hisd Hub.
+ rewrite extToPart3.
+ rewrite extToPart3.
+ apply (AntiderivativeLB2 (toPart F) (toPart F') ta tb Hab); auto.
+ unfold isIDerivativeOf in Hisd.
+ apply Included_imp_Derivative with 
+   (I:=itvl) (pI := pItvl ); trivial;[].
+ apply intvlIncluded.
+Qed.
+
+
+Lemma IDerivativeLB2 :forall (F F' : IContR)
+   (ta tb : RInIntvl) (Hab : ta[<]tb) (c : IR),
+   isIDerivativeOf F' F
+   -> (forall (t:RInIntvl), (clcr ta tb) t -> c [<=] ({F'} t))
+   -> c[*](tb[-]ta) [<=] ({F} tb[-] {F} ta).
+Proof.
+  intros ? ? ? ? ? ? Hder Hub.
+  eapply IDerivativeLB with (Hab0 := Hab); eauto;[].
+  unfold UBoundInCompInt.
+  intros r Hc ?.
+   unfold compact in Hc.
+  unfold getF in Hub.
+  pose proof Hc as Hccc.
+  simpl in Hx.
+  destruct Hc as [Hca Hcb].
+  specialize (Hub {|scs_elem := r; scs_prf := Hx|} ).
+  rewrite <- extToPart2.
+  unfold getF in Hub.
+  apply Hub.
+  split; auto.
+Qed.
+
+
+(** double negation trick, to strengthen LB2. The hypothesis
+ta[<=]tb was ta[<]tb before*)
+Lemma IDerivativeLB3 :forall (F F' : IContR)
+   (ta tb : RInIntvl) (Hab : ta[<=]tb) (c : IR),
+   isIDerivativeOf F' F
+   -> (forall (t:RInIntvl), (clcr ta tb) t -> c [<=] ({F'} t))
+   -> c[*](tb[-]ta) [<=] ({F} tb[-] {F} ta).
+Proof.
+  intros ? ? ? ? ? ? Hder Hub.
+  pose proof (leEq_less_or_equal _ _ _ Hab) as Hdec.
+  apply leEq_def.
+  intros Hc.
+  apply Hdec. clear Hdec. intros Hdec.
+  revert Hc. apply leEq_def.
+  destruct Hdec as [Hlt | Heq].
+  - eapply IDerivativeLB2; eauto.
+  - rewrite Heq.
+    rewrite cg_minus_correct.
+    rewrite mult_commutes.
+    rewrite cring_mult_zero_op.
+    apply eq_imp_leEq. symmetry. apply x_minus_x.
+    symmetry. apply TContRExt.
+    simpl. destruct ta, tb. exact Heq.
+Qed.
+
+
+Lemma nonDecreasingIfIDerivNonNeg :∀  (F F' : IContR)
+   (tstart tend : RInIntvl) (Hab : tstart[<=]tend),
+   isIDerivativeOf F' F
+   -> (∀  (t: RInIntvl), (tstart [<=] t /\ t [<=] tend) -> [0] [<=] ({F'} t))
+   -> ({F} tstart) [<=] ({F} tend).
+Proof.
+  intros ? ? ? ? ?  Hder Hn.
+  pose proof (@IDerivativeLB3 F F' _ _ Hab [0] Hder) as X.
+  rewrite cring_mult_zero_op in X.
+  apply shift_leEq_rht. apply X. intros t Hb.
+  apply Hn. simpl in Hb. destruct Hb. split; assumption.
+Qed.
+
 (** This is slightly stronger than [Barrow2]
     because it uses [cof_less] instead of [cof_leEq] *)
 Lemma TBarrow : forall (F F': IContR)

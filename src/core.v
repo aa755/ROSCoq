@@ -262,14 +262,7 @@ Lemma TDerivativeLB :forall {F F' : TContR}
    -> LBoundInCompInt Hab (toPart F') c
    -> c[*](tb[-]ta) [<=] ((getF F) tb[-] (getF F) ta).
 Proof.
- intros ? ? ? ? ? ? Hisd Hub.
- rewrite getFToPart.
- rewrite getFToPart.
- apply (AntiderivativeLB2 (toPart F) (toPart F') ta tb Hab); auto.
- unfold isDerivativeOf in Hisd.
- apply Included_imp_Derivative with 
-   (I:=closel [0]) (pI := I); trivial;[].
- apply intvlIncluded.
+  apply IDerivativeLB.
 Qed.
 
 Definition toTime (t : Time) (r : ℝ) (p :t[<=]r) : Time.
@@ -335,20 +328,7 @@ Lemma TDerivativeLB2 :forall (F F' : TContR)
    -> (forall (t:Time), (clcr ta tb) t -> c [<=] ({F'} t))
    -> c[*](tb[-]ta) [<=] ({F} tb[-] {F} ta).
 Proof.
-  intros ? ? ? ? ? ? Hder Hub.
-  eapply TDerivativeLB with (Hab0 := Hab); eauto;[].
-  unfold UBoundInCompInt.
-  intros r Hc ?. unfold compact in Hc.
-  unfold getF in Hub.
-  destruct Hc as [Hca Hcb].
-  specialize (Hub (toTime _ _ Hca)).
-  rewrite <- extToPart2.
-  unfold getF in Hub.
-  assert ((toTime ta r Hca) [=] (mkRIntvl (closel [0]) r Hx)) as Heq
-    by (simpl; apply eq_reflexive).
-  rewrite <- Heq.
-  apply Hub.
-  split; auto.
+  apply IDerivativeLB2.
 Qed.
 
 
@@ -360,21 +340,7 @@ Lemma TDerivativeLB3 :forall (F F' : TContR)
    -> (forall (t:Time), (clcr ta tb) t -> c [<=] ({F'} t))
    -> c[*](tb[-]ta) [<=] ({F} tb[-] {F} ta).
 Proof.
-  intros ? ? ? ? ? ? Hder Hub.
-  pose proof (leEq_less_or_equal _ _ _ Hab) as Hdec.
-  apply leEq_def.
-  intros Hc.
-  apply Hdec. clear Hdec. intros Hdec.
-  revert Hc. apply leEq_def.
-  destruct Hdec as [Hlt | Heq].
-  - eapply TDerivativeLB2; eauto.
-  - rewrite Heq.
-    rewrite cg_minus_correct.
-    rewrite mult_commutes.
-    rewrite cring_mult_zero_op.
-    apply eq_imp_leEq. symmetry. apply x_minus_x.
-    symmetry. apply TContRExt.
-    simpl. destruct ta, tb. exact Heq.
+  apply IDerivativeLB3.
 Qed.
 
 Definition nonNegDuring (F : TContR) (tstart tend : Time) :=
@@ -406,12 +372,7 @@ Lemma nonDecreasingIfDerivNonNeg :forall (F F' : TContR)
    -> nonNegDuring F' tstart tend
    -> ({F} tstart) [<=] ({F} tend).
 Proof.
-  intros ? ? ? ? ?  Hder Hn.
-  unfold nonNegDuring in Hn.
-  pose proof (TDerivativeLB3 F F' _ _ Hab [0] Hder) as X.
-  rewrite cring_mult_zero_op in X.
-  apply shift_leEq_rht. apply X. intros t Hb.
-  apply Hn. simpl in Hb. destruct Hb. split; assumption.
+  apply nonDecreasingIfIDerivNonNeg.
 Qed.
 
 Lemma nonIncreasingIfDerivNonPos :forall (F F' : TContR)

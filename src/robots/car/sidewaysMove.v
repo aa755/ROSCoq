@@ -2346,7 +2346,7 @@ Proof using.
   IRring.
 Qed.
 
-Lemma XSpaceDerivCorrect (θ:IR) : 
+Lemma XSpaceDerivCorrect : 
   isIDerivativeOf extraSpaceX1DerivContinuous extraSpaceX1Continuous.
 Proof using.
   unfold extraSpaceX1DerivContinuous, extraSpaceX1Continuous.
@@ -2443,8 +2443,19 @@ Proof using firstQuadW lengthFrontGreater ntriv ntrivStrict turnCentreOut.
     rewrite (@preserves_1 Q IR  _ _ _ _ _ _ _ _ _ _ (cast Q IR) _).
     rewrite mult_1_r.
     reflexivity.
-Qed.        
+Qed.
     
+Lemma derivNonegMonotoneXspace : ∀ a b,
+a ≤ b
+→ (∀ θ, a≤θ≤b -> 0 ≤ extraSpaceX1Deriv θ)
+→ extraSpaceX1 a ≤  extraSpaceX1 b.
+Proof using.
+  intros. eapply nonDecIfDerivNonNeg; eauto.
+  eexists; eexists; dands; eauto using extraSpaceX1ContinuousCorrect, 
+  extraSpaceX1DerivContinuousCorrect.
+  constructor.
+  apply XSpaceDerivCorrect.
+Qed.
 
 Lemma XSpaceDerivNNegIfHyp:
 (' (| βMinusFront |) ≤  2 * ' (| βPlusBack |))

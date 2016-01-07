@@ -594,7 +594,7 @@ Proof using.
   rewrite composeIContAp.
   reflexivity.
 Qed.
-  
+
 Lemma linearCosSineDeriv (c a b :IR):
   isIDerivativeOf (linearSine (c*(-a)) a b) (linearCosine c a b).
 Proof using.
@@ -624,3 +624,28 @@ exists (F' F : (ℝ-c->ℝ)),
 crepresents F' f'
 ∧ crepresents F f
 ∧ Squash (@ContField.isIDerivativeOf realline _ F' F).
+
+
+Lemma nonDecIfDerivNonNeg :forall (f' f : IR -> IR)
+   (tstart tend : IR) (Hab : tstart ≤ tend),
+   isDerivOf f' f
+   -> (forall t:IR, (tstart ≤ t ≤ tend) -> 0 ≤ f' t)
+   -> f tstart ≤ f tend.
+Proof.
+  intros ? ? ? ? h1 hd hn.
+  destruct hd as [F' hd].
+  destruct hd as [F hd].
+  unfold crepresents in hd. repnd.
+  do 2 rewrite <- hdrl.
+  destruct hdrr.
+  eapply nonDecreasingIfIDerivNonNeg; eauto.
+  intros tt hb.
+  specialize (hn _ hb).
+  rewrite <- hdl in hn.
+  eapply transitivity;[apply hn|].
+  apply eq_le.
+  apply TContRExt.
+  simpl.
+  destruct tt.
+  reflexivity.
+Qed.
