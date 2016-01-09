@@ -4,13 +4,15 @@ Robots powered by Constructive Reals
 This is a framework for writing and reasoning about Robotic programs in Coq. 
 Our Coq programs are designed to actually run on robots using the Robot Operating System.
 https://www.youtube.com/watch?v=3cV4Qr1-I0E&feature=youtu.be  
-For more conceptual details, please read the paper
+For conceptual details, please read the paper
 http://www.cs.cornell.edu/~aa755/ROSCoq/ROSCOQ.pdf
 
 Also, there are slides from a talk at ITP 2015:  
-http://www.cs.cornell.edu/~aa755/ROSCoq/ITP.pdf
+http://www.cs.cornell.edu/~aa755/ROSCoq/ITP.pdf    
+, and a shorter and more recent (11/23/2015) talk at IBM Research:    
+http://researcher.ibm.com/researcher/files/us-pietroferrara/anand.pdf
 
-For instructions on installing and using ROSCoq, please visit the wiki:
+For instructions on installing and using ROSCoq, please visit the wiki:    
 https://github.com/aa755/ROSCoq/wiki    
 Questions are welcome; please create an issue, or ask me directly.
 
