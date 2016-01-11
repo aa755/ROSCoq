@@ -2401,7 +2401,83 @@ Proof using firstQuadW lengthFrontGreater ntriv turnCentreOut.
   apply flip_nonneg_negate.
   apply firstQuadβMinusFront.
 Qed.
-  
+
+(* Move : general enough to apply to CR as well *)
+Lemma 
+mult_resp_leEq_less:
+  ∀ (R : COrdField) (x y u v : R),
+  [0] [<] x → x [<=] y → [0] [<=] u → u [<] v → x [*] u [<] y [*] v.
+Proof using.
+  intros ? ? ? ? ? h1 h2 h3 h4.
+  eapply less_leEq_trans with (y := x [*] v).
+  - apply mult_resp_less_lft; assumption.
+  - apply mult_resp_leEq_rht; eauto using 
+    less_leEq, leEq_less_trans.
+Qed.
+
+Lemma XSpaceDerivPosIf : forall (θ:IR),
+0 ≤ θ 
+→ θ [<] XSpaceMonotoneUB
+→ ' (| βMinusFront |) ≤  2 * ' (| βPlusBack |)
+→ 0 [<] extraSpaceX1Deriv θ.
+Proof using firstQuadW lengthFrontGreater ntriv turnCentreOut.
+  intros ? h1l h1r h2.
+  unfold extraSpaceX1Deriv.
+  apply shift_less_minus.
+  eapply less_wdl;[|symmetry; apply plus_0_l].
+  apply mult_resp_leEq_less; try assumption;[| |].
+- apply normIRPosAux. apply QNormSqrPosX.
+  simpl. apply ntriv.
+- apply Sin_nonneg;[| rewrite (divideBy2 Pi)].
+  + apply nonneg_plus_compat; unfold PropHolds;
+      [assumption |].
+    apply firstQuadβMinusFront.
+  + apply plus_le_compat; 
+      [| apply firstQuadβMinusFront].
+    eapply transitivity;[ apply less_leEq; apply h1r |].
+    apply XSpaceMonotoneUBFirstQuad.
+- apply Sin_resp_less.
+  + eapply transitivity;[apply MinusPiBy2Le0|].
+    apply nonneg_plus_compat; unfold PropHolds;
+    [ assumption|].
+    apply firstQuadβMinusFront.
+  + apply shift_less_minus.
+    eapply less_wdl;[ | apply PlusShuffle3r].
+    unfold XSpaceMonotoneUB in h1r.
+    rename h1r into H.
+    apply shift_plus_less.
+    SearchAbout cr_mult cof_less.
+    apply (@mult_resp_less_lft _ _ _ 3) in H.
+    Focus 2.
+      eapply less_wdr;
+      [|apply (@preserves_3 Q IR  _ _ _ _ _ _ _ _ _ _ (cast Q IR) _)].
+      apply Qpos_adaptor.
+      compute. reflexivity.
+    assert (3 * θ= θ + 2 * θ) as Heq by IRring.
+    eapply less_wdl;[| apply Heq]. clear Heq.
+    eapply less_leEq_trans;[apply H|].
+    apply eq_le. clear.
+    fold (@Mult_instance_IR).
+    fold (@mult IR _).
+    rewrite  MultShuffle3l.
+    rewrite <- (@preserves_3 Q IR  _ _ _ _ _ _ _ _ _ _ (cast Q IR) _).
+    rewrite <- (@simple_associativity _ _ mult _ _ _ ).
+    rewrite <- (preserves_mult).
+    assert  (3 * (1 # 3)%Q = 1) as Heq by (compute; reflexivity).
+    rewrite Heq. clear Heq.
+    rewrite (@preserves_1 Q IR  _ _ _ _ _ _ _ _ _ _ (cast Q IR) _).
+    rewrite mult_1_r.
+    reflexivity.
+  + rewrite <- PiBy2DesugarIR.
+    rewrite <- (plus_0_r  (½ * π)).
+    apply plus_le_compat;
+      [apply firstQuadβPlusBack|].
+    apply flip_nonneg_negate.
+    rewrite <- RingProp3.
+    apply nonneg_plus_compat; apply h1l.
+Qed.
+
+(** TODO : reuse the lemma [XSpaceDerivPosIf] above instead *)
 Lemma XSpaceDerivNNegIf : forall (θ:IR),
 0 ≤ θ ≤ XSpaceMonotoneUB
 → ' (| βMinusFront |) ≤  2 * ' (| βPlusBack |)
@@ -2456,7 +2532,8 @@ Proof using firstQuadW lengthFrontGreater ntriv turnCentreOut.
     rewrite mult_1_r.
     reflexivity.
 Qed.
-    
+
+      
 Lemma derivNonegMonotoneXspace : ∀ a b,
 a ≤ b
 → (∀ θ, a≤θ≤b -> 0 ≤ extraSpaceX1Deriv θ)
