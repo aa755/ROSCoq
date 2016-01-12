@@ -617,19 +617,27 @@ Local Definition tr := ((Qinv α):Q).
 
 Let αNZ := ((pos_ap_zero _ _ αPos): 'α[#](0:IR)).
 
-
-Local Definition trComplicated : 'tr = f_rcpcl ('α) αNZ.
-Proof using αPos.
-  pose proof αPos as Hh.
+(*Move*)
+Lemma QinvIRinv : forall (a : Q) (aPos : ((0:IR)[<]'a)), 
+let aNZ : 'a[#](0:IR) := (pos_ap_zero _ _ aPos) in
+'(Qinv a) = f_rcpcl ('a) aNZ.
+Proof using.
+  intros.
+  pose proof aPos as Hh.
   eapply less_wdl in Hh;[|symmetry;apply inj_Q_Zero].
   apply less_inj_Q in Hh. simpl in Hh.
-  assert (tr == Qdiv 1 α)%Q as H by (unfold tr;field;lra).
-  rewrite H. setoid_rewrite inj_Q_div with (H:=αNZ).
+  assert ((Qinv a) == Qdiv 1 a)%Q as H by (unfold tr;field;lra).
+  rewrite H. setoid_rewrite inj_Q_div with (H:=aNZ).
   unfold cf_div.
   rewrite  inj_Q_One.
   unfold cast, Cast_instace_Q_IR.
   unfold Q2R.
   IRring.
+Qed.
+
+Local Definition trComplicated : 'tr = f_rcpcl ('α) αNZ.
+Proof using αPos.
+  apply QinvIRinv.
 Qed.
 
 (** The turn center cannot be inside the car. for that,
@@ -2270,10 +2278,22 @@ Proof using dNN firstQuadW ntriv turnCentreOut αPos.
   reflexivity.
 Qed.
 
+Definition extraSpaceX1 `{CosClass R} `{Ring R}
+`{Cast (Cart2D Q) (Polar2D R)}
+`{Cast Q R}
+(θ:R) :=
+let βb : Polar2D R:= ' βPlusBack in
+let βf : Polar2D R:= ' βMinusFront in
+(rad βb) * cos (2 *  θ - (Vector.θ βb))
++ (rad βf) * cos ( θ  +  (Vector.θ βf))
+ - '(totalLength cd).
+
+(*
 Definition extraSpaceX1 (θ:IR) :=
 ' (| βPlusBack |) * cos (2 *  θ - ' polarTheta βPlusBack)
 + ' (| βMinusFront |) * cos ( θ  +  ' polarTheta βMinusFront)
  - '(totalLength cd).
+*)
  
 Lemma extraSpaceXWriggleCase1Simpl2: 
 extraSpaceXWriggleCase1
@@ -2446,7 +2466,6 @@ Proof using firstQuadW lengthFrontGreater ntriv turnCentreOut.
     unfold XSpaceMonotoneUB in h1r.
     rename h1r into H.
     apply shift_plus_less.
-    SearchAbout cr_mult cof_less.
     apply (@mult_resp_less_lft _ _ _ 3) in H.
     Focus 2.
       eapply less_wdr;
