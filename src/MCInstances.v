@@ -310,4 +310,21 @@ Proof using.
   apply half_1.
 Qed.
 
+Lemma QinvIRinv : forall (a : Q) (aPos : ((0:IR)[<]'a)), 
+let aNZ : 'a[#](0:IR) := (pos_ap_zero _ _ aPos) in
+'(Qinv a) = f_rcpcl ('a) aNZ.
+Proof using.
+  intros.
+  pose proof aPos as Hh.
+  eapply less_wdl in Hh;[|symmetry;apply inj_Q_Zero].
+  apply less_inj_Q in Hh. simpl in Hh.
+  assert ((Qinv a) == Qdiv 1 a)%Q as H by (field;lra).
+  rewrite H. setoid_rewrite inj_Q_div with (H:=aNZ).
+  unfold cf_div.
+  rewrite  inj_Q_One.
+  unfold cast, Cast_instace_Q_IR.
+  unfold Q2R.
+  autounfold with IRMC.
+  ring.
+Qed.
 

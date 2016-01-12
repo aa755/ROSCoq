@@ -960,3 +960,16 @@ Qed.
 
 
 Hint Rewrite cg_inv_zero : CoRN.
+
+Lemma mult_resp_leEq_less:
+  ∀ (R : COrdField) (x y u v : R),
+  [0] [<] x → x [<=] y → [0] [<=] u → u [<] v → x [*] u [<] y [*] v.
+Proof using.
+  intros ? ? ? ? ? h1 h2 h3 h4.
+  eapply less_leEq_trans with (y := x [*] v).
+  - apply mult_resp_less_lft; assumption.
+  - apply mult_resp_leEq_rht; eauto using 
+    less_leEq, leEq_less_trans.
+Qed.
+
+

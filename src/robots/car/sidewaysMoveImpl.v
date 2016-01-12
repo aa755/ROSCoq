@@ -106,21 +106,23 @@ Hypothesis ntriv : nonTrivialCarGeometry cg.
 
 Let tr : Q := minTR cg.
 
-(*
+Definition α : Q := Qinv tr.
+
 Lemma αPos : ((0:IR)[<]'α).
-Proof using αPosQ.
+Proof using ntriv.
   eapply less_wdl;[| apply inj_Q_Zero].
   apply inj_Q_less.
-  assumption.
+  apply Qinv_lt_0_compat.
+  apply ntriv.
 Qed.
-  
+
 Let αNZ := ((pos_ap_zero _ _ αPos): 'α[#](0:IR)).
 
 Local Definition trComplicated : 'tr = f_rcpcl ('α) αNZ.
-Proof using αPosQ.
+Proof using ntriv.
+  rewrite <- Qinv_involutive.
   apply QinvIRinv.
 Qed.
-*)
 
 (** The turn center cannot be inside the car. for that,
 one of the front wheels have to rotate by more than 90 along 
@@ -147,7 +149,7 @@ Hypothesis  kIsFrac : (0<k<1).
 Definition Xw : Q := Xs * k.
 
 Lemma XwPos : 0<Xw.
-Proof.
+Proof using Xsp kIsFrac ntriv tr.
   unfold Xw.
   autounfold with QMC in *.
   unfold Qlt in *. 
@@ -156,9 +158,51 @@ Proof.
   nia.
 Qed.
 
-(*
 Require Import implCR.
-Print extraSpaceX1.
-*)
+
+(** space needed for the wriggle move for a given θ. The parameter
+[d] that we are after is just [θ/α] *)
+Let extraSpaceX1  : CR → CR := extraSpaceX1 α cd.
+
+Let XSpaceMonotoneUB : CR := XSpaceMonotoneUB α cd.
+
+Let extraSpaceX1AtUB : CR := extraSpaceX1 XSpaceMonotoneUB.
+
+(** we need to often compare reals. This can
+only be done upto a finte (but arbitrary) accuracy.*)
+Variable eps : Qpos.
+
+(* Move *)
+Global Instance EquivComparisonDecidable 
+: Equiv Datatypes.comparison := eq.
+
+(* Move *)
+Global Instance DecEquivComparison (x y : Datatypes.comparison)
+  : Decision (x=y).
+Proof.
+  apply comparison_eq_dec.
+Qed.
+
+Definition case12 : bool := 
+ bool_decide
+  ((CR_epsilon_sign_dec ((1#4)*eps) ('Xw-extraSpaceX1AtUB) = Gt)).
+
+Require Import MathClasses.implementations.bool.
+
+Section Case1.
+  Hypothesis case1 : case12 = true.
+  
+  Lemma case1Condition :  extraSpaceX1AtUB < 'Xw.
+  Abort.
+  
+End Case1.
+
+Section Case2.
+  Hypothesis case2 : case12 = false.
+    Lemma case1Condition :  '(Xw + eps) ≤ extraSpaceX1AtUB.
+  Abort.
+
+End Case2.
+
 
 End InverseProblem.

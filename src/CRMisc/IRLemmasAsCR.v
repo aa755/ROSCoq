@@ -64,6 +64,30 @@ Proof.
   symmetry. exact HH.
 Qed.
 
+Lemma CRasIR1 :  CRasIR CR1 [=] [1].
+Proof using.
+  apply (injective IRasCR).
+  rewrite IR_One_as_CR.
+  rewrite CRasIRasCR_id.
+  reflexivity.
+Qed.
+
+Hint Rewrite CRasIR1 : CRtoIR.
+
+(** Unlike CRpi_pos, this is transparent, so that we can compute pi inverse*)
+Lemma CRpi_posT : (0 < CRpi)%CR.
+Proof using.
+  unfold CRltT.
+  apply CR_epsilon_sign_dec_pos.
+  exists (QposMake 1 1).
+  vm_compute.
+  reflexivity.
+Defined.
+
+Definition CRPiInv : CR := CRinvT CRpi (inr CRpi_posT).
+
+
+
 Lemma CR_plus_asIR :
 ∀ x y : CR , CRasIR (x+y) = (CRasIR x [+] CRasIR y).
 Proof.
@@ -1859,3 +1883,7 @@ Definition simpleApproximateErr (res : positive) (eps : Qpos) : Qpos :=
 Close Scope Qpos_scope.
 
 Notation tapprox := simpleApproximate.
+
+Definition approximateAngleAsDegrees (a:CR) : Z :=
+ R2ZApprox (a*CRPiInv* ('180%positive)) (QposMake 1 100).
+

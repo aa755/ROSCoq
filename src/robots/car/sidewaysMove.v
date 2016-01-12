@@ -617,23 +617,6 @@ Local Definition tr := ((Qinv α):Q).
 
 Let αNZ := ((pos_ap_zero _ _ αPos): 'α[#](0:IR)).
 
-(*Move*)
-Lemma QinvIRinv : forall (a : Q) (aPos : ((0:IR)[<]'a)), 
-let aNZ : 'a[#](0:IR) := (pos_ap_zero _ _ aPos) in
-'(Qinv a) = f_rcpcl ('a) aNZ.
-Proof using.
-  intros.
-  pose proof aPos as Hh.
-  eapply less_wdl in Hh;[|symmetry;apply inj_Q_Zero].
-  apply less_inj_Q in Hh. simpl in Hh.
-  assert ((Qinv a) == Qdiv 1 a)%Q as H by (unfold tr;field;lra).
-  rewrite H. setoid_rewrite inj_Q_div with (H:=aNZ).
-  unfold cf_div.
-  rewrite  inj_Q_One.
-  unfold cast, Cast_instace_Q_IR.
-  unfold Q2R.
-  IRring.
-Qed.
 
 Local Definition trComplicated : 'tr = f_rcpcl ('α) αNZ.
 Proof using αPos.
@@ -648,8 +631,6 @@ Hypothesis turnCentreOut : (Qle (width cd) tr).
 
 
 Definition NegPosition : Type := bool (*outside*) * bool(*inside*).
-
-
 
 Require Import CartIR2.
 
@@ -2181,23 +2162,6 @@ Proof using.
   simpl; vm_compute; reflexivity.
 Qed.
 
-(* Move *)
-(** Unlike CRpi_pos, this is transparent, so that we can compute pi inverse*)
-Lemma CRpi_posT : (0 < CRpi)%CR.
-Proof using.
-  unfold CRltT.
-  apply CR_epsilon_sign_dec_pos.
-  exists (QposMake 1 1).
-  vm_compute.
-  reflexivity.
-Defined.
-
-(* Move *)
-Definition CRPiInv : CR := CRinvT CRpi (inr CRpi_posT).
-
-(* Move *)
-Definition approximateAngleAsDegrees (a:CR) : Z :=
- R2ZApprox (a*CRPiInv* ('180%positive)) (QposMake 1 100).
 
 (**
 These compute fast now:
@@ -2288,12 +2252,21 @@ let βf : Polar2D R:= ' βMinusFront in
 + (rad βf) * cos ( θ  +  (Vector.θ βf))
  - '(totalLength cd).
 
-(*
-Definition extraSpaceX1 (θ:IR) :=
-' (| βPlusBack |) * cos (2 *  θ - ' polarTheta βPlusBack)
-+ ' (| βMinusFront |) * cos ( θ  +  ' polarTheta βMinusFront)
- - '(totalLength cd).
-*)
+Require Import implCR.
+
+Lemma preserves_extraSpaceX1 : forall (θ:CR),
+  'extraSpaceX1 θ = extraSpaceX1 (('θ):IR).
+Proof using.
+  intros ?.
+  unfold extraSpaceX1.
+  autounfold with IRMC.
+  simpl.
+  unfold cast, Cast_instace_Q_IR, Cart_CR_IR, Cart2PolarCR, Cart2Polar.
+  unfold CosClassCR.
+  autorewrite with CRtoIR.
+  reflexivity.
+Qed.
+
  
 Lemma extraSpaceXWriggleCase1Simpl2: 
 extraSpaceXWriggleCase1
@@ -2383,9 +2356,30 @@ Proof using.
   apply TContRDerivativePlus; apply linearCosSineDeriv.
 Qed.
 
+Definition XSpaceMonotoneUB `{Ring R}
+`{Cast (Cart2D Q) (Polar2D R)}
+`{Cast Q R} :=
+let βb : Polar2D R:= ' βPlusBack in
+let βf : Polar2D R:= ' βMinusFront in
+(θ βb - θ βf) * '(Qmake 1 3).
+
+Lemma preserves_XSpaceMonotoneUB :
+  (XSpaceMonotoneUB:IR) = '(XSpaceMonotoneUB:CR).
+Proof using.
+  unfold XSpaceMonotoneUB.
+  autounfold with IRMC.
+  simpl.
+  unfold cast, Cast_instace_Q_IR, Cart_CR_IR, Cart2PolarCR, Cart2Polar.
+  unfold CosClassCR.
+  autorewrite with CRtoIR.
+  reflexivity.
+Qed.
+
+
+(*
 Definition XSpaceMonotoneUB :=
  ((' polarTheta βPlusBack - ' polarTheta βMinusFront) * '(Qmake 1 3)).
-
+*)
 
 Lemma βMinusFrontLeβPlusBack : 
   ((' polarTheta βMinusFront:IR) [<] ' polarTheta βPlusBack).
@@ -2422,18 +2416,6 @@ Proof using firstQuadW lengthFrontGreater ntriv turnCentreOut.
   apply firstQuadβMinusFront.
 Qed.
 
-(* Move : general enough to apply to CR as well *)
-Lemma 
-mult_resp_leEq_less:
-  ∀ (R : COrdField) (x y u v : R),
-  [0] [<] x → x [<=] y → [0] [<=] u → u [<] v → x [*] u [<] y [*] v.
-Proof using.
-  intros ? ? ? ? ? h1 h2 h3 h4.
-  eapply less_leEq_trans with (y := x [*] v).
-  - apply mult_resp_less_lft; assumption.
-  - apply mult_resp_leEq_rht; eauto using 
-    less_leEq, leEq_less_trans.
-Qed.
 
 Lemma XSpaceDerivPosIf : forall (θ:IR),
 0 ≤ θ 
