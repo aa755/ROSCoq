@@ -96,39 +96,38 @@ may be proven.
 
 Section InverseProblem.
 
-Variable cg : CarGeometry Q.
+Variable cd : CarDimensions Q.
 
 (*Move*)
 Definition nonTrivialCarGeometry (cd : CarGeometry Q) : Prop := 
 nonTrivialCarDim (carDim cd) /\ 0 < minTR cd.
 
-Hypothesis ntriv : nonTrivialCarGeometry cg.
+Hypothesis ntriv : nonTrivialCarDim cd.
 
-Let tr : Q := minTR cg.
+Variable  α : Q.
+Hypothesis αPosQ : (0<α).
 
-Definition α : Q := Qinv tr.
 
-Lemma αPos : ((0:IR)[<]'α).
-Proof using ntriv.
+Let αPos : ((0:IR)[<]'α).
+Proof using αPosQ.
   eapply less_wdl;[| apply inj_Q_Zero].
-  apply inj_Q_less.
-  apply Qinv_lt_0_compat.
-  apply ntriv.
+  apply inj_Q_less. apply αPosQ. 
 Qed.
 
+Let tr :=  Qinv α.
+
+Hint Resolve  αPos : sideways.
 Let αNZ := ((pos_ap_zero _ _ αPos): 'α[#](0:IR)).
 
-Local Definition trComplicated : 'tr = f_rcpcl ('α) αNZ.
+Let trComplicated : 'tr = f_rcpcl ('α) αNZ.
 Proof using ntriv.
-  rewrite <- Qinv_involutive.
-  apply QinvIRinv.
+ apply QinvIRinv.
 Qed.
 
 (** The turn center cannot be inside the car. for that,
 one of the front wheels have to rotate by more than 90 along 
 the vertical axis. 
 *)
-Let cd : CarDimensions Q:= carDim cg.
 Hypothesis turnCentreOut : ((width cd) <= tr)%Q.
 
 Local Definition βMinusBack : Cart2D Q := CornerAngles.βMinusBack cd tr.
@@ -142,109 +141,40 @@ Hypothesis Xsp : (0<Xs).
 
 (** space needed for the wriggle move for a given θ. The parameter
 [d] that we are after is just [θ/α] *)
-Let extraSpaceX1  : CR → CR := extraSpaceX1 α cd.
+Let extraSpaceX1W  : CR → CR := 
+  sidewaysMove.extraSpaceX1 α cd.
 
-Section Safety.
 
-(** we will analyse whether a given [d] is safe, 
-and quantify its upward shift *)
-Variable d:Q.
+(** Recap:
+[extraSpaceX1W] is valid only for 
+when [(α * d)] is  between 0 and [leftCriticalAngle].
+There is also an [extraSpaceX2] for the case when
+[(α * d)] is between [leftCriticalAngle]
+and [(polarTheta βPlusBack)/2], however that 
+range may be so small for most cars, that 
+it is not worth analysing that equation.
+For mazda 3, the range was 2 degrees.
+Beyond [(polarTheta βPlusBack)/2], the problem
+becomes trivial, and can be solved in just 1 move.
+*)
+
+Let leftCriticalAngle : CR := 
+  sidewaysMove.leftCriticalAngleCR  α cd.
+
+(** the srict inequality in the 
+last clause is necessary, because we want 
+same space to be left for the straight move,
+to ensure that 
+the upward is nonzero. *)
+Definition dAdmissibleXwise (d:CR) :=
+0 ≤ d ≤ ('tr) * (min (('Qmake 1 4)*π) (leftCriticalAngle))
+/\ extraSpaceX1W ('α * d) < 'Xs.
+
+(** now come up with a decision procedure for
+[dAdmissibleXwise] that is sound,
+and approximately complete   
+*)
+  
 Let init  := (0:Rigid2DState IR).
-Let SWriggle := (Wriggle ('α) αNZ ('d)).
-
-  
-End Safety.
-
-
-(** explained above : fraction of the X space which can be consumed 
-while doing Wriggle *)
-Variable k : Q.
-Hypothesis  kIsFrac : (0<k<1).
-
-(** extra space available to execute wriggle *)
-Definition Xw : Q := Xs * k.
-
-Lemma XwPos : 0<Xw.
-Proof using Xsp kIsFrac ntriv tr.
-  unfold Xw.
-  autounfold with QMC in *.
-  unfold Qlt in *. 
-  (* reduce to a problem in Z, which nia knows about*)
-  simpl in *.
-  nia.
-Qed.
-
-Require Import implCR.
-
-
-Let XSpaceMonotoneUB : CR := XSpaceMonotoneUB α cd.
-
-Let extraSpaceX1AtUB : CR := extraSpaceX1 XSpaceMonotoneUB.
-
-(** we need to often compare reals. This can
-only be done upto a finte (but arbitrary) accuracy.*)
-Variable eps : Qpos.
-
-Let extraSpaceX1AtUBQ : Q := 
-  (approximate extraSpaceX1AtUB eps).
-
-Definition bisectionSearchNeeded : bool := 
-  bool_decide ((Xw - (eps:Q)) ≤ extraSpaceX1AtUBQ).
-  
-Require Import MathClasses.implementations.bool.
-
-Section Case1.
-  Hypothesis case1 : bisectionSearchNeeded = true.
-  
-  Lemma case1Condition :  extraSpaceX1AtUB < 'Xw.
-  Abort.
-  
-End Case1.
-
-
-Section Case2.
-  Hypothesis case2 : bisectionSearchNeeded = false.
-
-Typeclasses eauto :=2.
-Local Opaque bool_decide_false.
-
-(*
-  Lemma case1Condition :  extraSpaceX1AtUB < 'Xw.
-  Proof using case2*.
-    pose proof case2 as cc.
-    unfold bisectionSearchNeeded in cc.
-    unfold equiv, bool_eq in cc.
-    unfold bool_decide in cc.
-    match type of cc with
-      context[if ?d then _ else _] => destruct d;[discriminate|]
-    end. clear cc. rename n into cc.
-    apply Qnot_le_lt in cc.
-    unfold extraSpaceX1AtUBQ in cc.
-    eapply le_lt_trans;
-      [apply upper_CRapproximation with (e:=eps)|].
-    apply (@strictly_order_preserving _ _ _ _ _  _ _ _).
-    autounfold with QMC in *.
-    lra.
-  Qed. (** for some reason, coq takes forever at this Qed*) 
-*)
-(*
-  Lemma case1Condition :  extraSpaceX1AtUB < 'Xw.
-  Proof using case2*.
-    unfold bisectionSearchNeeded in case2.
-    apply bool_decide_false, Qnot_le_lt in case2.
-    unfold extraSpaceX1AtUBQ in case2.
-    eapply le_lt_trans;
-      [apply upper_CRapproximation with (e:=eps)|].
-    apply (@strictly_order_preserving _ _ _ _ _  _ _ _).
-    autounfold with QMC in *.
-    lra.
-    Show Proof.
-  Defined.
-  (** for some reason, coq takes forever at this Qed.
-  this problem happens after using [bool_decide_false]*) 
-*)
-  
-End Case2.
-
 
 End InverseProblem.

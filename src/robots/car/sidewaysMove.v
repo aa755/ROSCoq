@@ -612,11 +612,9 @@ Variable cd : CarDimensions Q.
 Hypothesis ntriv : nonTrivialCarDim (cd).
 Hypothesis dNN : ((0:IR)≤'d).
 Hypothesis firstQuadW: (0:IR) ≤ (2*'α*'d) ≤ ½ * π.
-Local Definition tr := ((Qinv α):Q).
-
+Let tr :Q := Qinv α.
 
 Let αNZ := ((pos_ap_zero _ _ αPos): 'α[#](0:IR)).
-
 
 Local Definition trComplicated : 'tr = f_rcpcl ('α) αNZ.
 Proof using αPos.
@@ -2231,7 +2229,6 @@ Proof using.
   autorewrite with CRtoIR.
   reflexivity.
 Qed.
-
  
 Lemma extraSpaceXWriggleCase1Simpl2: 
 extraSpaceXWriggleCase1
