@@ -28,5 +28,15 @@ induction l; [apply left; constructor|].
   - destruct IHl; [left; constructor; trivial| right].
     intro Hnt. inversion Hnt; auto.
 Defined.
-                                 
+
+Global Instance EquivComparisonDecidable 
+: Equiv Datatypes.comparison := eq.
+
+Require Import 
+CoRN.model.structures.Qpossec.
+Global Instance DecEquivComparison (x y : Datatypes.comparison)
+  : Decision (x=y).
+Proof.
+  apply comparison_eq_dec.
+Qed.
 
