@@ -38,6 +38,8 @@ Require Import robots.car.atomicMoves.
 Require Import IRMisc.LegacyIRRing.
 Hint Unfold One_instance_IR : IRMC.
 Require Import robots.car.firstQuadrant.
+Require Import CRMisc.numericalOpt.
+
 
   Local Notation minxy := (lstart).
   Local Notation maxxy := (lend).
@@ -175,51 +177,6 @@ Definition dAdmissibleXwise (d:CR) :=
 (** we need to often compare reals. This can
  -only be done upto a finte (but arbitrary) accuracy.*)
 Variable eps : Qpos.
- 
-(* Move *)
-Definition approxDecLtRQ (a:CR) (b:Q) : bool :=
-let aq : Q := approximate a eps in
-bool_decide (aq + eps < b).
-
-
-(* Move *)
-Lemma approxDecLtRQSound: forall (a:CR) (b:Q),
-approxDecLtRQ a b = true
--> a < 'b.
-Proof using.
-  intros ? ? H.
-  apply bool_decide_true in H.
-  eapply le_lt_trans;
-    [apply upper_CRapproximation with (e:=eps)|].
-  apply (@strictly_order_preserving _ _ _ _ _  _ _ _).
-  exact H.
-Qed.
-
-(* Move *)
-Lemma approxDecLtRQApproxComplete: forall (a:CR) (b:Q),
-a < '(b - 2*`eps)
--> approxDecLtRQ a b = true.
-Proof using.
-  intros ? ? H.
-  apply bool_decide_true.
-  rewrite preserves_minus in H.
-  apply flip_lt_minus_l  in H.
-  rewrite negate_involutive in H.
-  apply (@strictly_order_reflecting _ _ _ _ _
-      _ (@cast Q CR _) _).
-  eapply le_lt_trans;[| apply H]. clear H.
-  apply flip_le_minus_l.
-  eapply transitivity;
-    [|apply lower_CRapproximation with (e:=eps)].
-  rewrite <- (@preserves_minus Q _ _ _ _ _ _ _ 
-        CR _ _ _ _ _ _ _ _ _).
-  apply (@order_preserving _ _ _ _ _
-      _ (@cast Q CR _) _).
-  apply eq_le. 
-  autounfold with QMC.
-  destruct eps. simpl.
-  ring.
-Qed.
 
 (** It will only be called for [d] such that [extraSpaceX1W] is
 valid, i.e.,
@@ -227,7 +184,7 @@ valid, i.e.,
 /\ d ≤ (('Qmake 1 4)*π)
  *)
 Definition approxDecideXAdmiss (d:CR) :=
-approxDecLtRQ  (extraSpaceX1W ('α * d)) Xs.
+approxDecLtRQ eps (extraSpaceX1W ('α * d)) Xs.
 
 (** Now compute the quality (the amount of upward shift) for a
 given parameter [d]. The remaining space, which must be positive for 

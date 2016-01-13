@@ -82,7 +82,7 @@ Variable cd : CarDimensions Q.
 Hypothesis ntriv : nonTrivialCarDim (cd).
 Hypothesis dNN : ((0:IR)≤'d).
 Hypothesis firstQuadW: (0:IR) ≤ (2*'α*'d) ≤ ½ * π.
-Local Notation tr := (sidewaysMove.tr α).
+Local Notation tr := (Qinv α).
 
 
 Let αNZ := ((pos_ap_zero _ _ αPos): 'α[#](0:IR)).

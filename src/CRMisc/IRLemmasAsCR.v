@@ -1847,6 +1847,7 @@ Proof.
   ring.
 Qed.
 
+(* Move to numericalOpt *)
 Lemma simpleApproximateSpec : ∀ (r: CR) (den : positive) (eps : Qpos), 
   ball ((eps + (QposMake 1 (2)))/den) r ('simpleApproximate r den eps).
 Proof.
