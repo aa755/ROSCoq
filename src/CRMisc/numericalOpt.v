@@ -53,6 +53,45 @@ Proof using.
   ring.
 Qed.
 
+(* Move *)
+Global Instance  stableBoolEq : ∀ (a b : bool),
+MathClasses.misc.util.Stable (a = b).
+Proof using.
+  intros ? ? H.
+  unfold DN in H.
+  destruct a; destruct b; try auto;  try tauto.
+  - setoid_rewrite not_false_iff_true in H. tauto.
+  - setoid_rewrite not_true_iff_false in H. tauto.
+Qed.
+
+Require Import CoRN.logic.Stability.
+
+Lemma CRNotLeLtDN : forall (a b : CR),
+not (a < b)
+-> util.DN (b ≤ a).
+Proof.
+  intros ? ? Hl Hd.
+  pose proof (CRle_lt_dec b a) as Hdn.
+  apply Hdn. intro Hdd. clear Hdn.
+  destruct Hdd;[tauto|].
+  apply CR_lt_ltT in c.
+  tauto.
+Qed.
+  
+Lemma approxDecLtRQApproxFalse: forall (a:CR) (b:Q),
+approxDecLtRQ a b = false
+→ '(b - 2*`eps) ≤ a .
+Proof using.
+  intros ? ? H.
+  apply stable.
+  apply not_true_iff_false in H.
+  apply CRNotLeLtDN.
+  intro Hc.
+  apply H. 
+  apply approxDecLtRQApproxComplete.
+  assumption.
+Qed.
+
 Definition approxDecLtRR (a b :CR) : bool :=
 approxDecLtRQ (a-b) (0)%mc.
 
@@ -84,6 +123,21 @@ Proof using.
   rewrite (@commutativity _ _ _ plus _ _ _).
   exact H.
 Qed.
+
+Lemma approxDecLtRRApproxFalse: forall (a b:CR),
+approxDecLtRR a b = false
+→ b - '(2*`eps)  ≤ a.
+Proof using.
+  intros ? ? H.
+  apply approxDecLtRQApproxFalse in H.
+  rewrite preserves_minus in H.
+  rewrite preserves_0 in H.
+  rewrite plus_0_l in H.
+  apply flip_le_minus_r in H.
+  rewrite (@commutativity _ _ _ plus _ _ _) in H.
+  exact H.
+Qed.
+
 
 Section conditionalOpt.
 Variable A:Type.
@@ -120,18 +174,8 @@ Proof using.
   reflexivity.
 Qed.
 
-(* Move *)
-Global Instance  stableBoolEq : ∀ (a b : bool),
-Stable (a = b).
-Proof using.
-  intros ? ? H.
-  unfold DN in H.
-  destruct a; destruct b; try auto;  try tauto.
-  - setoid_rewrite not_false_iff_true in H. tauto.
-  - setoid_rewrite not_true_iff_false in H. tauto.
-Qed.
 
-(*
+
 Lemma approxMaximizeCorrect : ∀ (c : A) (l: list A ) ,
   condition c = true
   → In c l
@@ -153,7 +197,7 @@ Proof.
   unfold approxMaximize, conditionalOptimize. simpl.
   destruct h2.
 - subst. rewrite h1.
-  simpl. unfold chooseOp at 2. simpl.
+  simpl. unfold chooseOp at 2. simpl. 
   admit. 
 - specialize (IHl h1 H). destruct IHl as [mr Hmr1].
   repnd.
@@ -204,7 +248,6 @@ Run on some examples for Mazda 3.
 *)
 
 Abort.
-*)
 
 Lemma CRapproxMax : forall (a b : CR),
 (approximate (CRmax a b) eps)
@@ -240,6 +283,21 @@ Definition approxMax (l:list A) : option (A * CR) :=
 let l := filter condition l in
 fold_left approxMaxIter l None.
 
+Require Import fastReals.interface.
+
+Require Import Qminmax.
+
+(* Move*)
+Definition maxListIter `{MaxClass AA} (oa: option AA) (a: AA) : option AA :=
+Some
+(match oa with
+| None => a
+| Some a' => max a a'
+end).
+
+(* Move*)
+Definition maxList `{MaxClass AA} (l: list AA) : option AA :=
+fold_left maxListIter l None.
 
 Lemma approxMaximizeCorrect : ∀ (c : A) (l: list A ) ,
   condition c = true
@@ -262,7 +320,9 @@ Proof.
   induction l; intros h1 h2; simpl in *;[contradiction|].
   unfold approxMaximize, conditionalOptimize. simpl.
   destruct h2.
-- subst. rewrite h1. clear IHl.
+- 
+  (**[c] was the first element *)
+  subst. rewrite h1. clear IHl.
   simpl. 
   match goal with 
   [|- context [fold_right ?a ?b ?v ]] => remember (fold_right a b v) as ama
@@ -272,11 +332,35 @@ Proof.
     unfold approxMaxIter.
     remember (approxDecLtRR (snd ama) (objective c)).
     setoid_rewrite <- Heqb. destruct b.
-    * exists c. exists (objective c).
+    * 
+    (** the objective at [c] was observed to be larger that the elements in the tail*)
+      exists c. exists (objective c).
       dands; try tauto;[reflexivity|].
       admit. (*easy*)
     * exists (fst ama).
       exists ((CRmax (snd ama)) (objective c)).
+      SearchAbout approximate.
+      assert (objective (fst ama)  ≤ snd ama) by admit.
+      dands; try auto.
+      admit. (* prove a separate lemma *)
+      
+      eapply transitivity; eauto. apply  CRmax_ub_l; fail.
+      
+      apply stable. apply CRNotLeLtDN.
+      intro Hc.
+      
+      symmetry in Heqb.
+      apply approxDecLtRRApproxFalse in Heqb.
+      remember (approxDecLtRR (objective (fst ama)) (objective c)) as bb.
+      symmetry in Heqbb.
+      destruct bb.
+      
+      apply  approxDecLtRRSound in Heqbb.
+      assert ( objective (fst ama) < snd ama).
+        eapply lt_le_trans. apply Hc.  apply Heqb. 
+      clear H. clear Hc.
+
+      admit.
       admit. (* need to generalize the induction over c*)
   + exists c. exists (objective c).
     dands; try tauto;[reflexivity|].
