@@ -286,6 +286,32 @@ Proof.
     destruct Hd; try congruence.
 Qed.
 
+Section conditionalOptimize.
+Variables  A : Type.
+Variable condition : A → bool.
+
+(** If [a] and [b] satisfy the condition, and [better a b],
+we must pick [b]*)
+Variable better : A → A → bool.
+
+(** pick the left one if no preference. The client should reverse 
+the list if they want the opposite *) 
+Definition choose (a b : A) : A:=
+if (better a b) then b else a.
+
+Definition chooseOp  (b: option A) (a  : A) : option A :=
+Some
+(match b with
+| None  => a
+| Some b' => choose a b'
+end).
+
+Definition conditionalOptimize (l : list A) : option A :=
+  let l := filter condition l in
+  fold_left chooseOp l None.
+
+End conditionalOptimize.
+
 (**  Duplicate! Use the squash type above *)
 Inductive Truncate (T:Type) : Prop :=
 | truncate : T -> Truncate T.
