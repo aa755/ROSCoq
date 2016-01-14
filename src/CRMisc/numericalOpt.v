@@ -131,6 +131,7 @@ Proof using.
   - setoid_rewrite not_true_iff_false in H. tauto.
 Qed.
 
+(*
 Lemma approxMaximizeCorrect : ∀ (c : A) (l: list A ) ,
   condition c = true
   → In c l
@@ -202,7 +203,104 @@ It is not clear which strategy is better.
 Run on some examples for Mazda 3.
 *)
 
+Abort.
+*)
 
+Lemma CRapproxMax : forall (a b : CR),
+(approximate (CRmax a b) eps)
+  = QMinMax.Qmax (approximate a ((1 # 2) * eps)%Qpos)
+  (approximate b ((1 # 2) * eps)%Qpos).
+Proof using.
+  intros ? ?. reflexivity.
+Qed.
+
+(** can this be faster in some cases? *)
+Definition CRmax' (a b : CR) : CR :=
+match (CR_epsilon_sign_dec eps (b-a)) with
+| Datatypes.Gt => b
+| Datatypes.Lt => a
+| Datatypes.Eq => CRmax a b
+end.
+
+Definition approxMaxIter (r: option (A * CR)) (a:A) : option (A * CR) :=
+Some 
+(
+let oa := objective a in 
+match r with
+| None => (a,oa)
+| Some r' => 
+    if (approxDecLtRR (snd r') oa) 
+    then (a,oa)
+    else (fst r', CRmax (snd r') (objective a))
+end).
+
+(** find the element of the list that approximately maximizes
+the objective. As we will show next, the suboptimality is at most [2*eps]. *)
+Definition approxMax (l:list A) : option (A * CR) :=
+let l := filter condition l in
+fold_left approxMaxIter l None.
+
+
+Lemma approxMaximizeCorrect : ∀ (c : A) (l: list A ) ,
+  condition c = true
+  → In c l
+  → ∃ (m : A) (mr: CR),
+      In m l
+      ∧ approxMax l ≡ Some (m, mr)
+      ∧ objective m ≤ mr 
+      ∧ objective c - '(2*`eps)  ≤ (objective m).
+Proof.
+  unfold approxMax.
+  intros ? ?.
+  rewrite <- fold_left_rev_right.
+  rewrite in_rev.
+  setoid_rewrite in_rev at 2.
+  rewrite <- rev_filter.
+  remember (rev l) as ll.
+  clear dependent l.
+  rename ll into l.
+  induction l; intros h1 h2; simpl in *;[contradiction|].
+  unfold approxMaximize, conditionalOptimize. simpl.
+  destruct h2.
+- subst. rewrite h1. clear IHl.
+  simpl. 
+  match goal with 
+  [|- context [fold_right ?a ?b ?v ]] => remember (fold_right a b v) as ama
+  end.
+  destruct ama as [ama | ]; simpl.
+  + clear Heqama.
+    unfold approxMaxIter.
+    remember (approxDecLtRR (snd ama) (objective c)).
+    setoid_rewrite <- Heqb. destruct b.
+    * exists c. exists (objective c).
+      dands; try tauto;[reflexivity|].
+      admit. (*easy*)
+    * exists (fst ama).
+      exists ((CRmax (snd ama)) (objective c)).
+      admit. (* need to generalize the induction over c*)
+  + exists c. exists (objective c).
+    dands; try tauto;[reflexivity|].
+    admit. (*easy*)
+- specialize (IHl h1 H). destruct IHl as [mr IHl].
+  destruct IHl as [mrr Hmr1].
+  repnd.
+  destruct (condition a);[|exists mr; exists mrr; dands; tauto].
+  exists (if (approxDecLtRR mrr (objective a)) then a else mr). simpl.
+  exists (if (approxDecLtRR mrr (objective a)) then (objective a) 
+      else (CRmax mrr (objective a))).
+  rewrite Hmr1rl.
+  unfold approxMaxIter.
+  simpl snd.
+  remember ( approxDecLtRR mrr (objective a) ) as comp.
+  symmetry in Heqcomp.
+  destruct comp.
+  +  apply approxDecLtRRSound in Heqcomp.
+   dands;  try tauto;[reflexivity|].
+   apply lt_le in Heqcomp. unfold PropHolds in Heqcomp.
+   eapply transitivity; eauto.
+  + dands; auto;[].
+    eapply transitivity;[exact Hmr1rrl|].
+    apply CRmax_ub_l.
 Abort.
 
 
