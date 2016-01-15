@@ -40,3 +40,31 @@ Proof.
   apply comparison_eq_dec.
 Qed.
 
+
+(** the latter is more convenient, as it safes a step of interpreting boolean
+values *)
+Lemma bool_decide_sumbool `{Decision P} {T:Type} : forall (a b : T),
+(if (bool_decide P) then  a  else b) ≡ 
+(if (decide P) then a else b).
+Proof using.
+  intros ? ?.
+  destruct (decide P) as [p|p].
+- apply bool_decide_true in p; rewrite p. reflexivity. 
+- apply bool_decide_false in p; rewrite p. reflexivity. 
+Qed.
+
+
+Require Import CoRN.logic.Stability.
+
+Require MathClasses.implementations.bool.
+
+Global Instance  stableBoolEq : ∀ (a b : bool),
+MathClasses.misc.util.Stable (a = b).
+Proof using.
+  intros ? ? H.
+  unfold DN in H.
+  destruct a; destruct b; try auto;  try tauto; unfold util.DN in H.
+  - unfold util.DN in H. setoid_rewrite not_false_iff_true in H. tauto.
+  - setoid_rewrite not_true_iff_false in H. tauto.
+Qed.
+

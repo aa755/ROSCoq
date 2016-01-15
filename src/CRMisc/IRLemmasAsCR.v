@@ -1888,3 +1888,32 @@ Notation tapprox := simpleApproximate.
 Definition approximateAngleAsDegrees (a:CR) : Z :=
  R2ZApprox (a*CRPiInv* ('180%positive)) (QposMake 1 100).
 
+Lemma CRNotLeLtDN : forall (a b : CR),
+not (a < b)
+-> util.DN (b ≤ a).
+Proof.
+  intros ? ? Hl Hd.
+  pose proof (CRle_lt_dec b a) as Hdn.
+  apply Hdn. intro Hdd. clear Hdn.
+  destruct Hdd;[tauto|].
+  apply CR_lt_ltT in c.
+  tauto.
+Qed.
+
+Lemma CRapproxMax : forall (eps:Qpos) (a b : CR),
+(approximate (CRmax a b) eps)
+  = QMinMax.Qmax (approximate a ((1 # 2) * eps)%Qpos)
+  (approximate b ((1 # 2) * eps)%Qpos).
+Proof using.
+  intros ? ?. reflexivity.
+Qed.
+
+(** can this be faster in some cases? *)
+Definition CRmax' (eps:Qpos) (a b : CR) : CR :=
+match (CR_epsilon_sign_dec eps (b-a)) with
+| Datatypes.Gt => b
+| Datatypes.Lt => a
+| Datatypes.Eq => CRmax a b
+end.
+
+

@@ -53,18 +53,8 @@ Proof using.
   ring.
 Qed.
 
-(* Move *)
-Global Instance  stableBoolEq : ∀ (a b : bool),
-MathClasses.misc.util.Stable (a = b).
-Proof using.
-  intros ? ? H.
-  unfold DN in H.
-  destruct a; destruct b; try auto;  try tauto.
-  - setoid_rewrite not_false_iff_true in H. tauto.
-  - setoid_rewrite not_true_iff_false in H. tauto.
-Qed.
-
 Require Import CoRN.logic.Stability.
+
 
 Lemma CRNotLeLtDN : forall (a b : CR),
 not (a < b)
@@ -155,46 +145,12 @@ the objective. As we will show next, the suboptimality is at most [2*eps]. *)
 Definition approxMaximize :(list A) -> option A:=
 conditionalOptimize condition betterMax.
 
-(* Move *)
-Lemma filter_app :
-  forall f (l1 l2 : list A),
-    filter f (l1 ++ l2) ≡ filter f l1 ++ filter f l2.
-Proof using.
-  induction l1; simpl; auto. intro.
-  rewrite IHl1.
-  destruct (f a); auto.
-Qed.
-
-(* Move *)
-Lemma rev_filter : forall (f: A -> bool) (l:list A),
-filter f (rev l) ≡ rev (filter f l).
-Proof using.
-  induction l; auto; []; simpl.
-  rewrite filter_app.
-  simpl. rewrite IHl.
-  destruct (f a); auto.
-  rewrite app_nil_r.
-  reflexivity.
-Qed.
 
 Require Import Qminmax.
 
-(* Move *)
-Locate decide.
+Require Import MCMisc.decInstances.
+
 Require Import MathClasses.misc.decision.
-
-(** the latter is more convenient, as it safes a step of interpreting boolean
-values *)
-Lemma bool_decide_sumbool `{Decision P} {T:Type} : forall (a b : T),
-(if (bool_decide P) then  a  else b) ≡ 
-(if (decide P) then a else b).
-Proof using.
-  intros ? ?.
-  destruct (decide P) as [p|p].
-- apply bool_decide_true in p; rewrite p. reflexivity. 
-- apply bool_decide_false in p; rewrite p. reflexivity. 
-Qed.
-
 Require Import Psatz.
 Lemma objectiveApproxChoose : forall (a b: A),
 objectiveApprox (choose betterMax a b) =
@@ -212,7 +168,7 @@ Qed.
 
 Lemma approxMaximizeSome : ∀  (l: list A ) (m: A) ,
   approxMaximize l ≡ Some m 
-  → In m l.
+  → In m l /\ condition m = true.
 Proof using.
   intros ? ?. unfold approxMaximize, conditionalOptimize.
   rewrite <- fold_left_rev_right.
@@ -223,14 +179,16 @@ Proof using.
   rename ll into l.
   induction l; unfold approxMaximize, conditionalOptimize
    ; intro ; simpl; intro H ; auto;[discriminate|].
-  destruct (condition a); auto;[].
+  remember (condition a) as ca.
+  destruct ca;[|apply IHl in H; tauto].
   simpl in H.
   destruct
   ((fold_right (λ (y : A) (x : option A), chooseOp betterMax x y) None
          (filter condition l))); unfold chooseOp in H; simpl in H; 
-         [|inversion H; auto; fail].
-  unfold choose in H.
-  destruct (betterMax a a0); inversion H; subst; auto.
+         [|inversion H; subst; auto; fail].
+ unfold choose in H.
+  destruct (betterMax a a0); inversion H; subst; auto;
+    [apply IHl in H; tauto].
 Qed.
   
 Lemma approxMaximizeMaxQ : ∀ (c:A) (l: list A ) (m: A) ,
@@ -360,6 +318,7 @@ Lemma approxMaximizeCorrect : ∀ (c : A) (l: list A ) ,
   → In c l
   → ∃ (m : A),
       In m l
+      ∧ condition m = true
       ∧ approxMaximize l ≡ Some m
       ∧ objective c - '(2*`eps)  ≤ (objective m).
 Proof using.
@@ -370,28 +329,11 @@ Proof using.
   exists m.
   pose proof Hc as Hcb.
   apply approxMaximizeSome in Hcb.
+  repnd.
   dands; auto;[].
   eapply approxMaximizeMax; eauto.
 Qed.
 
-  
-Lemma CRapproxMax : forall (a b : CR),
-(approximate (CRmax a b) eps)
-  = QMinMax.Qmax (approximate a ((1 # 2) * eps)%Qpos)
-  (approximate b ((1 # 2) * eps)%Qpos).
-Proof using.
-  intros ? ?. reflexivity.
-Qed.
-
-(** can this be faster in some cases? *)
-Definition CRmax' (a b : CR) : CR :=
-match (CR_epsilon_sign_dec eps (b-a)) with
-| Datatypes.Gt => b
-| Datatypes.Lt => a
-| Datatypes.Eq => CRmax a b
-end.
-
 End conditionalOpt.
-
 
 End Opt.

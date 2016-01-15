@@ -337,3 +337,23 @@ Proof using.
   intros. tauto.
 Qed.
 
+Lemma filter_app {A:Type}:
+  forall f (l1 l2 : list A),
+    filter f (l1 ++ l2) = filter f l1 ++ filter f l2.
+Proof using.
+  induction l1; simpl; auto. intro.
+  rewrite IHl1.
+  destruct (f a); auto.
+Qed.
+
+Lemma rev_filter {A:Type}: forall (f: A -> bool) (l:list A),
+filter f (rev l) = rev (filter f l).
+Proof using.
+  induction l; auto; []; simpl.
+  rewrite filter_app.
+  simpl. rewrite IHl.
+  destruct (f a); auto.
+  rewrite app_nil_r.
+  reflexivity.
+Qed.
+
