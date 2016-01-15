@@ -357,4 +357,18 @@ Qed.
   
 End objective.
 
+Require Import CRMisc.numericalOpt.
+
+(*
+The term "upwardShift" has type "∀ d : CR, extraSpaceX1WValid d → CR"
+while it is expected to have type "CR → CR"
+
+Definition approxMaximizeUpwardShift : list CR -> option CR :=
+  approxMaximize eps CR approxDecideXAdmiss upwardShift.
+  
+Also, parametrize by ('α * d)  instead of d
+
+*)
+
+
 End InverseProblem.
