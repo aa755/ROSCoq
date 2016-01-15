@@ -779,6 +779,11 @@ Proof using ntriv turnCentreOut.
   proveFirstQuad.
 Qed.
 
+Lemma βPlusBackLt90:
+ ' polarTheta βPlusBack [<]  (½ * π).
+Proof using ntriv turnCentreOut.
+Abort.
+
 Lemma firstQuadβMinusFront:
  (0:IR) ≤ ' polarTheta βMinusFront ≤  (½ * π).
 Proof using ntriv turnCentreOut.
@@ -2594,18 +2599,22 @@ Proof using ntriv.
   apply ntriv.
 Qed.
 
-Definition extraSpaceXSidewaysCase1 :IR :=
-extraSpaceXWriggleCase1 
-+ d' * cos (2 * ' α * ' d).
+Definition extraSpaceXSidewaysCase1 
+`{CosClass R} `{Ring R}
+`{Cast (Cart2D Q) (Polar2D R)}
+`{Cast Q R} (d d':R) : R :=
+extraSpaceX1 (' α *  d)
++  d'* cos (2 * ' α *  d).
 
 Lemma extraSpaceXSidewaysCase1Correct :
 ' α * ' d ≤ leftCriticalAngle
 ->
-extraSpaceXSidewaysCase1=
+extraSpaceXSidewaysCase1 ('d) d'=
 sidewaysTotalSpaceX 
 - ' totalLength cd (** subtracting the initially needed space*).
 Proof using dNN firstQuadW ntriv turnCentreOut  αNZ.
   intros Hle. unfold extraSpaceXSidewaysCase1.
+  rewrite <- extraSpaceXWriggleCase1Simpl2.
   rewrite extraSpaceXWriggleCase1Correct;[| assumption].
   unfold extraSpaceXWriggle, leftExtraSpaceWriggle, rightExtraSpaceWriggle,
     sidewaysTotalSpaceX.
@@ -2613,7 +2622,6 @@ Proof using dNN firstQuadW ntriv turnCentreOut  αNZ.
   rewrite preserves_plus.
   IRring.
 Qed.
-
 
 End LeftNontrivialCase.
 

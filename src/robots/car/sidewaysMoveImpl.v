@@ -164,15 +164,20 @@ becomes trivial, and can be solved in just 1 move.
 Let leftCriticalAngle : CR := 
   sidewaysMove.leftCriticalAngleCR  α cd.
 
+(** It seems that [d] always appears as a product with α.
+  so, parametrize it over α * d *) 
+Definition extraSpaceX1WValid (d:CR) : Prop :=
+0 ≤ d ≤ ('tr) * leftCriticalAngle
+∧ d ≤ ((' (tr * ½)) * (polarTheta βPlusBack)).
+
 (** the srict inequality in the 
 last clause is necessary, because we want 
 same space to be left for the straight move,
 to ensure that 
 the upward is nonzero. *)
 Definition dAdmissibleXwise (d:CR) :=
-0 ≤ d ≤ ('tr) * leftCriticalAngle
-/\ d ≤ (('Qmake 1 4)*π)
-/\ extraSpaceX1W ('α * d) < 'Xs.
+extraSpaceX1WValid d
+∧ extraSpaceX1W ('α * d) < 'Xs.
 
 (** we need to often compare reals. This can
  -only be done upto a finte (but arbitrary) accuracy.*)
@@ -183,13 +188,121 @@ valid, i.e.,
 0 ≤ d ≤ ('tr) * leftCriticalAngle
 /\ d ≤ (('Qmake 1 4)*π)
  *)
-Definition approxDecideXAdmiss (d:CR) :=
+Definition approxDecideXAdmiss (d:CR) : bool :=
 approxDecLtRQ eps (extraSpaceX1W ('α * d)) Xs.
+
+(** Move to IRLemmasAsCR.v*)
+Lemma pos_cos_CR : 
+  ∀ θ : CR, 0 ≤ θ < (½ * π) → 0 < cos θ.
+Proof using.
+  intros ? Hbw.
+  apply CRasIRless.
+  eapply less_wdr; [| symmetry; apply cos_correct_CR].
+  eapply less_wdl; [| symmetry; apply CRasIR0].
+  rewrite CRPiBy2Correct1 in Hbw.
+  rewrite <- IR_Zero_as_CR in Hbw.
+  rewrite <- (CRasIRasCR_id θ) in Hbw.
+  destruct Hbw as [Hbwl Hbwr].
+  apply CR_lt_ltT in Hbwr.
+  apply pos_cos;[ apply IR_leEq_as_CR| apply CR_less_as_IR]; assumption.
+Qed.
+
+Lemma extraSpaceX1WValidImplies : forall (d:CR),
+extraSpaceX1WValid d
+→
+  0 ≤ 'α * d ≤ leftCriticalAngle
+  ∧ 2 * 'α * d ≤ (polarTheta βPlusBack).
+Proof using αPosQ.
+  intros ? He.
+  unfold extraSpaceX1WValid in He.
+  destruct He as [Hel Her].
+  destruct Hel as [Hell Helr].
+  apply (order_preserving (mult ('α))) in Her.
+  apply (order_preserving (mult ('α))) in Helr.
+  rewrite (@simple_associativity _ _ mult _ _ _) in Helr.
+  rewrite (@simple_associativity _ _ mult _ _ _) in Her.
+  rewrite <- preserves_mult in Helr.
+  rewrite <- preserves_mult in Her.
+  rewrite (@simple_associativity _ _ mult _ _ _) in Her.
+  unfold tr in Helr, Her.
+  autounfold with QMC in αPosQ.
+  rewrite Qmult_inv_r in Helr;[| lra].
+  rewrite Qmult_inv_r in Her;[| lra].
+  setoid_rewrite preserves_1 in Helr.
+  rewrite mult_1_l in Helr.
+  rewrite preserves_mult in Her.
+  setoid_rewrite preserves_1 in Her.
+  rewrite mult_1_l in Her.
+  apply (order_preserving (mult ('2))) in Her.
+  setoid_rewrite (@simple_associativity _ _ mult _ _ _)  in Her at 2.
+  rewrite <- preserves_mult in Her.
+  assert ((2 * ½) = 1) as Heq by reflexivity.
+  rewrite Heq in Her.
+  rewrite preserves_1 in Her.
+  rewrite mult_1_l in Her.
+  setoid_rewrite (@simple_associativity _ _ mult _ _ _)  in Her.
+  dands; auto;[].
+  apply nonneg_mult_compat; auto. apply preserves_nonneg. 
+    apply lt_le. assumption.
+Qed.
+
+Require Import MCMisc.rings.
+(** needed because we wish to divide by [cos (2 * 'α * d)] *)
+Lemma extraSpaceX1WValidCosPos :forall  (d:CR),
+extraSpaceX1WValid d
+→ 0 < cos (2 * 'α * d).
+Proof  using αPosQ ntriv.
+  intros ? Hv.
+  apply pos_cos_CR.
+  apply extraSpaceX1WValidImplies in Hv.
+  unfold extraSpaceX1WValid in Hv.
+  rewrite <- (@simple_associativity _ _ mult _ _).
+  rewrite <- (@simple_associativity _ _ mult _ _) in Hv.
+  split;[apply RingLeProp3; tauto|].
+  eapply le_lt_trans; [apply Hv|].
+  unfold nonTrivialCarDim in ntriv.
+  apply polarFirstQuadStrict; simpl;  autounfold with QMC in *; 
+  simpl; try lra.
+  apply lt_le in αPosQ.
+  apply  Qinv_le_0_compat in αPosQ. unfold tr.
+  unfold dec_recip in αPosQ.
+  destruct ntriv.
+  dands. remember (/ α). setoid_rewrite <- Heqy.
+  setoid_rewrite <- Heqy in αPosQ.
+   lra.
+Qed.
+
+Section objective.
+
+Variable d:CR.
 
 (** Now compute the quality (the amount of upward shift) for a
 given parameter [d]. The remaining space, which must be positive for 
-admissible values, will be used up for the straighe move.
+admissible values, will be used up for the straight move.
 This function will only be used for admissible
-[d]s -- if that simplifies anything .*)
+[d]s -- if that simplifies anything .
+
+[d'] is the distance covered during the straight move
+*)
+
+Hypothesis valid : extraSpaceX1WValid d.
+
+Let cos2αd_inv : CR.
+  apply CRinv.
+  exists (cos (2 * 'α * d)).
+  right.
+  apply extraSpaceX1WValidCosPos. (** this is opaque, so cannot use CRinvT*)
+  assumption.
+Defined.
+  
+Let d'  : CR := cos2αd_inv * ('Xs -  (extraSpaceX1W ('α * d))).
+
+Lemma sidweaysXSpaceExact :
+   extraSpaceXSidewaysCase1  α cd d d' = 'Xs.
+Abort.
+
+Definition upwardShift : CR := d' * (sin (2 * 'α * d)).
+
+End objective.
 
 End InverseProblem.

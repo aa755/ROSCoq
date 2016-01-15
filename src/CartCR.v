@@ -329,6 +329,7 @@ Proof.
     exists 1%nat; vm_compute; reflexivity.
 Qed.
 
+
 Lemma polarFirstQuad : forall (c: Cart2D Q),
   0 ≤ c -> 0 ≤ polarTheta c ≤ ('½)*π.
 Proof.
@@ -355,6 +356,27 @@ Proof.
       rewrite arctan_Qarctan in Hr.
       apply CRweakenLt.
       exact Hr.
+Qed.
+
+(** Move *)
+Global Instance LtCart2D `{Lt A} : Lt (Cart2D A) :=
+fun a b => (X a < X b) /\  (Y a < Y b).
+
+Lemma polarFirstQuadStrict : forall (c: Cart2D Q),
+  0 < X c → 0 ≤  Y c   → polarTheta c < ('½)*π.
+Proof.
+  intros ?. unfold polarTheta, QSignHalf, QSign,
+  Zero_instance_Cart2D, Cart2D_instance_le.
+  autounfold with QMC.
+  simpl.
+  intros Hx Hy.
+  destruct (decide (X c == 0)%Q);[lra|].
+  destruct (decide (X c < 0)%Q);[lra|].
+  clear n n0.
+  destruct (CRarctan_range ('(Y c/X c)%Q)) as [Hl Hr].
+  clear Hl.
+  rewrite arctan_Qarctan in Hr.
+  exact Hr.
 Qed.
 
 
