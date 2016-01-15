@@ -297,12 +297,64 @@ Defined.
   
 Let d'  : CR := cos2αd_inv * ('Xs -  (extraSpaceX1W ('α * d))).
 
+Require Import MathClasses.theory.fields.
+
+
+Lemma reciperse_altL `{Field F} (x : F) Px : (// x↾Px) * x = 1.
+Proof using. 
+  rewrite commutativity.
+  now rewrite <-(recip_inverse (x↾Px)). 
+Qed.
+
+(** there is already a ring instance decrared for CR,
+ using the legacy
+ definition of ring. That may cause issues.
+ Remove that ring, because that needs unfolding to ugly 
+legacy notations for the old [CRing].
+Add the old ring declaration to a separate file, and 
+import it in old files.
+ *)
+Add Ring tempRingCR : (stdlib_ring_theory CR).
+
+Let sidewaysMove : list DAtomicMove 
+  := SidewaysAux ('α) αNZ ('d) ('(d')).
+
+(** the above sideways move takes up all the available space in the X direction *)
 Lemma sidweaysXSpaceExact :
    extraSpaceXSidewaysCase1  α cd d d' = 'Xs.
-Abort.
+Proof.
+  unfold extraSpaceXSidewaysCase1.
+  unfold d'.
+  rewrite MultShuffle3r.
+  unfold cos2αd_inv.
+  setoid_rewrite reciperse_altL.
+  unfold extraSpaceX1W.
+  ring.
+Qed.
 
 Definition upwardShift : CR := d' * (sin (2 * 'α * d)).
 
+Lemma upwardShiftCorrect: forall init,
+θ2D init =0 
+-> 
+Y (pos2D (stateAfterAtomicMoves sidewaysMove init))
+  = 
+Y (pos2D init) + 'upwardShift.
+Proof.
+  intros ? h0.
+  unfold sidewaysMove.
+  rewrite SidewaysAuxState.
+  unfold sidewaysDisp, upwardShift.
+  simpl.
+  rewrite h0.
+  rewrite plus_0_l.
+  autounfold with IRMC.
+  simpl.
+  unfold cast, Cast_instace_Q_IR, Cart_CR_IR, implCR.SinClassCR, Cart2Polar.
+  autorewrite with CRtoIR.
+  reflexivity.
+Qed.
+  
 End objective.
 
 End InverseProblem.
