@@ -144,8 +144,11 @@ Variable A:Type.
 Variable condition : A → bool.
 Variable objective : A → CR.
 
+Definition objectiveApprox (a:A) : Q := approximate (objective a) eps.
+
+
 Let betterMax (a b : A) : bool :=
-  (approxDecLtRR (objective a) (objective b)).
+  bool_decide ((objectiveApprox a) < (objectiveApprox b)).
 
 (** find the element of the list that approximately maximizes
 the objective. As we will show next, the suboptimality is at most [2*eps]. *)
@@ -156,7 +159,7 @@ conditionalOptimize condition betterMax.
 Lemma filter_app :
   forall f (l1 l2 : list A),
     filter f (l1 ++ l2) ≡ filter f l1 ++ filter f l2.
-Proof.
+Proof using.
   induction l1; simpl; auto. intro.
   rewrite IHl1.
   destruct (f a); auto.
@@ -174,81 +177,204 @@ Proof using.
   reflexivity.
 Qed.
 
+Require Import Qminmax.
 
+(* Move *)
+Locate decide.
+Require Import MathClasses.misc.decision.
+
+(** the latter is more convenient, as it safes a step of interpreting boolean
+values *)
+Lemma bool_decide_sumbool `{Decision P} {T:Type} : forall (a b : T),
+(if (bool_decide P) then  a  else b) ≡ 
+(if (decide P) then a else b).
+Proof using.
+  intros ? ?.
+  destruct (decide P) as [p|p].
+- apply bool_decide_true in p; rewrite p. reflexivity. 
+- apply bool_decide_false in p; rewrite p. reflexivity. 
+Qed.
+
+Require Import Psatz.
+Lemma objectiveApproxChoose : forall (a b: A),
+objectiveApprox (choose betterMax a b) =
+Qminmax.Qmax (objectiveApprox a) (objectiveApprox b).
+Proof using.
+  intros ? ?.
+  unfold choose, betterMax.
+  rewrite bool_decide_sumbool.
+  destruct (decide (objectiveApprox a < objectiveApprox b)) as [l|l];
+  [rewrite Q.max_r|rewrite Q.max_l]; try reflexivity.
+  - apply Qlt_le_weak; assumption.
+  - autounfold with QMC in l. lra.
+Qed.  
+
+
+Lemma approxMaximizeSome : ∀  (l: list A ) (m: A) ,
+  approxMaximize l ≡ Some m 
+  → In m l.
+Proof using.
+  intros ? ?. unfold approxMaximize, conditionalOptimize.
+  rewrite <- fold_left_rev_right.
+  rewrite in_rev.
+  rewrite <- rev_filter.
+  remember (rev l) as ll.
+  revert m. clear dependent l.
+  rename ll into l.
+  induction l; unfold approxMaximize, conditionalOptimize
+   ; intro ; simpl; intro H ; auto;[discriminate|].
+  destruct (condition a); auto;[].
+  simpl in H.
+  destruct
+  ((fold_right (λ (y : A) (x : option A), chooseOp betterMax x y) None
+         (filter condition l))); unfold chooseOp in H; simpl in H; 
+         [|inversion H; auto; fail].
+  unfold choose in H.
+  destruct (betterMax a a0); inversion H; subst; auto.
+Qed.
+  
+Lemma approxMaximizeMaxQ : ∀ (c:A) (l: list A ) (m: A) ,
+  condition c = true
+  → In c l
+  → approxMaximize l ≡ Some m 
+  → objectiveApprox c  ≤ (objectiveApprox m).
+Proof using.
+  unfold approxMaximize, conditionalOptimize.
+  intros ? ? ?.
+  rewrite <- fold_left_rev_right.
+  rewrite in_rev.
+  rewrite <- rev_filter.
+  remember (rev l) as ll.
+  clear dependent l.
+  rename ll into l.
+  revert m.
+  induction l; intros ? h1 h2; simpl in *;[contradiction|].
+  destruct h2.
+- subst. rewrite h1. clear IHl.
+  intro Hc.
+  destruct l; simpl in *.
+  + unfold chooseOp in Hc. inversion Hc. reflexivity.
+  + unfold chooseOp in Hc. inversion Hc.
+    clear.
+    destruct
+     (fold_right
+        (λ (y : A) (x : option A),
+         Some match x with
+              | Some b' => choose betterMax y b'
+              | None => y
+              end) None
+        (if condition a then a :: filter condition l else filter condition l));
+    simpl;[| reflexivity].
+    rewrite objectiveApproxChoose.
+    apply Q.le_max_l.
+- remember (condition a) as ca.
+  destruct ca; [|dands; eauto; fail].
+  symmetry in Heqca.
+(** c is inside the tail of the list, 
+    and the condition is true for the head of the list *)
+  simpl. intro Hc.
+  remember (fold_right (λ (y : A) (x : option A), chooseOp betterMax x y) None
+           (filter condition l)) as ama.
+  destruct ama.
+  Focus 2.
+    assert (In c (filter condition l)) as Hin by (apply filter_In; auto).
+    destruct (filter condition l); simpl in *;[contradiction|].
+    inversion Heqama; fail.
+  
+  symmetry in Heqama.
+  rewrite <- (rev_involutive l) in Heqama.
+  rewrite  rev_filter in Heqama.
+  rewrite fold_left_rev_right in Heqama.
+  apply approxMaximizeSome in Heqama.
+  unfold  chooseOp at 1  in Hc.
+  unfold choose, betterMax in Hc.
+  rewrite bool_decide_sumbool in Hc.
+  destruct (decide (objectiveApprox a < objectiveApprox a0)); inversion Hc.
+  + setoid_rewrite H1 in IHl.
+    apply IHl; auto.
+  + autounfold with QMC in n.
+    assert (objectiveApprox a0 <= objectiveApprox a)%Q as ht by lra.
+    subst.
+    eapply transitivity;[| apply ht].
+    apply IHl; auto.
+Qed.
+
+(* Move *)
+Lemma approximateLe : forall (a b : CR),
+approximate a eps ≤ approximate b eps
+→ a - ' (2 * ` eps) ≤ b.
+Proof using.
+  intros ? ? H.
+  eapply transitivity;
+    [|apply lower_CRapproximation with (e:=eps)].
+  apply flip_le_minus_l.
+  eapply transitivity;
+    [apply upper_CRapproximation with (e:=eps)|].
+  fold ((@cast Q (st_car (msp_is_setoid CR)) inject_Q_CR)).
+  rewrite <- (@preserves_plus Q CR _ _ _ _ _ _ _ _ _ _ _ _ _ ).
+  apply (@order_preserving _ _ _ _ _ _ _ _ _ _).
+  simpl.
+  autounfold with QMC in *.
+  remember (approximate a eps).
+  remember (approximate b eps).
+  destruct eps.
+  simpl in *.
+  lra.
+Qed.
+
+Lemma approxMaximizeMax : ∀ (c:A) (l: list A ) (m: A) ,
+  condition c = true
+  → In c l
+  → approxMaximize l ≡ Some m 
+  → objective c - '(2*`eps)  ≤ (objective m).
+Proof using.
+  intros ? ? ? h1 h2 h3.
+  eapply approxMaximizeMaxQ in h3; eauto.
+  unfold objectiveApprox in h3.
+  apply approximateLe.
+  assumption.
+Qed.
+
+Lemma approxMaximizeSomeIf : ∀ (c : A) (l: list A ) ,
+  condition c = true
+  → In c l
+  → ∃ (m : A),  approxMaximize l ≡ Some m.
+Proof using.
+  intros ? ?.
+  unfold approxMaximize, conditionalOptimize.
+  rewrite <- fold_left_rev_right.
+  rewrite in_rev.
+  rewrite <- rev_filter.
+  remember (rev l) as ll.
+  clear dependent l.
+  rename ll into l.
+  intros Hc Hi.
+  assert (In c (filter condition l)) as Hin by (apply filter_In; auto).
+  destruct (filter condition l); simpl in Hin; auto;[contradiction|].
+  simpl.
+  eexists. reflexivity.
+Qed.
 
 Lemma approxMaximizeCorrect : ∀ (c : A) (l: list A ) ,
   condition c = true
   → In c l
   → ∃ (m : A),
       In m l
-      ∧ approxMaximize l ≡ Some m 
+      ∧ approxMaximize l ≡ Some m
       ∧ objective c - '(2*`eps)  ≤ (objective m).
-Proof.
-  unfold approxMaximize, conditionalOptimize.
-  intros ? ?.
-  rewrite <- fold_left_rev_right.
-  rewrite in_rev.
-  setoid_rewrite in_rev at 2.
-  rewrite <- rev_filter.
-  remember (rev l) as ll.
-  clear dependent l.
-  rename ll into l.
-  induction l; intros h1 h2; simpl in *;[contradiction|].
-  unfold approxMaximize, conditionalOptimize. simpl.
-  destruct h2.
-- subst. rewrite h1.
-  simpl. unfold chooseOp at 2. simpl. 
-  admit. 
-- specialize (IHl h1 H). destruct IHl as [mr Hmr1].
-  repnd.
-  destruct (condition a);[|exists mr; dands; try tauto].
- exists (choose betterMax a mr). simpl.
-  rewrite Hmr1rl.
-  unfold  chooseOp, choose. unfold betterMax.
-  remember (approxDecLtRR (objective a) (objective mr)) as comp.
-  fold betterMax.
-  destruct comp;[tauto|].
-  dands; auto.
-  eapply transitivity;[exact Hmr1rr|].
-  symmetry in Heqcomp.
-  apply stable.
-  intro Hc.
-  apply not_true_iff_false in Heqcomp.
-  apply Heqcomp.
-  clear Heqcomp.
-  fold (@bool_eq).
-  fold (@canonical_names.equiv bool _).
-  apply stable.
-  pose proof (CRle_lt_dec (objective mr) (objective a)) as Hdn.
-  SearchAbout DN.
-  Locate DN.
-Require Import CoRN.logic.Stability.
-  eapply DN_fmap;[exact Hdn|].
-  intro Hd.
-  destruct Hd;[tauto|].
-  apply approxDecLtRRApproxComplete.
-  apply CR_lt_ltT.
-(** This is clearly unprovable. because the comparison between
-reals is inexact, errors can add up, and the suboptimality can grow
-upto  [2* eps * (length l)].
+Proof using.
+  intros ? ? Hc Hi.
+  pose proof Hc as Hcbb.
+  eapply approxMaximizeSomeIf in Hc; eauto.
+  destruct Hc as [m Hc].
+  exists m.
+  pose proof Hc as Hcb.
+  apply approxMaximizeSome in Hcb.
+  dands; auto;[].
+  eapply approxMaximizeMax; eauto.
+Qed.
 
-As a counter example, consider an increasing list where the difference
-between successive elements approaches [2* eps] from below.
-The algorithm is free to choose the first element as the maximum.
-
-Hence while folding the list, the EXACT
-maximum of the objective value has to be maintained, and the comparison
-has to be done w.r.t that value. Then, it should be possible to prove 
-a suboptimality of [2*eps].
-
-Perhaps keep this version for now, just in case the new version is too slow.
-One can always divide [eps] by the length of the list.
-It is not clear which strategy is better.
-Run on some examples for Mazda 3.
-*)
-
-Abort.
-
+  
 Lemma CRapproxMax : forall (a b : CR),
 (approximate (CRmax a b) eps)
   = QMinMax.Qmax (approximate a ((1 # 2) * eps)%Qpos)
@@ -264,129 +390,6 @@ match (CR_epsilon_sign_dec eps (b-a)) with
 | Datatypes.Lt => a
 | Datatypes.Eq => CRmax a b
 end.
-
-Definition approxMaxIter (r: option (A * CR)) (a:A) : option (A * CR) :=
-Some 
-(
-let oa := objective a in 
-match r with
-| None => (a,oa)
-| Some r' => 
-    if (approxDecLtRR (snd r') oa) 
-    then (a,oa)
-    else (fst r', CRmax (snd r') (objective a))
-end).
-
-(** find the element of the list that approximately maximizes
-the objective. As we will show next, the suboptimality is at most [2*eps]. *)
-Definition approxMax (l:list A) : option (A * CR) :=
-let l := filter condition l in
-fold_left approxMaxIter l None.
-
-Require Import fastReals.interface.
-
-Require Import Qminmax.
-
-(* Move*)
-Definition maxListIter `{MaxClass AA} (oa: option AA) (a: AA) : option AA :=
-Some
-(match oa with
-| None => a
-| Some a' => max a a'
-end).
-
-(* Move*)
-Definition maxList `{MaxClass AA} (l: list AA) : option AA :=
-fold_left maxListIter l None.
-
-Lemma approxMaximizeCorrect : ∀ (c : A) (l: list A ) ,
-  condition c = true
-  → In c l
-  → ∃ (m : A) (mr: CR),
-      In m l
-      ∧ approxMax l ≡ Some (m, mr)
-      ∧ objective m ≤ mr 
-      ∧ objective c - '(2*`eps)  ≤ (objective m).
-Proof.
-  unfold approxMax.
-  intros ? ?.
-  rewrite <- fold_left_rev_right.
-  rewrite in_rev.
-  setoid_rewrite in_rev at 2.
-  rewrite <- rev_filter.
-  remember (rev l) as ll.
-  clear dependent l.
-  rename ll into l.
-  induction l; intros h1 h2; simpl in *;[contradiction|].
-  unfold approxMaximize, conditionalOptimize. simpl.
-  destruct h2.
-- 
-  (**[c] was the first element *)
-  subst. rewrite h1. clear IHl.
-  simpl. 
-  match goal with 
-  [|- context [fold_right ?a ?b ?v ]] => remember (fold_right a b v) as ama
-  end.
-  destruct ama as [ama | ]; simpl.
-  + clear Heqama.
-    unfold approxMaxIter.
-    remember (approxDecLtRR (snd ama) (objective c)).
-    setoid_rewrite <- Heqb. destruct b.
-    * 
-    (** the objective at [c] was observed to be larger that the elements in the tail*)
-      exists c. exists (objective c).
-      dands; try tauto;[reflexivity|].
-      admit. (*easy*)
-    * exists (fst ama).
-      exists ((CRmax (snd ama)) (objective c)).
-      SearchAbout approximate.
-      assert (objective (fst ama)  ≤ snd ama) by admit.
-      dands; try auto.
-      admit. (* prove a separate lemma *)
-      
-      eapply transitivity; eauto. apply  CRmax_ub_l; fail.
-      
-      apply stable. apply CRNotLeLtDN.
-      intro Hc.
-      
-      symmetry in Heqb.
-      apply approxDecLtRRApproxFalse in Heqb.
-      remember (approxDecLtRR (objective (fst ama)) (objective c)) as bb.
-      symmetry in Heqbb.
-      destruct bb.
-      
-      apply  approxDecLtRRSound in Heqbb.
-      assert ( objective (fst ama) < snd ama).
-        eapply lt_le_trans. apply Hc.  apply Heqb. 
-      clear H. clear Hc.
-
-      admit.
-      admit. (* need to generalize the induction over c*)
-  + exists c. exists (objective c).
-    dands; try tauto;[reflexivity|].
-    admit. (*easy*)
-- specialize (IHl h1 H). destruct IHl as [mr IHl].
-  destruct IHl as [mrr Hmr1].
-  repnd.
-  destruct (condition a);[|exists mr; exists mrr; dands; tauto].
-  exists (if (approxDecLtRR mrr (objective a)) then a else mr). simpl.
-  exists (if (approxDecLtRR mrr (objective a)) then (objective a) 
-      else (CRmax mrr (objective a))).
-  rewrite Hmr1rl.
-  unfold approxMaxIter.
-  simpl snd.
-  remember ( approxDecLtRR mrr (objective a) ) as comp.
-  symmetry in Heqcomp.
-  destruct comp.
-  +  apply approxDecLtRRSound in Heqcomp.
-   dands;  try tauto;[reflexivity|].
-   apply lt_le in Heqcomp. unfold PropHolds in Heqcomp.
-   eapply transitivity; eauto.
-  + dands; auto;[].
-    eapply transitivity;[exact Hmr1rrl|].
-    apply CRmax_ub_l.
-Abort.
-
 
 End conditionalOpt.
 
