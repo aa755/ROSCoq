@@ -154,6 +154,53 @@ Proof using All.
   apply nonneg_plus_compat; assumption.
 Qed.
 
+Require Import MathClasses.interfaces.orders.
+
+Context `{Lt A} `{Apart A} {FPSRO:@FullPseudoSemiRingOrder A 
+equiv apart plus mult zero one le lt}.
+
+Set Suggest Proof Using.
+Lemma RingLeIfSqrLe  : forall 
+  (a b : A),
+  0 < b + a
+  → sqr a ≤ sqr b
+  → a ≤  b.
+Proof using All.
+  intros ? ? Hp Hs.
+  apply flip_nonneg_minus in Hs.
+  assert (sqr b - sqr a = (b-a)*(b+a)) as Heq by (unfold sqr;ring).
+  rewrite Heq in Hs. clear Heq.
+  apply flip_nonneg_minus.
+  eapply nonneg_mult_rev_l; eauto.
+Qed.
+
+Lemma RingPosNnegCompatPlus  : forall 
+  (a b : A),
+  0 < b
+  →0 ≤ a
+  → 0 < b + a.
+Proof using All.
+  intros ? ? Hlt hlt. eapply lt_le_trans; eauto.
+  rewrite commutativity.
+  apply RingLeProp1.
+  assumption.
+Qed.
+
+Lemma RingLeSqr1  : forall 
+  (a b : A),
+  0 ≤ b
+  → 0 ≤ a
+  → sqr a + sqr b ≤ sqr (b + a).
+Proof using All.
+  intros ? ? Ha Hb.
+  unfold sqr.
+  apply flip_nonneg_minus.
+  ring_simplify.
+  rewrite <- (@simple_associativity _ _ mult _ _).
+  apply RingLeProp3.
+  apply nonneg_mult_compat; assumption.
+Qed.
+  
 End Le.
 
 

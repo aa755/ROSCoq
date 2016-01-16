@@ -222,52 +222,103 @@ Proof using Xsp ntriv trComplicated turnCentreOut.
   split; simpl;  autounfold with QMC in *; try lra.
 Qed.
 
+(*
+  This experiment shows that the positivity proof of the witness (Qpos)
+  of positivity of CR may be opaque.
+  This is great, because we can use lra for such proofs.
+  
+  Let q15p : (0 < 1 # 5)%Q.
+  Admitted.
+  
+ Let q15 : Qpos.
+   exists (Qmake 1 5).
+   exact q15p.
+ Defined.
+ 
+ Let xx : ('q15 <= CRpi - ' 0%Q)%CR.
+ Admitted.
+ 
+ Let pi_inv : CR.
+   apply (CRinvT CRpi).
+   right.
+   exists q15.
+   exact xx.
+ Defined.
+
+ Definition piap : Q := (approximate pi_inv (QposMake 1 100)).
+ 
+ Eval vm_compute in piap. (* immediate:  (1172095634793006 # 3682247709225704*)
+*)
+
 Definition cosβPlusBackPosWitness : Qpos.
 Proof using ntriv tr trPos.
-  exists (lengthBack cd /(tr + width cd))%Q.
+  exists (lengthBack cd /(tr + width cd + lengthBack cd))%Q.
   unfold nonTrivialCarDim in ntriv.
   autounfold with QMC in *.
-  apply Qlt_shift_div_l; try lra.
+  apply Qlt_shift_div_l; lra.
 Defined.
 
-Lemma cosβPlusBackPosT :
- (0 < cos (polarTheta βPlusBack))%CR.
-Proof using Xsp ntriv trComplicated turnCentreOut.
-  exists cosβPlusBackPosWitness.
-  (* now we can invoke opaque lemmas.
-  Even if everything in the the above [cosβPlusBackPos]
-  was made opaque recursively, the witness will not be as simple/fast
-  as the one above
-   *)
-  pose proof (Cart2Polar2CartID βPlusBack) as H.
-  destruct H as [Hx _].
-  simpl in Hx.
-  simpl.
+  (** hypotenuse  ≤ sum of the other sides of a right angled triangle*)
+Lemma cosβPlusBackPosT_subproof:
+(' cosβPlusBackPosWitness <= cos (polarTheta βPlusBack) - 0%mc)%CR.
+Proof using Xsp ntriv trComplicated trPos turnCentreOut. 
   setoid_rewrite preserves_0.
   fold (CRopp).
   fold (CRplus).
   fold (@negate CR _).
   fold (@plus CR _).
   rewrite minus_0_r.
+  pose proof (Cart2Polar2CartID βPlusBack) as H.
+  destruct H as [Hx _].
+  simpl in Hx.
+  simpl.
   unfold nonTrivialCarDim in ntriv.
   autounfold with QMC in ntriv, trPos.
-  apply (@order_reflecting _ _ _ _  _ _ (mult ('(tr + width cd)))).
+  apply (@order_reflecting _ _ _ _  _ _ (mult ('(tr + width cd + lengthBack cd)))).
     apply OrderReflecting_instance_0. apply preserves_pos.
     unfold PropHolds. autounfold with QMC. lra.
 
   fold (cast Q CR).
   rewrite <- preserves_mult.
   assert (
-  ((tr + width cd) * (lengthBack cd / (tr + width cd))%Q)
+  ((tr + width cd + lengthBack cd) * (lengthBack cd / (tr + width cd + lengthBack cd))%Q)
   == (lengthBack cd ))%Q as Heq by (field; lra).
   setoid_rewrite Heq. clear Heq.
   rewrite Hx. clear Hx.
-  apply mult_le_compat;[apply (Cart2PolarRadRange) 
+  apply mult_le_compat;[apply Cart2PolarRadRange 
     | apply lt_le, cosβPlusBackPos
     | 
     |  reflexivity]; [].
-Abort.
+  apply RingLeIfSqrLe.
+- apply RingPosNnegCompatPlus;[| apply Cart2PolarRadRange].
+  apply preserves_pos. autounfold with QMC in *. unfold PropHolds; lra.
 
+- unfold sqr.
+  rewrite <- preserves_mult.
+  setoid_rewrite CRsqrt_sqr1Q1.
+  apply (@order_preserving _ _ _ _ _ _ _ _ _ _ ).
+  simpl.
+  rewrite nat_pow.nat_pow_2.
+  rewrite nat_pow.nat_pow_2.
+  remember (tr + width cd).
+  fold (sqr (y + lengthBack cd)).
+  fold (sqr y).
+  fold (sqr (lengthBack cd)).
+  apply RingLeSqr1; autounfold with QMC in *; subst; lra.
+Qed.
+
+
+Lemma cosβPlusBackPosT :
+ (0 < cos (polarTheta βPlusBack))%CR.
+Proof using Xsp ntriv trComplicated trPos turnCentreOut. 
+  exists cosβPlusBackPosWitness.
+  (** now we can invoke opaque lemmas.
+  Even if everything in the the above [cosβPlusBackPos] opaque version
+  was made transparent recursively, the witness may not be as simple/fast
+  as the one above
+   *)
+  apply cosβPlusBackPosT_subproof.
+Defined.
 
 (*
 Had to make [CRlt_Qmid] transparent in CoRN.reals.fast.CRArith, to 
@@ -280,21 +331,25 @@ Eval vm_compute in ((proj1_sigT _ _ (CRlt_Qmid _ _ CRpi_posT))).
 
 
 
-(** needed because we wish to divide by [cos (2 * 'α * d)] *)
+(** needed because we wish to divide by [cos (2 * θ)]
+  To avoid carrying the proof positivity, a dummy max is used.
+  [extraSpaceX1WValid θ] implies that the max is equal to its right argument.
+ *)
 Lemma extraSpaceX1WValidCosPos :forall  (θ:CR),
-extraSpaceX1WValid θ
-→ 0 < cos (2 * θ).
-Proof  using αPosQ ntriv.
-  intros ? Hv.
-  apply pos_cos_CR.
-  unfold extraSpaceX1WValid in Hv.
-  split;[apply RingLeProp3; tauto|].
-  eapply le_lt_trans; [apply Hv|].
-  unfold nonTrivialCarDim in ntriv.
-  apply polarFirstQuadStrict; simpl;  autounfold with QMC in *; 
-  simpl; try lra.
-Qed.
-
+ (0 < max (cos (polarTheta βPlusBack)) (cos (2 * θ)))%CR.
+Proof using Xsp ntriv trComplicated trPos turnCentreOut. 
+  intros ? .
+  exists cosβPlusBackPosWitness.
+  eapply transitivity;[apply cosβPlusBackPosT_subproof|].
+  setoid_rewrite preserves_0.
+  fold (CRopp).
+  fold (CRplus).
+  fold (@negate CR _).
+  fold (@plus CR _).
+  rewrite minus_0_r.
+  rewrite minus_0_r.
+  apply CRmax_ub_l.
+Defined.
 
 Section objective.
 
@@ -313,25 +368,16 @@ Hypothesis valid : extraSpaceX1WValid θ.
 
 
 Let cos2αd_inv : CR.
-  apply CRinv. (** need to use CRinvT *)
-  exists (cos (2*θ)).
+  apply (CRinvT 
+          (max (cos (polarTheta βPlusBack)) (cos (2 * θ)))) .
   right.
   apply extraSpaceX1WValidCosPos.
-  assumption.
 Defined.
-
 
 
 Let d'  : CR := cos2αd_inv * ('Xs -  (extraSpaceX1W θ)).
 
 Require Import MathClasses.theory.fields.
-
-
-Lemma reciperse_altL `{Field F} (x : F) Px : (// x↾Px) * x = 1.
-Proof using. 
-  rewrite commutativity.
-  now rewrite <-(recip_inverse (x↾Px)). 
-Qed.
 
 (** there is already a ring instance decrared for CR,
  using the legacy
@@ -391,14 +437,9 @@ End objective.
 
 Require Import CRMisc.numericalOpt.
 
-(*
-The term "upwardShift" has type "∀ d : CR, extraSpaceX1WValid d → CR"
-while it is expected to have type "CR → CR"
 
 Definition approxMaximizeUpwardShift : list CR -> option CR :=
   approxMaximize eps CR approxDecideXAdmiss upwardShift.
-  
-*)
 
 
 End InverseProblem.
