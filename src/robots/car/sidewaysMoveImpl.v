@@ -174,7 +174,7 @@ Definition extraSpaceX1WValid (d:CR) : Prop :=
 last clause is necessary, because we want 
 same space to be left for the straight move,
 to ensure that 
-the upward is nonzero. *)
+the upward shift is nonzero. *)
 Definition dAdmissibleXwise (d:CR) :=
 extraSpaceX1WValid d
 ∧ extraSpaceX1W ('α * d) < 'Xs.
@@ -272,6 +272,9 @@ Proof  using αPosQ ntriv.
    lra.
 Qed.
 
+
+(* Print CRlt_Qmid. *)
+
 Section objective.
 
 Variable d:CR.
@@ -294,7 +297,35 @@ Let cos2αd_inv : CR.
   apply extraSpaceX1WValidCosPos. (** this is opaque, so cannot use CRinvT*)
   assumption.
 Defined.
-  
+
+Print ConstructiveEpsilon.constructive_indefinite_ground_description_nat.
+(*
+The experiment below shows that [cos2αd_inv] will not compute inside Coq,
+even when α, d, e.t.c. are closed terms, e.g. the parameters of Mazda 3.
+
+The guard of the fixpoint in [CRinv] likely mentions the positivity proof,
+and may be stuck because the proof has tons of opaque lemmas.
+Infact, the positivity proof is precisely what guarantees that the reciprical computation
+will terminate.
+
+This should not be a problem after extraction, though, as proofs will
+get thrown away.
+
+
+Let pi_inv : CR.
+  apply CRinv.
+  exists CRpi.
+  right.
+  apply CR_lt_ltT.
+  apply CRpi_pos. (** this positivity proof is opaque, unlike CRpi_posT *)
+Defined.
+
+Definition piap : Q := (approximate pi_inv (QposMake 1 100)).
+
+Eval vm_compute in piap. (* stuck *)
+*)
+
+
 Let d'  : CR := cos2αd_inv * ('Xs -  (extraSpaceX1W ('α * d))).
 
 Require Import MathClasses.theory.fields.
