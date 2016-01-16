@@ -441,5 +441,82 @@ Require Import CRMisc.numericalOpt.
 Definition approxMaximizeUpwardShift : list CR -> option CR :=
   approxMaximize eps CR approxDecideXAdmiss upwardShift.
 
+Example approxMaximizeUpwardShiftTest :
+approxMaximizeUpwardShift [] = None.
+reflexivity.
+Qed.
+
 
 End InverseProblem.
+
+Section TestSetup.
+
+
+Let cd : CarDimensions Q := '(carDim Mazda3Sedan2014sGT).
+
+Let ntriv : nonTrivialCarDim cd.
+  unfold nonTrivialCarDim. compute; dands; reflexivity.
+Defined. (*Qed? *)
+
+(** all turns will be executed at maximum curvature, which
+corresponds to the minimum turn radius allowed by the car's geometry*)
+Let α : Q.
+  let t := eval compute in (Qinv (minTR Mazda3Sedan2014sGT)) in 
+  exact t.
+Defined.
+
+
+(*
+Print α.
+α := (1 # 150)%Q : Q]
+*)
+
+Let αPosQ : (0 < α).
+compute. reflexivity.
+Defined.
+
+Let turnCentreOut : (width cd <= Qinv α)%Q.
+compute. intros H; discriminate.
+Defined.  (*Qed? *)
+
+(** extra available space in the X direction.
+set to one tenth of the length of the car *)
+Let Xs : Q.
+  let t := eval compute in ((Qmake 1 10) * (totalLength cd)) in 
+  exact t.
+Defined.
+
+(*
+Print Xs.
+(172 # 10)%Q 
+
+unit : inches
+*)
+
+Let Xsp : (0 < Xs).
+compute. reflexivity.
+Defined.  (*Qed? *)
+
+Let eps : Qpos.
+  let t := eval compute in ((Qmake 1 10) * Xs) in 
+  exists t.
+  compute. reflexivity.
+Defined.
+
+Let tapproxMaximizeUpwardShift : list CR → option CR :=
+approxMaximizeUpwardShift cd ntriv α αPosQ turnCentreOut Xs Xsp eps.
+
+Let test1 : option CR :=
+(tapproxMaximizeUpwardShift [' (Qmake 1 100); ' (Qmake 1 200)]).
+
+Let approx : option CR -> option Q :=
+option_map (fun r => approximate r (QposMake 1 10)).
+
+Example approxMaximizeUpwardShiftTest2 :
+approx test1 = Some (Qmake 1 200).
+vm_compute. (* 3 seconds *)
+reflexivity.
+Qed.
+
+End TestSetup.
+
