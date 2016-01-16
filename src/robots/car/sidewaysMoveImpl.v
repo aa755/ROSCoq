@@ -164,30 +164,23 @@ becomes trivial, and can be solved in just 1 move.
 Let leftCriticalAngle : CR := 
   sidewaysMove.leftCriticalAngleCR  α cd.
 
-(** It seems that [d] always appears as a product with α.
-  so, parametrize it over α * d *) 
-Definition extraSpaceX1WValid (d:CR) : Prop :=
-0 ≤ d ≤ ('tr) * leftCriticalAngle
-∧ d ≤ ((' (tr * ½)) * (polarTheta βPlusBack)).
+Definition extraSpaceX1WValid (θ:CR) : Prop :=
+0 ≤ θ ≤ leftCriticalAngle
+∧ 2 * θ ≤ (polarTheta βPlusBack).
 
 (** the srict inequality in the 
 last clause is necessary, because we want 
 same space to be left for the straight move,
 to ensure that 
 the upward shift is nonzero. *)
-Definition dAdmissibleXwise (d:CR) :=
-extraSpaceX1WValid d
-∧ extraSpaceX1W ('α * d) < 'Xs.
+Definition dAdmissibleXwise (θ:CR) :=
+extraSpaceX1WValid θ
+∧ extraSpaceX1W θ < 'Xs.
 
 (** we need to often compare reals. This can
  -only be done upto a finte (but arbitrary) accuracy.*)
 Variable eps : Qpos.
 
-(** It will only be called for [d] such that [extraSpaceX1W] is
-valid, i.e.,
-0 ≤ d ≤ ('tr) * leftCriticalAngle
-/\ d ≤ (('Qmake 1 4)*π)
- *)
 Definition approxDecideXAdmiss (d:CR) : bool :=
 approxDecLtRQ eps (extraSpaceX1W ('α * d)) Xs.
 
@@ -207,77 +200,105 @@ Proof using.
   apply pos_cos;[ apply IR_leEq_as_CR| apply CR_less_as_IR]; assumption.
 Qed.
 
-Lemma extraSpaceX1WValidImplies : forall (d:CR),
-extraSpaceX1WValid d
-→
-  0 ≤ 'α * d ≤ leftCriticalAngle
-  ∧ 2 * 'α * d ≤ (polarTheta βPlusBack).
-Proof using αPosQ.
-  intros ? He.
-  unfold extraSpaceX1WValid in He.
-  destruct He as [Hel Her].
-  destruct Hel as [Hell Helr].
-  apply (order_preserving (mult ('α))) in Her.
-  apply (order_preserving (mult ('α))) in Helr.
-  rewrite (@simple_associativity _ _ mult _ _ _) in Helr.
-  rewrite (@simple_associativity _ _ mult _ _ _) in Her.
-  rewrite <- preserves_mult in Helr.
-  rewrite <- preserves_mult in Her.
-  rewrite (@simple_associativity _ _ mult _ _ _) in Her.
-  unfold tr in Helr, Her.
-  autounfold with QMC in αPosQ.
-  rewrite Qmult_inv_r in Helr;[| lra].
-  rewrite Qmult_inv_r in Her;[| lra].
-  setoid_rewrite preserves_1 in Helr.
-  rewrite mult_1_l in Helr.
-  rewrite preserves_mult in Her.
-  setoid_rewrite preserves_1 in Her.
-  rewrite mult_1_l in Her.
-  apply (order_preserving (mult ('2))) in Her.
-  setoid_rewrite (@simple_associativity _ _ mult _ _ _)  in Her at 2.
-  rewrite <- preserves_mult in Her.
-  assert ((2 * ½) = 1) as Heq by reflexivity.
-  rewrite Heq in Her.
-  rewrite preserves_1 in Her.
-  rewrite mult_1_l in Her.
-  setoid_rewrite (@simple_associativity _ _ mult _ _ _)  in Her.
-  dands; auto;[].
-  apply nonneg_mult_compat; auto. apply preserves_nonneg. 
-    apply lt_le. assumption.
-Qed.
 
 Require Import MCMisc.rings.
+
+Let trPos : 0 < tr.
+Proof using αPosQ.
+apply Qinv_lt_0_compat.
+exact αPosQ.
+Qed.
+
+
+Lemma cosβPlusBackPos :
+ 0 < cos (polarTheta βPlusBack).
+Proof using Xsp ntriv trComplicated turnCentreOut.
+  apply pos_cos_CR.
+  unfold nonTrivialCarDim in ntriv.
+  split. eapply (proj1 (polarFirstQuad _ _)).
+  apply polarFirstQuadStrict; simpl;  autounfold with QMC in *; 
+  simpl; try lra.
+  Unshelve.
+  split; simpl;  autounfold with QMC in *; try lra.
+Qed.
+
+Definition cosβPlusBackPosWitness : Qpos.
+Proof using ntriv tr trPos.
+  exists (lengthBack cd /(tr + width cd))%Q.
+  unfold nonTrivialCarDim in ntriv.
+  autounfold with QMC in *.
+  apply Qlt_shift_div_l; try lra.
+Defined.
+
+Lemma cosβPlusBackPosT :
+ (0 < cos (polarTheta βPlusBack))%CR.
+Proof using Xsp ntriv trComplicated turnCentreOut.
+  exists cosβPlusBackPosWitness.
+  (* now we can invoke opaque lemmas.
+  Even if everything in the the above [cosβPlusBackPos]
+  was made opaque recursively, the witness will not be as simple/fast
+  as the one above
+   *)
+  pose proof (Cart2Polar2CartID βPlusBack) as H.
+  destruct H as [Hx _].
+  simpl in Hx.
+  simpl.
+  setoid_rewrite preserves_0.
+  fold (CRopp).
+  fold (CRplus).
+  fold (@negate CR _).
+  fold (@plus CR _).
+  rewrite minus_0_r.
+  unfold nonTrivialCarDim in ntriv.
+  autounfold with QMC in ntriv, trPos.
+  apply (@order_reflecting _ _ _ _  _ _ (mult ('(tr + width cd)))).
+    apply OrderReflecting_instance_0. apply preserves_pos.
+    unfold PropHolds. autounfold with QMC. lra.
+
+  fold (cast Q CR).
+  rewrite <- preserves_mult.
+  assert (
+  ((tr + width cd) * (lengthBack cd / (tr + width cd))%Q)
+  == (lengthBack cd ))%Q as Heq by (field; lra).
+  setoid_rewrite Heq. clear Heq.
+  rewrite Hx. clear Hx.
+  apply mult_le_compat;[apply (Cart2PolarRadRange) 
+    | apply lt_le, cosβPlusBackPos
+    | 
+    |  reflexivity]; [].
+Abort.
+
+
+(*
+Had to make [CRlt_Qmid] transparent in CoRN.reals.fast.CRArith, to 
+ensure that the following term computes. It is supposed to be a
+rational between 0 and pi.
+
+Eval vm_compute in ((proj1_sigT _ _ (CRlt_Qmid _ _ CRpi_posT))).
+(8 # 16)%Q
+*)
+
+
+
 (** needed because we wish to divide by [cos (2 * 'α * d)] *)
-Lemma extraSpaceX1WValidCosPos :forall  (d:CR),
-extraSpaceX1WValid d
-→ 0 < cos (2 * 'α * d).
+Lemma extraSpaceX1WValidCosPos :forall  (θ:CR),
+extraSpaceX1WValid θ
+→ 0 < cos (2 * θ).
 Proof  using αPosQ ntriv.
   intros ? Hv.
   apply pos_cos_CR.
-  apply extraSpaceX1WValidImplies in Hv.
   unfold extraSpaceX1WValid in Hv.
-  rewrite <- (@simple_associativity _ _ mult _ _).
-  rewrite <- (@simple_associativity _ _ mult _ _) in Hv.
   split;[apply RingLeProp3; tauto|].
   eapply le_lt_trans; [apply Hv|].
   unfold nonTrivialCarDim in ntriv.
   apply polarFirstQuadStrict; simpl;  autounfold with QMC in *; 
   simpl; try lra.
-  apply lt_le in αPosQ.
-  apply  Qinv_le_0_compat in αPosQ. unfold tr.
-  unfold dec_recip in αPosQ.
-  destruct ntriv.
-  dands. remember (/ α). setoid_rewrite <- Heqy.
-  setoid_rewrite <- Heqy in αPosQ.
-   lra.
 Qed.
 
 
-(* Print CRlt_Qmid. *)
-
 Section objective.
 
-Variable d:CR.
+Variable θ:CR.
 
 (** Now compute the quality (the amount of upward shift) for a
 given parameter [d]. The remaining space, which must be positive for 
@@ -288,58 +309,20 @@ This function will only be used for admissible
 [d'] is the distance covered during the straight move
 *)
 
-Hypothesis valid : extraSpaceX1WValid d.
+Hypothesis valid : extraSpaceX1WValid θ.
+
 
 Let cos2αd_inv : CR.
-  apply CRinv.
-  exists (cos (2 * 'α * d)).
+  apply CRinv. (** need to use CRinvT *)
+  exists (cos (2*θ)).
   right.
-  apply extraSpaceX1WValidCosPos. (** this is opaque, so cannot use CRinvT*)
+  apply extraSpaceX1WValidCosPos.
   assumption.
 Defined.
 
 
 
-(*
-Only the existential witness of positivity needs to be transparent.
-The rest can be opaque. [CRinvT] discards the rest anyways.
-
-Let xx : (' (1 # 5)%Qpos <= CRpi - ' 0%Q)%CR.
-Admitted.
-
-Let pi_inv : CR.
-  apply (CRinvT CRpi).
-  right.
-  exists (QposMake 1 5).
-  exact xx.
-Defined.
-
-
-Definition piap : Q := (approximate pi_inv (QposMake 1 100)).
-
-Eval vm_compute in piap. (* immediate:  (1172095634793006 # 3682247709225704)%Q *)
-
-
-
-
-On the other hand, [CRinv] doesn't compute at all:
-
-Let pi_inv : CR.
-  apply CRinv.
-  exists CRpi.
-  right.
-  exists 1%nat.
-  reflexivity.
-Defined.
-
-Definition piap : Q := (approximate pi_inv (QposMake 1 100)).
-
-Eval vm_compute in piap. (*  stuck *)
-
-*)
-
-
-Let d'  : CR := cos2αd_inv * ('Xs -  (extraSpaceX1W ('α * d))).
+Let d'  : CR := cos2αd_inv * ('Xs -  (extraSpaceX1W θ)).
 
 Require Import MathClasses.theory.fields.
 
@@ -360,9 +343,11 @@ import it in old files.
  *)
 Add Ring tempRingCR : (stdlib_ring_theory CR).
 
+Let d :CR := ('tr*θ).
 Let sidewaysMove : list DAtomicMove 
   := SidewaysAux ('α) αNZ ('d) ('(d')).
 
+(*
 (** the above sideways move takes up all the available space in the X direction *)
 Lemma sidweaysXSpaceExact :
    extraSpaceXSidewaysCase1  α cd d d' = 'Xs.
@@ -375,9 +360,11 @@ Proof.
   unfold extraSpaceX1W.
   ring.
 Qed.
+*)
 
-Definition upwardShift : CR := d' * (sin (2 * 'α * d)).
+Definition upwardShift : CR := d' * (sin (2 * θ)).
 
+(*
 Lemma upwardShiftCorrect: forall init,
 θ2D init =0 
 -> 
@@ -398,7 +385,8 @@ Proof.
   autorewrite with CRtoIR.
   reflexivity.
 Qed.
-  
+*)
+
 End objective.
 
 Require Import CRMisc.numericalOpt.
@@ -410,8 +398,6 @@ while it is expected to have type "CR → CR"
 Definition approxMaximizeUpwardShift : list CR -> option CR :=
   approxMaximize eps CR approxDecideXAdmiss upwardShift.
   
-Also, parametrize by ('α * d)  instead of d
-
 *)
 
 
