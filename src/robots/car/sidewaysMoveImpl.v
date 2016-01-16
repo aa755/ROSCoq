@@ -298,31 +298,44 @@ Let cos2αd_inv : CR.
   assumption.
 Defined.
 
-Print ConstructiveEpsilon.constructive_indefinite_ground_description_nat.
+
+
 (*
-The experiment below shows that [cos2αd_inv] will not compute inside Coq,
-even when α, d, e.t.c. are closed terms, e.g. the parameters of Mazda 3.
+Only the existential witness of positivity needs to be transparent.
+The rest can be opaque. [CRinvT] discards the rest anyways.
 
-The guard of the fixpoint in [CRinv] likely mentions the positivity proof,
-and may be stuck because the proof has tons of opaque lemmas.
-Infact, the positivity proof is precisely what guarantees that the reciprical computation
-will terminate.
+Let xx : (' (1 # 5)%Qpos <= CRpi - ' 0%Q)%CR.
+Admitted.
 
-This should not be a problem after extraction, though, as proofs will
-get thrown away.
+Let pi_inv : CR.
+  apply (CRinvT CRpi).
+  right.
+  exists (QposMake 1 5).
+  exact xx.
+Defined.
 
+
+Definition piap : Q := (approximate pi_inv (QposMake 1 100)).
+
+Eval vm_compute in piap. (* immediate:  (1172095634793006 # 3682247709225704)%Q *)
+
+
+
+
+On the other hand, [CRinv] doesn't compute at all:
 
 Let pi_inv : CR.
   apply CRinv.
   exists CRpi.
   right.
-  apply CR_lt_ltT.
-  apply CRpi_pos. (** this positivity proof is opaque, unlike CRpi_posT *)
+  exists 1%nat.
+  reflexivity.
 Defined.
 
 Definition piap : Q := (approximate pi_inv (QposMake 1 100)).
 
-Eval vm_compute in piap. (* stuck *)
+Eval vm_compute in piap. (*  stuck *)
+
 *)
 
 
