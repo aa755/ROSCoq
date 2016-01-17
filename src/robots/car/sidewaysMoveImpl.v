@@ -413,16 +413,30 @@ This function will only be used for admissible
 
 Hypothesis valid : extraSpaceX1WValid θ.
 
-
-Let cos2αd_inv : CR.
-  apply (CRinvT 
-          (max (cos (polarTheta βPlusBack)) (cos (2 * θ)))) .
-  right.
-  apply extraSpaceX1WValidCosPos.
+Let  cos2θ_lb :Qpos.
+destruct (CRlt_Qmid 0 (cos (polarTheta βPlusBack))
+cosβPlusBackPosT).
+exists x. 
+destruct p.
+apply Qlt_from_CRlt in c.
+assumption.
 Defined.
 
+Let cos2θ_inv : CR.
+  apply (CRinvT 
+          (max ('(`cos2θ_lb))  (cos (2 * θ)))).
+  right.
+  exists cos2θ_lb.
+  fold (CRopp).
+  fold (CRplus).
+  fold (@negate CR _).
+  fold (@plus CR _).
+  setoid_rewrite preserves_0.
+  rewrite minus_0_r.
+  apply CRmax_ub_l.
+Defined.
 
-Let d'  : CR := cos2αd_inv * ('Xs -  (extraSpaceX1W θ)).
+Let d'  : CR := cos2θ_inv * ('Xs -  (extraSpaceX1W θ)).
 
 Require Import MathClasses.theory.fields.
 
@@ -597,19 +611,27 @@ Let approx : option CR -> option Q :=
 option_map (fun r => approximate r (QposMake 1 10)).
 
 (* unit : radians. pi radians = 180 degrees. 1 radian ~ 57 degrees *)
-Definition δ :Qpos := QposMake 1 100.
+Definition δ :Qpos := QposMake 1 10.
 
 Definition samples : list Q:= 
 equiSpacedSamples cd α δ.
 
-(*
-Eval vm_compute in samples.
-*)
+Eval vm_compute in (length samples).
+
+
+Eval vm_compute in (length samples, eps).
+Example dshffkldjs:
+(approx (optimalSolution cd ntriv α αPosQ turnCentreOut Xs Xsp eps δ)) =
+None.
+time vm_compute.
+Abort.
+
+Eval vm_compute in (length samples, eps).
 
 Example approxMaximizeUpwardShiftTest2 :
 approx test1 = Some (Qmake 1 100).
 (* why does native_compute always fail for computations with constructive reals?*)
-time vm_compute. (* 10.45 seconds, eps =1/100 inches *)
+time vm_compute. (* 7.963 seconds, eps =1/100 inches *)
 reflexivity.
 Qed. 
 
@@ -620,15 +642,17 @@ Ideas to make it fast:
 approximate optimality. We can replace [sin] by [rational_sin] ...  e.t.c.
 [sin] invokes [rational_sin].
 
-2) replace [(cos (polarTheta βPlusBack))] by a positive rational smaller that it.
-There is a change that (approximations of) this constant are being repeatedly
-computed.
-
-3) Switch to AR. the rationals involved  are huge, and we may benefit by not
-having to do rational computations exactly unnecessarily.
+2) Switch to AR. the rationals involved  are huge, and we may benefit by not
+having to do rational computations exactly. The final answer is only
+needed upto an accuracy of., say 1/100 inches.
 In [samples] above, the rationals have 100+ digits each in numerator and denominator!.
 
-4) extract it to OCaml or Haskell. There is a chance that the bloat of proof
+Even though operations on AR are exact, AR is a completion of 
+AQ (approximate rationals), where there is no exact division.
+This should not be a problem. In worst case, one can inject the AQs
+into ARs and then do the exact division in AR.
+
+3) extract it to OCaml or Haskell. There is a chance that the bloat of proof
 is slowing things down. Also vm_compute use machine (big) integers instead of Coq's
 binary Z?
 
