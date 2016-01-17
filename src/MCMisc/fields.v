@@ -24,7 +24,7 @@ Proof using.
   now rewrite <-(recip_inverse (x↾Px)). 
 Qed.
 
-(*
+
 Section FieldProps.
 Context `{Field A}.
 Add Ring tempRing : (stdlib_ring_theory A).
@@ -33,12 +33,40 @@ Require Import MathClasses.interfaces.orders.
 Context `{Le A}
     `{@orders.SemiRingOrder A equiv plus mult zero one le}.
     
-Context `{Lt A} `{Apart A} {FPSRO:@FullPseudoSemiRingOrder A 
+Context `{Lt A} {FPSRO:@FullPseudoSemiRingOrder A 
 equiv apart plus mult zero one le lt}.
 
 Require Import MathClasses.interfaces.orders.
 Require Import MCMisc.rings.
 Require Import Ring.
 
+Lemma FieldLeRecipMultIff : forall 
+  (a b k kinv : A),
+  0 < k
+  → kinv*k =1
+  → (k*a ≤ b ↔ a ≤ kinv*b).
+Proof using All.
+  intros.
+  apply RingLeRecipMultIff; eauto.
+Qed.
+
+Definition posrecip (k:A) (p:0<k): A.
+  apply recip.
+  exists k.
+  apply apart_iff_total_lt.
+  right. assumption.
+Defined.
+
+Lemma FieldLeRecipMultIff2 : forall 
+  (a b k : A)
+  (p:0 < k),
+  let kinv := posrecip k p in
+  (k*a ≤ b ↔ a ≤ kinv*b).
+Proof using All.
+  intros.
+  apply FieldLeRecipMultIff; auto.
+  apply reciperse_altL.
+Qed.
+
+
 End FieldProps.
-*)

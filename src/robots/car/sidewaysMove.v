@@ -1291,8 +1291,9 @@ Definition minYCriticalAngle : IR
 
 Section MinYCases.
 
-
 (*
+Hypothesis case2 : minYCriticalAngle [<] 'α * 'd.
+
 Let increase1 := Y (minxy (confineRect1 ('α * 'd))) - 
 (Y (minxy (confineRect1 minYCriticalAngle))).
 
@@ -1311,7 +1312,7 @@ Proof.
   rewrite (proj1 (confineRectCorrect _)).
   rewrite (proj2 (confineRectCorrect _)).
   rewrite (proj2 (confineRectCorrect _)).
-  simpl.
+  simpl. fold αNZ.
   rewrite <-trComplicated.
   replace (½ * π - ' polarTheta βPlusBack) with 
     minYCriticalAngle;[| reflexivity].
@@ -1379,7 +1380,9 @@ Proof.
   rewrite (@commutativity _ _ _ (@mult (@Cart2D IR) _) _ _).
   rewrite  unitVDot2.
   (*further simplification may lead to a characterization of 
-  the [min] in [bottomBoundCase2] below.*)
+  the [min] in [bottomBoundCase2] below.
+  however, this seems too complicated.
+  *)
 Abort.
 
 End  MCring.

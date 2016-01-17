@@ -32,6 +32,8 @@ Require Export ackermannSteeringProp.
 
   Require Import IRMisc.LegacyIRRing.
 
+Require Import atomicMoves.
+
 Require Export CartIR.
 
   
@@ -369,22 +371,9 @@ Definition moveNamesSideways : list string :=
   List.map sconcat (mapDiagonal (fun x => sconcat ["\hll{";x;"}"]) [] spacedMoves).
 
 Close Scope string_scope.
-  
-  
-  
 
 Definition NameDAtomicMove := prod string  DAtomicMove.
 
-Fixpoint firstNPos (n:nat) : list nat:=
-match n with
-| O => [] 
-| 1 => [] 
-| S n' => n'::(firstNPos n')
-end.
-
-(** [1/d; 2/d ; ...; (d-1)/d]*)
-Definition equiMidPoints (d:Z⁺) : list Q:=
-  List.map (fun m => Qmake (Z.of_nat m) d) (rev (firstNPos (Pos.to_nat d))).
 
 Definition scaleAtomicMove (m: AtomicMove) (s:CR): AtomicMove :=
  {|am_tc := am_tc m; am_distance := s*(am_distance m) |}.

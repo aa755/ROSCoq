@@ -200,7 +200,64 @@ Proof using All.
   apply RingLeProp3.
   apply nonneg_mult_compat; assumption.
 Qed.
-  
+
+Lemma RingLeMultIff  : forall 
+  (a b k : A),
+  0 < k
+  → (a ≤ b ↔ k*a ≤ k*b).
+Proof.
+  intros ? ? ? Hk.
+  split; intro h.
+- apply (order_preserving (mult k));
+  eauto with typeclass_instances.
+
+- apply (order_reflecting) in h;
+  eauto with typeclass_instances.
+  (* k needs to be positive in this case *)
+ 
+Qed.
+
+Lemma RingLtMultIff  : forall 
+  (a b k : A),
+  0 < k
+  → (a < b ↔ k*a < k*b).
+Proof.
+  intros ? ? ? Hk.
+  split; intro h.
+- apply (strictly_order_preserving);
+  eauto with typeclass_instances.
+
+- apply (strictly_order_reflecting) in h;
+  eauto with typeclass_instances. 
+Qed.
+
+
+
+(** why is this needed? without it, rewrite Hki in [RingLeRecipMultIff]
+below fails *)
+
+Local Instance ProperLt :
+Proper (equiv ==> equiv ==> iff) lt.
+Proof.
+eauto with typeclass_instances.
+Qed.
+
+(** there is a version for for fields, where the hypothesis H10 is not needed. *)
+Lemma RingLeRecipMultIff {H10 :PropHolds (1 ≶ 0)} : forall 
+  (a b k kinv : A),
+  0 < k
+  → kinv*k =1
+  → (k*a ≤ b ↔ a ≤ kinv*b).
+Proof.
+  intros ? ? ? ? Hk Hki.
+  rewrite RingLeMultIff with (k:=kinv);[|].
+- ring_simplify [Hki] (kinv * (k * a)) .
+  reflexivity.
+- eapply pos_mult_rev_l;[| apply Hk].
+  rewrite Hki. apply lt_0_1.
+Qed.
+
+   
 End Le.
 
 

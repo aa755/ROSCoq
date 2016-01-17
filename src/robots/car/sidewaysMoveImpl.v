@@ -168,6 +168,53 @@ Definition extraSpaceX1WValid (θ:CR) : Prop :=
 0 ≤ θ ≤ leftCriticalAngle
 ∧ 2 * θ ≤ (polarTheta βPlusBack).
 
+Definition maxValidAngle : CR :=
+  min (leftCriticalAngle) (½*(polarTheta βPlusBack)).
+
+Require Import MCMisc.fields.
+Require Import MCMisc.rings.
+
+
+(* Move *)
+Lemma twoHalfCR :
+½ * 2 = (1:CR).
+Proof using.
+  unfold half_num, CR_Half_instance.
+  fold (cast Q CR).
+  rewrite commutativity.
+  rewrite <- RingProp3.
+  rewrite <- preserves_plus.
+  apply inject_Q_CR_wd.
+  compute. reflexivity.
+Qed.
+
+(* Move *)
+Lemma halfLeShift (a b:CR):  
+2 * a ≤ b
+↔
+a ≤ ½* b.
+Proof using.
+  apply FieldLeRecipMultIff;
+    [apply lt_0_2|].
+  apply twoHalfCR.
+Qed.
+
+Lemma extraSpaceX1WValidIff (θ:CR) : 
+extraSpaceX1WValid θ
+↔ 0 ≤ θ ≤ maxValidAngle.
+Proof using.
+  unfold extraSpaceX1WValid, maxValidAngle.
+  rewrite halfLeShift.
+  split; intro h;
+   dands; try tauto.
+- apply CRmin_glb; [apply h; fail| tauto].
+- eapply transitivity;[|eapply CRmin_lb_l].
+  apply h.
+- eapply transitivity;[|eapply CRmin_lb_r].
+  apply proj2 in h.
+  exact h.
+Qed.
+
 (** the srict inequality in the 
 last clause is necessary, because we want 
 same space to be left for the straight move,
@@ -446,6 +493,8 @@ approxMaximizeUpwardShift [] = None.
 reflexivity.
 Qed.
 
+Section sampling.
+End sampling.
 
 End InverseProblem.
 
@@ -498,7 +547,7 @@ compute. reflexivity.
 Defined.  (*Qed? *)
 
 Let eps : Qpos.
-  let t := eval compute in ((Qmake 1 10) * Xs) in 
+  let t := eval compute in ((Qmake 1 100)) in 
   exists t.
   compute. reflexivity.
 Defined.
@@ -513,10 +562,37 @@ Let approx : option CR -> option Q :=
 option_map (fun r => approximate r (QposMake 1 10)).
 
 Example approxMaximizeUpwardShiftTest2 :
-approx test1 = Some (Qmake 1 200).
-vm_compute. (* 3 seconds *)
+approx test1 = Some (Qmake 1 100).
+(* why does native_compute always fail for computations with constructive reals?*)
+time vm_compute. (* 10.45 seconds, eps =1/100 inches *)
 reflexivity.
-Qed.
+Qed. 
+
+(**
+Ideas to make it fast:
+ 
+1) It suffices to only consider rational solutions. We are only after
+approximate optimality. We can replace [sin] by [rational_sin] ...  e.t.c.
+[sin] invokes [rational_sin].
+
+2) replace [(cos (polarTheta βPlusBack))] by a positive rational smaller that it.
+There is a change that (approximations of) this constant are being repeatedly
+computed.
+
+3) extract it to OCaml or Haskell. There is a chance that the bloat of proof
+is slowing things down. Also vm_compute use machine (big) integers instead of Coq's
+binary Z?
+
+*)
+
+
+(*
+Print boundAbove.
+Print QboundAbove_uc.
+Print QboundAbove_uc_prf.
+SearchAbout boundAbove.
+SearchAbout CR Q.
+*)
 
 End TestSetup.
 
