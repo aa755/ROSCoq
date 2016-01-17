@@ -494,7 +494,42 @@ reflexivity.
 Qed.
 
 Section sampling.
+Variable δ: Qpos.
+(** the goal here is to create a list of rationals
+between 0 and [maxValidAngle] such that any point in that range
+is at most δ away from some member of the list.
+
+Thus, the optimal solution, whether real or rational, is also 
+at most δ away from a solution in the list that we considered
+during the optimization. Because the objective function (upward shift)
+is a continuous function with bounded derivative (say ≤ k), the suboptimality 
+is at most kδ + eps. Need to characterize k.
+ *)
+
+(** [lowerApprox c e ≤ c]*)
+Definition lowerApprox (c:CR) (e:Qpos) : Q :=
+  (approximate c e - `e).
+
+
+Definition maxValidAngleApprox : Q :=
+  lowerApprox maxValidAngle ((QposMake 1 2)*δ).
+
+(* In OCaml, one can start from 0 and keep adding δ until maxValidAngleApprox
+is reached. It is hard to convince Coq 
+that that function is terminating. 
+*)
+
+Definition numSamples : Z := Qround.Qceiling  (maxValidAngleApprox / δ).
+
+Definition equiSpacedSamples : list Q :=
+  maxValidAngleApprox::
+    (List.map (mult maxValidAngleApprox) (equiMidPoints (Z.to_pos numSamples))).
+
+Definition optimalSolution : option CR :=
+  approxMaximizeUpwardShift (List.map (cast Q CR) equiSpacedSamples).
+
 End sampling.
+
 
 End InverseProblem.
 
@@ -561,6 +596,16 @@ Let test1 : option CR :=
 Let approx : option CR -> option Q :=
 option_map (fun r => approximate r (QposMake 1 10)).
 
+(* unit : radians. pi radians = 180 degrees. 1 radian ~ 57 degrees *)
+Definition δ :Qpos := QposMake 1 100.
+
+Definition samples : list Q:= 
+equiSpacedSamples cd α δ.
+
+(*
+Eval vm_compute in samples.
+*)
+
 Example approxMaximizeUpwardShiftTest2 :
 approx test1 = Some (Qmake 1 100).
 (* why does native_compute always fail for computations with constructive reals?*)
@@ -579,7 +624,11 @@ approximate optimality. We can replace [sin] by [rational_sin] ...  e.t.c.
 There is a change that (approximations of) this constant are being repeatedly
 computed.
 
-3) extract it to OCaml or Haskell. There is a chance that the bloat of proof
+3) Switch to AR. the rationals involved  are huge, and we may benefit by not
+having to do rational computations exactly unnecessarily.
+In [samples] above, the rationals have 100+ digits each in numerator and denominator!.
+
+4) extract it to OCaml or Haskell. There is a chance that the bloat of proof
 is slowing things down. Also vm_compute use machine (big) integers instead of Coq's
 binary Z?
 
