@@ -509,20 +509,8 @@ approxMaximizeUpwardShift [] = None.
 reflexivity.
 Qed.
 
-Section sampling.
-Variable δ: Qpos.
-(** the goal here is to create a list of rationals
-between 0 and [maxValidAngle] such that any point in that range
-is at most δ away from some member of the list.
 
-Thus, the optimal solution, whether real or rational, is also 
-at most δ away from a solution in the list that we considered
-during the optimization. Because the objective function (upward shift)
-is a continuous function with bounded derivative (say ≤ k), the suboptimality 
-is at most kδ + eps. Need to characterize k.
- *)
-
-(** [lowerApprox c e ≤ c]*)
+(** Move, and perhaps generalize for all completions of metric spaces *)
 Definition lowerApprox (c:CR) (e:Qpos) : Q :=
   (approximate c e - `e).
 
@@ -531,7 +519,8 @@ Lemma lowerApproxCorrect (c:CR) (e:Qpos):
   c-'(2*`e)  ≤ '(lowerApprox c e) ≤ c.
 Proof using.
   unfold lowerApprox.
-  setoid_rewrite (@preserves_minus Q _ _ _ _ _ _ _ CR _ _ _ _ _ _ _ (cast Q CR) _).
+  setoid_rewrite (@preserves_minus Q _ _ _ _ _ _ _ CR 
+    _ _ _ _ _ _ _ (cast Q CR) _).
   rewrite preserves_mult.
   rewrite preserves_2.
   rewrite <- RingProp3.
@@ -546,51 +535,28 @@ Proof using.
   apply ball_approx_r.
 Qed.
 
+Locate Qpos.
+
+Section sampling.
+Variable δ: Qpos.
+
+(** the goal here is to create a list of rationals
+between 0 and [maxValidAngle] such that any point in that range
+is at most δ away from some member of the list.
+
+Thus, the optimal solution, whether real or rational, is also 
+at most δ away from a solution in the list that we considered
+during the optimization. Because the objective function (upward shift)
+is a continuous function with bounded derivative (say ≤ k), the suboptimality 
+is at most kδ + eps. Need to characterize k.
+ *)
+
+Require Import Qmisc.
 Definition maxValidAngleApprox : Q :=
   lowerApprox (compress maxValidAngle) ((QposMake 1 2)*δ).
 
-(* In OCaml, one can start from 0 and keep adding δ until maxValidAngleApprox
-is reached. It is hard to convince Coq 
-that that function is terminating. 
-*)
-
-Definition numSamples : Z := Qround.Qceiling  (maxValidAngleApprox / δ).
-
-Lemma Zto_pos_le : forall x,
-(cast Z Q x) ≤ ((Z.to_pos x):Q).
-Proof using.
-  intros.
-  destruct x; simpl; auto;
-  compute; intro; discriminate.
-Qed.
-
-Lemma numSamplesLe : 
-  maxValidAngleApprox*(Qmake 1 (Z.to_pos numSamples)) ≤ δ.
-Proof using.
-  remember (Z.to_pos numSamples) as zp.
-  change ((1 # zp)%Q) with (Qinv zp).
-  apply (Qmult_le_r _ _ zp);[auto|].
-  autounfold with QMC.
-  field_simplify;[| auto].
-  rewrite Q.Qdiv_1_r.
-  rewrite Q.Qdiv_1_r.
-  subst zp.
-  unfold numSamples.
-  apply (Qmult_le_r _ _ (Qinv δ));[apply Qpossec.Qpos_inv_obligation_1|].
-  field_simplify;[| auto| auto].
-  rewrite Q.Qdiv_1_r.
-  SearchAbout Z.to_pos Qle.
-  remember ((maxValidAngleApprox / δ)%Q).
-  eapply transitivity;[| apply Zto_pos_le].
-  apply Qround.Qle_ceiling.
-Qed.
-
-
 Definition equiSpacedSamples : list Q :=
-  maxValidAngleApprox::
-    (List.map 
-        (mult maxValidAngleApprox) 
-        (equiMidPoints (Z.to_pos numSamples))).
+  Qmisc.equiSpacedSamples  δ maxValidAngleApprox.
 
 Definition optimalSolution : option CR :=
   approxMaximizeUpwardShift 

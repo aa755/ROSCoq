@@ -357,14 +357,19 @@ Proof using.
   reflexivity.
 Qed.
 
-Fixpoint firstNPos (n:nat) : list nat:=
-match n with
-| O => nil 
-| 1 => nil
-| S n' => n'::(firstNPos n')
-end.
+Definition firstNPos (n:nat) : list nat:=
+seq 1 (n-1).
+
+Lemma firstNPosIn (n m:nat) :
+ (In m (firstNPos n)) ↔ (1 <= m <= (n-1)).
+Proof.
+  unfold firstNPos.
+  rewrite in_seq.
+  omega.
+Qed.
 
 Require Import QArith.
 (** [1/d; 2/d ; ...; (d-1)/d]*)
 Definition equiMidPoints (d:positive) : list Q:=
   List.map (fun m => Qmake (Z.of_nat m) d) (rev (firstNPos (Pos.to_nat d))).
+
