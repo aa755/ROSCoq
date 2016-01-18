@@ -1835,7 +1835,6 @@ Proof using αPos.
   reflexivity.
 Qed.
 
-Require Import conicSections.
 
 (**can some reasonable assumption replace [min] by either of its arguments?*)
 Lemma BottomBoundCase2Simpl : bottomBoundCase2 = 
@@ -2504,18 +2503,82 @@ Proof using firstQuadW lengthFrontGreater ntriv turnCentreOut.
     reflexivity.
 Qed.
 
-      
+Lemma isDerivX1space :
+  isDerivOf extraSpaceX1Deriv extraSpaceX1.
+Proof using.
+  eexists; eexists; dands; eauto using extraSpaceX1ContinuousCorrect, 
+  extraSpaceX1DerivContinuousCorrect.
+  constructor.
+  apply XSpaceDerivCorrect.
+Qed.
+
 Lemma derivNonegMonotoneXspace : ∀ a b,
 a ≤ b
 → (∀ θ, a≤θ≤b -> 0 ≤ extraSpaceX1Deriv θ)
 → extraSpaceX1 a ≤  extraSpaceX1 b.
 Proof using.
   intros. eapply nonDecIfDerivNonNeg; eauto.
-  eexists; eexists; dands; eauto using extraSpaceX1ContinuousCorrect, 
-  extraSpaceX1DerivContinuousCorrect.
-  constructor.
-  apply XSpaceDerivCorrect.
+  apply isDerivX1space.
 Qed.
+
+Hint Resolve  Cart2DRadNNegIR RingLeProp3 : CoRN.
+Lemma X1spaceDerivUB : 
+∀ θ:IR, 
+ extraSpaceX1Deriv θ ≤ (2 * ' (| βPlusBack |) + ' (| βMinusFront |)).
+Proof using.
+  intros ?.
+  unfold extraSpaceX1Deriv.
+  apply plus_le_compat.
+- rewrite <- (mult_1_r (2 * ' (| βPlusBack |))) at 2.
+  apply order_preserving;
+    [| apply Sin_leEq_One].
+  apply semirings.OrderPreserving_instance_0 .
+  apply RingLeProp3.
+  apply Cart2DRadNNegIR.
+- rewrite negate_mult_distr_r.
+  rewrite <- (mult_1_r (' (| βMinusFront |))) at 2. 
+  apply order_preserving. 
+  + apply semirings.OrderPreserving_instance_0 .
+    apply Cart2DRadNNegIR.
+  + eapply transitivity.
+    apply inv_leEq_AbsIR.
+    apply AbsIR_Sin_leEq_One.
+Qed.
+
+(** if the car doesn't move at all, no extra space is needed *)
+Lemma extraSpaceX1_0 : extraSpaceX1 0 = (0:IR).
+Proof using.
+  unfold extraSpaceX1.
+  rewrite (commutativity 0).
+  unfold cos, CosClassIR.
+  rewrite CosMinusSwap.
+  setoid_rewrite <- (unitVDotRAsPolar βPlusBack).
+  setoid_rewrite <- (unitVDotRAsPolarNegY βMinusFront).
+  rewrite mult_0_r.
+  unfold unitVec.
+  rewrite Cos_zero.
+  rewrite Sin_zero.
+  unfold totalLength.
+  unfold inprod, InProductCart2D.
+  simpl.
+  autorewrite with Q2RMC.
+  IRring.
+Qed.
+
+Lemma extraSpaceX10UB : 
+∀ θ:IR, 
+0 ≤ θ
+→ extraSpaceX1 θ 
+  ≤ (2 * ' (| βPlusBack |) + ' (| βMinusFront |)) * θ .
+Proof using.
+  intros ? ?.
+  rewrite <- (minus_0_r θ) at 2.
+  eapply transitivity;
+    [| eapply isDerivUB]; try assumption; [| apply isDerivX1space|].
+- rewrite extraSpaceX1_0. rewrite minus_0_r. reflexivity.
+- intros. apply X1spaceDerivUB.
+Qed.
+
 
 Lemma XSpaceDerivNNegIfHyp:
 (' (| βMinusFront |) ≤  2 * ' (| βPlusBack |))

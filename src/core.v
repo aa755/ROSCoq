@@ -246,14 +246,7 @@ Lemma TDerivativeUB :forall {F F' : TContR}
    -> UBoundInCompInt Hab (toPart F') c
    -> ({F} tb [-] ({F} ta))[<=]c[*](tb[-]ta).
 Proof.
- intros ? ? ? ? ? ? Hisd Hub.
- rewrite getFToPart.
- rewrite getFToPart.
- apply (AntiderivativeUB2 (toPart F) (toPart F') ta tb Hab); auto.
- unfold isDerivativeOf, isIDerivativeOf in Hisd.
- apply Included_imp_Derivative with 
-   (I:=closel [0]) (pI := I); trivial;[].
- apply intvlIncluded.
+  apply IDerivativeUB.
 Qed.
 
 Lemma TDerivativeLB :forall {F F' : TContR}
@@ -281,45 +274,16 @@ Lemma TDerivativeUB2 :forall (F F' : TContR)
    -> (forall (t:Time), (clcr ta tb) t -> ({F'} t) [<=] c)
    -> ({F} tb[-] {F} ta)[<=]c[*](tb[-]ta).
 Proof.
-  intros ? ? ? ? ? ? Hder Hub.
-  eapply TDerivativeUB with (Hab0 := Hab); eauto;[].
-  unfold UBoundInCompInt.
-  intros r Hc ?. unfold compact in Hc.
-  destruct Hc as [Hca Hcb].
-  
-  specialize (Hub (toTime _ _ Hca)).
-  rewrite <- extToPart2.
-  unfold getF in Hub.
-  assert ((toTime ta r Hca) [=] (mkRIntvl (closel [0]) r Hx)) as Heq
-    by (simpl; apply eq_reflexive).
-  rewrite <- Heq.
-  apply Hub.
-  split; auto.
+  apply IDerivativeUB2.
 Qed.
 
-(** double negation trick, to strengthen UB2. The hypothesis
-ta[<=]tb was ta[<]tb before*)
 Lemma TDerivativeUB3 :forall (F F' : TContR)
    (ta tb : Time) (Hab : ta[<=]tb) (c : ℝ),
    isDerivativeOf F' F
    -> (forall (t:Time), (clcr ta tb) t -> ({F'} t) [<=] c)
    -> ({F} tb[-] {F} ta)[<=]c[*](tb[-]ta).
 Proof.
-  intros ? ? ? ? ? ? Hder Hub.
-  pose proof (leEq_less_or_equal _ _ _ Hab) as Hdec.
-  apply leEq_def.
-  intros Hc.
-  apply Hdec. clear Hdec. intros Hdec.
-  revert Hc. apply leEq_def.
-  destruct Hdec as [Hlt | Heq].
-  - eapply TDerivativeUB2; eauto.
-  - rewrite Heq.
-    rewrite cg_minus_correct.
-    rewrite mult_commutes.
-    rewrite cring_mult_zero_op.
-    apply eq_imp_leEq. apply x_minus_x.
-    symmetry. apply TContRExt.
-    simpl. destruct ta, tb. exact Heq.
+  apply IDerivativeUB3.
 Qed.
 
 Lemma TDerivativeLB2 :forall (F F' : TContR)

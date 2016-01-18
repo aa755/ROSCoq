@@ -842,6 +842,69 @@ Proof.
     simpl. destruct ta, tb. exact Heq.
 Qed.
 
+(** proof of the 3 lemmas below are the exact duals of the above "LB" versions  *)
+Lemma IDerivativeUB :forall {F F' : IContR}
+   (ta tb : RInIntvl) (Hab : ta[<]tb) (c : IR),
+   isIDerivativeOf F' F
+   -> UBoundInCompInt Hab (toPart F') c
+   -> ((getF F) tb[-] (getF F) ta) [<=] c[*](tb[-]ta).
+Proof.
+ intros ? ? ? ? ? ? Hisd Hub.
+ rewrite extToPart3.
+ rewrite extToPart3.
+ apply (AntiderivativeUB2 (toPart F) (toPart F') ta tb Hab); auto.
+ unfold isIDerivativeOf in Hisd.
+ apply Included_imp_Derivative with 
+   (I:=itvl) (pI := pItvl ); trivial;[].
+ apply intvlIncluded.
+Qed.
+
+Lemma IDerivativeUB2 :forall (F F' : IContR)
+   (ta tb : RInIntvl) (Hab : ta[<]tb) (c : IR),
+   isIDerivativeOf F' F
+   -> (forall (t:RInIntvl), (clcr ta tb) t -> ({F'} t) [<=] c)
+   -> ({F} tb[-] {F} ta) [<=] c[*](tb[-]ta).
+Proof.
+  intros ? ? ? ? ? ? Hder Hub.
+  eapply IDerivativeUB with (Hab0 := Hab); eauto;[].
+  unfold UBoundInCompInt.
+  intros r Hc ?.
+   unfold compact in Hc.
+  unfold getF in Hub.
+  pose proof Hc as Hccc.
+  simpl in Hx.
+  destruct Hc as [Hca Hcb].
+  specialize (Hub {|scs_elem := r; scs_prf := Hx|} ).
+  rewrite <- extToPart2.
+  unfold getF in Hub.
+  apply Hub.
+  split; auto.
+Qed.
+
+Lemma IDerivativeUB3 :forall (F F' : IContR)
+   (ta tb : RInIntvl) (Hab : ta[<=]tb) (c : IR),
+   isIDerivativeOf F' F
+   -> (forall (t:RInIntvl), (clcr ta tb) t -> ({F'} t) [<=] c)
+   -> ({F} tb[-] {F} ta) [<=] c[*](tb[-]ta).
+Proof.
+  intros ? ? ? ? ? ? Hder Hub.
+  pose proof (leEq_less_or_equal _ _ _ Hab) as Hdec.
+  apply leEq_def.
+  intros Hc.
+  apply Hdec. clear Hdec. intros Hdec.
+  revert Hc. apply leEq_def.
+  destruct Hdec as [Hlt | Heq].
+  - eapply IDerivativeUB2; eauto.
+  - rewrite Heq.
+    rewrite cg_minus_correct.
+    rewrite mult_commutes.
+    rewrite cring_mult_zero_op.
+    apply eq_imp_leEq. symmetry. 
+    symmetry. apply x_minus_x.
+    symmetry. apply TContRExt.
+    simpl. destruct ta, tb. exact Heq.
+Qed.
+
 
 Lemma nonDecreasingIfIDerivNonNeg :∀  (F F' : IContR)
    (tstart tend : RInIntvl) (Hab : tstart[<=]tend),

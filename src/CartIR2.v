@@ -649,3 +649,64 @@ Proof.
   destruct tt.
   reflexivity.
 Qed.
+
+(* Move *)
+Lemma ProdImpConj : forall (A B : Prop),
+A * B -> A /\ B.
+Proof using.
+  intros ? ? H. destruct H. auto.
+Qed.
+
+Lemma isDerivLB :forall (f' f : IR -> IR) (c: IR)
+   (tstart tend : IR) (Hab : tstart ≤ tend),
+   isDerivOf f' f
+   -> (forall t:IR, (tstart ≤ t ≤ tend) -> c ≤ f' t)
+   ->  c * (tend - tstart) ≤ f tend - f tstart.
+Proof using.
+  intros ? ? ? ? ? h1 hd hn.
+  destruct hd as [F' hd].
+  destruct hd as [F hd].
+  unfold crepresents in hd. repnd.
+  do 2 rewrite <- hdrl.
+  destruct hdrr.
+  eapply transitivity;
+    [ |eapply IDerivativeLB3 with (c:=c); eauto] ;[reflexivity|].
+  intros tt hb.
+  apply ProdImpConj in hb.
+  specialize (hn tt hb).
+  rewrite <- hdl in hn.
+  eapply transitivity;[apply hn|].
+  apply eq_le.
+  apply TContRExt.
+  simpl.
+  destruct tt.
+  reflexivity.
+Qed.
+
+Lemma isDerivUB :forall (f' f : IR -> IR) (c: IR)
+   (tstart tend : IR) (Hab : tstart ≤ tend),
+   isDerivOf f' f
+   -> (forall t:IR, (tstart ≤ t ≤ tend) ->  f' t ≤ c)
+   ->  f tend - f tstart ≤ c * (tend - tstart).
+Proof using.
+  intros ? ? ? ? ? h1 hd hn.
+  destruct hd as [F' hd].
+  destruct hd as [F hd].
+  unfold crepresents in hd. repnd.
+  do 2 rewrite <- hdrl.
+  destruct hdrr.
+  eapply transitivity;
+    [ eapply IDerivativeUB3 with (c:=c); eauto|] ;[|reflexivity].
+  intros tt hb.
+  apply ProdImpConj in hb.
+  specialize (hn tt hb).
+  rewrite <- hdl in hn.
+  eapply transitivity;[|apply hn].
+  apply eq_le.
+  apply TContRExt.
+  simpl.
+  destruct tt.
+  simpl.
+  reflexivity.
+Qed.
+
