@@ -44,12 +44,7 @@ Local Opaque Cosine.
 Local Opaque Sin.
 Local Opaque Cos.
 
-Definition plausibleCarDim (cd : CarDimensions IR) : Prop :=
-  0 ≤ lengthFront cd /\  0 ≤ width cd /\ 0 ≤ lengthBack cd.
 
-Definition nonTrivialCarDim (cd : CarDimensions Q) :=
-  0 < lengthFront cd  ∧  0 < width cd ∧ 0 < lengthBack cd.
-  
 Lemma nonTrivialCarDimPlausible : forall (cd : CarDimensions Q),
   nonTrivialCarDim cd
   -> plausibleCarDim ('cd).

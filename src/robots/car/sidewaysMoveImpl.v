@@ -101,9 +101,6 @@ Section InverseProblem.
 
 Variable cd : CarDimensions Q.
 
-(*Move*)
-Definition nonTrivialCarGeometry (cd : CarGeometry Q) : Prop := 
-nonTrivialCarDim (carDim cd) /\ 0 < minTR cd.
 
 Hypothesis ntriv : nonTrivialCarDim cd.
 
@@ -185,29 +182,6 @@ Require Import MCMisc.fields.
 Require Import MCMisc.rings.
 
 
-(* Move *)
-Lemma twoHalfCR :
-½ * 2 = (1:CR).
-Proof using.
-  unfold half_num, CR_Half_instance.
-  fold (cast Q CR).
-  rewrite commutativity.
-  rewrite <- RingProp3.
-  rewrite <- preserves_plus.
-  apply inject_Q_CR_wd.
-  compute. reflexivity.
-Qed.
-
-(* Move *)
-Lemma halfLeShift (a b:CR):  
-2 * a ≤ b
-↔
-a ≤ ½* b.
-Proof using.
-  apply FieldLeRecipMultIff;
-    [apply lt_0_2|].
-  apply twoHalfCR.
-Qed.
 
 Lemma extraSpaceX1WValidIff (θ:CR) : 
 extraSpaceX1WValid θ
@@ -241,21 +215,6 @@ Variable eps : Qpos.
 Definition approxDecideXAdmiss (d:CR) : bool :=
 approxDecLtRQ eps (extraSpaceX1W ('α * d)) Xs.
 
-(** Move to IRLemmasAsCR.v*)
-Lemma pos_cos_CR : 
-  ∀ θ : CR, 0 ≤ θ < (½ * π) → 0 < cos θ.
-Proof using.
-  intros ? Hbw.
-  apply CRasIRless.
-  eapply less_wdr; [| symmetry; apply cos_correct_CR].
-  eapply less_wdl; [| symmetry; apply CRasIR0].
-  rewrite CRPiBy2Correct1 in Hbw.
-  rewrite <- IR_Zero_as_CR in Hbw.
-  rewrite <- (CRasIRasCR_id θ) in Hbw.
-  destruct Hbw as [Hbwl Hbwr].
-  apply CR_lt_ltT in Hbwr.
-  apply pos_cos;[ apply IR_leEq_as_CR| apply CR_less_as_IR]; assumption.
-Qed.
 
 
 Require Import MCMisc.rings.
@@ -279,33 +238,6 @@ Proof using Xsp ntriv trComplicated turnCentreOut.
   split; simpl;  autounfold with QMC in *; try lra.
 Qed.
 
-(*
-  This experiment shows that the positivity proof of the witness (Qpos)
-  of positivity of CR may be opaque.
-  This is great, because we can use lra for such proofs.
-  
-  Let q15p : (0 < 1 # 5)%Q.
-  Admitted.
-  
- Let q15 : Qpos.
-   exists (Qmake 1 5).
-   exact q15p.
- Defined.
- 
- Let xx : ('q15 <= CRpi - ' 0%Q)%CR.
- Admitted.
- 
- Let pi_inv : CR.
-   apply (CRinvT CRpi).
-   right.
-   exists q15.
-   exact xx.
- Defined.
-
- Definition piap : Q := (approximate pi_inv (QposMake 1 100)).
- 
- Eval vm_compute in piap. (* immediate:  (1172095634793006 # 3682247709225704*)
-*)
 
 Definition cosβPlusBackPosWitness : Qpos.
 Proof using ntriv tr trPos.
@@ -510,30 +442,6 @@ reflexivity.
 Qed.
 
 
-(** Move, and perhaps generalize for all completions of metric spaces *)
-Definition lowerApprox (c:CR) (e:Qpos) : Q :=
-  (approximate c e - `e).
-
-
-Lemma lowerApproxCorrect (c:CR) (e:Qpos):
-  c-'(2*`e)  ≤ '(lowerApprox c e) ≤ c.
-Proof using.
-  unfold lowerApprox.
-  setoid_rewrite (@preserves_minus Q _ _ _ _ _ _ _ CR 
-    _ _ _ _ _ _ _ (cast Q CR) _).
-  rewrite preserves_mult.
-  rewrite preserves_2.
-  rewrite <- RingProp3.
-  apply addRangeLe.
-  rewrite negate_involutive.
-  match goal with
-  [|- ?l ≤ _ /\ _] => ring_simplify l
-  end.
-  split;
-    [|apply in_CRball; apply ball_approx_r].
-  apply (fun b => proj1 ((proj2 (in_CRball e c _)) b)).
-  apply ball_approx_r.
-Qed.
 
 Locate Qpos.
 
@@ -705,17 +613,8 @@ vm_compute.
 reflexivity.
 Abort.
 
-
-
 Eval vm_compute in (samples).
 
-
-Example approxMaximizeUpwardShiftTest2 :
-approx test1 = Some (Qmake 1 100).
-(* why does native_compute always fail for computations with constructive reals?*)
-time vm_compute. (* 7.963 seconds, eps =1/100 inches *)
-reflexivity.
-Qed. 
 
 (**
 Ideas to make it fast:

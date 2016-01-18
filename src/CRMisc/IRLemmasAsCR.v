@@ -1916,4 +1916,195 @@ match (CR_epsilon_sign_dec eps (b-a)) with
 | Datatypes.Eq => CRmax a b
 end.
 
+(* Move *)
+Lemma twoHalfCR :
+½ * 2 = (1:CR).
+Proof using.
+  unfold half_num, CR_Half_instance.
+  fold (cast Q CR).
+  rewrite commutativity.
+  rewrite <- RingProp3.
+  rewrite <- preserves_plus.
+  apply inject_Q_CR_wd.
+  compute. reflexivity.
+Qed.
 
+(* Move *)
+Lemma halfLeShift (a b:CR):  
+2 * a ≤ b
+↔
+a ≤ ½* b.
+Proof using.
+  apply FieldLeRecipMultIff;
+    [apply lt_0_2|].
+  apply twoHalfCR.
+Qed.
+
+(** Move, and perhaps generalize for all completions of metric spaces *)
+Definition lowerApprox (c:CR) (e:Qpos) : Q :=
+  (approximate c e - `e).
+
+Lemma addRangeLe : ∀ a t b v : CR, 
+  (a - v) ≤ t  ≤ (b - v) → a ≤ t + v ≤ b.
+Proof using.
+  intros ? ? ? ? Hb.
+  destruct Hb.
+  split.
+- apply shift_leEq_plus. assumption.
+- apply shift_plus_leEq. assumption.
+Qed.
+
+Lemma pos_cos_CR : 
+  ∀ θ : CR, 0 ≤ θ < (½ * π) → 0 < cos θ.
+Proof using.
+  intros ? Hbw.
+  apply CRasIRless.
+  eapply less_wdr; [| symmetry; apply cos_correct_CR].
+  eapply less_wdl; [| symmetry; apply CRasIR0].
+  rewrite CRPiBy2Correct1 in Hbw.
+  rewrite <- IR_Zero_as_CR in Hbw.
+  rewrite <- (CRasIRasCR_id θ) in Hbw.
+  destruct Hbw as [Hbwl Hbwr].
+  apply CR_lt_ltT in Hbwr.
+  apply pos_cos;[ apply IR_leEq_as_CR| apply CR_less_as_IR]; assumption.
+Qed.
+
+Section Opt.
+(** we need to often compare reals. This can
+ -only be done upto a finte (but arbitrary) accuracy.*)
+Variable eps : Qpos.
+ 
+Definition approxDecLtRQ (a:CR) (b:Q) : bool :=
+let aq : Q := approximate a eps in
+bool_decide (aq + eps < b).
+
+Require Import MathClasses.implementations.bool.
+Require Import MathClasses.interfaces.orders.
+Require Import MathClasses.orders.orders.
+
+Lemma approxDecLtRQSound: forall (a:CR) (b:Q),
+approxDecLtRQ a b = true
+→ a < 'b.
+Proof using.
+  intros ? ? H.
+  apply bool_decide_true in H.
+  eapply le_lt_trans;
+    [apply upper_CRapproximation with (e:=eps)|].
+  apply (@strictly_order_preserving _ _ _ _ _  _ _ _).
+  exact H.
+Qed.
+
+Lemma approxDecLtRQApproxComplete: forall (a:CR) (b:Q),
+a < '(b - 2*`eps)
+→ approxDecLtRQ a b = true.
+Proof using.
+  intros ? ? H.
+  apply bool_decide_true.
+  rewrite preserves_minus in H.
+  apply flip_lt_minus_l  in H.
+  rewrite negate_involutive in H.
+  apply (@strictly_order_reflecting _ _ _ _ _
+      _ (@cast Q CR _) _).
+  eapply le_lt_trans;[| apply H]. clear H.
+  apply flip_le_minus_l.
+  eapply transitivity;
+    [|apply lower_CRapproximation with (e:=eps)].
+  rewrite <- (@preserves_minus Q _ _ _ _ _ _ _ 
+        CR _ _ _ _ _ _ _ _ _).
+  apply (@order_preserving _ _ _ _ _
+      _ (@cast Q CR _) _).
+  apply eq_le. 
+  autounfold with QMC.
+  destruct eps. simpl.
+  ring.
+Qed.
+
+Require Import CoRN.logic.Stability.
+
+  
+Lemma approxDecLtRQApproxFalse: forall (a:CR) (b:Q),
+approxDecLtRQ a b = false
+→ '(b - 2*`eps) ≤ a .
+Proof using.
+  intros ? ? H.
+  apply stable.
+  apply not_true_iff_false in H.
+  apply CRNotLeLtDN.
+  intro Hc.
+  apply H. 
+  apply approxDecLtRQApproxComplete.
+  assumption.
+Qed.
+
+Definition approxDecLtRR (a b :CR) : bool :=
+approxDecLtRQ (a-b) (0)%mc.
+
+
+Lemma approxDecLtRRSound: forall (a b:CR),
+approxDecLtRR a b = true
+→ a < b.
+Proof using.
+  intros ? ?.
+  unfold approxDecLtRR.
+  intro H.
+  apply approxDecLtRQSound in H.
+  rewrite (@preserves_0 _ _ _ _ _ _ _ _ _ _ _ _ _ _) in H.
+  apply flip_lt_minus_l in H.
+  rewrite plus_0_l in H.
+  exact H.
+Qed.
+
+Lemma approxDecLtRRApproxComplete: forall (a b:CR),
+a < b - '(2*`eps)
+→ approxDecLtRR a b = true.
+Proof using.
+  intros ? ? H.
+  apply approxDecLtRQApproxComplete.
+  apply flip_lt_minus_l.
+  rewrite preserves_minus.
+  rewrite preserves_0.
+  rewrite plus_0_l.
+  rewrite (@commutativity _ _ _ plus _ _ _).
+  exact H.
+Qed.
+
+Lemma approxDecLtRRApproxFalse: forall (a b:CR),
+approxDecLtRR a b = false
+→ b - '(2*`eps)  ≤ a.
+Proof using.
+  intros ? ? H.
+  apply approxDecLtRQApproxFalse in H.
+  rewrite preserves_minus in H.
+  rewrite preserves_0 in H.
+  rewrite plus_0_l in H.
+  apply flip_le_minus_r in H.
+  rewrite (@commutativity _ _ _ plus _ _ _) in H.
+  exact H.
+Qed.
+End Opt.
+
+Section TempRing.
+Add Ring tempRingCR : (stdlib_ring_theory CR).
+
+(** Move, and perhaps generalize for all completions of metric spaces *)
+Lemma lowerApproxCorrect (c:CR) (e:Qpos):
+  c-'(2*`e)  ≤ '(lowerApprox c e) ≤ c.
+Proof using.
+  unfold lowerApprox.
+  setoid_rewrite (@preserves_minus Q _ _ _ _ _ _ _ CR 
+    _ _ _ _ _ _ _ (cast Q CR) _).
+  rewrite preserves_mult.
+  rewrite preserves_2.
+  rewrite <- RingProp3.
+  apply addRangeLe.
+  rewrite negate_involutive.
+  match goal with
+  [|- ?l ≤ _ /\ _] => ring_simplify l
+  end.
+  split;
+    [|apply in_CRball; apply ball_approx_r].
+  apply (fun b => proj1 ((proj2 (in_CRball e c _)) b)).
+  apply ball_approx_r.
+Qed.
+
+End TempRing.

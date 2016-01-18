@@ -143,6 +143,12 @@ Proof using .
     split; eauto 3
     with relations.
 Qed.
+Definition plausibleCarDim (cd : CarDimensions IR) : Prop :=
+  0 ≤ lengthFront cd /\  0 ≤ width cd /\ 0 ≤ lengthBack cd.
+
+Definition nonTrivialCarDim (cd : CarDimensions Q) :=
+  0 < lengthFront cd  ∧  0 < width cd ∧ 0 < lengthBack cd.
+
 
 Global Instance ProperCarMinMax : Proper
     (equiv ==> equiv ==> equiv) (@carMinMaxXY IR _ _ _ _ _ _ _ _ _ _).

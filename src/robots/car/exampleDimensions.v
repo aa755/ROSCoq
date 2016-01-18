@@ -40,6 +40,9 @@ Record CarGeometry (A:Type) := {
  minTR : A (**minimum turn radius, on either side*)
 }.
 
+Definition nonTrivialCarGeometry (cd : CarGeometry Q) : Prop := 
+nonTrivialCarDim (carDim cd) /\ 0 < minTR cd.
+
 Global Instance CastCarGeometry `{Cast A B} 
   : Cast (CarGeometry A) (CarGeometry B) :=
 fun a =>  Build_CarGeometry

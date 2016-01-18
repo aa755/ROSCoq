@@ -264,15 +264,6 @@ Proof.
   apply CRle_Qle. unfoldMC. apply Q.Qplus_nonneg;apply Qpower.Qsqr_nonneg.
 Qed.
 
-Lemma addRangeLe : ∀ a t b v : CR, 
-  (a - v) ≤ t  ≤ (b - v) → a ≤ t + v ≤ b.
-Proof.
-  intros ? ? ? ? Hb.
-  repnd.
-  split.
-- apply shift_leEq_plus. assumption.
-- apply shift_plus_leEq. assumption.
-Qed.
 
 
 Lemma Cart2PolarAngleRange : forall (c :Cart2D Q),
