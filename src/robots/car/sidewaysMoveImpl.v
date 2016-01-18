@@ -526,7 +526,7 @@ Definition lowerApprox (c:CR) (e:Qpos) : Q :=
 
 
 Definition maxValidAngleApprox : Q :=
-  lowerApprox maxValidAngle ((QposMake 1 2)*δ).
+  lowerApprox (compress maxValidAngle) ((QposMake 1 2)*δ).
 
 (* In OCaml, one can start from 0 and keep adding δ until maxValidAngleApprox
 is reached. It is hard to convince Coq 
@@ -616,7 +616,7 @@ Definition δ :Qpos := QposMake 1 10.
 Definition samples : list Q:= 
 equiSpacedSamples cd α δ.
 
-Eval vm_compute in (length samples).
+Eval vm_compute in (samples).
 
 
 Eval vm_compute in (length samples, eps).
@@ -624,7 +624,7 @@ Example dshffkldjs:
 (approx (optimalSolution cd ntriv α αPosQ turnCentreOut Xs Xsp eps δ)) =
 None.
 time vm_compute.
-(*Tactic call ran for 39.233 secs (39.283u,0.008s) (success)*)
+(*Tactic call ran for 20.693 secs (20.723u,0.s) (success)*)
 Abort.
 
 Eval vm_compute in (length samples, eps).
@@ -643,15 +643,16 @@ Ideas to make it fast:
 approximate optimality. We can replace [sin] by [rational_sin] ...  e.t.c.
 [sin] invokes [rational_sin].
 
-2) Switch to AR. the rationals involved  are huge, and we may benefit by not
-having to do rational computations exactly. The final answer is only
-needed upto an accuracy of., say 1/100 inches.
-In [samples] above, the rationals have 100+ digits each in numerator and denominator!.
+2) Switch to AR.
 
 Even though operations on AR are exact, AR is a completion of 
 AQ (approximate rationals), where there is no exact division.
 This should not be a problem. In worst case, one can inject the AQs
 into ARs and then do the exact division in AR.
+
+Does CoRN.reals.fast.Compress, already provide some of the advantages
+of AR in CR?
+
 
 3) extract it to OCaml or Haskell. There is a chance that the bloat of proof
 is slowing things down. Also vm_compute use machine (big) integers instead of Coq's
