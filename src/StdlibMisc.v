@@ -368,4 +368,3 @@ Require Import QArith.
 (** [1/d; 2/d ; ...; (d-1)/d]*)
 Definition equiMidPoints (d:positive) : list Q:=
   List.map (fun m => Qmake (Z.of_nat m) d) (rev (firstNPos (Pos.to_nat d))).
-

@@ -111,6 +111,16 @@ Variable  α : Q.
 Hypothesis αPosQ : (0<α).
 
 
+(** there is already a ring instance decrared for CR,
+ using the legacy
+ definition of ring. That may cause issues.
+ Remove that ring, because that needs unfolding to ugly 
+legacy notations for the old [CRing].
+Add the old ring declaration to a separate file, and 
+import it in old files.
+ *)
+Add Ring tempRingCR : (stdlib_ring_theory CR).
+
 Let αPos : ((0:IR)[<]'α).
 Proof using αPosQ.
   eapply less_wdl;[| apply inj_Q_Zero].
@@ -440,15 +450,7 @@ Let d'  : CR := (compress cos2θ_inv) * ('Xs -  (extraSpaceX1W θ)).
 
 Require Import MathClasses.theory.fields.
 
-(** there is already a ring instance decrared for CR,
- using the legacy
- definition of ring. That may cause issues.
- Remove that ring, because that needs unfolding to ugly 
-legacy notations for the old [CRing].
-Add the old ring declaration to a separate file, and 
-import it in old files.
- *)
-Add Ring tempRingCR : (stdlib_ring_theory CR).
+
 
 Let d :CR := ('tr*θ).
 Let sidewaysMove : list DAtomicMove 
@@ -525,6 +527,25 @@ Definition lowerApprox (c:CR) (e:Qpos) : Q :=
   (approximate c e - `e).
 
 
+Lemma lowerApproxCorrect (c:CR) (e:Qpos):
+  c-'(2*`e)  ≤ '(lowerApprox c e) ≤ c.
+Proof using.
+  unfold lowerApprox.
+  setoid_rewrite (@preserves_minus Q _ _ _ _ _ _ _ CR _ _ _ _ _ _ _ (cast Q CR) _).
+  rewrite preserves_mult.
+  rewrite preserves_2.
+  rewrite <- RingProp3.
+  apply addRangeLe.
+  rewrite negate_involutive.
+  match goal with
+  [|- ?l ≤ _ /\ _] => ring_simplify l
+  end.
+  split;
+    [|apply in_CRball; apply ball_approx_r].
+  apply (fun b => proj1 ((proj2 (in_CRball e c _)) b)).
+  apply ball_approx_r.
+Qed.
+
 Definition maxValidAngleApprox : Q :=
   lowerApprox (compress maxValidAngle) ((QposMake 1 2)*δ).
 
@@ -535,12 +556,45 @@ that that function is terminating.
 
 Definition numSamples : Z := Qround.Qceiling  (maxValidAngleApprox / δ).
 
+Lemma Zto_pos_le : forall x,
+(cast Z Q x) ≤ ((Z.to_pos x):Q).
+Proof using.
+  intros.
+  destruct x; simpl; auto;
+  compute; intro; discriminate.
+Qed.
+
+Lemma numSamplesLe : 
+  maxValidAngleApprox*(Qmake 1 (Z.to_pos numSamples)) ≤ δ.
+Proof using.
+  remember (Z.to_pos numSamples) as zp.
+  change ((1 # zp)%Q) with (Qinv zp).
+  apply (Qmult_le_r _ _ zp);[auto|].
+  autounfold with QMC.
+  field_simplify;[| auto].
+  rewrite Q.Qdiv_1_r.
+  rewrite Q.Qdiv_1_r.
+  subst zp.
+  unfold numSamples.
+  apply (Qmult_le_r _ _ (Qinv δ));[apply Qpossec.Qpos_inv_obligation_1|].
+  field_simplify;[| auto| auto].
+  rewrite Q.Qdiv_1_r.
+  SearchAbout Z.to_pos Qle.
+  remember ((maxValidAngleApprox / δ)%Q).
+  eapply transitivity;[| apply Zto_pos_le].
+  apply Qround.Qle_ceiling.
+Qed.
+
+
 Definition equiSpacedSamples : list Q :=
   maxValidAngleApprox::
-    (List.map (mult maxValidAngleApprox) (equiMidPoints (Z.to_pos numSamples))).
+    (List.map 
+        (mult maxValidAngleApprox) 
+        (equiMidPoints (Z.to_pos numSamples))).
 
 Definition optimalSolution : option CR :=
-  approxMaximizeUpwardShift (List.map (cast Q CR) equiSpacedSamples).
+  approxMaximizeUpwardShift 
+    (List.map (cast Q CR) equiSpacedSamples).
 
 End sampling.
 
@@ -611,7 +665,7 @@ Let approx : option CR -> option Q :=
 option_map (fun r => approximate r (QposMake 1 10)).
 
 (* unit : radians. pi radians = 180 degrees. 1 radian ~ 57 degrees *)
-Definition δ :Qpos := QposMake 1 10.
+Definition δ :Qpos := QposMake 1 100.
 
 Definition samples : list Q:= 
 equiSpacedSamples cd α δ.
@@ -622,12 +676,73 @@ Eval vm_compute in (samples).
 Eval vm_compute in (length samples, eps).
 Example dshffkldjs:
 (approx (optimalSolution cd ntriv α αPosQ turnCentreOut Xs Xsp eps δ)) =
-None.
+(Some (131196 # 3288200)%Q).
+(* this is the 5^th member member of the list [samples] of 41 elements.
+The tests below confirm that the maxima is indeed achieved close to that point.
+*)
+Proof using.
 time vm_compute.
-(*Tactic call ran for 20.693 secs (20.723u,0.s) (success)*)
+(* Tactic call ran for 423.892 secs (424.343u,0.099s) (success) *)
+reflexivity.
 Abort.
 
-Eval vm_compute in (length samples, eps).
+Let  tupwardShift : CR -> CR
+:= upwardShift cd ntriv α αPosQ turnCentreOut Xs Xsp.
+
+(* quality of the computed soultion *)
+Example exampleUpw : 
+approximate (compress (tupwardShift ('((131196 # 3288200)%Q))))
+            (QposMake 1 100) 
+≡ (130 # 201)%Q.
+vm_compute.
+reflexivity.
+Abort.
+
+Example exampleUp2 : 
+approximate (compress (tupwardShift ('((231196 # 3288200)%Q))))
+            (QposMake 1 100) 
+≡ (42 # 201)%Q.
+vm_compute.
+reflexivity.
+Abort.
+
+Example exampleUp2 : 
+approximate (compress (tupwardShift ('((031196 # 3288200)%Q))))
+            (QposMake 1 100) 
+≡ (57 # 201)%Q.
+vm_compute.
+reflexivity.
+Abort.
+
+Example exampleUp2 : 
+approximate (compress (tupwardShift ('((111196 # 3288200)%Q))))
+            (QposMake 1 100) 
+≡ (128 # 201)%Q.
+vm_compute.
+reflexivity.
+Abort.
+
+Example exampleUp2 : 
+approximate (compress (tupwardShift ('((137196 # 3288200)%Q))))
+            (QposMake 1 100) 
+≡ (129 # 201)%Q.
+vm_compute.
+reflexivity.
+Abort.
+
+Eval vm_compute in samples.
+Example exampleUp2 : 
+approximate (compress (tupwardShift ('(((32799 # 80200))%Q))))
+            (QposMake 1 100) 
+≡ (-9120 # 201)%Q.
+vm_compute.
+reflexivity.
+Abort.
+
+
+
+Eval vm_compute in (samples).
+
 
 Example approxMaximizeUpwardShiftTest2 :
 approx test1 = Some (Qmake 1 100).

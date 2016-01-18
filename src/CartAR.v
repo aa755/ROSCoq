@@ -10,7 +10,6 @@ Definition threeBy2 : bigD .
 exact ((inject_Z_bigD 3) ≪ (-1)).
 Defined.
 
-
 Definition val : ARbigD .
 exact ('threeBy2*ARpi).
 Defined.
