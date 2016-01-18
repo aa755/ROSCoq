@@ -28,8 +28,13 @@
 
 Class MinClass (A:Type) := min : A -> A -> A.
 Class MaxClass (A:Type) := max : A -> A -> A.
-Class SinClass (A:Type) := sin : A -> A.
-Class CosClass (A:Type) := cos : A -> A.
+
+(** generalized Sin Class. The domain may be some kind of (approx) rationals *)
+Class GSinClass (B  A : Type) := gsin :  B->A.
+Class GCosClass (B  A : Type) := gcos :  B->A.
+
+Class SinClass (A:Type) := sin :> GSinClass A A.
+Class CosClass (A:Type) := cos :> GCosClass A A.
 
 Require Import ROSCOQ.IRMisc.CoRNMisc.
 (**because most of the theory of analysis in CoRN is built for IR. These might

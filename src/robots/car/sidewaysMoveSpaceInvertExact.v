@@ -452,6 +452,7 @@ Proof using.
     rewrite <- RingProp3.
     remember (' polarTheta βMinusFront +
     ½ * ' polarTheta βPlusBack).
+    unfold sin, cos, SinClassIR, CosClassIR.
     setoid_rewrite <- Heqy. clear Heqy.
     pose proof (normRatioSqr βMinusFront βPlusBack) as H.
     setoid_rewrite H with (pb:=βPlusBackNormSqrPos).

@@ -5,6 +5,8 @@ Global Instance MinClassCR : MinClass CR := fun x y => CRmin x y.
 Global Instance MaxClassCR : MaxClass CR := fun x y => CRmax x y.
 Global Instance SinClassCR : SinClass CR := sin.
 Global Instance CosClassCR : CosClass CR := cos.
+Global Instance SinClassQCR : GSinClass Q CR := rational_sin.
+Global Instance CosClassQCR : GCosClass Q CR := rational_cos.
 
 Require Import CartCR.
 Require Import Vector.

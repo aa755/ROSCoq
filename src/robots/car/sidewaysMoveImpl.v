@@ -144,8 +144,8 @@ Hypothesis Xsp : (0<Xs).
 
 (** space needed for the wriggle move for a given θ. The parameter
 [d] that we are after is just [θ/α] *)
-Let extraSpaceX1W  : CR → CR := 
-  sidewaysMove.extraSpaceX1 α cd.
+Let extraSpaceX1W  (θ:CR) : CR := 
+  compress (sidewaysMove.extraSpaceX1 α cd θ).
 
 
 (** Recap:
@@ -436,7 +436,7 @@ Let cos2θ_inv : CR.
   apply CRmax_ub_l.
 Defined.
 
-Let d'  : CR := cos2θ_inv * ('Xs -  (extraSpaceX1W θ)).
+Let d'  : CR := (compress cos2θ_inv) * ('Xs -  (extraSpaceX1W θ)).
 
 Require Import MathClasses.theory.fields.
 
@@ -624,6 +624,7 @@ Example dshffkldjs:
 (approx (optimalSolution cd ntriv α αPosQ turnCentreOut Xs Xsp eps δ)) =
 None.
 time vm_compute.
+(*Tactic call ran for 39.233 secs (39.283u,0.008s) (success)*)
 Abort.
 
 Eval vm_compute in (length samples, eps).
