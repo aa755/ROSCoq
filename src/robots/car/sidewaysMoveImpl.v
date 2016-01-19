@@ -309,21 +309,23 @@ Proof using Xsp ntriv trComplicated trPos turnCentreOut.
   apply cosβPlusBackPosT_subproof.
 Defined.
 
-(*
-Had to make [CRlt_Qmid] transparent in CoRN.reals.fast.CRArith, to 
-ensure that the following term computes. It is supposed to be a
-rational between 0 and pi.
-
-Eval vm_compute in ((proj1_sigT _ _ (CRlt_Qmid _ _ CRpi_posT))).
-(8 # 16)%Q
-*)
-
-
+Lemma extraSpaceX1WValidCosPos :forall  (θ:CR),
+extraSpaceX1WValid θ
+→ 0 < cos (2 * θ).
+Proof  using αPosQ ntriv.
+  intros ? Hv.
+  apply pos_cos_CR.
+  unfold extraSpaceX1WValid in Hv.
+  split;[apply RingLeProp3; tauto|].
+  eapply le_lt_trans; [apply Hv|].
+  unfold nonTrivialCarDim in ntriv.
+  apply polarFirstQuadStrict; simpl;  autounfold with QMC in *; 
+  simpl; try lra.
+Qed.
 
 (** needed because we wish to divide by [cos (2 * θ)]
   To avoid carrying the proof positivity, a dummy max is used.
   [extraSpaceX1WValid θ] implies that the max is equal to its right argument.
- *)
 Lemma extraSpaceX1WValidCosPos :forall  (θ:CR),
  (0 < max (cos (polarTheta βPlusBack)) (cos (2 * θ)))%CR.
 Proof using Xsp ntriv trComplicated trPos turnCentreOut. 
@@ -339,6 +341,7 @@ Proof using Xsp ntriv trComplicated trPos turnCentreOut.
   rewrite minus_0_r.
   apply CRmax_ub_l.
 Defined.
+ *)
 
 Section objective.
 
@@ -364,6 +367,25 @@ apply Qlt_from_CRlt in c.
 assumption.
 Defined.
 
+
+Local Opaque CR.
+
+Lemma  cos2θ_lbCorrect:
+ '`cos2θ_lb ≤ (cos (2 * θ)).
+Proof using valid.
+  subst cos2θ_lb.
+  destruct  (CRlt_Qmid 0 (cos (polarTheta βPlusBack))).
+  simpl.
+  apply snd in p.
+  apply CR_lt_ltT in p.
+  apply lt_le in p.
+  eapply transitivity;[apply p|].
+  unfold extraSpaceX1WValid in valid.
+  apply CRcos_resp_leEq; try tauto;[|].
+- apply RingLeProp3; tauto.
+- apply Cart2PolarAngleRange.
+Qed.
+
 Let cos2θ_inv : CR.
   apply (CRinvT 
           (max ('(`cos2θ_lb))  (cos (2 * θ)))).
@@ -378,6 +400,21 @@ Let cos2θ_inv : CR.
   apply CRmax_ub_l.
 Defined.
 
+Require Import MCMisc.tactics.
+
+(** the RHS is a formula of MathClasses.abstract_algebra.Field, so
+that the general field lemmas can be used *)
+Lemma  cos2θ_inv_simpl : 
+cos2θ_inv = (// (cos (2 * θ)) ↾ (or_intror (extraSpaceX1WValidCosPos _ valid))).
+Proof using.
+  unfold cos2θ_inv.
+  rewrite CRinv_CRinvT.
+  apply fields.recip_proper_alt.
+  apply  CRle_max_r.
+  apply cos2θ_lbCorrect.
+Qed.
+
+
 Let d'  : CR := (compress cos2θ_inv) * ('Xs -  (extraSpaceX1W θ)).
 
 Require Import MathClasses.theory.fields.
@@ -388,31 +425,67 @@ Let d :CR := ('tr*θ).
 Let sidewaysMove : list DAtomicMove 
   := SidewaysAux ('α) αNZ ('d) ('(d')).
 
-(*
+Lemma  θcorrect : θ = 'α * d.
+Proof using αPosQ.
+  subst d.
+  rewrite  (@simple_associativity _ _ mult _ _).
+  rewrite <- preserves_mult.
+  subst tr.
+  autounfold with QMC in *.
+  field_simplify ((α * / α)%Q);[| lra].
+  change ((1 / 1)%Q) with (@one Q _).
+  rewrite preserves_1.
+  fold (@mult CR _).
+  rewrite mult_1_l.
+  reflexivity.
+Qed.
+  
+
 (** the above sideways move takes up all the available space in the X direction *)
 Lemma sidweaysXSpaceExact :
    extraSpaceXSidewaysCase1  α cd d d' = 'Xs.
-Proof.
+Proof using cos2θ_inv valid.
   unfold extraSpaceXSidewaysCase1.
   unfold d'.
   rewrite MultShuffle3r.
-  unfold cos2αd_inv.
-  setoid_rewrite reciperse_altL.
+  rewrite compress_correct, cos2θ_inv_simpl.
+  unfold cos, implCR.CosClassCR .
+  setoid_rewrite <- (@simple_associativity _ _ mult _ 2 _ _) at 3.
+  setoid_rewrite <- θcorrect at 2.
+  rewrite reciperse_altL.
   unfold extraSpaceX1W.
+  unfold extraSpaceX1.
+  unfold cos, implCR.CosClassCR .
+  rewrite compress_correct.
+  setoid_rewrite <- θcorrect.
   ring.
 Qed.
-*)
 
 Definition upwardShift : CR := d' * (sin (2 * θ)).
 
-(*
+Lemma upwardShiftEq1 :
+let pf :=  (or_intror (extraSpaceX1WValidCosPos _ valid)) in
+upwardShift =
+(// (cos (2 * θ)) ↾ pf) * ('Xs -  (extraSpaceX1W θ)) * (sin (2 * θ)).
+
+(* essentially, [upwardShift =  (tan (2 * θ)) * ('Xs -  (extraSpaceX1W θ))] .
+
+tan is not defined for CR. Unlike sine and cosine, it has a limited domain, and thus 
+would have needed a dependent argument like the one on IR
+*)
+Proof using.
+  simpl. unfold upwardShift, d'.
+  rewrite compress_correct, cos2θ_inv_simpl.
+  reflexivity.
+Qed.
+
 Lemma upwardShiftCorrect: forall init,
 θ2D init =0 
--> 
+→ 
 Y (pos2D (stateAfterAtomicMoves sidewaysMove init))
   = 
 Y (pos2D init) + 'upwardShift.
-Proof.
+Proof using.
   intros ? h0.
   unfold sidewaysMove.
   rewrite SidewaysAuxState.
@@ -420,13 +493,34 @@ Proof.
   simpl.
   rewrite h0.
   rewrite plus_0_l.
+  setoid_rewrite <- (@simple_associativity _ _ mult _ 2 _ _).
+  unfold sin, implCR.SinClassCR.
+  rewrite  θcorrect.
+  fold implCR.SinClassCR.
   autounfold with IRMC.
-  simpl.
   unfold cast, Cast_instace_Q_IR, Cart_CR_IR, implCR.SinClassCR, Cart2Polar.
   autorewrite with CRtoIR.
   reflexivity.
 Qed.
+
+(* using product rule and:
+http://www.math.com/tables/derivatives/more/trig.htm
+
+ (d/dx) tan(x) : sec^2(x) 
+
+To lower bound the quality of the solution found by the optimizer,
+we have to upper bound this derivative.
 *)
+
+Definition  upwardShiftDeriv :CR :=
+let pf :=  (or_intror (extraSpaceX1WValidCosPos _ valid)) in
+sqr (// (cos (2 * θ)) ↾ pf) * ('Xs -  (extraSpaceX1W θ))
+- (// (cos (2 * θ)) ↾ pf) * (IRasCR (extraSpaceX1Deriv  α cd ('θ))).
+
+(* this can ony be stated after this section is closed *)
+Lemma upwardShiftDerivCorrect : 0=0.
+Abort.
+
 
 End objective.
 
@@ -619,11 +713,7 @@ Eval vm_compute in (samples).
 (**
 Ideas to make it fast:
  
-1) It suffices to only consider rational solutions. We are only after
-approximate optimality. We can replace [sin] by [rational_sin] ...  e.t.c.
-[sin] invokes [rational_sin].
-
-2) Switch to AR.
+1) Switch to AR.
 
 Even though operations on AR are exact, AR is a completion of 
 AQ (approximate rationals), where there is no exact division.
@@ -634,9 +724,13 @@ Does CoRN.reals.fast.Compress, already provide some of the advantages
 of AR in CR?
 
 
-3) extract it to OCaml or Haskell. There is a chance that the bloat of proof
+2) extract it to OCaml or Haskell. There is a chance that the bloat of proof
 is slowing things down. Also vm_compute use machine (big) integers instead of Coq's
 binary Z?
+
+3) It suffices to only consider rational solutions. We are only after
+approximate optimality. We can replace [sin] by [rational_sin] ...  e.t.c.
+[sin] invokes [rational_sin].
 
 *)
 

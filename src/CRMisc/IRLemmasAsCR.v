@@ -2108,3 +2108,16 @@ Proof using.
 Qed.
 
 End TempRing.
+
+Lemma CRcos_resp_leEq: 
+∀ x y : CR, 0 ≤ x → y ≤ π → x ≤ y → cos y ≤ cos x.
+Proof using.
+  intros ? ? H1 H2 H3.
+  pose proof (Cos_resp_leEq (CRasIR x) (CRasIR y)) as Hc.
+  apply CR_leEq_as_IR.
+  autorewrite with CRtoIR.
+  rewrite <- (IRasCRasIR_id Pi) in Hc.
+  rewrite <- (IRasCRasIR_id [0]) in Hc.  
+  apply Hc;clear Hc; apply CR_leEq_as_IR; auto;
+  autorewrite with IRtoCR; auto.
+Qed.
