@@ -54,10 +54,71 @@ Qed.
 
 Require Import StdlibMisc.
 Definition equiSpacedSamples : list Q :=
-  max::
     (List.map 
         (mult max) 
-        (equiMidPoints (Z.to_pos numSamples))).
+        (equiMidPoints (Z.to_pos numSamples))) ++ [max].
+
+Require Import MathClasses.interfaces.abstract_algebra.
+Require Import MathClasses.interfaces.additional_operations.
+Require Import MathClasses.theory.rings.
+
+Hint Unfold pow stdlib_rationals.Q_Npow plus
+  one zero stdlib_rationals.Q_1 stdlib_rationals.Q_plus
+  stdlib_binary_naturals.N_plus
+  stdlib_binary_naturals.N_1
+  equiv stdlib_rationals.Q_eq mult
+  stdlib_rationals.Q_mult dec_recip
+  stdlib_rationals.Q_recip
+  zero stdlib_rationals.Q_0
+  le stdlib_rationals.Q_le
+  lt stdlib_rationals.Q_lt
+  canonical_names.negate stdlib_rationals.Q_opp  : QMC.
+
+    Require Import Psatz.
+
+Lemma  equiSpacedSamplesFst: 
+  {q :Q | List.head  equiSpacedSamples ≡ Some q /\ q ≤ δ }.
+Proof.
+  unfold equiSpacedSamples.
+  unfold equiMidPoints.
+  remember (Pos.to_nat (Z.to_pos numSamples)) as nn.
+  destruct nn; simpl.
+- remember numSamples as ns.
+  destruct ns; simpl in Heqnn; try discriminate.
+  symmetry in Heqnn.
+  apply (P.nat_of_P_nonzero p) in Heqnn. contradiction.  
+
+- remember numSamples as ns.
+  destruct ns;  simpl in Heqnn; try discriminate.
+  + unfold numSamples in Heqns.
+    pose proof (Q.Zle_Qle_Qceiling (max / δ) 0) as H.
+    apply proj1 in H.
+    rewrite <- Heqns in H.
+    inversion Heqnn. subst. simpl. 
+    exists max. split;[auto|].
+    lapply H;[clear H; intro H| compute; intro xx; discriminate].
+    apply Q.Qle_shift_div_r in H;[| auto].
+    setoid_rewrite preserves_0 in H.
+    setoid_rewrite (mult_0_l) in H.
+    destruct δ.
+    autounfold with QMC in *. simpl in *. lra.
+
+  + simpl. unfold firstNPos. simpl. (*2 cases, based on whether p is greater that 1 *)
+   admit.
+  + (** exact same as the first cas *)
+    unfold numSamples in Heqns.
+    pose proof (Q.Zle_Qle_Qceiling (max / δ) 0) as H.
+    apply proj1 in H.
+    rewrite <- Heqns in H.
+    inversion Heqnn. subst. simpl. 
+    exists max. split;[auto|].
+    lapply H;[clear H; intro H| compute; intro xx; discriminate].
+    apply Q.Qle_shift_div_r in H;[| auto].
+    setoid_rewrite preserves_0 in H.
+    setoid_rewrite (mult_0_l) in H.
+    destruct δ.
+    autounfold with QMC in *. simpl in *. lra.
+Abort.
 
 Require Import MathClasses.misc.decision.
 Require Import MathClasses.implementations.stdlib_binary_integers.
@@ -69,7 +130,7 @@ let rem := snd quotRem in
 if ((rem  <? '(Qden q) - rem ))%Z
 then quot else quot + 1.
 
-
+(** can be strengthened to replace [` δ] by [(1 # 2) * ` δ] *)
 Lemma equiSpacedSamplesCorrect (q:Q) :
 0 ≤ q ≤ max -> {qs : Q | (List.In qs equiSpacedSamples) 
                       /\ abs (qs - q) ≤ (1 # 2) * ` δ}.

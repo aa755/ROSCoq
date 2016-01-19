@@ -650,7 +650,7 @@ The tests below confirm that the maxima is indeed achieved close to that point.
 *)
 Proof using.
 time vm_compute.
-(* Tactic call ran for 423.892 secs (424.343u,0.099s) (success) *)
+(* Tactic call ran for 383.333 secs (383.1u,0.303s) (success) *)
 reflexivity.
 Abort.
 
