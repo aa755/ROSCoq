@@ -2521,14 +2521,22 @@ Proof using.
   apply isDerivX1space.
 Qed.
 
+
+Definition extraSpaceX1DerivUB `{Ring R}
+`{Cast (Cart2D Q) (Polar2D R)} :=
+let βb : Polar2D R:= ' βPlusBack in
+let βf : Polar2D R:= ' βMinusFront in
+2*(rad βb) + (rad βf).
+
+
 Hint Resolve  Cart2DRadNNegIR RingLeProp3 : CoRN.
 Lemma X1spaceDerivUB : 
 ∀ θ:IR, 
- extraSpaceX1Deriv θ ≤ (2 * ' (| βPlusBack |) + ' (| βMinusFront |)).
+ extraSpaceX1Deriv θ ≤ extraSpaceX1DerivUB.
 Proof using.
   intros ?.
   unfold extraSpaceX1Deriv.
-  apply plus_le_compat.
+  apply plus_le_compat; unfold rad; simpl.
 - rewrite <- (mult_1_r (2 * ' (| βPlusBack |))) at 2.
   apply order_preserving;
     [| apply Sin_leEq_One].
@@ -2569,7 +2577,7 @@ Lemma extraSpaceX10UB :
 ∀ θ:IR, 
 0 ≤ θ
 → extraSpaceX1 θ 
-  ≤ (2 * ' (| βPlusBack |) + ' (| βMinusFront |)) * θ .
+  ≤ extraSpaceX1DerivUB * θ .
 Proof using.
   intros ? ?.
   rewrite <- (minus_0_r θ) at 2.

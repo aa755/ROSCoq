@@ -79,46 +79,86 @@ Hint Unfold pow stdlib_rationals.Q_Npow plus
 Lemma  equiSpacedSamplesFst: 
   {q :Q | List.head  equiSpacedSamples ≡ Some q /\ q ≤ δ }.
 Proof.
-  unfold equiSpacedSamples.
-  unfold equiMidPoints.
-  remember (Pos.to_nat (Z.to_pos numSamples)) as nn.
-  destruct nn; simpl.
-- remember numSamples as ns.
-  destruct ns; simpl in Heqnn; try discriminate.
-  symmetry in Heqnn.
-  apply (P.nat_of_P_nonzero p) in Heqnn. contradiction.  
+  unfold equiSpacedSamples, equiMidPoints, numSamples.
+  pose proof (Qlt_le_dec 1 (max / δ)) as Hd.
+  destruct Hd.
+- pose proof q as qb.
+  apply Qlt_not_le in q.
+  setoid_rewrite <- Q.Zle_Qle_Qceiling in q.
+  rewrite Z.nle_gt in q.
+  pose proof q as qrb.
+  remember ((Qround.Qceiling (max / δ))) as ns.
+  rewrite Heqns in qrb.
+  destruct ns; simpl in *;
+  try omega;[| inversion q; fail].
+  apply P.Plt_lt in q.
+  change (Pos.to_nat 1) with (1%nat) in q.
+  remember (Pos.to_nat p) as n.
+  destruct n;[omega|].
+  destruct n;[omega|].
+  simpl. eexists. split;[reflexivity|].
+  apply Z2Pos.inj_iff in Heqns; [|  eauto with *| omega].
+  rewrite Pos2Z.id in Heqns.
+  rewrite Heqns.
+  apply numSamplesLe.
 
-- remember numSamples as ns.
-  destruct ns;  simpl in Heqnn; try discriminate.
-  + unfold numSamples in Heqns.
-    pose proof (Q.Zle_Qle_Qceiling (max / δ) 0) as H.
-    apply proj1 in H.
-    rewrite <- Heqns in H.
-    inversion Heqnn. subst. simpl. 
-    exists max. split;[auto|].
-    lapply H;[clear H; intro H| compute; intro xx; discriminate].
-    apply Q.Qle_shift_div_r in H;[| auto].
-    setoid_rewrite preserves_0 in H.
-    setoid_rewrite (mult_0_l) in H.
-    destruct δ.
-    autounfold with QMC in *. simpl in *. lra.
+- pose proof q as qb. apply Q.Zle_Qle_Qceiling in q.
+  apply Q.Qle_shift_div_r in qb;[| auto];
+  setoid_rewrite (mult_1_l) in qb.
+  exists max.
+  destruct (Qround.Qceiling (max / δ)); simpl in *;
+    try (split; auto).
+  apply Z.Ple_Zle, P.Ple_le in q.
+  change (Pos.to_nat 1) with (1%nat) in q.
+  remember (Pos.to_nat p) as n.
+  destruct n;[|destruct n;[| omega]]; simpl; reflexivity.
+Qed.
 
-  + simpl. unfold firstNPos. simpl. (*2 cases, based on whether p is greater that 1 *)
-   admit.
-  + (** exact same as the first cas *)
-    unfold numSamples in Heqns.
-    pose proof (Q.Zle_Qle_Qceiling (max / δ) 0) as H.
-    apply proj1 in H.
-    rewrite <- Heqns in H.
-    inversion Heqnn. subst. simpl. 
-    exists max. split;[auto|].
-    lapply H;[clear H; intro H| compute; intro xx; discriminate].
-    apply Q.Qle_shift_div_r in H;[| auto].
-    setoid_rewrite preserves_0 in H.
-    setoid_rewrite (mult_0_l) in H.
-    destruct δ.
-    autounfold with QMC in *. simpl in *. lra.
-Abort.
+(* proof is almost same as above. delete the above version as it is not useful *)
+Lemma  equiSpacedSamplesFst2:
+0 ≤ max 
+-> {q :Q | List.head  equiSpacedSamples ≡ Some q /\ 0 ≤ q ≤ δ }.
+Proof.
+  intro H.
+  unfold equiSpacedSamples, equiMidPoints, numSamples.
+  pose proof (Qlt_le_dec 1 (max / δ)) as Hd.
+  destruct Hd.
+- pose proof q as qb.
+  apply Qlt_not_le in q.
+  setoid_rewrite <- Q.Zle_Qle_Qceiling in q.
+  rewrite Z.nle_gt in q.
+  pose proof q as qrb.
+  remember ((Qround.Qceiling (max / δ))) as ns.
+  rewrite Heqns in qrb.
+  destruct ns; simpl in *;
+  try omega;[| inversion q; fail].
+  apply P.Plt_lt in q.
+  change (Pos.to_nat 1) with (1%nat) in q.
+  remember (Pos.to_nat p) as n.
+  destruct n;[omega|].
+  destruct n;[omega|].
+  simpl. eexists. split;[reflexivity|].
+  apply Z2Pos.inj_iff in Heqns; [|  eauto with *| omega].
+  rewrite Pos2Z.id in Heqns.
+  rewrite Heqns.
+  split;[|apply numSamplesLe].
+  autounfold with QMC in *.
+  apply nonneg_mult_compat;[assumption|].
+  apply (Qinv_le_0_compat (Z.to_pos (Qround.Qceiling (max / δ)))).
+  compute.
+  intro XXX; discriminate.
+
+- pose proof q as qb. apply Q.Zle_Qle_Qceiling in q.
+  apply Q.Qle_shift_div_r in qb;[| auto];
+  setoid_rewrite (mult_1_l) in qb.
+  exists max.
+  destruct (Qround.Qceiling (max / δ)); simpl in *;
+    try (split; auto).
+  apply Z.Ple_Zle, P.Ple_le in q.
+  change (Pos.to_nat 1) with (1%nat) in q.
+  remember (Pos.to_nat p) as n.
+  destruct n;[|destruct n;[| omega]]; simpl; reflexivity.
+Qed.
 
 Require Import MathClasses.misc.decision.
 Require Import MathClasses.implementations.stdlib_binary_integers.

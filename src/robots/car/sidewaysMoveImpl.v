@@ -212,8 +212,8 @@ extraSpaceX1WValid θ
  -only be done upto a finte (but arbitrary) accuracy.*)
 Variable eps : Qpos.
 
-Definition approxDecideXAdmiss (d:CR) : bool :=
-approxDecLtRQ eps (extraSpaceX1W ('α * d)) Xs.
+Definition approxDecideXAdmiss (θ:CR) : bool :=
+approxDecLtRQ eps (extraSpaceX1W θ) Xs.
 
 
 
@@ -564,6 +564,121 @@ Definition optimalSolution : option CR :=
   approxMaximizeUpwardShift 
     (List.map (cast Q CR) equiSpacedSamples).
 
+(* Move *)
+Lemma preserves_extraSpaceX1DerivUB:
+  '(extraSpaceX1DerivUB α cd) = ((extraSpaceX1DerivUB α cd):IR).
+Proof using.
+  unfold extraSpaceX1DerivUB.
+  simpl.
+  autounfold with IRMC.
+  autorewrite with CRtoIR.
+  reflexivity.
+Qed.
+
+(* Move *)
+Lemma nonneg_extraSpaceX1DerivUB:
+ (0:IR) ≤ extraSpaceX1DerivUB α cd.
+Proof using.
+  apply nonneg_plus_compat;
+  [ apply RingLeProp3 | ];apply Cart2DRadNNegIR.
+Qed.
+
+Hypothesis δLargeEnough : '`δ ≤ maxValidAngle.
+
+Lemma maxValidAngleApproxNonneg : 0 ≤ maxValidAngleApprox.
+Proof using δLargeEnough.
+  unfold maxValidAngleApprox.
+  apply (order_reflecting (cast Q CR)).
+  eapply transitivity;[| apply (proj1 (lowerApproxCorrect _ _))].
+  rewrite compress_correct.
+  apply flip_le_minus_l.
+  rewrite negate_involutive.
+  rewrite <- preserves_plus.
+  eapply transitivity;[| apply δLargeEnough].
+  apply order_preserving;[eauto 2 with typeclass_instances|].
+  apply eq_le.
+  simpl.
+  autounfold with QMC.
+  destruct δ; simpl.
+  ring.
+Qed.
+
+Lemma  equiSpacedSamplesFstValue: 
+ {q :Q | List.head  equiSpacedSamples ≡ Some q 
+    /\ extraSpaceX1W ('q) ≤ (extraSpaceX1DerivUB α cd) * ('`δ) }.
+Proof using δLargeEnough.
+  destruct (equiSpacedSamplesFst2 δ maxValidAngleApprox) as [q Hd];
+    [apply maxValidAngleApproxNonneg|].
+  exists q. destruct Hd as [Hdl Hdr].
+  setoid_rewrite Hdl.
+  split;[reflexivity|].
+  apply CR_leEq_as_IR.
+  unfold extraSpaceX1W.
+  rewrite compress_correct.
+  rewrite preserves_extraSpaceX1.
+  rewrite CR_mult_asIR.
+  rewrite preserves_extraSpaceX1DerivUB.
+  eapply transitivity;
+    [apply extraSpaceX10UB|].
+- unfold cast, Cast_instace_Q_IR, Cart_CR_IR, implCR.SinClassCR, Cart2Polar.
+  autorewrite with CRtoIR.
+  apply preserves_nonneg; tauto.
+
+- fold Mult_instance_IR.
+  fold (@mult IR _).
+  pose proof nonneg_extraSpaceX1DerivUB.
+  apply order_preserving; [eauto 2 with typeclass_instances |].
+  unfold cast, Cast_instace_Q_IR, Cart_CR_IR, implCR.SinClassCR, Cart2Polar.
+  autorewrite with CRtoIR.
+  apply order_preserving; [eauto 2 with typeclass_instances |].
+  apply Hdr.
+Qed.
+
+Lemma  equiSpacedSamplesFstAdmissible: 
+(extraSpaceX1DerivUB α cd) * ('`δ) + '(2*`eps) <  'Xs
+→
+{q :Q | List.head  equiSpacedSamples ≡ Some q 
+    /\ approxDecideXAdmiss ('q) ≡ true}.
+Proof using δLargeEnough.
+  intro H.
+  destruct equiSpacedSamplesFstValue as [q Hd].
+  exists q. repnd.
+  rewrite Hdl.
+  split;[reflexivity|].
+  unfold approxDecideXAdmiss.
+  apply approxDecLtRQApproxComplete.
+  eapply le_lt_trans;[apply Hdr|].
+  rewrite preserves_minus.
+  apply flip_lt_minus_l.
+  rewrite negate_involutive.
+  assumption.
+Qed.
+
+Lemma optimalSolution_isSome :
+(extraSpaceX1DerivUB α cd) * ('`δ) + '(2*`eps) <  'Xs
+→
+   ∃ (m : Q),
+      In m equiSpacedSamples
+      ∧ approxDecideXAdmiss ('m) ≡ true
+      ∧ optimalSolution ≡ Some ('m).
+Proof using δLargeEnough.
+  intro Hyp.
+  destruct (equiSpacedSamplesFstAdmissible Hyp) as [q Hd].
+  repnd.
+  eapply (approxMaximizeCorrect eps CR approxDecideXAdmiss 
+      upwardShift _ ((List.map (cast Q CR) equiSpacedSamples))) in Hdr;
+  [| destruct equiSpacedSamples;inversion Hdl; subst; left; reflexivity].
+  destruct Hdr as [mr Hs].
+  repnd.
+  apply in_map_iff in Hsl.
+  destruct Hsl as [mq Hsl].
+  exists mq.
+  split;[tauto|].
+  repnd.
+  subst mr.
+  tauto.
+Qed.
+        
 End sampling.
 
 
@@ -650,7 +765,7 @@ The tests below confirm that the maxima is indeed achieved close to that point.
 *)
 Proof using.
 time vm_compute.
-(* Tactic call ran for 383.333 secs (383.1u,0.303s) (success) *)
+(* Tactic call ran for 90.473 secs (90.508u,0.056s) *)
 reflexivity.
 Abort.
 
