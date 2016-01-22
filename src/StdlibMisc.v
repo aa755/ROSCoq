@@ -286,6 +286,17 @@ Proof.
     destruct Hd; try congruence.
 Qed.
 
+  
+(**this is a no-op for programs to be run in Coq, and after extraction to OCaml.
+However, for programs that may be run after extraction to haskell,
+[cbvApply] should be inserted at strategic places.
+Later, there is a the following directive for extracting it to Haskell:
+
+Extract Inlined Constant cbvApply => "(Prelude.$!)".
+
+*)
+Definition cbvApply  {A B:Type}  (f : A → B) (a: A) : B := f a.
+
 Section conditionalOptimize.
 Variables  A : Type.
 Variable condition : A → bool.

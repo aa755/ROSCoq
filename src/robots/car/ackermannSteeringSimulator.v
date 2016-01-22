@@ -36,6 +36,8 @@ Require Import atomicMoves.
 
 Require Export CartIR.
 
+Require Import String.
+Require Import haskellExtractionDirectives.
   
 Local Opaque CSine.
 Local Opaque CCos.
@@ -92,13 +94,6 @@ Definition roundLineRZ (p: Line2D CR) : Line2D Z :=
 
 End LineRounding.
 
-Extraction Language Haskell.
-Require Import ExtrHaskellBasic.
-Require Import String.
-Require Import ExtrHaskellString.
-Require Import ExtrHaskellQ.
-Require ExtrHaskellNatInteger.
-Require ExtrHaskellNatNum.
 
 Axiom ZtoString : Z -> string.
 (** [Z] maps to [Prelude.Integer] and [string] map to Prelude.?? . 
@@ -426,7 +421,6 @@ Definition frameWithLines (preface:string) (lines : list (Line2D Z)) : string :=
   beamerFrameHeaderFooter "hello"
     (tikZHeaderFooter (preface ++ (tikZLines lines))).
 
-Axiom cbvApply : forall {A B:Type}, (A → B) → A → B.
 
 Extract Inlined Constant cbvApply => "(Prelude.$!)".  
 

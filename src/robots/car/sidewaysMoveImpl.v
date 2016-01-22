@@ -562,7 +562,7 @@ Definition equiSpacedSamples : list Q :=
 
 Definition optimalSolution : option CR :=
   approxMaximizeUpwardShift 
-    (List.map (cast Q CR) equiSpacedSamples).
+    (cbvApply (List.map (cast Q CR)) equiSpacedSamples).
 
 (* Move *)
 Lemma preserves_extraSpaceX1DerivUB:
@@ -733,7 +733,7 @@ compute. reflexivity.
 Defined.  (*Qed? *)
 
 Let eps : Qpos.
-  let t := eval compute in ((Qmake 1 100)) in 
+  let t := eval compute in ((Qmake 1 10)) in 
   exists t.
   compute. reflexivity.
 Defined.
@@ -770,7 +770,7 @@ The tests below confirm that the maxima is indeed achieved close to that point.
 *)
 Proof using.
 (*time vm_compute. 
-(* Tactic call ran for 90.473 secs (90.508u,0.056s) *)
+Tactic call ran for 34.943 secs (34.984u,0.004s) (success) 
 reflexivity.*)
 Abort.
 
