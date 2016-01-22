@@ -16,6 +16,10 @@ Global Instance MaxClassIR : MaxClass IR := Max.
 Global Instance SinClassIR : SinClass IR := Sin.
 Global Instance CosClassIR : CosClass IR := Cos.
 
+Global Instance ApartTIR : ApartT IR := @cs_ap IR.
+
+Global Instance RecipTIR : @ReciprocalT IR _ _ := @f_rcpcl IR.
+
 Require Import MathClasses.interfaces.abstract_algebra.
 
 Global Instance srmInjQ : SemiRing_Morphism (cast Q IR).
@@ -51,4 +55,9 @@ Qed.
 
 Hint Unfold cos CosClassIR sin SinClassIR min MinClassIR max MaxClassIR One_instance_IR: IRMC.
 
+(*
+Require Import QArith.
+
+Instance ApartTQ : ApartT Q := fun a b => (~ a==b).
+*)
 

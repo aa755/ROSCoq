@@ -52,6 +52,7 @@ Local Notation  "∫" := Cintegral.
 
 Require Import MathClasses.interfaces.orders.
 
+Set Implicit Arguments.
 
 (** * Atomic Move
 
@@ -60,25 +61,25 @@ turn the steering wheel so that the turnCurvature has a particular value ([tc]),
 and then drive for a particular distance ([distance]).
 Note that both [tc] and [distance] are signed -- the turn center can be on the either side,
 and one can drive both forward and backward *)
-  Record AtomicMove := mkAtomicMove
+  Record AtomicMove (R:Type) := mkAtomicMove
   {
-     am_distance : IR;
-     am_tc : IR
+     am_distance : R;
+     am_tc : R
   }.
 
   (** Needed because equality on reals (IR) is different 
       from syntactic equality 
       ([≡]). *)
       
-  Global Instance Equiv_AtomicMove : Equiv AtomicMove :=
-    fun (ml mr : AtomicMove) => (am_distance ml = am_distance mr) 
+  Global Instance Equiv_AtomicMove `{Equiv R} : Equiv (AtomicMove R) :=
+    fun (ml mr : AtomicMove R) => (am_distance ml = am_distance mr) 
           /\ (am_tc ml = am_tc mr).
 
   (** To make tactics like [reflexivity] work, we needs to show
   that the above defined custom defined equality on [AtomicMove] 
   is an equivalence relation.*)
-  Global Instance Equivalence_instance_AtomicMove 
-    : @Equivalence (AtomicMove) equiv.
+  Global Instance Equivalence_instance_AtomicMove `{Setoid R} 
+    : @Equivalence (AtomicMove R) equiv.
  Proof using .
   unfold equiv, Equiv_AtomicMove. split.
   - intros x. destruct x. simpl. split; auto with *.
@@ -91,14 +92,14 @@ and one can drive both forward and backward *)
     with relations.
   Qed.
 
-Global Instance ProperAMTC : 
-Proper (equiv ==> equiv) am_tc.
+Global Instance ProperAMTC `{Equiv R} : 
+Proper (equiv ==> equiv) (@am_tc R).
 Proof using.
   intros ? ? Heq. destruct Heq. tauto.
 Qed.
 
-Global Instance ProperAMDistance : 
-Proper (equiv ==> equiv) am_distance.
+Global Instance ProperAMDistance `{Equiv R} : 
+Proper (equiv ==> equiv) (@am_distance R).
 Proof using.
   intros ? ? Heq. destruct Heq. tauto.
 Qed.
@@ -107,7 +108,7 @@ Section AtomicMove.
 
   Context  {maxTurnCurvature : Qpos}
    (acs : AckermannCar maxTurnCurvature).
-  Variable am : AtomicMove.
+  Variable am : AtomicMove IR.
   Definition amTurn := (am_tc am) [#] 0.
   Definition amNoTurn := (am_tc am) = 0.
   
@@ -694,18 +695,22 @@ End AtomicMove.
 Section AtomicMoveSummary.
 Context `(acs : AckermannCar maxTurnCurvature).
 
-Definition AtomicMoveSign (am : AtomicMove) : Type :=
-  (am_tc am =0) or (am_tc am[#]0).
+Definition AtomicMoveSign `{Zero R} `{ApartT R} `{Equiv R} 
+  (am : AtomicMove R) : Type :=
+  (am_tc am =0) or (am_tc am ≭ 0).
 
-Definition DAtomicMove := {am : AtomicMove 
+Definition DAtomicMove (R:Type) `{Zero R} `{ApartT R} `{Equiv R}
+  := {am : AtomicMove R 
     | AtomicMoveSign am }.
+    
+Global Arguments DAtomicMove R {_} {_} {_}.
 
-Global Instance EquivDAtomicMove : Equiv DAtomicMove.
+Global Instance EquivDAtomicMove `{Zero R} `{ApartT R} `{Equiv R}  : Equiv (DAtomicMove R).
 Proof using.
   apply sigT_equiv.
 Defined.
 
-Global Instance EquivalenceCarDim 
+Global Instance EquivalenceDAtomicMove  `{Setoid R} `{Zero R} `{ApartT R}
    : Equivalence EquivDAtomicMove.
 Proof using .
   unfold EquivDAtomicMove.
@@ -715,32 +720,33 @@ Proof using .
   - intros x y. destruct x,y. simpl. intros Hd; repnd;
       rewrite Hd; reflexivity.
 
-  - intros x y z. destruct x,y,z. simpl. intros H0 H1.
-    repnd; rewrite H0; rewrite H1. reflexivity. 
+  - intros x y z. destruct x,y,z. simpl. intros h0 h1.
+    repnd; rewrite h0; rewrite h1. reflexivity. 
 Qed.
 
 
 (** combine the final positions for,
     both for the cases of turning and driving straignt*)
-Definition stateAfterAtomicMove 
-  (cs : Rigid2DState IR) (dm : DAtomicMove): Rigid2DState IR:=
+Definition stateAfterAtomicMove `{Ring R} `{ApartT R} `{ReciprocalT R}
+  `{SinClass R} `{CosClass R}
+  (cs : Rigid2DState R) (dm : @DAtomicMove R _ _ _): Rigid2DState R:=
   
-  let tc : IR := (am_tc (projT1 dm)) in
-  let dist : IR := (am_distance (projT1 dm)) in
-  let θInit :IR := (θ2D cs) in
-  let θf :IR := θInit + tc*dist in
-  let posInit : Cart2D IR := (pos2D cs) in
+  let tc : R := (am_tc (projT1 dm)) in
+  let dist : R := (am_distance (projT1 dm)) in
+  let θInit :R := (θ2D cs) in
+  let θf :R := θInit + tc*dist in
+  let posInit : Cart2D R := (pos2D cs) in
   let posDelta := 
     match (projT2 dm) with
     | inl _ =>  ('dist) * (unitVec θInit)
-    | inr p => {|X:= (sin θf - sin θInit) * (f_rcpcl tc p) ; 
-                Y:= (cos θInit - cos θf) * (f_rcpcl tc p)|}
+    | inr p => {|X:= (sin θf - sin θInit) * (recipT tc p) ; 
+                Y:= (cos θInit - cos θf) * (recipT tc p)|}
     end in  
   {|pos2D := posInit + posDelta; θ2D := θf|}.
 
 Global Instance ProperstateAfterAtomicMove:
 Proper (equiv ==> equiv ==> equiv) 
-  stateAfterAtomicMove.
+  (@stateAfterAtomicMove IR _ _ _ _ _ _ _ _ _ _ _ _ _).
 Proof using.
   intros ? ? H1 aml amr H2.
   unfold stateAfterAtomicMove.
@@ -754,7 +760,7 @@ Proof using.
     rewrite  H1, H2. reflexivity.
   - destruct sr as [sr|];[rewrite <- H2 in sr;eapply eq_imp_not_ap in sr; eauto; contradiction|].
    rewrite H1.
-   assert ((f_rcpcl (am_tc ml) sl) = (f_rcpcl (am_tc mr) c))
+   assert ((f_rcpcl (am_tc ml) sl) = (f_rcpcl (am_tc mr) a))
     as Heq by
     (apply f_rcpcl_wd; apply ProperAMTC; assumption).
    setoid_rewrite Heq.
@@ -763,7 +769,7 @@ Proof using.
 Qed.
 
 Lemma stateAfterAtomicMoveCorrect : forall 
- (dm : DAtomicMove) 
+ (dm : DAtomicMove  IR) 
   (tstart tend :Time)
   (p: tstart < tend),
   @CarExecutesAtomicMoveDuring _ acs (projT1 dm) tstart tend p
@@ -781,7 +787,7 @@ Qed.
     both for the cases of turning and driving straignt*)
 Definition carConfinedDuringAM 
   (cd : CarDimensions IR) (rect : Line2D IR)
-  (ams : DAtomicMove)
+  (ams : DAtomicMove IR)
   (init : Rigid2DState IR)
    := 
 let (am,s) :=ams in
@@ -792,7 +798,7 @@ end.
 
 Lemma carConfinedDuringAMCorrect:  forall 
   (cd : CarDimensions IR)
-  (ams : DAtomicMove)
+  (ams : DAtomicMove IR)
   (rect : Line2D IR)
   (tstart tend :Time)
   (p: tstart < tend),
@@ -844,7 +850,7 @@ Proof using.
    unfold confinedTurningAM. unfold inBetweenR.
    setoid_rewrite H1.
    setoid_rewrite H3.
-   assert ((f_rcpcl (am_tc ml) sl) = (f_rcpcl (am_tc mr) c))
+   assert ((f_rcpcl (am_tc ml) sl) = (f_rcpcl (am_tc mr) a))
     as Heq by
     (apply f_rcpcl_wd; apply ProperAMTC; assumption).
    setoid_rewrite Heq.
@@ -935,17 +941,17 @@ Section Wdd.
 
 
 (** * Executing a sequence of atomic moves *)
-  Definition AtomicMoves := list AtomicMove.
+  Definition AtomicMoves (R:Type ):= list (AtomicMove R).
   
 
 
   Inductive executesMultipleMovesDuring 
-    (execSingleMoveDuring : AtomicMove → ∀ tstart tend : Time, tstart < tend → Type)
-    : AtomicMoves -> forall (tstart tend : Time),  (tstart ≤ tend) -> Prop :=
+    (execSingleMoveDuring : AtomicMove IR → ∀ tstart tend : Time, tstart < tend → Type)
+    : AtomicMoves IR -> forall (tstart tend : Time),  (tstart ≤ tend) -> Prop :=
   | amscNil : forall (tl tr:Time) (pe : tl = tr)(p: tl≤tr), 
         executesMultipleMovesDuring execSingleMoveDuring [] tl tr p
   | amscCons : forall (tstart tmid tend:Time) (pl : tstart < tmid) (pr : tmid ≤ tend) (p : tstart ≤ tend)
-      (h: AtomicMove) (tl : AtomicMoves), 
+      (h: AtomicMove IR) (tl : AtomicMoves IR), 
       @execSingleMoveDuring h tstart tmid pl
       -> executesMultipleMovesDuring execSingleMoveDuring tl tmid tend pr
       -> executesMultipleMovesDuring execSingleMoveDuring(h::tl) tstart tend p.
@@ -1047,7 +1053,7 @@ Section Wddd.
 
 Fixpoint carConfinedDuringAMs (cd : CarDimensions IR)
   (rect : Line2D IR) 
-  (lam : list DAtomicMove)
+  (lam : list (DAtomicMove IR))
   (init : Rigid2DState IR) : Prop  :=
 match lam with
 | [] => carMinMaxXY cd init ⊆ rect
@@ -1056,7 +1062,7 @@ match lam with
 end.
 
 Definition stateAfterAtomicMoves :
-(list DAtomicMove)->Rigid2DState IR ->Rigid2DState IR :=
+(list (DAtomicMove IR))->Rigid2DState IR ->Rigid2DState IR :=
 fold_left stateAfterAtomicMove.
 
 
@@ -1086,7 +1092,7 @@ Lemma carConfinedDuringAMsCorrect : forall
   (rect : Line2D IR)
   (tstart tend :Time)
   p
-  (dams : list DAtomicMove),
+  (dams : list (DAtomicMove IR)),
   let ams := List.map (@projT1 _ _) dams in
   CarMonotonicallyExecsAtomicMovesDuring acs ams tstart tend  p
   -> @carConfinedDuringAMs cd rect dams (rigidStateAtTime acs tstart)
@@ -1137,7 +1143,7 @@ the list of iverses of those atomic moves.
 First we define what it means for a move to be an inverse of another.
 *)
 
-  Definition MovesIdentity (ams : AtomicMoves) :=
+  Definition MovesIdentity (ams : AtomicMoves IR) :=
     ∀ mt (acs : AckermannCar mt)
    (tstart tend : Time)  (p: tstart ≤ tend),
       CarExecutesAtomicMovesDuring acs ams tstart tend p
@@ -1151,7 +1157,7 @@ First we define what it means for a move to be an inverse of another.
     follow the Wriggle-move. *)
     
     
-  Definition MovesInverse (ams amsr : AtomicMoves) :=
+  Definition MovesInverse (ams amsr : AtomicMoves IR) :=
     ∀ mt (acs : AckermannCar mt)
       (tstart tend : Time)  (p: tstart ≤ tend)
       (tstartr tendr : Time)  (pr: tstartr ≤ tendr),
@@ -1197,10 +1203,10 @@ First we define what it means for a move to be an inverse of another.
       
 
         
-  Definition AtomicMoveInv (m : AtomicMove) : AtomicMove
+  Definition AtomicMoveInv `{Negate R} (m : AtomicMove R) : AtomicMove R
       := {|am_tc := am_tc m; am_distance := -(am_distance m) |}.
 
-  Definition AtomicMovesInv (ms : AtomicMoves) : AtomicMoves
+  Definition AtomicMovesInv `{Negate R} (ms : AtomicMoves R) : AtomicMoves R
       := rev (List.map AtomicMoveInv ms).
 
 
@@ -1261,7 +1267,7 @@ First we define what it means for a move to be an inverse of another.
     Qed.
 
   Lemma atomicMoveInvertible :
-    ∀ (m : AtomicMove), MovesInverse [m] [AtomicMoveInv m].
+    ∀ (m : AtomicMove IR), MovesInverse [m] [AtomicMoveInv m].
   Proof using Type.
     intros ? ? m ? ? ? ? ? ? ?.
     invertAtomicMoves.
@@ -1272,7 +1278,7 @@ First we define what it means for a move to be an inverse of another.
     - eapply atomicMoveInvertibleθ in Hf0; eauto.
   Qed.
 
-  Lemma MoveInvInvolutive : ∀ (m : AtomicMove), 
+  Lemma MoveInvInvolutive : ∀ (m : AtomicMove IR), 
     AtomicMoveInv (AtomicMoveInv m) = m.
   Proof using .
     intros m.
@@ -1281,7 +1287,7 @@ First we define what it means for a move to be an inverse of another.
   Qed.
 
   Lemma movesControlsApp : ∀ mt (acs : AckermannCar mt) 
-  (l r : AtomicMoves) (tstart tend: Time)
+  (l r : AtomicMoves IR) (tstart tend: Time)
     (pr : tstart ≤ tend),
     CarExecutesAtomicMovesDuring acs (l++r) _ _ pr
     -> exists (tmid : Time), exists (p : tstart ≤ tmid ≤ tend),
@@ -1313,7 +1319,7 @@ First we define what it means for a move to be an inverse of another.
   Qed.
   
   Lemma atomicMoveInvertibleRev :
-    ∀ (m : AtomicMove), MovesInverse  [AtomicMoveInv m] [m].
+    ∀ (m : AtomicMove IR), MovesInverse  [AtomicMoveInv m] [m].
   Proof using Type.
     intros m. remember [AtomicMoveInv m].
     setoid_rewrite <- MoveInvInvolutive.
@@ -1324,7 +1330,7 @@ First we define what it means for a move to be an inverse of another.
     
   
   Lemma MovesControlsSingle : ∀ mt (acs : AckermannCar mt) 
-  (m : AtomicMove) (tstart tend: Time)
+  (m : AtomicMove IR) (tstart tend: Time)
     (pr : tstart < tend),
     @CarExecutesAtomicMoveDuring _ acs m tstart tend pr
     -> CarExecutesAtomicMovesDuring acs [m] tstart tend (timeLtWeaken pr).
@@ -1337,7 +1343,7 @@ First we define what it means for a move to be an inverse of another.
    
 
   Lemma atomicMovesInvertibleAux :
-    ∀ (m : AtomicMoves), MovesInverse (AtomicMovesInv m) m.
+    ∀ (m : AtomicMoves IR), MovesInverse (AtomicMovesInv m) m.
   Proof using Type.
     induction m as [| h tl Hind]; intros ? ? ? ? ? ? ? ? Hm Hrm Ht;
       unfold AtomicMovesInv in Hrm; simpl in Hrm.
@@ -1367,7 +1373,7 @@ First we define what it means for a move to be an inverse of another.
       exact Hadd.
   Qed.
   
-  Lemma MovesInvInvolutive : ∀ (m : AtomicMoves), 
+  Lemma MovesInvInvolutive : ∀ (m : AtomicMoves IR), 
     AtomicMovesInv (AtomicMovesInv m) = m.
   Proof using .
     induction m;[reflexivity |].
@@ -1382,7 +1388,7 @@ First we define what it means for a move to be an inverse of another.
 
 
   Lemma atomicMovesInvertible :
-  ∀ (m : AtomicMoves), MovesInverse m (AtomicMovesInv m).
+  ∀ (m : AtomicMoves IR), MovesInverse m (AtomicMovesInv m).
   Proof using Type.
     intros m. remember (AtomicMovesInv m).
     setoid_rewrite <- (MovesInvInvolutive m).
@@ -1401,7 +1407,7 @@ Require Import MathClasses.interfaces.canonical_names.
 Lemma carConfinedDuringAMEndpoints: forall
   (cd : CarDimensions IR)
   (rect : Line2D IR) 
-  (m : DAtomicMove)
+  (m : (DAtomicMove IR))
   (init : Rigid2DState IR),
 carConfinedDuringAM cd rect m init
 → (carMinMaxXY cd (stateAfterAtomicMove init m) ⊆ rect
@@ -1442,7 +1448,7 @@ of the single case*)
 Lemma carConfinedDuringAMsSingle: forall
   (cd : CarDimensions IR)
   (rect : Line2D IR) 
-  (m : DAtomicMove)
+  (m : (DAtomicMove IR))
   (init : Rigid2DState IR),
 carConfinedDuringAMs cd rect [m] init
 <-> carConfinedDuringAM cd rect m init.
@@ -1454,15 +1460,19 @@ Proof using.
   tauto.
 Qed.
 
-Definition DAtomicMoveInv (m : DAtomicMove) : DAtomicMove:=
+Definition DAtomicMoveInv `{Zero R}
+`{ApartT R} `{Equiv R} `{Negate R}
+ (m : (DAtomicMove R)) : (DAtomicMove R):=
   existT _ (AtomicMoveInv (projT1 m)) (projT2 m).
 
-Definition DAtomicMovesInv (ms : list DAtomicMove) : list DAtomicMove
+Definition DAtomicMovesInv `{Zero R}
+`{ApartT R} `{Equiv R} `{Negate R}
+(ms : list (DAtomicMove R)) : list (DAtomicMove R)
   := rev (List.map DAtomicMoveInv ms).
 
 (** if each atomic move is executed monotonically, we can aslo
     relate the confinements of the car in axis aligned rectangles.*)
-Definition MovesSpaceInverse (dams damsr : list DAtomicMove) := 
+Definition MovesSpaceInverse (dams damsr : list (DAtomicMove IR)) := 
   ∀ (init initr : Rigid2DState ℝ)
  (cd : CarDimensions ℝ) (confineRect: Line2D IR),
  let disp := pos2D (stateAfterAtomicMoves damsr initr) - pos2D init in
@@ -1473,7 +1483,7 @@ Definition MovesSpaceInverse (dams damsr : list DAtomicMove) :=
           damsr initr.
 
 (* analogous to [MovesInverse], but more convenient as there is no car*)
-Definition MovesStateInverse (damsl damsr : list DAtomicMove) := 
+Definition MovesStateInverse (damsl damsr : list (DAtomicMove IR)) := 
   ∀ (initl initr : Rigid2DState ℝ) ,
  let endl := (stateAfterAtomicMoves damsl initl) in
  let endr := (stateAfterAtomicMoves damsr initr) in
@@ -1504,7 +1514,7 @@ Local Opaque Min.
 
 (*reuse this to prove atomicMoveInvertible*)
 Lemma atomicMoveStateInvertible :
-    ∀ (m : DAtomicMove), 
+    ∀ (m : (DAtomicMove IR)), 
     MovesStateInverse [m] [DAtomicMoveInv m].
 Proof using.
   intros m.
@@ -1526,14 +1536,14 @@ Proof using.
     split; simpl; ring.
 Qed.
 
-Lemma DMoveInvInvolutive : ∀ (m : DAtomicMove), 
+Lemma DMoveInvInvolutive : ∀ (m : (DAtomicMove IR)), 
     DAtomicMoveInv (DAtomicMoveInv m) = m.
 Proof using .
   intros m.
   apply MoveInvInvolutive.
 Qed.
 
-Lemma DMovesInvInvolutive : ∀ (m : list DAtomicMove), 
+Lemma DMovesInvInvolutive : ∀ (m : list (DAtomicMove IR)), 
   DAtomicMovesInv (DAtomicMovesInv m) = m.
 Proof using .
   induction m;[reflexivity |].
@@ -1547,7 +1557,7 @@ Proof using .
 Qed.
 
 Lemma atomicMovesStateInvertibleAux :
-  ∀ (m : list DAtomicMove), MovesStateInverse (DAtomicMovesInv m) m.
+  ∀ (m : list (DAtomicMove IR)), MovesStateInverse (DAtomicMovesInv m) m.
 Proof using.
   induction m as [| h tl Hind];
   intros ? ? ?  ? Ht; subst endl endr;
@@ -1590,7 +1600,7 @@ Proof using.
 Qed.  
 
 Lemma atomicMoveSpaceInvertible :
-    ∀ (m : DAtomicMove), 
+    ∀ (m : (DAtomicMove IR)), 
     MovesSpaceInverse [m] [DAtomicMoveInv m].
 Proof using.
   intros m.
@@ -1682,8 +1692,8 @@ Proof using.
        [|- carMinMaxXY _ ?rr ⊆ _]
           => assert 
            (rr= {| pos2D := pos2D r + d; θ2D := θ2D r |})
-           as Heq
-           by  (split;[split;simpl;ring|reflexivity])
+           as Heq by
+         (split;[split;simpl; unfold recipT, RecipTIR; try ring|reflexivity])
        end
     end.
     rewrite Heq. clear Heq.
@@ -1697,7 +1707,7 @@ Proof using.
 
 
 Lemma atomicMovesSpaceInvertibleAux :
-  ∀ (m : list DAtomicMove), MovesSpaceInverse (DAtomicMovesInv m) m.
+  ∀ (m : list (DAtomicMove IR)), MovesSpaceInverse (DAtomicMovesInv m) m.
 Proof using Type.
   induction m as [| h tl Hind];
   intros ? ? ? ? ? Ht Hcon;
@@ -1757,10 +1767,13 @@ Proof using Type.
   exact Hconr.
 Qed. 
 
-Global Instance NegateDAtomicMove : Negate DAtomicMove :=
+Global Instance NegateDAtomicMove
+`{Zero R}
+`{ApartT R} `{Equiv R} `{Negate R} : Negate (DAtomicMove R) :=
   DAtomicMoveInv.
 
-Global Instance NegateDAtomicMoves : Negate (list DAtomicMove) :=
+Global Instance NegateDAtomicMoves `{Zero R}
+`{ApartT R} `{Equiv R} `{Negate R} : Negate (list (DAtomicMove R)) :=
   DAtomicMovesInv.
 
 (*Move *)
@@ -1779,7 +1792,7 @@ Qed.
 
 
 Lemma atomicMovesSpaceInvertible :
-  ∀ (m : list DAtomicMove), MovesSpaceInverse m (-m).
+  ∀ (m : list (DAtomicMove IR)), MovesSpaceInverse m (-m).
 Proof.
   intros. unfold MovesSpaceInverse.
   intros ? ? ? ?.
@@ -1790,7 +1803,7 @@ Proof.
 Qed.
 
 Lemma atomicMovesStateInvertible :
-  ∀ (m : list DAtomicMove), MovesStateInverse m (-m).
+  ∀ (m : list (DAtomicMove IR)), MovesStateInverse m (-m).
 Proof.
   intros. unfold MovesStateInverse.
   intros ? ?.
@@ -1802,7 +1815,8 @@ Qed.
 
 End SpaceInvertability.
 
-Definition mkStraightMove (d:IR): DAtomicMove.
+Definition mkStraightMove `{ApartT R} `{Setoid R} `{Zero R}
+ (d:R): DAtomicMove R.
  exists {|am_distance :=d; am_tc :=0|}.
  simpl. left. reflexivity.
 Defined.
@@ -1810,7 +1824,7 @@ Defined.
 Lemma carConfinedDuringAMsEndpoints: forall
   (cd : CarDimensions IR)
   (rect : Line2D IR) 
-  (m : list DAtomicMove)
+  (m : list (DAtomicMove IR))
   (init : Rigid2DState IR),
 carConfinedDuringAMs cd rect m init
 → (carMinMaxXY cd (stateAfterAtomicMoves m init) ⊆ rect
@@ -1830,10 +1844,10 @@ at endpoints during a straight move, one can forget about it
 while computing space requirements. 
 This is not true for turning moves.*)
 Lemma strMoveSandwichedConfined : ∀
-  (damsl damsr : list DAtomicMove)
+  (damsl damsr : list (DAtomicMove IR))
   (cd : CarDimensions ℝ) (init : Rigid2DState ℝ) (d:ℝ)
   (confineRect: Line2D IR),
-  let sandwich : list DAtomicMove 
+  let sandwich : list (DAtomicMove IR) 
     := damsl ++ [mkStraightMove d] ++ damsr in
   let stMid : Rigid2DState ℝ  
     := stateAfterAtomicMoves (damsl ++ [mkStraightMove d]) init in

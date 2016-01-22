@@ -422,7 +422,7 @@ Require Import MathClasses.theory.fields.
 
 
 Let d :CR := ('tr*θ).
-Let sidewaysMove : list DAtomicMove 
+Let sidewaysMove : list (DAtomicMove IR) 
   := SidewaysAux ('α) αNZ ('d) ('(d')).
 
 Lemma  θcorrect : θ = 'α * d.
@@ -518,7 +518,7 @@ sqr (// (cos (2 * θ)) ↾ pf) * ('Xs -  (extraSpaceX1W θ))
 - (// (cos (2 * θ)) ↾ pf) * (IRasCR (extraSpaceX1Deriv  α cd ('θ))).
 
 (* this can ony be stated after this section is closed *)
-Lemma upwardShiftDerivCorrect : 0=0.
+Lemma upwardShiftDerivCorrect : 0=(0:CR).
 Abort.
 
 

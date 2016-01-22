@@ -69,6 +69,7 @@ Informally it denotes the following motion :
   Wiggle is parametrized by a nonzero [turnCurvature] and a drive distance,
   both of which may be signed.
   *)
+
 Variable α : IR.
 Hypothesis tcNZ : α[#]0.
 Variable d : IR.
@@ -77,13 +78,13 @@ Local Notation turnRadius (*: IR *) := (f_rcpcl α tcNZ).
 (** In our formalism, wriggle is a composition of the following 2 atomic moves.
   *)
   
-Definition steerAndDrive : DAtomicMove:= 
+Definition steerAndDrive : DAtomicMove IR := 
   existT _ 
           {|am_tc := α; am_distance := d |} 
           (inr tcNZ).
   (*note that [revSteerAndrevDrive] is not the same as
   - steerAndDrive*)
-Definition revSteerAndrevDrive : DAtomicMove :=
+Definition revSteerAndrevDrive : DAtomicMove  IR:=
    existT _ 
      {|am_tc := -α; am_distance := -d |}
       (inr (tcnegNZ _ tcNZ)).
@@ -91,7 +92,7 @@ Definition revSteerAndrevDrive : DAtomicMove :=
   reverse driving is exactly the same.
   TODO: let them be slightly different, e.g. upto epsilon
  *)
-Definition Wriggle : list DAtomicMove :=  
+Definition Wriggle : list (DAtomicMove  IR) :=  
   [steerAndDrive; revSteerAndrevDrive].
 
 (*
@@ -119,6 +120,7 @@ Proof using.
   unfold stateAfterAtomicMove. simpl.
   split; simpl; [| subst  θi θm θf; simpl;
   IRring].
+  unfold recipT, RecipTIR.
   rewrite reciprocalNeg with (xp:=tcNZ).
   fold Negate_instance_IR.
   fold (@negate IR _).
@@ -159,7 +161,7 @@ to where we started.
   Require Import commutator.
   (** Drive a distance of [ddistance]
     with front wheels perfectly straight.*)  
-  Definition SidewaysAux : list DAtomicMove 
+  Definition SidewaysAux : list (DAtomicMove  IR) 
     := conjugate [mkStraightMove d'] SWriggle.
 
   (** The car's orientation at the end is same as that at the start.
@@ -215,7 +217,7 @@ carConfinedDuringAMs cd w1rect SWriggle init
   Local Notation DriveStraightRev 
     := (mkStraightMove (- d' * cos (2 * α * d))).
 
-  Definition SidewaysMove : list DAtomicMove 
+  Definition SidewaysMove : list (DAtomicMove  IR) 
     := SidewaysAux ++ [DriveStraightRev].
     
   (** The car's final orientation is same as before, and 
@@ -1706,7 +1708,7 @@ Qed.
 Variable d':IR.
 Hypothesis d'NN : 0 ≤ d'.
 
-Let sidewaysMove : list DAtomicMove 
+Let sidewaysMove : list (DAtomicMove  IR) 
   := SidewaysAux ('α) αNZ ('d) (d').
 
 Definition sidewaysRectFirstQ bottomBound :=

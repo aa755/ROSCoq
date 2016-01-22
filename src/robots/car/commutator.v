@@ -50,14 +50,15 @@ Local Opaque Cos.
 
 
 (** conjugate of [b] by [a]*)
-Definition conjugate (b a: list DAtomicMove) :=
+Definition conjugate `{ApartT R} `{Equiv R} `{Zero R} `{Negate R} 
+  (b a: list (DAtomicMove R)) :=
   a++b++(-a).
 
 Require Import MCMisc.rings.
 
 (**use this to simpligy sidewaysMove.SidewaysAuxState*)
 Lemma straightConjugateState : ∀  
-  (a : list DAtomicMove) (d:ℝ)
+  (a : list (DAtomicMove ℝ)) (d:ℝ)
   (init : Rigid2DState ℝ), 
   let stMid : Rigid2DState ℝ  
     := stateAfterAtomicMoves a init in
@@ -122,7 +123,7 @@ Qed.
 
 
 Lemma straightConjugateSpace : ∀  (cd : CarDimensions ℝ)
-  (a : list DAtomicMove) (d:ℝ)
+  (a : list (DAtomicMove ℝ)) (d:ℝ)
   (init : Rigid2DState ℝ)
   (confineRect: Line2D IR), 
   let stMid : Rigid2DState ℝ  

@@ -57,11 +57,6 @@ Record carState (A:Type) : Type :=
 Open Scope CR_scope.
 
 
-(** with some effort, it should be possible to get rid of the 
-   second component of the dependent pair, because of continuity.*)
-Definition DAtomicMove := {am : AtomicMove 
-    | (am_tc am = 0 or (am_tc am) >< 0) }.
-
 Open Scope mc_scope.
 
 Close Scope CR_scope.
@@ -73,22 +68,10 @@ Require Import fastReals.misc.
 Require Import fastReals.interface.
 Require Import fastReals.implCR.
 
-Definition stateAfterAtomicMove 
-  (cs : carState CR) (dm : DAtomicMove): carState CR:=
-  
-  let tc : CR := (am_tc (projT1 dm)) in
-  let dist : CR := (am_distance (projT1 dm)) in
-  let θInit :CR := (θ2D (csrigid2D cs)) in
-  let θf :CR := θInit + tc*dist in
-  let posInit : Cart2D CR := (pos2D (csrigid2D cs)) in
-  let posDelta := 
-    match (projT2 dm) with
-    | inl _ =>  ('dist) * (unitVec θInit)
-    | inr p => {|X:= (sin θf - sin θInit) * (CRinvT tc p) ; 
-                Y:= (cos θInit - cos θf) * (CRinvT tc p)|}
-    end in  
-  {|csrigid2D := {|pos2D := posInit + posDelta; θ2D := θf|} 
-    ; cs_tc :=tc |}.
+Definition carStateAfterAtomicMove 
+  (cs : carState CR) (dm : @DAtomicMove CR _ _ _): carState CR:=
+  {|csrigid2D := stateAfterAtomicMove (csrigid2D cs) dm
+    ; cs_tc := (am_tc (projT1 dm)) |}.
 
 
 Section LineRounding.
@@ -191,7 +174,7 @@ Variable cd :CarDimensions CR.
 Variable cs :Rigid2DState CR.
 
 Definition carBoundingRectCR : BoundingRectangle CR :=
-  carMinMaxXY cs cd
+  carMinMaxXY cd cs.
 
 Definition leftWheelCenter : Cart2D CR := 
   (pos2D cs) + 
@@ -211,7 +194,7 @@ Definition carWheels (θ : CR) : list (Line2D CR) :=
     [leftWheelCenter; rightWheelCenter].
 
 Definition drawCarZAux  (θ : CR) : list (Line2D Z):=
-  List.map (roundLineRZ eps) ((carOutline cs cd)++carWheels θ).
+  List.map (roundLineRZ eps) ((carOutline cd cs)++carWheels θ).
 
 
 Definition drawCarTikZOld (θ : CR) : string := 
@@ -268,30 +251,40 @@ Definition myCarDim : CarDimensions CR := 'myCarDimZ.
 Definition initSt : carState CR :=
  {| csrigid2D := {|pos2D := 0; θ2D := 0|}; cs_tc :=0 |} .
 
-Definition mkStraightMove (d:CR): DAtomicMove.
- exists {|am_distance :=d; am_tc :=0|}.
- simpl. left. reflexivity.
-Defined.
 
 Global Instance  CastQposCR : Cast Qpos CR := fun x => inject_Q_CR (QposAsQ x).
 
-Definition mkQTurnMove (t:Qpos) (d:CR): DAtomicMove.
- exists {|am_distance := d ; am_tc := 't|}.
- simpl. right. right. clear.
- apply CRlt_Qlt. destruct t. simpl. assumption.
+Require Import MathClasses.interfaces.orders.
+
+Definition mkQTurnMove (t:Qpos) (d:CR): DAtomicMove CR.
+  exists {|am_distance := d ; am_tc := 't|}.
+  simpl. right. right. clear.
+  exists t. simpl. 
+  fold (CRopp).
+  fold (CRplus).
+  fold (@negate CR _).
+  fold (@plus CR _).
+  rewrite minus_0_r.
+  reflexivity.
 Defined.
 
 Typeclasses eauto := 10.
 
-Definition mkNegQTurnMove (t:Qpos) (d:CR): DAtomicMove.
- exists {|am_distance := d ; am_tc := -'t|}.
- simpl. right. left. clear. eapply CRltT_wdl;[
-  symmetry; apply CRopp_Qopp|].
- apply CRlt_Qlt. destruct t. simpl. lra.
-Defined.
+Definition mkNegQTurnMove (t:Qpos) (d:CR): DAtomicMove CR.
+  exists {|am_distance := d ; am_tc := -'t|}.
+  simpl. right. left. clear.
+  exists t. simpl. 
+  fold (CRopp).
+  fold (CRplus).
+  fold (@negate CR _).
+  fold (@plus CR _).
+  rewrite negate_involutive.
+  rewrite plus_0_l.
+  reflexivity.
+Defined.  
 
   
-Local Definition straightMove : DAtomicMove :=
+Local Definition straightMove : DAtomicMove CR :=
   (mkStraightMove (cast Z CR 100))%Z.
 
 
@@ -299,47 +292,44 @@ Definition carStatesFrames  (l:list (string * carState CR)) : list (string * lis
 (List.map (fun p=> (fst p, drawCarZ eps myCarDim (snd p))) l).
 
 
-Fixpoint movesStates (l:list DAtomicMove) (init : carState CR) : 
+Fixpoint movesStates (l:list (DAtomicMove CR)) (init : carState CR) : 
   list (carState CR) :=
 match l with
 | [] => [init]
-| hm::t => let midState := stateAfterAtomicMove init hm in
+| hm::t => let midState := carStateAfterAtomicMove init hm in
       init::(movesStates t midState)
 end.
 
-Definition DAtomicMoves := list DAtomicMove.
+Definition DAtomicMoves := list (DAtomicMove CR).
 
-Definition getAtomicMove (d: DAtomicMove) : AtomicMove := projT1 d.
+Definition getAtomicMove (d: (DAtomicMove CR)) : AtomicMove CR := projT1 d.
 
 
 Definition DWriggle (t:Qpos) (d:CR) : DAtomicMoves 
     :=  [mkQTurnMove t d; mkNegQTurnMove t (-d)].
 
+(*
 Lemma DWriggleSame : forall (t:Qpos) (d:CR), 
   List.map getAtomicMove (DWriggle t d) = Wriggle ('t) d.
 Proof.
   intros. reflexivity.
 Qed.
-    
+*)  
 
 
-Definition DAtomicMoveInv (m : DAtomicMove) : DAtomicMove:=
-  existT _ (AtomicMoveInv (getAtomicMove m)) (projT2 m).
-
-Definition DAtomicMovesInv (ms : DAtomicMoves) : DAtomicMoves
-      := rev (List.map DAtomicMoveInv ms).
       
 Definition DSideways (t:Qpos) (dw ds:CR) : DAtomicMoves 
     := (DWriggle t dw) ++ [mkStraightMove ds] 
         ++ (DAtomicMovesInv (DWriggle t dw))
         ++ [mkStraightMove (- ds * cos (2 * 't * dw))].
 
+(*
 Lemma DSidewaysSame : forall (t:Qpos) (dw ds :CR), 
   List.map getAtomicMove (DSideways t dw ds) = SidewaysMove ('t) dw ds.
 Proof.
   intros. reflexivity.
 Qed.
-
+*)
 
 Fixpoint mapDiagonal  `(f: A->A) (prefix tail: list A) : list (list A) :=
 match tail with
@@ -372,16 +362,16 @@ Definition moveNamesSideways : list string :=
 
 Close Scope string_scope.
 
-Definition NameDAtomicMove := prod string  DAtomicMove.
+Definition NameDAtomicMove := prod string  (DAtomicMove CR).
 
 
-Definition scaleAtomicMove (m: AtomicMove) (s:CR): AtomicMove :=
+Definition scaleAtomicMove (m: AtomicMove CR) (s:CR): AtomicMove CR:=
  {|am_tc := am_tc m; am_distance := s*(am_distance m) |}.
  
-Definition DscaleAtomicMove  (m: DAtomicMove) (s:Q) : DAtomicMove :=
+Definition DscaleAtomicMove  (m: (DAtomicMove CR)) (s:Q) : (DAtomicMove CR) :=
   existT _ (scaleAtomicMove (getAtomicMove m) (inject_Q_CR s)) (projT2 m).
  
-Definition finerAtomicMoves (d:Z⁺) (m: DAtomicMove) : list DAtomicMove :=
+Definition finerAtomicMoves (d:Z⁺) (m: (DAtomicMove CR)) : list (DAtomicMove CR) :=
   List.map (DscaleAtomicMove m) (equiMidPoints d).
 
 Definition NamedCarState := prod string  (carState CR).
@@ -389,8 +379,8 @@ Definition NamedCarState := prod string  (carState CR).
 Definition finerStates (d:Z⁺) (dm : NameDAtomicMove) (init : carState CR) : 
   NamedCarState * list NamedCarState :=
   let (name,dm) := dm in
-  ((name,stateAfterAtomicMove init dm),
-    List.map (fun m => (name,stateAfterAtomicMove init m)) (finerAtomicMoves d dm)).
+  ((name,carStateAfterAtomicMove init dm),
+    List.map (fun m => (name,carStateAfterAtomicMove init m)) (finerAtomicMoves d dm)).
 
 Fixpoint finerMovesStates (d:Z⁺) (l:list NameDAtomicMove) (init : NamedCarState) : 
    list NamedCarState :=
