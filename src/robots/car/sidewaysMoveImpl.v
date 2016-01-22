@@ -757,16 +757,21 @@ Eval vm_compute in (samples).
 
 
 Eval vm_compute in (length samples, eps).
+
+
+Definition finalSoln: option Q
+:= (approx (optimalSolution cd ntriv α αPosQ turnCentreOut Xs Xsp eps δ)).
+
 Example dshffkldjs:
-(approx (optimalSolution cd ntriv α αPosQ turnCentreOut Xs Xsp eps δ)) =
+finalSoln =
 (Some (131196 # 3288200)%Q).
 (* this is the 5^th member member of the list [samples] of 41 elements.
 The tests below confirm that the maxima is indeed achieved close to that point.
 *)
 Proof using.
-time vm_compute.
+(*time vm_compute. 
 (* Tactic call ran for 90.473 secs (90.508u,0.056s) *)
-reflexivity.
+reflexivity.*)
 Abort.
 
 Let  tupwardShift : CR -> CR
@@ -859,4 +864,3 @@ SearchAbout CR Q.
 *)
 
 End TestSetup.
-

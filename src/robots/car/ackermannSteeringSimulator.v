@@ -239,10 +239,6 @@ Definition myCarDimZ : CarDimensions Z :=
  width := 25|}.
 Close Scope Z_scope.
 
-Global Instance CastCarDimZCR : Cast  (CarDimensions Z) (CarDimensions CR) :=
-fun c => {|lengthFront := cast Z CR (lengthFront c);
-         lengthBack :=  cast Z CR (lengthBack c);
-         width := cast Z CR (width c)|}.
 
 
 Definition myCarDim : CarDimensions CR := 'myCarDimZ.
@@ -430,13 +426,16 @@ Definition frameWithLines (preface:string) (lines : list (Line2D Z)) : string :=
   beamerFrameHeaderFooter "hello"
     (tikZHeaderFooter (preface ++ (tikZLines lines))).
 
+Axiom cbvApply : forall {A B:Type}, (A → B) → A → B.
 
-Definition toPrint : string := 
+Extract Inlined Constant cbvApply => "(Prelude.$!)".  
+
+Definition animation : string := 
   let sidewaysMove := List.zip moveNamesSideways sidewaysMove  in
   let initStp := (sconcat spacedMoves,initSt) in
   let cs := (finerMovesStates 3 sidewaysMove initStp) in
   let namedLines : list (string ** list (Line2D Z)) := carStatesFrames  cs in
-  let allLines : list (Line2D Z) :=  flat_map snd namedLines in
+  let allLines : list (Line2D Z) :=  cbvApply (flat_map snd) namedLines in
   let globalB := computeBoundingRectLines allLines in
   match namedLines with
   | [] => ""
@@ -449,6 +448,26 @@ Definition toPrint : string :=
       let frames := List.map (fun p => frameWithLines (preface ++ textTikZ (fst p)) (snd p)) namedLines in
       sconcat frames
   end.
+
+Require Import sidewaysMoveImpl.
+
+Axiom oQtoString : option Q -> string.
+(** [Z] maps to [Prelude.Integer] and [string] map to Prelude.?? . 
+  So Prelude.show works *)
+Extract Constant oQtoString => "(Prelude.show)".
+
+Definition optimalParam : string := oQtoString finalSoln.
+
+(*
+Eval vm_compute in finalSoln.
+*)
+
+Example ex1 : (131196 # 3288200 == 32799 # 822050)%Q.
+vm_compute. reflexivity.
+Abort.
+
+Definition toPrint : string := optimalParam.
+  
 Close Scope string_scope.
 
 Extraction "simulator.hs" toPrint.
