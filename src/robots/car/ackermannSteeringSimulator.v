@@ -37,7 +37,9 @@ Require Import atomicMoves.
 Require Export CartIR.
 
 Require Import String.
-Require Import haskellExtractionDirectives.
+
+(*Require Import haskellExtractionDirectives.*)
+Require Import ocamlExtractionDirectives.
   
 Local Opaque CSine.
 Local Opaque CCos.
