@@ -1600,6 +1600,8 @@ Proof using dNN firstQuadW maxNeededTurn ntriv turnCentreOut αPos.
     apply upBoundWriggle2Correct. assumption.
 Qed.
 
+(** the 2 definitions below, and the corresponding correctness lemmas 
+summarize the proofs so far in this section. *)
 Definition WriggleMove1SpaceFirstQ (bottomBound : IR): ConfineRect IR :=
 {| minxy := {| X := leftBoundWriggle1 ; Y:= bottomBound |};
   maxxy := {| X := rightBound ; Y:= upBoundWriggle1 |}
@@ -2093,29 +2095,41 @@ Qed.
 (** for Mazda 3, it is between 23 and 24 degrees *)
 Lemma Mazda3LeftCriticalAngle:
 thisCarHasSameGeometryAs ('Mazda3Sedan2014sGT)
--> ('(Qmake 23 180) * π ) < leftCriticalAngleCR < ('(Qmake 24 180) * π ).
+-> ('(Qmake 27 180) * π ) < leftCriticalAngleCR < ('(Qmake 28 180) * π ).
 Proof using.
   intro H. destruct H as [Hl Hr].
   unfold leftCriticalAngleCR.
   unfold cyy, cyyQ, βPlusBack.
   subst.
   rewrite Hr. clear Hr.
+(*
+match goal with 
+[|- _ < ?r < _]
+  => let t:=eval vm_compute in (approximateAngleAsDegrees r) in idtac t
+end.
+*)
   unfold lt, CRlt.
-  split; exists 7%nat;
-  simpl; vm_compute; reflexivity.
+  split; exists 10%nat;
+  simpl; vm_compute; [reflexivity | reflexivity].
 Qed.
 
 (** lets consider the two subcomponents of the above angle *)
 Lemma Mazda3LeftCriticalAngle1:
 thisCarHasSameGeometryAs ('Mazda3Sedan2014sGT)
--> ('(Qmake 33 180) * π ) < arctan (cyy * ' (/ tr)) < ('(Qmake 34 180) * π ).
+-> ('(Qmake 38 180) * π ) < arctan (cyy * ' (/ tr)) < ('(Qmake 39 180) * π ).
 Proof using.
   intro H. destruct H as [Hl Hr].
   unfold leftCriticalAngleCR.
   unfold cyy, cyyQ.
   subst.
   rewrite Hr. clear Hr.
-  unfold lt, CRlt.
+(*
+match goal with 
+[|- _ < ?r < _]
+  => let t:=eval vm_compute in (approximateAngleAsDegrees r) in idtac t
+end.
+*)
+  unfold lt, CRlt.  
   split; exists 10%nat;
   simpl; vm_compute; reflexivity.
 Qed.
@@ -2152,15 +2166,21 @@ Eval vm_compute in
 
 Lemma Mazda3βPlusFront:
 thisCarHasSameGeometryAs ('Mazda3Sedan2014sGT)
--> ('(Qmake 51 180) * π ) < polarTheta βPlusFront < ('(Qmake 52 180) * π ).
+-> ('(Qmake 52 180) * π ) < polarTheta βPlusFront < ('(Qmake 53 180) * π ).
 Proof using.
   intro H. destruct H as [Hl Hr].
   unfold leftCriticalAngleCR.
   unfold βPlusFront.
   subst.
   rewrite Hr. clear Hr.
+(*
+match goal with 
+[|- _ < ?r < _]
+  => let t:=eval vm_compute in (approximateAngleAsDegrees r) in idtac t
+end.
+*)
   unfold lt, CRlt.
-  split; exists 10%nat;
+  split; exists 19%nat;
   simpl; vm_compute; reflexivity.
 Qed.
 
@@ -2606,15 +2626,21 @@ Abort.
     
 Lemma Mazda3βMinusFront:
 thisCarHasSameGeometryAs ('Mazda3Sedan2014sGT)
--> ('(Qmake 41 180) * π ) < polarTheta βMinusFront < ('(Qmake 42 180) * π ).
+-> ('(Qmake 38 180) * π ) < polarTheta βMinusFront < ('(Qmake 39 180) * π ).
 Proof using.
   intro H. destruct H as [Hl Hr].
   unfold leftCriticalAngleCR.
   unfold βMinusFront.
   subst.
   rewrite Hr. clear Hr.
+(*
+match goal with 
+[|- _ < ?r < _]
+  => let t:=eval vm_compute in (approximateAngleAsDegrees r) in idtac t
+end.
+*)
   unfold lt, CRlt.
-  split; exists 10%nat;
+  split; exists 18%nat;
   simpl; vm_compute; reflexivity.
 Qed.
 

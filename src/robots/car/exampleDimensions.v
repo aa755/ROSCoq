@@ -52,9 +52,9 @@ fun a =>  Build_CarGeometry
 Open Scope Z_scope.
 (**dimensions are in inches. always rounding up for safety. *)
 Definition Mazda3Sedan2014sGT_Dim : CarDimensions Z := {|
-  width := 28; (* actually, half of the width of the car. originally measured as 70cm *)
-  lengthBack := 32; (* originally measured as 80cm. *)
-  lengthFront := 140; (* 60+60+20 *)
+  width := 37; (* excluding the side mirrors. fix! *)
+  lengthBack := 36; 
+  lengthFront := 142;
 |}.
 
 Definition Mazda3Sedan2014sGT : CarGeometry Z := {|

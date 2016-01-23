@@ -791,7 +791,7 @@ Defined.
 
 (*
 Print Xs.
-(172 # 10)%Q 
+(178 # 10)%Q 
 
 unit : inches
 *)
@@ -833,14 +833,15 @@ Definition optimalSidewaysMoveMazda : list (DAtomicMove CR) :=
 
 Example dshffkldjs:
 finalSoln =
-(Some (131196 # 3288200)%Q).
+(Some (149596 # 3769400)%Q).
 (* this is the 5^th member member of the list [samples] of 41 elements.
 The tests below confirm that the maxima is indeed achieved close to that point.
 *)
 Proof using.
-(*time vm_compute. 
-Tactic call ran for 88.037 secs (88.012u,0.144s) (success)
-reflexivity.*)
+time vm_compute. 
+(*Tactic call ran for 88.037 secs (88.012u,0.144s) (success)
+*)
+reflexivity.
 Abort.
 
 Let  tupwardShift : CR -> CR
@@ -848,9 +849,9 @@ Let  tupwardShift : CR -> CR
 
 (* quality of the computed soultion *)
 Example exampleUpw : 
-approximate (compress (tupwardShift ('((131196 # 3288200)%Q))))
+approximate (compress (tupwardShift ('((149596 # 3769400)%Q))))
             (QposMake 1 100) 
-≡ (130 # 201)%Q.
+≡ (122 # 201)%Q.
 vm_compute.
 reflexivity.
 Abort.
@@ -858,7 +859,7 @@ Abort.
 Example exampleUp2 : 
 approximate (compress (tupwardShift ('((231196 # 3288200)%Q))))
             (QposMake 1 100) 
-≡ (42 # 201)%Q.
+≡ (6 # 201)%Q.
 vm_compute.
 reflexivity.
 Abort.
@@ -866,23 +867,40 @@ Abort.
 Example exampleUp2 : 
 approximate (compress (tupwardShift ('((031196 # 3288200)%Q))))
             (QposMake 1 100) 
-≡ (57 # 201)%Q.
+≡ (58 # 201)%Q.
 vm_compute.
 reflexivity.
 Abort.
 
+
+(* this solution is 2/100 inch better than [finalSoln], which is around
+(149596 # 3769400). That is expected. If the sampling is made more fine-grained,
+this one should be found instead.
+At cuttent granularity, the closest to this solution
+that was considered is the one in [exampleUp3],  whose quality is worse 
+than [finalSoln]. *)
 Example exampleUp2 : 
-approximate (compress (tupwardShift ('((111196 # 3288200)%Q))))
+approximate (compress (tupwardShift ('((127468 # 3769400)%Q))))
             (QposMake 1 100) 
-≡ (128 # 201)%Q.
+≡ (124 # 201)%Q.
 vm_compute.
 reflexivity.
 Abort.
+
+Eval vm_compute in samples.
+Example exampleUp3 : 
+approximate (compress (tupwardShift ('((112197 # 3769400)%Q))))
+            (QposMake 1 100) 
+≡ (121 # 201)%Q.
+  vm_compute.
+  reflexivity.
+Abort.
+
 
 Example exampleUp2 : 
 approximate (compress (tupwardShift ('((137196 # 3288200)%Q))))
             (QposMake 1 100) 
-≡ (129 # 201)%Q.
+≡ (120 # 201)%Q.
 vm_compute.
 reflexivity.
 Abort.
@@ -891,12 +909,11 @@ Eval vm_compute in samples.
 Example exampleUp2 : 
 approximate (compress (tupwardShift ('(((32799 # 80200))%Q))))
             (QposMake 1 100) 
-≡ (-9120 # 201)%Q.
+≡ (-10861 # 201)%Q.
 vm_compute.
 reflexivity.
 Abort.
 
-Eval vm_compute in (samples).
 
 
 (**

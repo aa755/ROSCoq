@@ -137,7 +137,7 @@ Definition tikZLines (l: list (Line2D Z)) : string :=
   sconcat  (List.map tikZLine l).
 
 Definition tikZOptions : string :=
- "[scale=0.03]".
+ "[scale=0.02]".
  
 Definition tikZHeaderFooter (contents : string) : string :=
   "\begin{tikzpicture}"++tikZOptions++newLineString++contents++newLineString
@@ -354,7 +354,7 @@ match l with
           ([init]++(interS)++(finerMovesStates d t midState))
 end.
 
-Definition epsd : Z := 3*finerRes.
+Definition epsd : Z := 0 (*3*finerRes *).
 Definition textHt : Z := 25*finerRes.
 
 Definition Rect2D := Line2D.
@@ -415,7 +415,8 @@ Definition animation : string :=
       let textTikZ  : string -> string  
         := fun label => "\node[below right] at " ++ tikZPoint textPos 
             ++ "{" ++ label ++ "};" ++ newLineString in
-      let frames := List.map (fun p => frameWithLines (preface ++ textTikZ (fst p)) (snd p)) namedLines in
+      let frames := List.map (fun p => frameWithLines 
+          (preface ++ textTikZ (fst p))  (snd p)) namedLines in
       sconcat frames
   end.
 
@@ -427,13 +428,6 @@ Extract Constant oQtoString => "(Prelude.show)".
 
 Definition optimalParam : string := oQtoString finalSoln.
 
-(*
-Eval vm_compute in finalSoln.
-*)
-
-Example ex1 : (131196 # 3288200 == 32799 # 822050)%Q.
-  vm_compute. reflexivity.
-Abort.
 
 Definition toPrint : string := animation.
 
