@@ -240,55 +240,32 @@ Open Scope Z_scope.
    1.5-1/100 and 1.5+1/100 may be rounded to 1 or 2. *)
 Local Definition eps : Qpos := QposMake 1 100.
 
-Definition myCarDimZ : CarDimensions Z :=
+Definition imaginaryCarDimZ : CarDimensions Z :=
 {|lengthFront :=  60; lengthBack :=  15;
  width := 25|}.
+
+Require Import exampleDimensions.
+
+Definition myCarDimZ : CarDimensions Z := (carDim Mazda3Sedan2014sGT).
 Close Scope Z_scope.
 
 
 
 Definition myCarDim : CarDimensions CR := 'myCarDimZ.
- 
 
 Definition initSt : carState CR :=
  {| csrigid2D := {|pos2D := 0; θ2D := 0|}; cs_tc :=0 |} .
 
-
-Global Instance  CastQposCR : Cast Qpos CR := fun x => inject_Q_CR (QposAsQ x).
+Global Instance  CastQposCR : Cast Qpos CR := fun x =>  '(`x).
 
 Require Import MathClasses.interfaces.orders.
 
-Definition mkQTurnMove (t:Qpos) (d:CR): DAtomicMove CR.
-  exists {|am_distance := d ; am_tc := 't|}.
-  simpl. right. right. clear.
-  exists t. simpl. 
-  fold (CRopp).
-  fold (CRplus).
-  fold (@negate CR _).
-  fold (@plus CR _).
-  rewrite minus_0_r.
-  reflexivity.
-Defined.
-
 Typeclasses eauto := 10.
 
-Definition mkNegQTurnMove (t:Qpos) (d:CR): DAtomicMove CR.
-  exists {|am_distance := d ; am_tc := -'t|}.
-  simpl. right. left. clear.
-  exists t. simpl. 
-  fold (CRopp).
-  fold (CRplus).
-  fold (@negate CR _).
-  fold (@plus CR _).
-  rewrite negate_involutive.
-  rewrite plus_0_l.
-  reflexivity.
-Defined.  
+(* Move *)
 
-  
 Local Definition straightMove : DAtomicMove CR :=
   (mkStraightMove (cast Z CR 100))%Z.
-
 
 Definition carStatesFrames  (l:list (string * carState CR)) : list (string * list (Line2D Z)) :=
 (List.map (fun p=> (fst p, drawCarZ eps myCarDim (snd p))) l).
@@ -306,32 +283,9 @@ Definition DAtomicMoves := list (DAtomicMove CR).
 
 Definition getAtomicMove (d: (DAtomicMove CR)) : AtomicMove CR := projT1 d.
 
-
-Definition DWriggle (t:Qpos) (d:CR) : DAtomicMoves 
-    :=  [mkQTurnMove t d; mkNegQTurnMove t (-d)].
-
 (*
-Lemma DWriggleSame : forall (t:Qpos) (d:CR), 
-  List.map getAtomicMove (DWriggle t d) = Wriggle ('t) d.
-Proof.
-  intros. reflexivity.
-Qed.
 *)  
 
-
-      
-Definition DSideways (t:Qpos) (dw ds:CR) : DAtomicMoves 
-    := (DWriggle t dw) ++ [mkStraightMove ds] 
-        ++ (DAtomicMovesInv (DWriggle t dw))
-        ++ [mkStraightMove (- ds * cos (2 * 't * dw))].
-
-(*
-Lemma DSidewaysSame : forall (t:Qpos) (dw ds :CR), 
-  List.map getAtomicMove (DSideways t dw ds) = SidewaysMove ('t) dw ds.
-Proof.
-  intros. reflexivity.
-Qed.
-*)
 
 Fixpoint mapDiagonal  `(f: A->A) (prefix tail: list A) : list (list A) :=
 match tail with
@@ -339,13 +293,19 @@ match tail with
 | h::tl => (prefix ++ ((f h)::tl))::(mapDiagonal f (prefix++[h]) tl)
 end.
 
+
+Require Import sidewaysMoveImpl.
+
+(*
 Local Definition wriggleMove : DAtomicMoves :=
-(DWriggle (QposMake 1 200) (cast Z CR 30))%Z.
+  (DWriggle (QposMake 1 150) ('(Qmake 32799 822050))).
+*)
 
 
 (** turn radius, which is inverse of turn curvature, is 200*)
 Local Definition sidewaysMove : DAtomicMoves :=
-  (DSideways (QposMake 1 50) (cast Z CR 15) (cast Z CR 10))%Z . 
+optimalSidewaysMoveMazda .
+
 
 Open Scope string_scope.
 Definition moveNamesWriggle : list string := 
@@ -368,11 +328,11 @@ Definition NameDAtomicMove := prod string  (DAtomicMove CR).
 
 
 Definition scaleAtomicMove (m: AtomicMove CR) (s:CR): AtomicMove CR:=
- {|am_tc := am_tc m; am_distance := s*(am_distance m) |}.
- 
+  {|am_tc := am_tc m; am_distance := s*(am_distance m) |}.
+
 Definition DscaleAtomicMove  (m: (DAtomicMove CR)) (s:Q) : (DAtomicMove CR) :=
   existT _ (scaleAtomicMove (getAtomicMove m) (inject_Q_CR s)) (projT2 m).
- 
+
 Definition finerAtomicMoves (d:Z⁺) (m: (DAtomicMove CR)) : list (DAtomicMove CR) :=
   List.map (DscaleAtomicMove m) (equiMidPoints d).
 
@@ -382,7 +342,9 @@ Definition finerStates (d:Z⁺) (dm : NameDAtomicMove) (init : carState CR) :
   NamedCarState * list NamedCarState :=
   let (name,dm) := dm in
   ((name,carStateAfterAtomicMove init dm),
-    List.map (fun m => (name,carStateAfterAtomicMove init m)) (finerAtomicMoves d dm)).
+    List.map 
+      (fun m => (name,carStateAfterAtomicMove init m)) 
+      (finerAtomicMoves d dm)).
 
 Fixpoint finerMovesStates (d:Z⁺) (l:list NameDAtomicMove) (init : NamedCarState) : 
    list NamedCarState :=
@@ -407,12 +369,13 @@ Definition sideCars (b init :BoundingRectangle Z): (BoundingRectangle Z) * list 
       {|lstart := lcarMaxXY - cardim; lend := lcarMaxXY |} ;
       {|lstart := rcarMinXY ; lend := rcarMinXY + cardim |}
     ]).
-    
 
 
 Definition extendRectForText (b:BoundingRectangle Z)  : BoundingRectangle Z :=
-  {|lstart := (lstart b) - {|X:= 0 ; Y:= textHt  |}; lend := (lend b) + {|X:= 0 ; Y:= textHt  |} |}.
-  
+  {|lstart := (lstart b) - {|X:= 0 ; Y:= textHt  |}; 
+    lend := (lend b) + {|X:= 0 ; Y:= textHt  |} |}.
+
+
 Open Scope string_scope.
 
 Definition drawEnv (b init:BoundingRectangle Z)  : string * Cart2D Z:=
@@ -426,7 +389,7 @@ Definition drawEnv (b init:BoundingRectangle Z)  : string * Cart2D Z:=
   let sideCars : list string :=  List.map  (tikZFilledRect "red") sc in
   let bottomLine : string :=  tikZColoredLine "red" bottomLineZ in 
   (sconcat (sideCars ++ [clip;bottomLine]), textPos).
-  
+
 
 Definition frameWithLines (preface:string) (lines : list (Line2D Z)) : string :=
   beamerFrameHeaderFooter "hello"
@@ -435,14 +398,16 @@ Definition frameWithLines (preface:string) (lines : list (Line2D Z)) : string :=
 
 Extract Inlined Constant cbvApply => "(Prelude.$!)".
 
+
+
 Definition animation : string := 
   let sidewaysMove := List.zip moveNamesSideways sidewaysMove  in
   let initStp := (sconcat spacedMoves,initSt) in
   let cs := (finerMovesStates 3 sidewaysMove initStp) in
   let namedLines : list (string ** list (Line2D Z)) := carStatesFrames  cs in
   let allLines : list (Line2D Z) :=  (*cbvApply*) (flat_map snd) namedLines in
-  let globalB := computeBoundingRectLines allLines in
-  match namedLines with
+  let globalB : BoundingRectangle Z := computeBoundingRectLines allLines in
+  match namedLines return string with
   | [] => ""
   | h::tl => 
       let initb := computeBoundingRectLines (snd h) in
@@ -454,7 +419,6 @@ Definition animation : string :=
       sconcat frames
   end.
 
-Require Import sidewaysMoveImpl.
 
 Axiom oQtoString : option Q -> string.
 (** [Z] maps to [Prelude.Integer] and [string] map to Prelude.?? . 
@@ -468,11 +432,11 @@ Eval vm_compute in finalSoln.
 *)
 
 Example ex1 : (131196 # 3288200 == 32799 # 822050)%Q.
-vm_compute. reflexivity.
+  vm_compute. reflexivity.
 Abort.
 
-Definition toPrint : string := optimalParam.
-  
+Definition toPrint : string := animation.
+
 Close Scope string_scope.
 Locate posCompareContAbstract43820948120402312.
 Extraction "simulator.hs"  animation optimalParam toPrint 

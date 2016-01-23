@@ -86,8 +86,57 @@ taken up by the straight move.
 
 So, the only remaining parameter is d. We systematically try several
 samples and pick the best one that is safe.
-Based on the how closely the samples are choose for [d], this approach
+Based on the how closely the samples are chosen for d, this approach
 is both sound and approximately optimal.
+*)
+
+Definition mkQTurnMove (α:Qpos) (d:CR): DAtomicMove CR.
+  exists {|am_distance := d ; am_tc := '`α|}.
+  simpl. right. right.
+  exists α. simpl. 
+  fold (CRopp).
+  fold (CRplus).
+  fold (@negate CR _).
+  fold (@plus CR _).
+  rewrite minus_0_r.
+  reflexivity.
+Defined.
+
+
+Definition mkNegQTurnMove (α:Qpos) (d:CR): DAtomicMove CR.
+  exists {|am_distance := d ; am_tc := -'`α|}.
+  simpl. right. left.
+  exists α. simpl. 
+  fold (CRopp).
+  fold (CRplus).
+  fold (@negate CR _).
+  fold (@plus CR _).
+  rewrite negate_involutive.
+  rewrite plus_0_l.
+  reflexivity.
+Defined.
+
+Definition mkQWriggle (α:Qpos) (d:CR) : list (DAtomicMove CR) 
+    :=  [mkQTurnMove α d; mkNegQTurnMove α (-d)].
+
+Require Import robots.car.commutator.
+Definition mkQSideways (α:Qpos) (d d':CR) : list (DAtomicMove CR) 
+    := 
+conjugate [mkStraightMove d'] (mkQWriggle α d).
+
+(*
+Lemma DWriggleSame : forall (t:Qpos) (d:CR), 
+  List.map getAtomicMove (DWriggle t d) = Wriggle ('t) d.
+Proof.
+  intros. reflexivity.
+Qed.
+
+
+Lemma DSidewaysSame : forall (t:Qpos) (dw ds :CR), 
+  List.map getAtomicMove (DSideways t dw ds) = SidewaysMove ('t) dw ds.
+Proof.
+  intros. reflexivity.
+Qed.
 *)
 
 Section InverseProblem.
@@ -408,19 +457,27 @@ Proof using.
 Qed.
 
 
-Let d'  : CR := (compress cos2θ_inv) * ('Xs -  (extraSpaceX1W θ)).
+Definition dStraight  : CR := (compress cos2θ_inv) * ('Xs -  (extraSpaceX1W θ)).
+
+Local Notation d' := dStraight.
 
 Require Import MathClasses.theory.fields.
 
 
 
-Let d :CR := ('tr*θ).
+Definition dWriggle :CR := ('tr*θ).
+
+Local Notation d := dWriggle.
+
 Let sidewaysMove : list (DAtomicMove IR) 
   := SidewaysAux ('α) αNZ ('d) ('(d')).
 
+Definition sidewaysMoveQCR : list (DAtomicMove CR) 
+  := mkQSideways (α ↾ αPosQ) d d'.
+
 Lemma  θcorrect : θ = 'α * d.
 Proof using αPosQ.
-  subst d.
+  unfold dWriggle.
   rewrite  (@simple_associativity _ _ mult _ _).
   rewrite <- preserves_mult.
   subst tr.
@@ -523,14 +580,28 @@ Require Import CRMisc.numericalOpt.
 Definition approxMaximizeUpwardShift : list CR -> option CR :=
   approxMaximize eps CR approxDecideXAdmiss upwardShift.
 
+Require Import MathClasses.interfaces.functors.
+Require Import MathClasses.interfaces.monads.
+Require Import MathClasses.theory.monads.
+Require Import MathClasses.implementations.option.
+
+Definition sidewaysOptimalParams (l: list CR) : option (CR * CR) :=
+  θ ← approxMaximizeUpwardShift l;
+  Some (dWriggle θ, dStraight θ).
+
+
+Definition optimalSidewaysMoveAux (l: list CR) : list (DAtomicMove CR) :=
+  match (approxMaximizeUpwardShift l) with
+  | None => []
+  | Some θ => (sidewaysMoveQCR θ)
+  end.
+
+
 Example approxMaximizeUpwardShiftTest :
-approxMaximizeUpwardShift [] = None.
-reflexivity.
+  approxMaximizeUpwardShift [] = None.
+  reflexivity.
 Qed.
 
-
-
-Locate Qpos.
 
 Section sampling.
 Variable δ: Qpos.
@@ -557,6 +628,9 @@ Definition optimalSolution : option CR :=
   approxMaximizeUpwardShift 
     (cbvApply (List.map (cast Q CR)) equiSpacedSamples).
 
+Definition optimalSidewaysMove : list (DAtomicMove CR) :=
+  optimalSidewaysMoveAux
+    (cbvApply (List.map (cast Q CR)) equiSpacedSamples).
 (* Move *)
 Lemma preserves_extraSpaceX1DerivUB:
   '(extraSpaceX1DerivUB α cd) = ((extraSpaceX1DerivUB α cd):IR).
@@ -576,10 +650,10 @@ Proof using.
   [ apply RingLeProp3 | ];apply Cart2DRadNNegIR.
 Qed.
 
-Hypothesis δLargeEnough : '`δ ≤ maxValidAngle.
+Hypothesis δSmallEnough : '`δ ≤ maxValidAngle.
 
 Lemma maxValidAngleApproxNonneg : 0 ≤ maxValidAngleApprox.
-Proof using δLargeEnough.
+Proof using δSmallEnough.
   unfold maxValidAngleApprox.
   apply (order_reflecting (cast Q CR)).
   eapply transitivity;[| apply (proj1 (lowerApproxCorrect _ _))].
@@ -587,7 +661,7 @@ Proof using δLargeEnough.
   apply flip_le_minus_l.
   rewrite negate_involutive.
   rewrite <- preserves_plus.
-  eapply transitivity;[| apply δLargeEnough].
+  eapply transitivity;[| apply δSmallEnough].
   apply order_preserving;[eauto 2 with typeclass_instances|].
   apply eq_le.
   simpl.
@@ -599,7 +673,7 @@ Qed.
 Lemma  equiSpacedSamplesFstValue: 
  {q :Q | List.head  equiSpacedSamples ≡ Some q 
     /\ extraSpaceX1W ('q) ≤ (extraSpaceX1DerivUB α cd) * ('`δ) }.
-Proof using δLargeEnough.
+Proof using δSmallEnough.
   destruct (equiSpacedSamplesFst2 δ maxValidAngleApprox) as [q Hd];
     [apply maxValidAngleApproxNonneg|].
   exists q. destruct Hd as [Hdl Hdr].
@@ -632,7 +706,7 @@ Lemma  equiSpacedSamplesFstAdmissible:
 →
 {q :Q | List.head  equiSpacedSamples ≡ Some q 
     /\ approxDecideXAdmiss ('q) ≡ true}.
-Proof using δLargeEnough.
+Proof using δSmallEnough.
   intro H.
   destruct equiSpacedSamplesFstValue as [q Hd].
   exists q. repnd.
@@ -654,7 +728,7 @@ Lemma optimalSolution_isSome :
       In m equiSpacedSamples
       ∧ approxDecideXAdmiss ('m) ≡ true
       ∧ optimalSolution ≡ Some ('m).
-Proof using δLargeEnough.
+Proof using δSmallEnough.
   intro Hyp.
   destruct (equiSpacedSamplesFstAdmissible Hyp) as [q Hd].
   repnd.
@@ -671,7 +745,8 @@ Proof using δLargeEnough.
   subst mr.
   tauto.
 Qed.
-        
+
+
 End sampling.
 
 
@@ -732,13 +807,13 @@ Let eps : Qpos.
 Defined.
 
 Let tapproxMaximizeUpwardShift : list CR → option CR :=
-approxMaximizeUpwardShift cd ntriv α αPosQ turnCentreOut Xs Xsp eps.
+  approxMaximizeUpwardShift cd ntriv α αPosQ turnCentreOut Xs Xsp eps.
 
 Let test1 : option CR :=
 (tapproxMaximizeUpwardShift [' (Qmake 1 100); ' (Qmake 1 200)]).
 
 Let approx : option CR -> option Q :=
-option_map (fun r => approximate r eps).
+  sfmap (fun r => approximate r eps).
 
 (* unit : radians. pi radians = 180 degrees. 1 radian ~ 57 degrees *)
 Definition δ :Qpos := QposMake 1 100.
@@ -748,12 +823,13 @@ equiSpacedSamples cd α δ.
 
 Eval vm_compute in (samples).
 
-
 Eval vm_compute in (length samples, eps).
 
-
 Definition finalSoln: option Q
-:= (approx (optimalSolution cd ntriv α αPosQ turnCentreOut Xs Xsp eps δ)).
+  := (approx (optimalSolution cd ntriv α αPosQ turnCentreOut Xs Xsp eps δ)).
+
+Definition optimalSidewaysMoveMazda : list (DAtomicMove CR) :=
+  optimalSidewaysMove cd ntriv α αPosQ turnCentreOut Xs Xsp eps δ.
 
 Example dshffkldjs:
 finalSoln =
