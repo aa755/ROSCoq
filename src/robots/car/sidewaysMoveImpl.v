@@ -69,32 +69,25 @@ We fix one of those by deciding that while turning, the
 steering wheel will be at its extremities -- this choice
 may be optimal.
 
-2 parameters remain : how much to drive while turning,
-and how much to drive while moving straight.
+2 parameters remain : how much to drive while turning (d),
+and how much to drive while moving straight (d').
+
 The total X-space needed can be decomposed as a sum
-of 2 terms, each of which is a function of these 2 parameters. 
-The latter function, which
-is the X-space consumed by the straight move, is easily
-invertible. The former, which is
+of 2 terms, each of which is a function of d and d'. 
+The former, which is
 the space needed to execute the [Wriggle] part of the sideways move,
-is a horrendous quartic -- will be solved numerically, and only approximately.
-(It may be possible to solve it exatly.)
+is a horrendous quartic.
 
-There is a meta parameter [k] denoting what fraction of the available
-X-space is spent on doing Wriggle. The upward shift (the larger, the better) 
-is 0 for both extremes of this paremeter (0 and 1).
-If wriggle is done without consuming any extra space, no turn will
-be produced, and hence the straight move in the middle will result
-in  0 upward shift. On the other hand, if all the space 
-is spent on wriggle, the
-car will turn a lot, but return to its original position
- (Wriggle + WriggleInv == 0).
-We will try many choices of this [k], and pick the best among those.
+The latter function, which
+is the X-space consumed by the straight move, and is easily
+invertible w.r.t. d'. Hence we chose d' such that all the
+remaining space (if any) is
+taken up by the straight move.
 
-The proof only says that the sideways move will be safe, and
-produce a positive upward shift. Depending on how carefully the
-parameter [k] is chosen, a possibly approximate optimality theorem
-may be proven.
+So, the only remaining parameter is d. We systematically try several
+samples and pick the best one that is safe.
+Based on the how closely the samples are choose for [d], this approach
+is both sound and approximately optimal.
 *)
 
 Section InverseProblem.
@@ -733,7 +726,7 @@ compute. reflexivity.
 Defined.  (*Qed? *)
 
 Let eps : Qpos.
-  let t := eval compute in ((Qmake 1 10)) in 
+  let t := eval compute in ((Qmake 1 100)) in 
   exists t.
   compute. reflexivity.
 Defined.
@@ -745,7 +738,7 @@ Let test1 : option CR :=
 (tapproxMaximizeUpwardShift [' (Qmake 1 100); ' (Qmake 1 200)]).
 
 Let approx : option CR -> option Q :=
-option_map (fun r => approximate r (QposMake 1 10)).
+option_map (fun r => approximate r eps).
 
 (* unit : radians. pi radians = 180 degrees. 1 radian ~ 57 degrees *)
 Definition δ :Qpos := QposMake 1 100.
@@ -770,7 +763,7 @@ The tests below confirm that the maxima is indeed achieved close to that point.
 *)
 Proof using.
 (*time vm_compute. 
-Tactic call ran for 34.943 secs (34.984u,0.004s) (success) 
+Tactic call ran for 88.037 secs (88.012u,0.144s) (success)
 reflexivity.*)
 Abort.
 
@@ -831,7 +824,8 @@ Eval vm_compute in (samples).
 
 
 (**
-Ideas to make it fast:
+Ideas to make it fast: 
+(0.7s (eps=0.01 inch, 41 samples) afer extraction is fast enough for now)
  
 1) Switch to AR.
 
@@ -843,12 +837,7 @@ into ARs and then do the exact division in AR.
 Does CoRN.reals.fast.Compress, already provide some of the advantages
 of AR in CR?
 
-
-2) extract it to OCaml or Haskell. There is a chance that the bloat of proof
-is slowing things down. Also vm_compute use machine (big) integers instead of Coq's
-binary Z?
-
-3) It suffices to only consider rational solutions. We are only after
+2) It suffices to only consider rational solutions. We are only after
 approximate optimality. We can replace [sin] by [rational_sin] ...  e.t.c.
 [sin] invokes [rational_sin].
 

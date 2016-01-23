@@ -471,7 +471,7 @@ Example ex1 : (131196 # 3288200 == 32799 # 822050)%Q.
 vm_compute. reflexivity.
 Abort.
 
-Definition toPrint : string := animation.
+Definition toPrint : string := optimalParam.
   
 Close Scope string_scope.
 Locate posCompareContAbstract43820948120402312.
