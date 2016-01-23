@@ -38,8 +38,8 @@ Require Export CartIR.
 
 Require Import String.
 
-(*Require Import haskellExtractionDirectives.*)
-Require Import ocamlExtractionDirectives.
+Require Import haskellExtractionDirectives.
+(*Require Import ocamlExtractionDirectives.*)
   
 Local Opaque CSine.
 Local Opaque CCos.
@@ -72,9 +72,18 @@ Require Import fastReals.misc.
 Require Import fastReals.interface.
 Require Import fastReals.implCR.
 
+Require Import MathClasses.interfaces.functors.
+
+(* Move *)
+Global Instance SFmapCart2D : SFmap Cart2D :=
+fun _ _ f c => {|X:= f (X c); Y:= f (Y c)|}.
+
+Global Instance SFmapRigid2D : SFmap Rigid2DState :=
+fun _ _ f c => {|pos2D := sfmap f (pos2D c); θ2D := f (θ2D c)|}.
+
 Definition carStateAfterAtomicMove 
   (cs : carState CR) (dm : @DAtomicMove CR _ _ _): carState CR:=
-  {|csrigid2D := stateAfterAtomicMove (csrigid2D cs) dm
+  {|csrigid2D := (*sfmap compress*) (stateAfterAtomicMove (csrigid2D cs) dm)
     ; cs_tc := (am_tc (projT1 dm)) |}.
 
 
@@ -424,14 +433,14 @@ Definition frameWithLines (preface:string) (lines : list (Line2D Z)) : string :=
     (tikZHeaderFooter (preface ++ (tikZLines lines))).
 
 
-Extract Inlined Constant cbvApply => "(Prelude.$!)".  
+Extract Inlined Constant cbvApply => "(Prelude.$!)".
 
 Definition animation : string := 
   let sidewaysMove := List.zip moveNamesSideways sidewaysMove  in
   let initStp := (sconcat spacedMoves,initSt) in
   let cs := (finerMovesStates 3 sidewaysMove initStp) in
   let namedLines : list (string ** list (Line2D Z)) := carStatesFrames  cs in
-  let allLines : list (Line2D Z) :=  cbvApply (flat_map snd) namedLines in
+  let allLines : list (Line2D Z) :=  (*cbvApply*) (flat_map snd) namedLines in
   let globalB := computeBoundingRectLines allLines in
   match namedLines with
   | [] => ""
@@ -462,8 +471,9 @@ Example ex1 : (131196 # 3288200 == 32799 # 822050)%Q.
 vm_compute. reflexivity.
 Abort.
 
-Definition toPrint : string := optimalParam.
+Definition toPrint : string := animation.
   
 Close Scope string_scope.
-
-Extraction "simulator.hs" toPrint.
+Locate posCompareContAbstract43820948120402312.
+Extraction "simulator.hs"  animation optimalParam toPrint 
+  ExtrHaskellQ.posCompareContAbstract43820948120402312.
