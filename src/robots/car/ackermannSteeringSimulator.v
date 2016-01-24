@@ -421,26 +421,55 @@ Definition animation : string :=
   end.
 
 
-Axiom showQQQQ : (list (Z ** ((((Z ** Z) ** Z) ** Z) ** Z))) -> string.
-(** [Z] maps to [Prelude.Integer] and [string] map to Prelude.?? . 
-  So Prelude.show works *)
+Axiom showQQQQ : (list (Z ** (list Z))) -> string.
+Axiom showZZ : (Z ** Z) -> string.
+Axiom showN : (nat) -> string.
 Extract Constant showQQQQ => "(Prelude.show)".
+Extract Constant showZZ => "(Prelude.show)".
+Extract Constant showN => "(Prelude.show)".
 
-Definition numXspaceSamples : positive := (30)%positive.
+Definition numXspaceSamples : positive := (60)%positive.
 
 (** Hakell normaizes rationals whenever it wants. So ensuring that
 the denominator is 100 in Coq is not sufficient after extraction.
 We are extracting (just the type) of Coq rationals to Haskell rationals,
 just to access printing, and conversion to/from floats.
 *)
-Definition spaceXplot : (list (Z ** ((((Z ** Z) ** Z) ** Z) ** Z))) :=
+Definition spaceXplot : (list (Z ** (list Z))) :=
   let QtoZ q := Qround.Qfloor (q*(100)%Z) in
-  let mf (p:(Q ** ((((Q ** Q) ** Q) ** Q) ** Q)))
-     := let (a,b) := p in (QtoZ a, pair_map5 QtoZ b) in
+  let mf (p:(Q ** (list Q)))
+     := let (a,b) := p in (QtoZ a, List.map QtoZ b) in
     (List.map mf (plotOptimalSidewaysMoveShiftMazdaQ numXspaceSamples)).
 
+Definition spaceXplotn (n:nat) : list (Z**Z):=
+  List.map 
+    (fun (p:(Z ** (list Z))) => let (a,b) := p in (fst p, nth n b 0%Z)) 
+    spaceXplot.
 
-Definition toPrint : string :=   showQQQQ spaceXplot.
+Definition endLine (s:string) : string := sconcat [s; newLineString].
+
+Definition colorAndNames : (list (string * string )) :=
+[
+  ("red" , "angle (degrees)");
+  ("green" , "upward shift");
+  ("blue" , "straight distance");
+  ("magenta" , "wriggle X space");
+  ("yellow" , "straight X space")
+].
+
+
+Definition spaceXplotnStr (n:nat) : string :=
+  let (color, name) := nth n colorAndNames ("exception","garbage") in
+  let preamble n :=
+    sconcat ["\addplot[color="; color ; "] coordinates {"] in
+  let cs:=
+    (sconcat (List.map 
+            (fun p => endLine (showZZ p)) 
+            (spaceXplotn n))) in
+    sconcat [preamble n; cs ; "}; \addlegendentry{";name;"}" 
+      ; newLineString; newLineString].
+
+Definition toPrint : string := sconcat (List.map  spaceXplotnStr (seq 0 5)).
 
 Close Scope string_scope.
 Locate posCompareContAbstract43820948120402312.

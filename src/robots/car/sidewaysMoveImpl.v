@@ -592,14 +592,15 @@ Definition angleAsDegrees (a:CR) : CR :=
  (a*CRPiInv* ('180%positive)).
 
 Let sap : CR -> Q :=  fun r => simpleApproximate r (100)%positive eps.
-Definition sidewaysOptimalParamsAndShiftAux (l: list CR) : (CR * CR * CR * CR * CR) :=
+Definition sidewaysOptimalParamsAndShiftAux (l: list CR) : list CR :=
   match (approxMaximizeUpwardShift l) with
-  | None  => (0,0,0,0,0)
+  | None  => [0;0;0;0;0]
   | Some θ => 
     let ds := dStraight θ in
-    ((angleAsDegrees θ), upwardShift θ, ds , extraSpaceX1W θ, ds * cos (2*θ))
+    [(angleAsDegrees θ); upwardShift θ; ds; extraSpaceX1W θ; ds * cos (2*θ)]
   end.
 
+(* Move.*)
 Fixpoint NPair (T:Type) (n:nat) : Type :=
 match n with
 | 0 => void
@@ -623,8 +624,8 @@ Defined.
 Definition pair_map5 {A B:Type} (f:A -> B) (pa: A * A * A* A * A) : (B * B * B* B * B) :=
  (@npair_map A B 5 f pa).
 
-Definition sidewaysOptimalParamsAndShiftQAux (l: list CR) : (Q * Q * Q* Q * Q) :=
-  pair_map5  sap (sidewaysOptimalParamsAndShiftAux l).
+Definition sidewaysOptimalParamsAndShiftQAux (l: list CR) : (list Q) :=
+  List.map  sap (sidewaysOptimalParamsAndShiftAux l).
 
 
 Definition optimalSidewaysMoveAux (l: list CR) : list (DAtomicMove CR) :=
@@ -664,7 +665,7 @@ Let samples := (cbvApply (List.map (cast Q CR)) equiSpacedSamples).
 Definition optimalSolution : option CR :=
   approxMaximizeUpwardShift samples.
 
-Definition sidewaysOptimalParamsAndShiftQ : (Q*Q*Q*Q*Q) :=
+Definition sidewaysOptimalParamsAndShiftQ : (list Q) :=
 sidewaysOptimalParamsAndShiftQAux samples.
 
 Definition optimalSidewaysMove : list (DAtomicMove CR) :=
@@ -878,7 +879,7 @@ equiSpacedSamples cd α δ.
 Eval vm_compute in (samples).
 
 
-Definition optimalSidewaysMoveShiftMazdaQp (Xspos : Qpos ): (Q * Q * Q * Q * Q) :=
+Definition optimalSidewaysMoveShiftMazdaQp (Xspos : Qpos ): (list Q) :=
   let (Xs, Xsp) := Xspos in
   (sidewaysOptimalParamsAndShiftQ cd ntriv α αPosQ turnCentreOut Xs Xsp eps δ).
 
@@ -887,7 +888,7 @@ Definition optimalSidewaysMoveMazda (Xspos : Qpos ) : list (DAtomicMove CR) :=
   optimalSidewaysMove cd ntriv α αPosQ turnCentreOut Xs Xsp eps δ.
 
 
-Definition optimalSidewaysMoveShiftMazdaQ (q : Q): (Q * Q * Q * Q * Q) :=
+Definition optimalSidewaysMoveShiftMazdaQ (q : Q): (list Q) :=
 let (Xs, Xsp) := Qpossec.QabsQpos q in
   (sidewaysOptimalParamsAndShiftQ cd ntriv α αPosQ turnCentreOut Xs Xsp eps δ).
 
@@ -899,7 +900,7 @@ Let  tupwardShift (Xspos : Qpos ) : CR -> CR :=
 
 Example xxxx :
 (optimalSidewaysMoveShiftMazdaQ (QposMake 17 1))
-≡ ((171 # 100)%Q, (56 # 100)%Q, (938 # 100)%Q, (764 # 100)%Q, (936 # 100)%Q).
+≡ [(171 # 100)%Q; (56 # 100)%Q; (938 # 100)%Q; (764 # 100)%Q; (936 # 100)%Q].
 (*vm_compute.
 reflexivity. *)
 Abort.
