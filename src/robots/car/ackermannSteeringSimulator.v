@@ -421,19 +421,26 @@ Definition animation : string :=
   end.
 
 
-Axiom showQQQQ : (list (Q ** ((((Q ** Q) ** Q) ** Q) ** Q))) -> string.
+Axiom showQQQQ : (list (Z ** ((((Z ** Z) ** Z) ** Z) ** Z))) -> string.
 (** [Z] maps to [Prelude.Integer] and [string] map to Prelude.?? . 
   So Prelude.show works *)
 Extract Constant showQQQQ => "(Prelude.show)".
 
 Definition numXspaceSamples : positive := (30)%positive.
 
-Definition spaceXplot : string :=
-  showQQQQ (plotOptimalSidewaysMoveShiftMazdaQ numXspaceSamples).
+(** Hakell normaizes rationals whenever it wants. So ensuring that
+the denominator is 100 in Coq is not sufficient after extraction.
+We are extracting (just the type) of Coq rationals to Haskell rationals,
+just to access printing, and conversion to/from floats.
+*)
+Definition spaceXplot : (list (Z ** ((((Z ** Z) ** Z) ** Z) ** Z))) :=
+  let QtoZ q := Qround.Qfloor (q*(100)%Z) in
+  let mf (p:(Q ** ((((Q ** Q) ** Q) ** Q) ** Q)))
+     := let (a,b) := p in (QtoZ a, pair_map5 QtoZ b) in
+    (List.map mf (plotOptimalSidewaysMoveShiftMazdaQ numXspaceSamples)).
 
 
-
-Definition toPrint : string := spaceXplot.
+Definition toPrint : string :=   showQQQQ spaceXplot.
 
 Close Scope string_scope.
 Locate posCompareContAbstract43820948120402312.
