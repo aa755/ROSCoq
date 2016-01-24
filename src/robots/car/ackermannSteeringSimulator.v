@@ -304,7 +304,7 @@ Local Definition wriggleMove : DAtomicMoves :=
 
 (** turn radius, which is inverse of turn curvature, is 200*)
 Local Definition sidewaysMove : DAtomicMoves :=
-optimalSidewaysMoveMazda .
+optimalSidewaysMoveMazda (QposMake 35 1).
 
 
 Open Scope string_scope.
@@ -421,17 +421,21 @@ Definition animation : string :=
   end.
 
 
-Axiom oQtoString : option Q -> string.
+Axiom showQQQQ : (list (Q ** ((((Q ** Q) ** Q) ** Q) ** Q))) -> string.
 (** [Z] maps to [Prelude.Integer] and [string] map to Prelude.?? . 
   So Prelude.show works *)
-Extract Constant oQtoString => "(Prelude.show)".
+Extract Constant showQQQQ => "(Prelude.show)".
 
-Definition optimalParam : string := oQtoString finalSoln.
+Definition numXspaceSamples : positive := (30)%positive.
+
+Definition spaceXplot : string :=
+  showQQQQ (plotOptimalSidewaysMoveShiftMazdaQ numXspaceSamples).
 
 
-Definition toPrint : string := animation.
+
+Definition toPrint : string := spaceXplot.
 
 Close Scope string_scope.
 Locate posCompareContAbstract43820948120402312.
-Extraction "simulator.hs"  animation optimalParam toPrint 
+Extraction "simulator.hs"  animation spaceXplot toPrint 
   ExtrHaskellQ.posCompareContAbstract43820948120402312.

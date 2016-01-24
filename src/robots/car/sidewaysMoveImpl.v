@@ -456,6 +456,8 @@ Proof using.
   apply cos2θ_lbCorrect.
 Qed.
 
+Definition spaceNeededFor1MoveSoln : CR :=
+  rad ('(βPlusFront)) - '(lengthFront cd).
 
 Definition dStraight  : CR := (compress cos2θ_inv) * ('Xs -  (extraSpaceX1W θ)).
 
@@ -585,9 +587,44 @@ Require Import MathClasses.interfaces.monads.
 Require Import MathClasses.theory.monads.
 Require Import MathClasses.implementations.option.
 
-Definition sidewaysOptimalParams (l: list CR) : option (CR * CR) :=
-  θ ← approxMaximizeUpwardShift l;
-  Some (dWriggle θ, dStraight θ).
+(* Move and use in approximateAngleAsDegrees.*)
+Definition angleAsDegrees (a:CR) : CR :=
+ (a*CRPiInv* ('180%positive)).
+
+Let sap : CR -> Q :=  fun r => simpleApproximate r (100)%positive eps.
+Definition sidewaysOptimalParamsAndShiftAux (l: list CR) : (CR * CR * CR * CR * CR) :=
+  match (approxMaximizeUpwardShift l) with
+  | None  => (0,0,0,0,0)
+  | Some θ => 
+    let ds := dStraight θ in
+    ((angleAsDegrees θ), upwardShift θ, ds , extraSpaceX1W θ, ds * cos (2*θ))
+  end.
+
+Fixpoint NPair (T:Type) (n:nat) : Type :=
+match n with
+| 0 => void
+| 1 => T
+| S n => (NPair T n)* T
+end.
+
+Definition npair_map {A B:Type} {n:nat} (f:A -> B) (np : NPair A n) : NPair B n.
+revert np.
+revert n.
+fix 1.
+intros n np.
+destruct n;[exact np|].
+specialize (npair_map n).
+simpl in *.
+destruct n;[exact (f np)|].
+destruct np.
+exact (npair_map n0, f a).
+Defined.
+
+Definition pair_map5 {A B:Type} (f:A -> B) (pa: A * A * A* A * A) : (B * B * B* B * B) :=
+ (@npair_map A B 5 f pa).
+
+Definition sidewaysOptimalParamsAndShiftQAux (l: list CR) : (Q * Q * Q* Q * Q) :=
+  pair_map5  sap (sidewaysOptimalParamsAndShiftAux l).
 
 
 Definition optimalSidewaysMoveAux (l: list CR) : list (DAtomicMove CR) :=
@@ -596,12 +633,10 @@ Definition optimalSidewaysMoveAux (l: list CR) : list (DAtomicMove CR) :=
   | Some θ => (sidewaysMoveQCR θ)
   end.
 
-
 Example approxMaximizeUpwardShiftTest :
   approxMaximizeUpwardShift [] = None.
   reflexivity.
 Qed.
-
 
 Section sampling.
 Variable δ: Qpos.
@@ -624,13 +659,17 @@ Definition maxValidAngleApprox : Q :=
 Definition equiSpacedSamples : list Q :=
   Qmisc.equiSpacedSamples  δ maxValidAngleApprox.
 
+Let samples := (cbvApply (List.map (cast Q CR)) equiSpacedSamples).
+
 Definition optimalSolution : option CR :=
-  approxMaximizeUpwardShift 
-    (cbvApply (List.map (cast Q CR)) equiSpacedSamples).
+  approxMaximizeUpwardShift samples.
+
+Definition sidewaysOptimalParamsAndShiftQ : (Q*Q*Q*Q*Q) :=
+sidewaysOptimalParamsAndShiftQAux samples.
 
 Definition optimalSidewaysMove : list (DAtomicMove CR) :=
-  optimalSidewaysMoveAux
-    (cbvApply (List.map (cast Q CR)) equiSpacedSamples).
+  optimalSidewaysMoveAux samples.
+
 (* Move *)
 Lemma preserves_extraSpaceX1DerivUB:
   '(extraSpaceX1DerivUB α cd) = ((extraSpaceX1DerivUB α cd):IR).
@@ -782,8 +821,14 @@ Let turnCentreOut : (width cd <= Qinv α)%Q.
 compute. intros H; discriminate.
 Defined.  (*Qed? *)
 
+Let eps : Qpos.
+  let t := eval compute in ((Qmake 1 100)) in 
+  exists t.
+  compute. reflexivity.
+Defined.
+
 (** extra available space in the X direction.
-set to one tenth of the length of the car *)
+set to one tenth of the length of the car 
 Let Xs : Q.
   let t := eval compute in ((Qmake 1 10) * (totalLength cd)) in 
   exact t.
@@ -800,17 +845,12 @@ Let Xsp : (0 < Xs).
 compute. reflexivity.
 Defined.  (*Qed? *)
 
-Let eps : Qpos.
-  let t := eval compute in ((Qmake 1 100)) in 
-  exists t.
-  compute. reflexivity.
-Defined.
-
 Let tapproxMaximizeUpwardShift : list CR → option CR :=
   approxMaximizeUpwardShift cd ntriv α αPosQ turnCentreOut Xs Xsp eps.
 
 Let test1 : option CR :=
 (tapproxMaximizeUpwardShift [' (Qmake 1 100); ' (Qmake 1 200)]).
+*)
 
 Let approx : option CR -> option Q :=
   sfmap (fun r => approximate r eps).
@@ -818,103 +858,68 @@ Let approx : option CR -> option Q :=
 (* unit : radians. pi radians = 180 degrees. 1 radian ~ 57 degrees *)
 Definition δ :Qpos := QposMake 1 100.
 
+Let  tr :Q := '(minTR Mazda3Sedan2014sGT).
+
+Eval compute in tr.
+
+Eval vm_compute in (R2ZApprox (rad ('(βPlusFront cd α)))  eps).
+(*235*)
+Eval vm_compute in (lengthFront cd).
+(*142.
+If there is sufficient space at the bottom and if there is more than
+235-142 = 93 inches of space in the front, parallel parking can be done in 1 move
+*)
+Eval vm_compute in (R2ZApprox (spaceNeededFor1MoveSoln cd α)  eps).
+(* 93 *)
+
 Definition samples : list Q:= 
 equiSpacedSamples cd α δ.
 
 Eval vm_compute in (samples).
 
-Eval vm_compute in (length samples, eps).
 
-Definition finalSoln: option Q
-  := (approx (optimalSolution cd ntriv α αPosQ turnCentreOut Xs Xsp eps δ)).
+Definition optimalSidewaysMoveShiftMazdaQp (Xspos : Qpos ): (Q * Q * Q * Q * Q) :=
+  let (Xs, Xsp) := Xspos in
+  (sidewaysOptimalParamsAndShiftQ cd ntriv α αPosQ turnCentreOut Xs Xsp eps δ).
 
-Definition optimalSidewaysMoveMazda : list (DAtomicMove CR) :=
+Definition optimalSidewaysMoveMazda (Xspos : Qpos ) : list (DAtomicMove CR) :=
+  let (Xs, Xsp) := Xspos in
   optimalSidewaysMove cd ntriv α αPosQ turnCentreOut Xs Xsp eps δ.
 
-Example dshffkldjs:
-finalSoln =
-(Some (149596 # 3769400)%Q).
-(* this is the 5^th member member of the list [samples] of 41 elements.
-The tests below confirm that the maxima is indeed achieved close to that point.
-*)
-Proof using.
-time vm_compute. 
-(*Tactic call ran for 88.037 secs (88.012u,0.144s) (success)
-*)
-reflexivity.
-Abort.
 
-Let  tupwardShift : CR -> CR
-:= upwardShift cd ntriv α αPosQ turnCentreOut Xs Xsp.
+Definition optimalSidewaysMoveShiftMazdaQ (q : Q): (Q * Q * Q * Q * Q) :=
+let (Xs, Xsp) := Qpossec.QabsQpos q in
+  (sidewaysOptimalParamsAndShiftQ cd ntriv α αPosQ turnCentreOut Xs Xsp eps δ).
 
-(* quality of the computed soultion *)
-Example exampleUpw : 
-approximate (compress (tupwardShift ('((149596 # 3769400)%Q))))
-            (QposMake 1 100) 
-≡ (122 # 201)%Q.
-vm_compute.
-reflexivity.
-Abort.
 
-Example exampleUp2 : 
-approximate (compress (tupwardShift ('((231196 # 3288200)%Q))))
-            (QposMake 1 100) 
-≡ (6 # 201)%Q.
-vm_compute.
-reflexivity.
-Abort.
+Let  tupwardShift (Xspos : Qpos ) : CR -> CR :=
+  let (Xs, Xsp) := Xspos in
+    upwardShift cd ntriv α αPosQ turnCentreOut Xs Xsp.
 
-Example exampleUp2 : 
-approximate (compress (tupwardShift ('((031196 # 3288200)%Q))))
-            (QposMake 1 100) 
-≡ (58 # 201)%Q.
-vm_compute.
-reflexivity.
+
+Example xxxx :
+(optimalSidewaysMoveShiftMazdaQ (QposMake 17 1))
+≡ ((171 # 100)%Q, (56 # 100)%Q, (938 # 100)%Q, (764 # 100)%Q, (936 # 100)%Q).
+(*vm_compute.
+reflexivity. *)
 Abort.
 
 
-(* this solution is 2/100 inch better than [finalSoln], which is around
-(149596 # 3769400). That is expected. If the sampling is made more fine-grained,
-this one should be found instead.
-At cuttent granularity, the closest to this solution
-that was considered is the one in [exampleUp3],  whose quality is worse 
-than [finalSoln]. *)
-Example exampleUp2 : 
-approximate (compress (tupwardShift ('((127468 # 3769400)%Q))))
-            (QposMake 1 100) 
-≡ (124 # 201)%Q.
-vm_compute.
-reflexivity.
-Abort.
+Definition xspaceSamples (np : positive ): list Q := 
+let max :Q  := (approximate (spaceNeededFor1MoveSoln cd α) eps) in
+let eqs : list Q := equiMidPoints np in
+  List.map (mult max) eqs.
 
-Eval vm_compute in samples.
-Example exampleUp3 : 
-approximate (compress (tupwardShift ('((112197 # 3769400)%Q))))
-            (QposMake 1 100) 
-≡ (121 # 201)%Q.
-  vm_compute.
-  reflexivity.
-Abort.
+Definition plotl `(f: A->B) (l: list A) : (list (A * B)) :=
+List.map (fun a => (a,f a)) l.
 
-
-Example exampleUp2 : 
-approximate (compress (tupwardShift ('((137196 # 3288200)%Q))))
-            (QposMake 1 100) 
-≡ (120 # 201)%Q.
-vm_compute.
-reflexivity.
-Abort.
-
-Eval vm_compute in samples.
-Example exampleUp2 : 
-approximate (compress (tupwardShift ('(((32799 # 80200))%Q))))
-            (QposMake 1 100) 
-≡ (-10861 # 201)%Q.
-vm_compute.
-reflexivity.
-Abort.
-
-
+(*
+Eval vm_compute in 
+  (List.map (fun q => approximateQ q (100)%positive)
+     (xspaceSamples (100)%positive)).
+*)     
+Definition plotOptimalSidewaysMoveShiftMazdaQ (np : positive) :=
+  plotl optimalSidewaysMoveShiftMazdaQ (xspaceSamples np).
 
 (**
 Ideas to make it fast: 

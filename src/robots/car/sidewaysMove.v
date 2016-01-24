@@ -2258,6 +2258,29 @@ Proof using.
   autorewrite with CRtoIR.
   reflexivity.
 Qed.
+
+Definition rightExtraSpaceW  `{CosClass R} `{Ring R}
+`{Cast (Cart2D Q) (Polar2D R)}
+`{Cast Q R}
+(θ:R) :=
+let βf : Polar2D R:= ' βPlusFront in
+ (rad βf) * cos ( θ  -  (Vector.θ βf))
+ - '(lengthFront cd).
+
+Lemma rightExtraSpaceSimpl2 : 
+  rightExtraSpaceWriggle 
+  = rightExtraSpaceW (' α * ' d).
+Proof using αNZ.
+  rewrite rightExtraSpaceSimpl.
+  unfold rightExtraSpaceW.
+  pose proof (unitVDotRAsPolar βPlusFront) as Hh.
+  simpl in Hh.
+  setoid_rewrite CosMinusSwap.
+  setoid_rewrite <- Hh.
+  unfold inprod, InProductCart2D.
+  simpl.
+  reflexivity.
+Qed.
  
 Lemma extraSpaceXWriggleCase1Simpl2: 
 extraSpaceXWriggleCase1
