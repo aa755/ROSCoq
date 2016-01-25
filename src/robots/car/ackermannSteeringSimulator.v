@@ -215,6 +215,30 @@ match c with
 | Datatypes.Gt => 1
 end.
 
+Record CarStateRenderingInfo :=
+{
+  frameLabel : string;
+  drawAngle : bool;
+  pauseBefore : bool;
+  emphBackRightCorner : bool
+}.
+
+Definition mkRenderingInfo (name: string):CarStateRenderingInfo :=
+{|
+  frameLabel := name;
+  drawAngle := false;
+  pauseBefore := false;
+  emphBackRightCorner := false
+|}.
+
+Definition mkTransitionRenderingInfo (name: string):CarStateRenderingInfo :=
+{|
+  frameLabel := name;
+  drawAngle := false;
+  pauseBefore := true;
+  emphBackRightCorner := false
+|}.
+
 
 Section DrawCar.
 Variable eps:Qpos.
@@ -267,8 +291,21 @@ Typeclasses eauto := 10.
 Local Definition straightMove : DAtomicMove CR :=
   (mkStraightMove (cast Z CR 100))%Z.
 
-Definition carStatesFrames  (l:list (string * carState CR)) : list (string * list (Line2D Z)) :=
-(List.map (fun p=> (fst p, drawCarZ eps myCarDim (snd p))) l).
+
+
+Definition NamedCarState := prod CarStateRenderingInfo  (carState CR).
+
+Definition drawCarFrameZ (ns : NamedCarState) : ((string * string) * list (Line2D Z))
+:=
+let newF : string := 
+  (if (pauseBefore (fst ns)) then "\newframe*" else "\newframe")%string in
+(frameLabel (fst ns), sconcat [newF; newLineString],
+   drawCarZ eps myCarDim (snd ns)).
+
+
+Definition carStatesFrames  (l:list NamedCarState) 
+: list ((string * string) * list (Line2D Z))  :=
+List.map (drawCarFrameZ) l.
 
 
 Fixpoint movesStates (l:list (DAtomicMove CR)) (init : carState CR) : 
@@ -309,13 +346,13 @@ Local Definition sidewaysMoveAndRightShift :  CR * DAtomicMoves :=
 
 Open Scope string_scope.
 Definition moveNamesWriggle : list string := 
-  ["\hll{(c,d)}; (-c,-d)" ;"(c,d); \hll{(-c,-d)}"].
+  ["\hll{($\alpha$,d)}; (-$\alpha$,-d)" ;"($\alpha$,d); \hll{(-$\alpha$,-d)}"].
 
 Definition initStNameWriggle : string := 
-  "(c,d); (-c,-d)".
+  "($\alpha$,d); (-$\alpha$,-d)".
 
 Definition atomicMoveNamesSideways : list string := 
-  ["(c,d)"; "(-c,-d)"; "$\;$(0,d')" ; "$\;$(-c,d)" ; "(c,-d)"].
+  ["($\alpha$,d)"; "(-$\alpha$,-d)"; "$\;$(0,d')" ; "$\;$(-$\alpha$,d)" ; "($\alpha$,-d)"].
 
 Local Definition spacedMoves := List.map (fun x => x++" ")atomicMoveNamesSideways.
 
@@ -336,14 +373,13 @@ Definition DscaleAtomicMove  (m: (DAtomicMove CR)) (s:Q) : (DAtomicMove CR) :=
 Definition finerAtomicMoves (d:Z⁺) (m: (DAtomicMove CR)) : list (DAtomicMove CR) :=
   List.map (DscaleAtomicMove m) (equiMidPoints d).
 
-Definition NamedCarState := prod string  (carState CR).
 
 Definition finerStates (d:Z⁺) (dm : NameDAtomicMove) (init : carState CR) : 
   NamedCarState * list NamedCarState :=
   let (name,dm) := dm in
-  ((name,carStateAfterAtomicMove init dm),
+  ((mkTransitionRenderingInfo name,carStateAfterAtomicMove init dm),
     List.map 
-      (fun m => (name,carStateAfterAtomicMove init m)) 
+      (fun m => (mkRenderingInfo name,carStateAfterAtomicMove init m)) 
       (finerAtomicMoves d dm)).
 
 Fixpoint finerMovesStates (d:Z⁺) (l:list NameDAtomicMove) (init : NamedCarState) : 
@@ -391,9 +427,8 @@ Definition drawEnv (global init:BoundingRectangle Z)  : string * Cart2D Z:=
   (sconcat (sideCars ++ [clip;bottomLine]), textPos).
 
 
-Definition frameWithLines (preface:string) (lines : list (Line2D Z)) : string :=
-  beamerFrameHeaderFooter "hello"
-    (tikZHeaderFooter (preface ++ (tikZLines lines))).
+Definition frameWithLines (suffix:string) (lines : list (Line2D Z)) : string :=
+    sconcat [newLineString; tikZLines lines; newLineString; suffix; newLineString].
 
   Local Notation minxy := (lstart).
   Local Notation maxxy := (lend).
@@ -407,12 +442,46 @@ initb + {| minxy := -leftExtraZ ; maxxy := rightExtraZ|}.
 
 Extract Inlined Constant cbvApply => "(Prelude.$!)".
 
+
+
+Definition animation (n: Z⁺): string := 
+  let (rs, sidewaysMove) := sidewaysMoveAndRightShift in
+  let sidewaysMove := List.zip moveNamesSideways sidewaysMove  in
+  let initStp : NamedCarState := 
+    (mkRenderingInfo (sconcat spacedMoves),initSt) in
+  let cs : list NamedCarState := (finerMovesStates n sidewaysMove initStp) in
+  let namedLines : list ((string * string) * list (Line2D Z)) 
+    := carStatesFrames  cs in
+  let allLines : list (Line2D Z) :=  (*cbvApply*) (flat_map snd) namedLines in
+  match namedLines return string with
+  | [] => ""
+  | h::tl => 
+      let initb := computeBoundingRectLines (snd h) in
+      (* the 2 items below are just guesses. TODO : compute them from the bounds derived in sidewaysMove.v *)
+      let upExtra :  CR := '(Zdiv (width (myCarDimZ)) (5%Z)) in
+      let downExtra : CR := '(Zdiv (width (myCarDimZ)) (5%Z)) in
+      let globalB : BoundingRectangle Z := globalBound initb rs upExtra downExtra  in
+      let (preface, textPos) := drawEnv globalB initb in 
+      let textTikZ  : string -> string  
+        := fun label => "\node[below right] at " ++ tikZPoint textPos 
+            ++ "{" ++ label ++ "};" ++ newLineString in
+      let frames := 
+        List.map (fun p => 
+          frameWithLines 
+            (sconcat [ preface ; textTikZ (fst (fst p)); snd (fst p)])
+            (snd p)) 
+          namedLines in
+      sconcat frames
+  end.
+
+(*
 Definition animationAutoBounding : string := 
   let (rs, sidewaysMove) := sidewaysMoveAndRightShift in
   let sidewaysMove := List.zip moveNamesSideways sidewaysMove  in
-  let initStp := (sconcat spacedMoves,initSt) in
+  let initStp := (mkRenderingInfo (sconcat spacedMoves),initSt) in
   let cs := (finerMovesStates 3 sidewaysMove initStp) in
-  let namedLines : list (string ** list (Line2D Z)) := carStatesFrames  cs in
+  let namedLines : list ((string * string) * list (Line2D Z)) 
+      := carStatesFrames cs in
   let allLines : list (Line2D Z) :=  (*cbvApply*) (flat_map snd) namedLines in
   let globalB : BoundingRectangle Z := computeBoundingRectLines allLines in
   match namedLines return string with
@@ -427,34 +496,10 @@ Definition animationAutoBounding : string :=
           (preface ++ textTikZ (fst p))  (snd p)) namedLines in
       sconcat frames
   end.
+*)
 
 
-Definition animation : string := 
-  let (rs, sidewaysMove) := sidewaysMoveAndRightShift in
-  let sidewaysMove := List.zip moveNamesSideways sidewaysMove  in
-  let initStp : string * carState CR := (sconcat spacedMoves,initSt) in
-  let cs : list NamedCarState := (finerMovesStates 3 sidewaysMove initStp) in
-  let namedLines : list (string * list (Line2D Z)) := carStatesFrames  cs in
-  let allLines : list (Line2D Z) :=  (*cbvApply*) (flat_map snd) namedLines in
-  match namedLines return string with
-  | [] => ""
-  | h::tl => 
-      let initb := computeBoundingRectLines (snd h) in
-      (* the 2 items below are just guesses. TODO : compute them from the bounds derived in sidewaysMove.v *)
-      let upExtra :  CR := '(Zdiv (width (myCarDimZ)) (5%Z)) in
-      let downExtra : CR := '(Zdiv (width (myCarDimZ)) (5%Z)) in
-      let globalB : BoundingRectangle Z := globalBound initb rs upExtra downExtra  in
-      let (preface, textPos) := drawEnv globalB initb in 
-      let textTikZ  : string -> string  
-        := fun label => "\node[below right] at " ++ tikZPoint textPos 
-            ++ "{" ++ label ++ "};" ++ newLineString in
-      let frames := List.map (fun p => frameWithLines 
-          (preface ++ textTikZ (fst p))  (snd p)) namedLines in
-      sconcat frames
-  end.
-
-Definition singleMoveDistance :Z :=25.
-
+(*
 Definition fstMoveOnlyAnimation : string := 
   let (rs, sidewaysMove) := sidewaysMoveAndRightShift in
   let sidewaysMove := List.zip [EmptyString] [mazdaMaxCurvTurnMove ('singleMoveDistance)] in
@@ -478,7 +523,9 @@ Definition fstMoveOnlyAnimation : string :=
           (preface ++ textTikZ (fst p))  (snd p)) namedLines in
       sconcat frames
   end.
+*)
 
+Definition singleMoveDistance :Z :=25.
 
 Axiom showQQQQ : (list (Z ** (list Z))) -> string.
 Axiom showZZ : (Z ** Z) -> string.
@@ -500,7 +547,7 @@ Definition spaceXplot : (list (Z ** (list Z))) :=
      := let (a,b) := p in (QtoZ a, List.map QtoZ b) in
     (List.map mf (plotOptimalSidewaysMoveShiftMazdaQ eps eps numXspaceSamples)).
 
-Definition spaceXplotn (n:nat) : list (Z**Z):=
+Definition spaceXplotn (n:nat) : list (Z*Z):=
   List.map 
     (fun (p:(Z ** (list Z))) => let (a,b) := p in (fst p, nth n b 0%Z)) 
     spaceXplot.
@@ -531,7 +578,7 @@ Definition spaceXplotnStr (n:nat) : string :=
 Definition spaceXplotStr : string := sconcat (List.map  spaceXplotnStr (seq 0 5)).
 
 
-Definition toPrint : string := fstMoveOnlyAnimation.
+Definition toPrint : string := animation (20)%positive.
 
 Close Scope string_scope.
 Locate posCompareContAbstract43820948120402312.
