@@ -301,10 +301,10 @@ Local Definition wriggleMove : DAtomicMoves :=
   (DWriggle (QposMake 1 150) ('(Qmake 32799 822050))).
 *)
 
+Definition totalAvailXExtraSpace : Qpos := (QposMake 35 1). 
 
-(** turn radius, which is inverse of turn curvature, is 200*)
-Local Definition sidewaysMove : DAtomicMoves :=
-optimalSidewaysMoveMazda (QposMake 35 1).
+Local Definition sidewaysMoveAndRightShift :  CR * DAtomicMoves :=
+  optimalSidewaysMoveMazda totalAvailXExtraSpace.
 
 
 Open Scope string_scope.
@@ -359,12 +359,12 @@ Definition textHt : Z := 25*finerRes.
 
 Definition Rect2D := Line2D.
 
-Definition sideCars (b init :BoundingRectangle Z): (BoundingRectangle Z) * list (Rect2D Z) :=
+Definition sideCars (global init :BoundingRectangle Z): (BoundingRectangle Z) * list (Rect2D Z) :=
   let cardim : Cart2D Z  := (sameXY finerRes)*{|X:= (lengthFront myCarDimZ) ; Y:= 2 * (width myCarDimZ) |} in
   let ymax := Y (lend init) in
-  let lcarMaxXY : Cart2D Z := {|X:= X (lstart b) - epsd ; Y:= ymax |}  in
-  let rcarMinXY : Cart2D Z := {|X:= X (lend b) + epsd ; Y:= ymax - (Y cardim) |}  in
-  (boundingUnion b {|lstart := lcarMaxXY - cardim; lend := rcarMinXY + cardim |},
+  let lcarMaxXY : Cart2D Z := {|X:= X (lstart global) - epsd ; Y:= ymax |}  in
+  let rcarMinXY : Cart2D Z := {|X:= X (lend global) + epsd ; Y:= ymax - (Y cardim) |}  in
+  (boundingUnion global {|lstart := lcarMaxXY - cardim; lend := rcarMinXY + cardim |},
     [
       {|lstart := lcarMaxXY - cardim; lend := lcarMaxXY |} ;
       {|lstart := rcarMinXY ; lend := rcarMinXY + cardim |}
@@ -378,8 +378,8 @@ Definition extendRectForText (b:BoundingRectangle Z)  : BoundingRectangle Z :=
 
 Open Scope string_scope.
 
-Definition drawEnv (b init:BoundingRectangle Z)  : string * Cart2D Z:=
-  let (bc, sc) := sideCars b init in
+Definition drawEnv (global init:BoundingRectangle Z)  : string * Cart2D Z:=
+  let (bc, sc) := sideCars global init in
   let textPos := lstart bc in
   let bf := extendRectForText bc in
   let bottomLineStart := {| X := X (lstart bc); Y := Y (lstart bc) - epsd |} in
@@ -395,12 +395,20 @@ Definition frameWithLines (preface:string) (lines : list (Line2D Z)) : string :=
   beamerFrameHeaderFooter "hello"
     (tikZHeaderFooter (preface ++ (tikZLines lines))).
 
+  Local Notation minxy := (lstart).
+  Local Notation maxxy := (lend).
+
+Definition globalBound (initb :  BoundingRectangle Z) (rightExtra upExtra downExtra : CR ): BoundingRectangle Z := 
+let rightExtraZ  :=  roundPointRZ eps {| X:= rightExtra; Y:= upExtra|} + {| X:= 1; Y:= 0|} in 
+let leftExtra : CR :=  'totalAvailXExtraSpace - rightExtra in
+let leftExtraZ   :=  roundPointRZ eps {| X:= leftExtra; Y:=downExtra|} + {| X:= 1; Y:=0|} in
+initb + {| minxy := -leftExtraZ ; maxxy := rightExtraZ|}.
+
 
 Extract Inlined Constant cbvApply => "(Prelude.$!)".
 
-
-
-Definition animation : string := 
+Definition animationAutoBounding : string := 
+  let (rs, sidewaysMove) := sidewaysMoveAndRightShift in
   let sidewaysMove := List.zip moveNamesSideways sidewaysMove  in
   let initStp := (sconcat spacedMoves,initSt) in
   let cs := (finerMovesStates 3 sidewaysMove initStp) in
@@ -421,6 +429,32 @@ Definition animation : string :=
   end.
 
 
+Definition animation : string := 
+  let (rs, sidewaysMove) := sidewaysMoveAndRightShift in
+  let sidewaysMove := List.zip moveNamesSideways sidewaysMove  in
+  let initStp : string * carState CR := (sconcat spacedMoves,initSt) in
+  let cs : list NamedCarState := (finerMovesStates 3 sidewaysMove initStp) in
+  let namedLines : list (string * list (Line2D Z)) := carStatesFrames  cs in
+  let allLines : list (Line2D Z) :=  (*cbvApply*) (flat_map snd) namedLines in
+  match namedLines return string with
+  | [] => ""
+  | h::tl => 
+      let initb := computeBoundingRectLines (snd h) in
+      (* the 2 items below are just guesses. TODO : compute them from the bounds derived in sidewaysMove.v *)
+      let upExtra :  CR := '(Zdiv (width (myCarDimZ)) (3%Z)) in
+      let downExtra : CR := '(Zdiv (width (myCarDimZ)) (2%Z)) in
+      let globalB : BoundingRectangle Z := globalBound initb rs upExtra downExtra  in
+      let (preface, textPos) := drawEnv globalB initb in 
+      let textTikZ  : string -> string  
+        := fun label => "\node[below right] at " ++ tikZPoint textPos 
+            ++ "{" ++ label ++ "};" ++ newLineString in
+      let frames := List.map (fun p => frameWithLines 
+          (preface ++ textTikZ (fst p))  (snd p)) namedLines in
+      sconcat frames
+  end.
+
+
+
 Axiom showQQQQ : (list (Z ** (list Z))) -> string.
 Axiom showZZ : (Z ** Z) -> string.
 Axiom showN : (nat) -> string.
@@ -439,7 +473,7 @@ Definition spaceXplot : (list (Z ** (list Z))) :=
   let QtoZ q := Qround.Qfloor (q*(100)%Z) in
   let mf (p:(Q ** (list Q)))
      := let (a,b) := p in (QtoZ a, List.map QtoZ b) in
-    (List.map mf (plotOptimalSidewaysMoveShiftMazdaQ numXspaceSamples)).
+    (List.map mf (plotOptimalSidewaysMoveShiftMazdaQ eps eps numXspaceSamples)).
 
 Definition spaceXplotn (n:nat) : list (Z**Z):=
   List.map 
@@ -469,7 +503,10 @@ Definition spaceXplotnStr (n:nat) : string :=
     sconcat [preamble n; cs ; "}; \addlegendentry{";name;"}" 
       ; newLineString; newLineString].
 
-Definition toPrint : string := sconcat (List.map  spaceXplotnStr (seq 0 5)).
+Definition spaceXplotStr : string := sconcat (List.map  spaceXplotnStr (seq 0 5)).
+
+
+Definition toPrint : string := animation.
 
 Close Scope string_scope.
 Locate posCompareContAbstract43820948120402312.

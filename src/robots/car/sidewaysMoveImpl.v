@@ -600,39 +600,18 @@ Definition sidewaysOptimalParamsAndShiftAux (l: list CR) : list CR :=
     [(angleAsDegrees θ); upwardShift θ; ds; extraSpaceX1W θ; ds * cos (2*θ)]
   end.
 
-(* Move.*)
-Fixpoint NPair (T:Type) (n:nat) : Type :=
-match n with
-| 0 => void
-| 1 => T
-| S n => (NPair T n)* T
-end.
-
-Definition npair_map {A B:Type} {n:nat} (f:A -> B) (np : NPair A n) : NPair B n.
-revert np.
-revert n.
-fix 1.
-intros n np.
-destruct n;[exact np|].
-specialize (npair_map n).
-simpl in *.
-destruct n;[exact (f np)|].
-destruct np.
-exact (npair_map n0, f a).
-Defined.
-
-Definition pair_map5 {A B:Type} (f:A -> B) (pa: A * A * A* A * A) : (B * B * B* B * B) :=
- (@npair_map A B 5 f pa).
-
 Definition sidewaysOptimalParamsAndShiftQAux (l: list CR) : (list Q) :=
   List.map  sap (sidewaysOptimalParamsAndShiftAux l).
 
-
-Definition optimalSidewaysMoveAux (l: list CR) : list (DAtomicMove CR) :=
+Definition optimalSidewaysMoveAux (l: list CR) : (CR * list (DAtomicMove CR)) :=
   match (approxMaximizeUpwardShift l) with
-  | None => []
-  | Some θ => (sidewaysMoveQCR θ)
+  | None => (0,[])
+  | Some θ => 
+    let straightXspace := (dStraight θ) * (cos (2*θ)) in
+    let totalRightExtraSpace := (rightExtraSpaceW α cd θ) + straightXspace in
+    (totalRightExtraSpace , sidewaysMoveQCR θ)
   end.
+
 
 Example approxMaximizeUpwardShiftTest :
   approxMaximizeUpwardShift [] = None.
@@ -668,7 +647,7 @@ Definition optimalSolution : option CR :=
 Definition sidewaysOptimalParamsAndShiftQ : (list Q) :=
 sidewaysOptimalParamsAndShiftQAux samples.
 
-Definition optimalSidewaysMove : list (DAtomicMove CR) :=
+Definition optimalSidewaysMove : (CR * list (DAtomicMove CR)) :=
   optimalSidewaysMoveAux samples.
 
 (* Move *)
@@ -883,14 +862,14 @@ Definition optimalSidewaysMoveShiftMazdaQp (Xspos : Qpos ): (list Q) :=
   let (Xs, Xsp) := Xspos in
   (sidewaysOptimalParamsAndShiftQ cd ntriv α αPosQ turnCentreOut Xs Xsp eps δ).
 
-Definition optimalSidewaysMoveMazda (Xspos : Qpos ) : list (DAtomicMove CR) :=
+Definition optimalSidewaysMoveMazda (Xspos : Qpos ) : (CR * list (DAtomicMove CR)) :=
   let (Xs, Xsp) := Xspos in
   optimalSidewaysMove cd ntriv α αPosQ turnCentreOut Xs Xsp eps δ.
 
 
-Definition optimalSidewaysMoveShiftMazdaQ (q : Q): (list Q) :=
+Definition optimalSidewaysMoveShiftMazdaQ (eps' δ': Qpos) (q : Q): (list Q) :=
 let (Xs, Xsp) := Qpossec.QabsQpos q in
-  (sidewaysOptimalParamsAndShiftQ cd ntriv α αPosQ turnCentreOut Xs Xsp eps δ).
+  (sidewaysOptimalParamsAndShiftQ cd ntriv α αPosQ turnCentreOut Xs Xsp eps' δ').
 
 
 Let  tupwardShift (Xspos : Qpos ) : CR -> CR :=
@@ -899,7 +878,7 @@ Let  tupwardShift (Xspos : Qpos ) : CR -> CR :=
 
 
 Example xxxx :
-(optimalSidewaysMoveShiftMazdaQ (QposMake 17 1))
+(optimalSidewaysMoveShiftMazdaQ (QposMake 17 1)) eps δ
 ≡ [(171 # 100)%Q; (56 # 100)%Q; (938 # 100)%Q; (764 # 100)%Q; (936 # 100)%Q].
 (*vm_compute.
 reflexivity. *)
@@ -919,8 +898,8 @@ Eval vm_compute in
   (List.map (fun q => approximateQ q (100)%positive)
      (xspaceSamples (100)%positive)).
 *)     
-Definition plotOptimalSidewaysMoveShiftMazdaQ (np : positive) :=
-  plotl optimalSidewaysMoveShiftMazdaQ (xspaceSamples np).
+Definition plotOptimalSidewaysMoveShiftMazdaQ (eps' δ': Qpos) (np : positive) :=
+  plotl (optimalSidewaysMoveShiftMazdaQ eps' δ') (xspaceSamples np).
 
 (**
 Ideas to make it fast: 

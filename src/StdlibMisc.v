@@ -384,3 +384,26 @@ Require Import QArith.
 Definition equiMidPoints (d:positive) : list Q:=
   List.map (fun m => Qmake (Z.of_nat m) d) ((firstNPos (Pos.to_nat d))).
 
+
+Fixpoint NPair (T:Type) (n:nat) : Type :=
+match n with
+| O => void
+| S O => T
+| S n => (NPair T n)* T
+end.
+
+Definition npair_map {A B:Type} {n:nat} (f:A -> B) (np : NPair A n) : NPair B n.
+ revert np.
+ revert n.
+ fix 1.
+ intros n np.
+ destruct n;[exact np|].
+ specialize (npair_map n).
+ simpl in *.
+ destruct n;[exact (f np)|].
+ destruct np.
+ exact (npair_map n0, f a).
+Defined.
+
+Definition pair_map5 {A B:Type} (f:A -> B) (pa: A * A * A* A * A) : (B * B * B* B * B) :=
+ (@npair_map A B 5 f pa).
