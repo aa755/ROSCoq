@@ -309,13 +309,13 @@ Local Definition sidewaysMoveAndRightShift :  CR * DAtomicMoves :=
 
 Open Scope string_scope.
 Definition moveNamesWriggle : list string := 
-  ["\hll{(c,d)}; (-c,-d)" ;"(c,d); \hll{(-c,-d)}"].
+  ["\hll{(α,d)}; (-α,-d)" ;"(α,d); \hll{(-α,-d)}"].
 
 Definition initStNameWriggle : string := 
-  "(c,d); (-c,-d)".
+  "(α,d); (-α,-d)".
 
 Definition atomicMoveNamesSideways : list string := 
-  ["(c,d)"; "(-c,-d)"; "$\;$(0,d')" ; "$\;$(-c,d)" ; "(c,-d)"; "$\;$(0,d'cos 2cd)"].
+  ["(α,d)"; "(-α,-d)"; "$\;$(0,d')" ; "$\;$(-α,d)" ; "(α,-d)"; "$\;$(0,d'cos 2αd)"].
 
 Local Definition spacedMoves := List.map (fun x => x++" ")atomicMoveNamesSideways.
 
