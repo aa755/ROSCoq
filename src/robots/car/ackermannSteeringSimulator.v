@@ -315,7 +315,7 @@ Definition initStNameWriggle : string :=
   "(c,d); (-c,-d)".
 
 Definition atomicMoveNamesSideways : list string := 
-  ["(c,d)"; "(-c,-d)"; "$\;$(0,d')" ; "$\;$(-c,d)" ; "(c,-d)"; "$\;$(0,d'cos 2cd)"].
+  ["(c,d)"; "(-c,-d)"; "$\;$(0,d')" ; "$\;$(-c,d)" ; "(c,-d)"].
 
 Local Definition spacedMoves := List.map (fun x => x++" ")atomicMoveNamesSideways.
 
@@ -441,8 +441,8 @@ Definition animation : string :=
   | h::tl => 
       let initb := computeBoundingRectLines (snd h) in
       (* the 2 items below are just guesses. TODO : compute them from the bounds derived in sidewaysMove.v *)
-      let upExtra :  CR := '(Zdiv (width (myCarDimZ)) (3%Z)) in
-      let downExtra : CR := '(Zdiv (width (myCarDimZ)) (2%Z)) in
+      let upExtra :  CR := '(Zdiv (width (myCarDimZ)) (5%Z)) in
+      let downExtra : CR := '(Zdiv (width (myCarDimZ)) (5%Z)) in
       let globalB : BoundingRectangle Z := globalBound initb rs upExtra downExtra  in
       let (preface, textPos) := drawEnv globalB initb in 
       let textTikZ  : string -> string  
@@ -453,6 +453,31 @@ Definition animation : string :=
       sconcat frames
   end.
 
+Definition singleMoveDistance :Z :=25.
+
+Definition fstMoveOnlyAnimation : string := 
+  let (rs, sidewaysMove) := sidewaysMoveAndRightShift in
+  let sidewaysMove := List.zip [EmptyString] [mazdaMaxCurvTurnMove ('singleMoveDistance)] in
+  let initStp : string * carState CR := (EmptyString,initSt) in
+  let cs : list NamedCarState := (finerMovesStates 10 sidewaysMove initStp) in
+  let namedLines : list (string * list (Line2D Z)) := carStatesFrames  cs in
+  let allLines : list (Line2D Z) :=  (*cbvApply*) (flat_map snd) namedLines in
+  match namedLines return string with
+  | [] => ""
+  | h::tl => 
+      let initb := computeBoundingRectLines (snd h) in
+      (* the 2 items below are just guesses. TODO : compute them from the bounds derived in sidewaysMove.v *)
+      let upExtra :  CR := '(Zdiv (width (myCarDimZ)) (5%Z)) in
+      let downExtra : CR := '(Zdiv (width (myCarDimZ)) (5%Z)) in
+      let globalB : BoundingRectangle Z := globalBound initb rs upExtra downExtra  in
+      let (preface, textPos) := drawEnv globalB initb in 
+      let textTikZ  : string -> string  
+        := fun label => "\node[below right] at " ++ tikZPoint textPos 
+            ++ "{" ++ label ++ "};" ++ newLineString in
+      let frames := List.map (fun p => frameWithLines 
+          (preface ++ textTikZ (fst p))  (snd p)) namedLines in
+      sconcat frames
+  end.
 
 
 Axiom showQQQQ : (list (Z ** (list Z))) -> string.
@@ -506,7 +531,7 @@ Definition spaceXplotnStr (n:nat) : string :=
 Definition spaceXplotStr : string := sconcat (List.map  spaceXplotnStr (seq 0 5)).
 
 
-Definition toPrint : string := animation.
+Definition toPrint : string := fstMoveOnlyAnimation.
 
 Close Scope string_scope.
 Locate posCompareContAbstract43820948120402312.

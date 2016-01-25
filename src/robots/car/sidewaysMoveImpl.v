@@ -797,6 +797,11 @@ Let αPosQ : (0 < α).
 compute. reflexivity.
 Defined.
 
+
+Definition mazdaMaxCurvTurnMove (dist:CR): DAtomicMove CR :=
+  mkQTurnMove (α ↾ αPosQ) dist.
+
+
 Let turnCentreOut : (width cd <= Qinv α)%Q.
 compute. intros H; discriminate.
 Defined.  (*Qed? *)
