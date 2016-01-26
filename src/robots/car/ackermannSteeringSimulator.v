@@ -125,6 +125,11 @@ Definition tikZLine (l: Line2D Z) : string :=
   "\draw" ++ tikZPoint (lstart l) ++ "--" ++ tikZPoint (lend l) ++ ";" ++
   newLineString.
 
+Definition tikZLineStyled (s:string) (l: Line2D Z) : string :=
+  sconcat ["\draw[";s;"]"; tikZPoint (lstart l) ; "--"; tikZPoint (lend l); ";";
+            newLineString]%string.
+
+
 Definition tikZFilledRect (color : string) (l: Line2D Z) : string :=
   "\draw[fill=" ++ color  ++ "," ++ color ++ "]" ++ tikZPoint (lstart l) 
   ++ " rectangle " ++ tikZPoint (lend l) ++ ";" ++ newLineString.
@@ -194,18 +199,51 @@ Definition rightWheelCenter : Cart2D CR :=
     * ((frontUnitVec cs)* '(lengthFront cd)
         - (rightSideUnitVec cs) * '(width cd)).
 
-Definition carWheels (θ : CR) : list (Line2D CR) := 
+Definition carWheels (α : CR) : list (Line2D CR) := 
   List.map 
-    (centredLineAtAngle θ ((lengthFront cd) * '(Qmake 1 8)))
+    (centredLineAtAngle α ((lengthFront cd) * '(Qmake 1 8)))
     [leftWheelCenter; rightWheelCenter].
 
-Definition drawCarZAux  (θ : CR) : list (Line2D Z):=
-  List.map (roundLineRZ eps) ((carOutline cd cs)++carWheels θ).
+Definition drawCarZAux  (α : CR) : list (Line2D Z):=
+  List.map (roundLineRZ eps) ((carOutline cd cs)++carWheels α).
 
 
 Definition drawCarTikZOld (θ : CR) : string := 
   tikZLines (drawCarZAux θ).
-  
+
+(** illustrate the current angle *)  
+Definition angleLineLength : CR := '(Qmake 4 3) * (totalLength cd).
+
+Definition angleLineXLength : CR := angleLineLength.
+
+Definition Pair (T:Type) : Type := T*T.
+
+Definition angleLines : Pair (Line2D CR) := 
+let ls := (pos2D cs) - ('lengthBack cd) * (frontUnitVec cs) in
+({|
+  lstart := ls;
+  lend := ls + ('(angleLineLength))*(frontUnitVec cs)
+|},
+{|
+  lstart := ls;
+  lend := ls + {|X:=angleLineXLength; Y:=0|}
+|}
+).
+
+Definition textPos : Cart2D CR := (pos2D cs) 
+  + ('totalLength cd) * (unitVec (½*(θ2D cs))).
+
+Definition angleLabel (label:string) :=
+sconcat ["\node[right] at "; tikZPoint (roundPointRZ eps textPos)
+            ; "{" ; label ; "};"]%string.
+            
+Definition illustrateAngle : string :=
+sconcat[
+  tikZLineStyled "dashed" (roundLineRZ eps (fst angleLines));
+  tikZLineStyled "dotted" (roundLineRZ eps (snd angleLines));
+  angleLabel "$\theta$"
+   ].
+
 End CornerPos.
 
 Definition  comparisonAsZ  (c : Datatypes.comparison) : Z :=
@@ -234,7 +272,7 @@ Definition mkRenderingInfo (name: string):CarStateRenderingInfo :=
 Definition mkTransitionRenderingInfo (name: string):CarStateRenderingInfo :=
 {|
   frameLabel := name;
-  drawAngle := false;
+  drawAngle := true;
   pauseBefore := true;
   emphBackRightCorner := false
 |}.
@@ -299,7 +337,11 @@ Definition drawCarFrameZ (ns : NamedCarState) : ((string * string) * list (Line2
 :=
 let newF : string := 
   (if (pauseBefore (fst ns)) then "\newframe*" else "\newframe")%string in
-(frameLabel (fst ns), sconcat [newF; newLineString],
+let angle : string :=
+  illustrateAngle eps myCarDim (csrigid2D (snd ns)) in
+let angle : string :=
+  if (drawAngle (fst ns)) then angle else EmptyString in
+(frameLabel (fst ns), sconcat [angle; newF; newLineString],
    drawCarZ eps myCarDim (snd ns)).
 
 
@@ -578,7 +620,7 @@ Definition spaceXplotnStr (n:nat) : string :=
 Definition spaceXplotStr : string := sconcat (List.map  spaceXplotnStr (seq 0 5)).
 
 
-Definition toPrint : string := animation (20)%positive.
+Definition toPrint : string := animation (4)%positive.
 
 Close Scope string_scope.
 Locate posCompareContAbstract43820948120402312.
