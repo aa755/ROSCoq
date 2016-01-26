@@ -237,11 +237,11 @@ Definition angleLabel (label:string) :=
 sconcat ["\node[right] at "; tikZPoint (roundPointRZ eps textPos)
             ; "{" ; label ; "};"]%string.
             
-Definition illustrateAngle : string :=
+Definition illustrateAngle (alabel: string): string :=
 sconcat[
   tikZLineStyled "dashed" (roundLineRZ eps (fst angleLines));
   tikZLineStyled "dotted" (roundLineRZ eps (snd angleLines));
-  angleLabel "$\theta$"
+  angleLabel alabel
    ].
 
 End CornerPos.
@@ -257,21 +257,24 @@ Record CarStateRenderingInfo :=
 {
   frameLabel : string;
   drawAngle : bool;
+  angleString : string;
   pauseBefore : bool;
   emphBackRightCorner : bool
 }.
 
-Definition mkRenderingInfo (name: string):CarStateRenderingInfo :=
+Definition mkRenderingInfo (name: Pair string):CarStateRenderingInfo :=
 {|
-  frameLabel := name;
+  frameLabel := fst name;
+  angleString := snd name;
   drawAngle := false;
   pauseBefore := false;
   emphBackRightCorner := false
 |}.
 
-Definition mkTransitionRenderingInfo (name: string):CarStateRenderingInfo :=
+Definition mkTransitionRenderingInfo (name: Pair string):CarStateRenderingInfo :=
 {|
-  frameLabel := name;
+  frameLabel := fst name;
+  angleString := snd name;
   drawAngle := true;
   pauseBefore := true;
   emphBackRightCorner := false
@@ -338,7 +341,7 @@ Definition drawCarFrameZ (ns : NamedCarState) : ((string * string) * list (Line2
 let newF : string := 
   (if (pauseBefore (fst ns)) then "\newframe*" else "\newframe")%string in
 let angle : string :=
-  illustrateAngle eps myCarDim (csrigid2D (snd ns)) in
+  illustrateAngle eps myCarDim (csrigid2D (snd ns)) (angleString (fst ns)) in
 let angle : string :=
   if (drawAngle (fst ns)) then angle else EmptyString in
 (frameLabel (fst ns), sconcat [angle; newF; newLineString],
@@ -401,9 +404,15 @@ Local Definition spacedMoves := List.map (fun x => x++" ")atomicMoveNamesSideway
 Definition moveNamesSideways : list string := 
   List.map sconcat (mapDiagonal (fun x => sconcat ["\hll{";x;"}"]) [] spacedMoves).
 
+Definition angleLabelsSideways : list string := 
+  ["$\theta$"; "$2\theta$"; "$2\theta$"; "$\theta$"; "0"].
+
+Definition sidewaysMovesInfo : list ( (Pair string)) :=
+  List.zip moveNamesSideways angleLabelsSideways.
+
 Close Scope string_scope.
 
-Definition NameDAtomicMove := prod string  (DAtomicMove CR).
+Definition NameDAtomicMove := prod (Pair string)  (DAtomicMove CR).
 
 
 Definition scaleAtomicMove (m: AtomicMove CR) (s:CR): AtomicMove CR:=
@@ -488,9 +497,9 @@ Extract Inlined Constant cbvApply => "(Prelude.$!)".
 
 Definition animation (n: Z⁺): string := 
   let (rs, sidewaysMove) := sidewaysMoveAndRightShift in
-  let sidewaysMove := List.zip moveNamesSideways sidewaysMove  in
+  let sidewaysMove := List.zip sidewaysMovesInfo sidewaysMove  in
   let initStp : NamedCarState := 
-    (mkRenderingInfo (sconcat spacedMoves),initSt) in
+    (mkRenderingInfo ((sconcat spacedMoves),EmptyString),initSt) in
   let cs : list NamedCarState := (finerMovesStates n sidewaysMove initStp) in
   let namedLines : list ((string * string) * list (Line2D Z)) 
     := carStatesFrames  cs in
