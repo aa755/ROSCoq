@@ -131,7 +131,7 @@ Definition tikZLineStyled (s:string) (l: Line2D Z) : string :=
 
 
 Definition tikZFilledRect (color : string) (l: Line2D Z) : string :=
-  "\draw[fill=" ++ color  ++ "," ++ color ++ "]" ++ tikZPoint (lstart l) 
+  "\draw[fill=" ++ color  ++ "," ++ color ++ ", fill opacity=0.3]" ++ tikZPoint (lstart l) 
   ++ " rectangle " ++ tikZPoint (lend l) ++ ";" ++ newLineString.
 
 Definition tikZColoredLine (color : string) (l: Line2D Z) : string :=
@@ -525,6 +525,49 @@ Definition animation (n: Z⁺): string :=
       sconcat frames
   end.
 
+Fixpoint  fold_left_inter {A B : Type} (f : A → B → A) (l : list B) 
+  (a0 : A) {struct l} : list A := 
+  match l with
+  | [] => [a0]
+  | b :: t => (f a0 b)::(fold_left_inter f t (f a0 b))
+  end.
+
+Definition animateSpaceReq (n: Z⁺) : string := 
+  let (rs, sidewaysMove) := sidewaysMoveAndRightShift in
+  let sidewaysMove := List.zip sidewaysMovesInfo sidewaysMove  in
+  let initStp := (mkRenderingInfo ((sconcat spacedMoves),EmptyString),initSt) in
+  let cs := (finerMovesStates n sidewaysMove initStp) in
+  let namedLines : list ((string * string) * list (Line2D Z)) 
+      := carStatesFrames cs in
+  let boundRects : list (Line2D Z) 
+    :=  List.map (computeBoundingRectLines∘snd) namedLines in
+  let boundRectsCum : list (Line2D Z) 
+    := fold_left_inter boundingUnion  boundRects 0 in
+  let globalB :  (Line2D Z) 
+    := last boundRectsCum 0 in
+  let lineRects
+    := List.zip namedLines  boundRectsCum in
+  match lineRects return string with
+  | [] => ""
+  | (h,_)::tl => 
+      let initb := computeBoundingRectLines (snd h) in
+      let (_, textPos) := drawEnv globalB initb in 
+      let textTikZ  : string -> string  
+        := fun label => "\node[below right] at " ++ tikZPoint textPos 
+            ++ "{" ++ label ++ "};" ++ newLineString in
+      let frames :=
+        List.map (fun p => 
+        let bnd := snd p in
+        let p := fst p in
+        let preface :=  tikZFilledRect "green" bnd in
+          frameWithLines 
+            (sconcat [ preface ; textTikZ (fst (fst p)); snd (fst p)])
+            (snd p)) 
+          lineRects in
+      sconcat frames
+  end.
+
+
 (*
 Definition animationAutoBounding : string := 
   let (rs, sidewaysMove) := sidewaysMoveAndRightShift in
@@ -629,7 +672,7 @@ Definition spaceXplotnStr (n:nat) : string :=
 Definition spaceXplotStr : string := sconcat (List.map  spaceXplotnStr (seq 0 5)).
 
 
-Definition toPrint : string := animation (4)%positive.
+Definition toPrint : string := animateSpaceReq (4)%positive.
 
 Close Scope string_scope.
 Locate posCompareContAbstract43820948120402312.
