@@ -551,7 +551,7 @@ Definition animateSpaceReq (n: Z⁺) : string :=
   | [] => ""
   | (h,_)::tl => 
       let initb := computeBoundingRectLines (snd h) in
-      let (_, textPos) := drawEnv globalB initb in 
+      let (pp, textPos) := drawEnv globalB initb in 
       let textTikZ  : string -> string  
         := fun label => "\node[below right] at " ++ tikZPoint textPos 
             ++ "{" ++ label ++ "};" ++ newLineString in
@@ -559,7 +559,7 @@ Definition animateSpaceReq (n: Z⁺) : string :=
         List.map (fun p => 
         let bnd := snd p in
         let p := fst p in
-        let preface :=  tikZFilledRect "green" bnd in
+        let preface :=  sconcat [pp;tikZFilledRect "green" bnd] in
           frameWithLines 
             (sconcat [ preface ; textTikZ (fst (fst p)); snd (fst p)])
             (snd p)) 
