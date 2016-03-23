@@ -1,2 +1,2 @@
-coqide -async-proofs-j 6 -R src ROSCOQ -R dependencies/corn CoRN -R dependencies/corn/math-classes/src MathClasses $@
+coqide -async-proofs-j 2 -R src ROSCOQ -R dependencies/corn CoRN -R dependencies/corn/math-classes MathClasses $@
 

@@ -31,7 +31,7 @@ includes = ' '.join(map(lambda x: '-I ' + x, dirs[1:]))
 
 #Note that ROSCoq depends on Corn (which depends on MathClasses). Please edit the line below, depending on how you installed them. 
 # See https://github.com/c-corn/corn
-Rs = '-R src ROSCOQ -R dependencies/corn CoRN -R dependencies/corn/math-classes/src MathClasses'
+Rs = '-R src ROSCOQ -R dependencies/corn CoRN -R dependencies/corn/math-classes MathClasses'
 coqcmd = 'coqc ${str(SOURCE)[:-2]} ' + Rs
 coqcmdquick = 'coqc ${str(SOURCE)[:-2]} -quick ' + Rs
 
