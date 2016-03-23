@@ -347,6 +347,8 @@ Local Notation SWriggle := (Wriggle α αNZ d).
 
 Local Notation tr := ((@f_rcpcl ℝ α (pos_ap_zero ℝ α αPos))).
 
+Require Import canonical_names.
+
 Variable cd : CarDimensions ℝ.
 Hypothesis nTriv : plausibleCarDim cd.
 Lemma WriggleFirstQSpace :  ∀  (confineRect: Line2D IR),
@@ -968,7 +970,7 @@ Definition thisCarHasSameGeometryAs (cg : CarGeometry Q) :=
 Lemma Mazda3Hyp1True :
 thisCarHasSameGeometryAs ('Mazda3Sedan2014sGT)
 -> extraHyp1.
-Proof using.
+Proof using Type*.
   intro H.
   unfold extraHyp1.
   rewrite <- PiBy2IRCR.
@@ -991,7 +993,7 @@ On the other hand, it is less than  75/100 Pi.
 Lemma Mazda3Hyp1TrueByLargeMargin :
 thisCarHasSameGeometryAs ('Mazda3Sedan2014sGT)
 -> (('(Qmake 72 100) * π ) < ( polarTheta βPlusFront +  polarTheta βPlusBack)).
-Proof using.
+Proof using Type*.
   intro H. destruct H as [Hl Hr].
   unfold βPlusFront, βPlusBack.
   subst.
@@ -2096,7 +2098,7 @@ Qed.
 Lemma Mazda3LeftCriticalAngle:
 thisCarHasSameGeometryAs ('Mazda3Sedan2014sGT)
 -> ('(Qmake 27 180) * π ) < leftCriticalAngleCR < ('(Qmake 28 180) * π ).
-Proof using.
+Proof using Type*.
   intro H. destruct H as [Hl Hr].
   unfold leftCriticalAngleCR.
   unfold cyy, cyyQ, βPlusBack.
@@ -2117,7 +2119,7 @@ Qed.
 Lemma Mazda3LeftCriticalAngle1:
 thisCarHasSameGeometryAs ('Mazda3Sedan2014sGT)
 -> ('(Qmake 38 180) * π ) < arctan (cyy * ' (/ tr)) < ('(Qmake 39 180) * π ).
-Proof using.
+Proof using Type*.
   intro H. destruct H as [Hl Hr].
   unfold leftCriticalAngleCR.
   unfold cyy, cyyQ.
@@ -2137,7 +2139,7 @@ Qed.
 Lemma Mazda3βPlusBack:
 thisCarHasSameGeometryAs ('Mazda3Sedan2014sGT)
 -> ('(Qmake 79 180) * π ) < polarTheta βPlusBack < ('(Qmake 80 180) * π ).
-Proof using.
+Proof using Type*.
   intro H. destruct H as [Hl Hr].
   unfold leftCriticalAngleCR.
   unfold βPlusBack.
@@ -2167,7 +2169,7 @@ Eval vm_compute in
 Lemma Mazda3βPlusFront:
 thisCarHasSameGeometryAs ('Mazda3Sedan2014sGT)
 -> ('(Qmake 52 180) * π ) < polarTheta βPlusFront < ('(Qmake 53 180) * π ).
-Proof using.
+Proof using Type*.
   intro H. destruct H as [Hl Hr].
   unfold leftCriticalAngleCR.
   unfold βPlusFront.
@@ -2497,7 +2499,7 @@ Lemma XSpaceDerivNNegIf : forall (θ:IR),
 0 ≤ θ ≤ XSpaceMonotoneUB
 → ' (| βMinusFront |) ≤  2 * ' (| βPlusBack |)
 → 0 ≤ extraSpaceX1Deriv θ.
-Proof using firstQuadW lengthFrontGreater ntriv turnCentreOut.
+Proof using firstQuadW lengthFrontGreater ntriv turnCentreOut maxNeededTurn.
   intros ? h1 h2.
   unfold extraSpaceX1Deriv.
   apply flip_nonneg_minus.
@@ -2650,7 +2652,7 @@ Abort.
 Lemma Mazda3βMinusFront:
 thisCarHasSameGeometryAs ('Mazda3Sedan2014sGT)
 -> ('(Qmake 38 180) * π ) < polarTheta βMinusFront < ('(Qmake 39 180) * π ).
-Proof using.
+Proof using Type*.
   intro H. destruct H as [Hl Hr].
   unfold leftCriticalAngleCR.
   unfold βMinusFront.
@@ -2679,7 +2681,7 @@ Mazda3βPlusBack
 Lemma Mazda3Ratio:
 thisCarHasSameGeometryAs (' Mazda3Sedan2014sGT)
 ->(normSqr (βMinusFront) ≤ 4 * normSqr ( βPlusBack)).
-Proof using.
+Proof using Type*.
   intro.
   destruct H.
   unfold βMinusFront, βPlusBack.

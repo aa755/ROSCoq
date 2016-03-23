@@ -140,28 +140,7 @@ Proof using.
     apply IHl; auto.
 Qed.
 
-(* Move *)
-Lemma approximateLe : forall (a b : CR),
-approximate a eps ≤ approximate b eps
-→ a - ' (2 * ` eps) ≤ b.
-Proof using.
-  intros ? ? H.
-  eapply transitivity;
-    [|apply lower_CRapproximation with (e:=eps)].
-  apply flip_le_minus_l.
-  eapply transitivity;
-    [apply upper_CRapproximation with (e:=eps)|].
-  fold ((@cast Q (st_car (msp_is_setoid CR)) inject_Q_CR)).
-  rewrite <- (@preserves_plus Q CR _ _ _ _ _ _ _ _ _ _ _ _ _ ).
-  apply (@order_preserving _ _ _ _ _ _ _ _ _ _).
-  simpl.
-  autounfold with QMC in *.
-  remember (approximate a eps).
-  remember (approximate b eps).
-  destruct eps.
-  simpl in *.
-  lra.
-Qed.
+
 
 Lemma approxMaximizeMax : ∀ (c:A) (l: list A ) (m: A) ,
   condition c = true

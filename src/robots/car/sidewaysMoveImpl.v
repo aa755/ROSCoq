@@ -282,7 +282,7 @@ Qed.
 
 
 Definition cosβPlusBackPosWitness : Qpos.
-Proof using ntriv tr trPos.
+Proof using ntriv tr trPos Xsp.
   exists (lengthBack cd /(tr + width cd + lengthBack cd))%Q.
   unfold nonTrivialCarDim in ntriv.
   autounfold with QMC in *.
@@ -292,8 +292,7 @@ Defined.
   (** hypotenuse  ≤ sum of the other sides of a right angled triangle*)
 Lemma cosβPlusBackPosT_subproof:
 (' cosβPlusBackPosWitness <= cos (polarTheta βPlusBack) - 0%mc)%CR.
-Proof using Xsp ntriv trComplicated trPos turnCentreOut. 
-  setoid_rewrite preserves_0.
+Proof using Xsp ntriv trComplicated trPos turnCentreOut.
   fold (CRopp).
   fold (CRplus).
   fold (@negate CR _).
@@ -354,7 +353,7 @@ Defined.
 Lemma extraSpaceX1WValidCosPos :forall  (θ:CR),
 extraSpaceX1WValid θ
 → 0 < cos (2 * θ).
-Proof  using αPosQ ntriv.
+Proof  using αPosQ ntriv Xsp.
   intros ? Hv.
   apply pos_cos_CR.
   unfold extraSpaceX1WValid in Hv.
@@ -478,10 +477,11 @@ Definition sidewaysMoveQCR : list (DAtomicMove CR)
   := mkQSideways (α ↾ αPosQ) d d'.
 
 Lemma  θcorrect : θ = 'α * d.
-Proof using αPosQ.
+Proof using αPosQ Xsp cd turnCentreOut.
   unfold dWriggle.
   rewrite  (@simple_associativity _ _ mult _ _).
   rewrite <- preserves_mult.
+  clear valid  cos2θ_lb cos2θ_inv sidewaysMove.
   subst tr.
   autounfold with QMC in *.
   field_simplify ((α * / α)%Q);[| lra].
@@ -692,7 +692,7 @@ Qed.
 Lemma  equiSpacedSamplesFstValue: 
  {q :Q | List.head  equiSpacedSamples ≡ Some q 
     /\ extraSpaceX1W ('q) ≤ (extraSpaceX1DerivUB α cd) * ('`δ) }.
-Proof using δSmallEnough.
+Proof using δSmallEnough eps.
   destruct (equiSpacedSamplesFst2 δ maxValidAngleApprox) as [q Hd];
     [apply maxValidAngleApproxNonneg|].
   exists q. destruct Hd as [Hdl Hdr].
