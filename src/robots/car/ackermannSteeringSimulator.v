@@ -275,7 +275,7 @@ Definition mkTransitionRenderingInfo (name: Pair string):CarStateRenderingInfo :
 {|
   frameLabel := fst name;
   angleString := snd name;
-  drawAngle := true;
+  drawAngle := false; (* may want to set this true to true*)
   pauseBefore := true;
   emphBackRightCorner := false
 |}.
@@ -311,7 +311,20 @@ Definition imaginaryCarDimZ : CarDimensions Z :=
 
 Require Import exampleDimensions.
 
-Definition myCarDimZ : CarDimensions Z := (carDim Mazda3Sedan2014sGT).
+Extract Inlined Constant cbvApply => "(Prelude.$!)".
+
+Axiom showQQQQ : (list (Z ** (list Z))) -> string.
+Axiom showZZ : (Z ** Z) -> string.
+Axiom showN : (nat) -> string.
+Extract Constant showQQQQ => "(Prelude.show)".
+Extract Constant showZZ => "(Prelude.show)".
+Extract Constant showN => "(Prelude.show)".
+
+Section simulator.
+Variable carGeo : CarGeometry Z.
+
+
+Definition myCarDimZ : CarDimensions Z := carDim carGeo.
 Close Scope Z_scope.
 
 
@@ -441,7 +454,6 @@ match l with
           ([init]++(interS)++(finerMovesStates d t midState))
 end.
 
-Definition epsd : Z := 0 (*3*finerRes *).
 Definition textHt : Z := 25*finerRes.
 
 Definition Rect2D := Line2D.
@@ -449,8 +461,8 @@ Definition Rect2D := Line2D.
 Definition sideCars (global init :BoundingRectangle Z): (BoundingRectangle Z) * list (Rect2D Z) :=
   let cardim : Cart2D Z  := (sameXY finerRes)*{|X:= (lengthFront myCarDimZ) ; Y:= 2 * (width myCarDimZ) |} in
   let ymax := Y (lend init) in
-  let lcarMaxXY : Cart2D Z := {|X:= X (lstart global) - epsd ; Y:= ymax |}  in
-  let rcarMinXY : Cart2D Z := {|X:= X (lend global) + epsd ; Y:= ymax - (Y cardim) |}  in
+  let lcarMaxXY : Cart2D Z := {|X:= X (lstart global) ; Y:= ymax |}  in
+  let rcarMinXY : Cart2D Z := {|X:= X (lend global) ; Y:= ymax - (Y cardim) |}  in
   (boundingUnion global {|lstart := lcarMaxXY - cardim; lend := rcarMinXY + cardim |},
     [
       {|lstart := lcarMaxXY - cardim; lend := lcarMaxXY |} ;
@@ -469,8 +481,8 @@ Definition drawEnv (global init:BoundingRectangle Z)  : string * Cart2D Z:=
   let (bc, sc) := sideCars global init in
   let textPos := lstart bc in
   let bf := extendRectForText bc in
-  let bottomLineStart := {| X := X (lstart bc); Y := Y (lstart bc) - epsd |} in
-  let bottomLineEnd := {| X := X (lend bc); Y := Y (lstart bc) - epsd |} in
+  let bottomLineStart := {| X := X (lstart bc); Y := Y (lstart bc) |} in
+  let bottomLineEnd := {| X := X (lend bc); Y := Y (lstart bc) |} in
   let bottomLineZ   := {|lstart := bottomLineStart; lend := bottomLineEnd|} in
   let clip : string :=  tikZBoundingClip bf in
   let sideCars : list string :=  List.map  (tikZFilledRect "red") sc in
@@ -491,7 +503,6 @@ let leftExtraZ   :=  roundPointRZ eps {| X:= leftExtra; Y:=downExtra|} + {| X:= 
 initb + {| minxy := -leftExtraZ ; maxxy := rightExtraZ|}.
 
 
-Extract Inlined Constant cbvApply => "(Prelude.$!)".
 
 
 
@@ -532,8 +543,8 @@ Fixpoint  fold_left_inter {A B : Type} (f : A → B → A) (l : list B)
   | b :: t => (f a0 b)::(fold_left_inter f t (f a0 b))
   end.
 
-Definition animateSpaceReq (n: Z⁺) : string := 
-  let (rs, sidewaysMove) := sidewaysMoveAndRightShift in
+Definition animateSpaceReqOptimalMove (n: Z⁺) : string := 
+  let (_, sidewaysMove) := sidewaysMoveAndRightShift in
   let sidewaysMove := List.zip sidewaysMovesInfo sidewaysMove  in
   let initStp := (mkRenderingInfo ((sconcat spacedMoves),EmptyString),initSt) in
   let cs := (finerMovesStates n sidewaysMove initStp) in
@@ -567,6 +578,75 @@ Definition animateSpaceReq (n: Z⁺) : string :=
       sconcat frames
   end.
 
+(* Move *)
+Definition mkDAtomicMoveQ (qa: AtomicMove Q) : (DAtomicMove CR).
+  destruct qa.
+  exists (@mkAtomicMove  CR ('am_distance) ('am_tc)).
+  remember (Qeq_bool am_tc 0)%Q as qd. destruct qd; symmetry in Heqqd; simpl.
+- left.  simpl. apply Qeq_bool_iff in Heqqd.
+  rewrite Heqqd.
+  apply preserves_0.
+- right. apply Qeq_bool_neq in Heqqd. apply Qap_CRap. assumption.
+Qed.
+
+
+Definition mkRelativeMove (rel : Q*Q) : DAtomicMove CR :=
+  let (turnCurv, distance) := rel in
+  mkDAtomicMoveQ  (mkAtomicMove (Qmult distance (width myCarDimZ)) (Qdiv turnCurv (minTR carGeo))).
+
+Definition mkNamedRelativeMove (rel : Q*Q) :NameDAtomicMove :=
+  ((EmptyString (* convert rel to string*) , EmptyString), mkRelativeMove rel).
+
+Require Import ROSCOQ.geometry2D.
+Definition relGlobalBound (initb :  BoundingRectangle Z) (extra : BoundingRectangle Q) : BoundingRectangle Z := 
+let extra := (''' finerRes) * extra in
+let rightExtraZ  := sfmap Qround.Qfloor ({|X:=' totalLength myCarDimZ; Y:=' width myCarDimZ|} * (maxxy extra)) in 
+let leftExtraZ  :=  sfmap Qround.Qfloor ({|X:=' totalLength myCarDimZ; Y:=' width myCarDimZ|} * (minxy extra)) in 
+initb + {| minxy := -leftExtraZ ; maxxy := rightExtraZ|}.
+
+Definition animateSpaceReq 
+   (moves : list (Q*Q))
+   (extraSpace : BoundingRectangle Q)
+   (framesPerMove : Z⁺) : string := 
+  let sidewaysMove : list NameDAtomicMove := List.map mkNamedRelativeMove moves  in
+  let initStp := (mkRenderingInfo (EmptyString,EmptyString),initSt) in
+  let cs := (finerMovesStates framesPerMove sidewaysMove initStp) in
+  let namedLines : list ((string * string) * list (Line2D Z)) 
+      := carStatesFrames cs in
+  let boundRects : list (Line2D Z) 
+    :=  List.map (computeBoundingRectLines∘snd) namedLines in
+  let boundRectsCum : list (Line2D Z) 
+    := fold_left_inter boundingUnion  boundRects 0 in
+  let lineRects
+    := List.zip namedLines  boundRectsCum in
+  match lineRects return string with
+  | [] => ""
+  | (h,_)::tl => 
+      let initb := computeBoundingRectLines (snd h) in
+      let globalB :  (Line2D Z) 
+        := relGlobalBound initb extraSpace in
+      let (pp, textPos) := drawEnv globalB initb in 
+      let textTikZ  : string -> string  
+        := fun label => "\node[below right] at " ++ tikZPoint textPos 
+            ++ "{" ++ label ++ "};" ++ newLineString in
+      let frames :=
+        List.map (fun p => 
+        let bnd := snd p in
+        let p := fst p in
+        let preface :=  sconcat [pp;tikZFilledRect "green" bnd] in
+          frameWithLines 
+            (sconcat [ preface ; textTikZ (fst (fst p)); snd (fst p)])
+            (snd p)) 
+          lineRects in
+      sconcat frames
+  end.
+
+Definition extra :BoundingRectangle Q :=
+{| minxy := {|X:=Qmake 1 5; Y:= Qmake 1 10|}; maxxy := {|X:=Qmake 1 5; Y:= Qmake 1 1|} |}.
+
+
+Definition moves : (list (Q*Q)) :=
+[(1, Qmake 1 3); (-1, Qmake 1 3) ].
 
 (*
 Definition animationAutoBounding : string := 
@@ -619,14 +699,7 @@ Definition fstMoveOnlyAnimation : string :=
   end.
 *)
 
-Definition singleMoveDistance :Z :=25.
 
-Axiom showQQQQ : (list (Z ** (list Z))) -> string.
-Axiom showZZ : (Z ** Z) -> string.
-Axiom showN : (nat) -> string.
-Extract Constant showQQQQ => "(Prelude.show)".
-Extract Constant showZZ => "(Prelude.show)".
-Extract Constant showN => "(Prelude.show)".
 
 Definition numXspaceSamples : positive := (60)%positive.
 
@@ -657,6 +730,8 @@ Definition colorAndNames : (list (string * string )) :=
   ("yellow" , "straight X space")
 ].
 
+(*Definition singleMoveDistance :Z :=25. *)
+
 
 Definition spaceXplotnStr (n:nat) : string :=
   let (color, name) := nth n colorAndNames ("exception","garbage") in
@@ -668,13 +743,17 @@ Definition spaceXplotnStr (n:nat) : string :=
             (spaceXplotn n))) in
     sconcat [preamble n; cs ; "}; \addlegendentry{";name;"}" 
       ; newLineString; newLineString].
+End simulator.
 
 Definition spaceXplotStr : string := sconcat (List.map  spaceXplotnStr (seq 0 5)).
 
 
-Definition toPrint : string := animateSpaceReq (4)%positive.
+(*
+Definition toPrint : string := animateSpaceReqOptimalMove Mazda3Sedan2014sGT (4)%positive. *)
+
+Definition toPrint : string := animateSpaceReq Mazda3Sedan2014sGT moves extra (4)%positive.
 
 Close Scope string_scope.
 Locate posCompareContAbstract43820948120402312.
-Extraction "simulator.hs"  animation spaceXplot toPrint 
+Extraction "simulator.hs"  (*animation spaceXplot *) toPrint 
   ExtrHaskellQ.posCompareContAbstract43820948120402312.
