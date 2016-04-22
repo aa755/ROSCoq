@@ -4,12 +4,12 @@ Require Import Ring.
 Require Export MathClasses.interfaces.canonical_names.
 Require Export MathClasses.interfaces.orders.
 Require Export MathClasses.orders.rings.
-Class BooleanAlgebra (A:Type) `{Ring A} :=
+Class BooleanRing (A:Type) `{Ring A} :=
   boolean_mult : ∀ x:A, x*x=x.
 
-Section BooleanAlgebraNotations.
+Section BooleanRingNotations.
 
-Context `{BooleanAlgebra R}.
+Context `{BooleanRing R}.
 
 Require Export SetNotations.
 
@@ -23,15 +23,15 @@ Notation "b \ x " := (b + b * x) (at level 100).
 
 Notation "x ᶜ  " := (1 \ x) (at level 100).
 
-End BooleanAlgebraNotations.
+End BooleanRingNotations.
 
-Section BooleanAlgebraProps.
-  Context `{BooleanAlgebra R}.
+Section BooleanRingProps.
+  Context `{BooleanRing R}.
 
 Add Ring  stdlib_ring_theoryldsjfsd : (rings.stdlib_ring_theory R).
 
 
-Lemma BooleanAlgebraXplusX : ∀ (x : R), x + x = 0.
+Lemma BooleanRingXplusX : ∀ (x : R), x + x = 0.
 Proof.
   intros x.
   pose proof (boolean_mult (x + x)) as Hs.
@@ -44,16 +44,16 @@ Proof.
   assumption.
 Qed.
 
-Lemma BooleanAlgebraMinusX : ∀ (x : R), - x = x.
+Lemma BooleanRingMinusX : ∀ (x : R), - x = x.
 Proof.
   intros x.
   apply equal_by_zero_sum.
   rewrite <- negate_plus_distr.
-  rewrite BooleanAlgebraXplusX.
+  rewrite BooleanRingXplusX.
   ring.
 Qed.
 
-Lemma BooleanAlgebra1Max : ∀ (x : R), x ⊆ 1.
+Lemma BooleanRing1Max : ∀ (x : R), x ⊆ 1.
 Proof.
   intros x.
   unfold setSubset.
@@ -70,7 +70,7 @@ Proof.
   unfold setIntersection, BooleanAlgIntersection.
   ring_simplify.
   ring_simplify.
-  rewrite BooleanAlgebraXplusX.
+  rewrite BooleanRingXplusX.
   ring_simplify.
   repeat (rewrite boolean_mult).
   setoid_rewrite  <- (mult_assoc u v v).
@@ -79,7 +79,7 @@ Proof.
   setoid_rewrite  <- (mult_assoc x y y).
   repeat (rewrite boolean_mult).
   ring_simplify.
-  rewrite BooleanAlgebraXplusX.
+  rewrite BooleanRingXplusX.
   ring.
 Qed.
 
@@ -92,7 +92,7 @@ Proof.
   rewrite <- Hs.
   assert (a + b + a= b + (a + a)) as Hr by ring.
   rewrite Hr. clear Hr.
-  rewrite BooleanAlgebraXplusX.
+  rewrite BooleanRingXplusX.
   ring.
 Qed.
 
@@ -115,19 +115,19 @@ Proof.
   unfold setIntersection, BooleanAlgIntersection.
   ring_simplify.
   ring_simplify.
-  rewrite BooleanAlgebraXplusX.
+  rewrite BooleanRingXplusX.
   ring_simplify.
   repeat (rewrite boolean_mult).
   setoid_rewrite  <- (mult_assoc u v v).
   setoid_rewrite  <- (mult_assoc x y y).
   repeat (rewrite boolean_mult).
   ring_simplify.
-  rewrite BooleanAlgebraXplusX.
+  rewrite BooleanRingXplusX.
   ring_simplify.
   setoid_rewrite  <- (mult_assoc (x*u)).
   repeat (rewrite boolean_mult).
   ring_simplify.
-  rewrite BooleanAlgebraXplusX.
+  rewrite BooleanRingXplusX.
   ring_simplify.
   fold (plus).
   fold (one).
@@ -138,17 +138,32 @@ Proof.
   reflexivity.
 Qed.
 
-(* Require Export MathClasses.orders.rings. *)
-End BooleanAlgebraProps.
+Require Import tactics.
 
-(*
-Lemma BooleanAlgebraXplusXHint : ∀ (R : Type) (Ae : Equiv R) (Aplus : Plus R) (Amult : Mult R)
-(Azero : Zero R) (Aone : One R) (Anegate : Negate R) 
-(H0 : Ring R)
-(H : BooleanAlgebra R)  (x : R), x + x = 0.
+Lemma normalizeEq : forall (a b:R),
+ (a = b) <-> a + b + 1 = 1.
 Proof.
-  intros. apply BooleanAlgebraXplusX.
+  split; intro Hyp.
+- rewrite Hyp. rewrite BooleanRingXplusX. ring.
+- fequivHyp Hyp (plus 1). clear Hyp.
+  rewrite BooleanRingXplusX in Hype.
+  ring_simplify in Hype. rewrite BooleanRingXplusX in Hype.
+  fequivHyp Hype (plus b). clear Hype.
+  ring_simplify in Hypee. rewrite BooleanRingXplusX in Hypee.
+  ring_simplify in Hypee.
+  fold (@zero R _) in Hypee.
+  ring_simplify in Hypee.
+  assumption.
 Qed.
 
-Hint Rewrite BooleanAlgebraXplusXHint.
+(* doesn't seem to hold for all boolean rings rings 
+Lemma elimEqHyp : forall (h c:R),
+  (h = 1 -> c = 1) <-> (h * c + h + 1 = 1).
+Proof.
+  intros. rewrite <- normalizeEq.
+  split; intro Hyp.
+- SearchAbout mult Ring. Print RightCancellation. 
 *)
+
+(* Require Export MathClasses.orders.rings. *)
+End BooleanRingProps.
