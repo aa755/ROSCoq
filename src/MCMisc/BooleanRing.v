@@ -140,21 +140,29 @@ Qed.
 
 Require Import tactics.
 
+Lemma normalizeEq2 : forall (a b:R),
+ (a = b) <-> a + b= 0.
+Proof.
+  split; intro Hyp.
+- rewrite Hyp. rewrite BooleanRingXplusX. ring.
+- fequivHyp Hyp (plus a).
+  ring_simplify in Hype. rewrite BooleanRingXplusX in Hype.
+  ring_simplify in Hype. auto.
+Qed.
+
 Lemma normalizeEq : forall (a b:R),
  (a = b) <-> a + b + 1 = 1.
 Proof.
   split; intro Hyp.
 - rewrite Hyp. rewrite BooleanRingXplusX. ring.
-- fequivHyp Hyp (plus 1). clear Hyp.
+- rewrite normalizeEq2. fequivHyp Hyp (plus 1). clear Hyp.
   rewrite BooleanRingXplusX in Hype.
   ring_simplify in Hype. rewrite BooleanRingXplusX in Hype.
-  fequivHyp Hype (plus b). clear Hype.
-  ring_simplify in Hypee. rewrite BooleanRingXplusX in Hypee.
-  ring_simplify in Hypee.
-  fold (@zero R _) in Hypee.
-  ring_simplify in Hypee.
-  assumption.
+  ring_simplify in Hype. assumption.
 Qed.
+
+
+
 
 (* doesn't seem to hold for all boolean rings rings 
 Lemma elimEqHyp : forall (h c:R),
