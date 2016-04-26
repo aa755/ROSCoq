@@ -15,7 +15,7 @@ Require Import geometry2DProps.
 Require Import ackermannSteeringProp.
 Require Import MathClasses.orders.rings.
 Require Import MathClasses.interfaces.orders.
-Require Import atomicMoves.
+(*Require Import atomicMoves.*)
 Require Import IRMisc.LegacyIRRing.
 
 
@@ -56,6 +56,20 @@ Definition Mazda3Sedan2014sGT_Dim : CarDimensions Z := {|
   lengthBack := 36; 
   lengthFront := 142;
 |}.
+
+
+Example Mazda3Sedan2014sGT_dims : 
+  totalLength Mazda3Sedan2014sGT_Dim =178 
+  /\ totalCarWidth Mazda3Sedan2014sGT_Dim =74
+  /\
+  let d :CR := (carDiagonal (cast _ (CarDimensions Q) (Mazda3Sedan2014sGT_Dim))) in
+  let da : Z := R2ZApprox d (QposMake 1 100) in
+  da = 193
+  /\ da - totalLength Mazda3Sedan2014sGT_Dim = 15.
+Proof using.
+  compute. dands; reflexivity.
+Abort.
+
 
 Definition Mazda3Sedan2014sGT : CarGeometry Z := {|
   carDim := Mazda3Sedan2014sGT_Dim;

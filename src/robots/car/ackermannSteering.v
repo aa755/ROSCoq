@@ -152,6 +152,17 @@ Record CarDimensions (A:Type):=
 Definition totalLength `{Plus A} (cd : CarDimensions A) : A := 
 lengthFront cd + lengthBack cd.
 
+Definition totalCarWidth `{Plus A} (cd : CarDimensions A) : A := 
+width cd + width cd.
+
+(* √ is \surd in uim
+https://github.com/uim/uim/blob/master/scm/elatin-rules.scm
+ *)
+
+Definition carDiagonal `{Plus A} `{Mult A} `{SqrtFun A B} (cd : CarDimensions A) : B := 
+  √(totalLength cd * totalLength cd + totalCarWidth cd * totalCarWidth cd).
+
+
 Require Import geometry2D.
 
 (** enough data to render a car in a picture, which will be a part of an animation*)
