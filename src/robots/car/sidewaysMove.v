@@ -295,17 +295,25 @@ Section FirstQuadWriggle.
 Variable α : IR.
 Hypothesis αPos : α[#]0.
 Variable d : IR.
-(*Hypothesis dNN : 0≤d. *)
-Hypothesis  adNN : 0≤α*d.
+(*Variable initθ : IR. *)
+(*Hypothesis dNN : 0≤d. 
+Hypothesis  adNN : 0≤α*d.*)
 
 Hypothesis firstQuadW: 0 ≤ 2*α*d ≤ ½ * π.
+
+Lemma adNN : 0 ≤  α * d.
+Proof using firstQuadW.
+  destruct firstQuadW as [H _].
+  setoid_rewrite <- (@simple_associativity IR _ mult _ _) in H.
+  apply halfNonNegIR in H. assumption.
+Qed.
 
 
 (*Local Lemma is not supported prior to 8.5beta3*)  
 Local Definition firstQuadW1: ∀ θ : ℝ,
 0 ≤ θ ≤ (α * d)
 -> 0 ≤ θ ≤ ½ * π.
-Proof using firstQuadW αPos adNN.
+Proof using firstQuadW αPos.
   intros ? Hh.
   eapply inBetweenExpand; 
     [apply Hh |].
@@ -320,7 +328,7 @@ Qed.
 Local Definition firstQuadW2: ∀ θ : ℝ,
 (α * d) ≤ θ ≤ 2*α * d
 -> 0 ≤ θ ≤ ½ * π.
-Proof using firstQuadW αPos  adNN.
+Proof using firstQuadW αPos.
   intros ? Hh.
   eapply inBetweenExpand; 
     [apply Hh |].
@@ -331,7 +339,7 @@ Qed.
 
 Require Import MCMisc.rings.
 Lemma adPiBy2:  α *  d ≤ ½ * Pi.
-Proof using adNN firstQuadW αPos.
+Proof using  firstQuadW αPos.
   eapply transitivity;[| apply firstQuadW].
   rewrite <- (@simple_associativity _ _ mult _ _).
   apply RingLeProp2.
@@ -617,25 +625,7 @@ Let tr :Q := Qinv α.
 
 Let αNZ := αPos .
 
-(* Move and use in MCInstances.QinvIRinv *)
-Lemma QinvIRinv1 : forall (a : Q) (aPos : ('a[#]0)), 
-'(Qinv a) = f_rcpcl ('a) aPos.
-Proof using.
-  intros.
-  pose proof aPos as Hh.
-  eapply ap_wdr in Hh.
-  dimp Hh; [|symmetry;apply inj_Q_Zero].
-  apply inj_Q_strext in Hh. simpl in Hh.
-  unfold Qap in Hh.
-  assert ((Qinv a) == Qdiv 1 a)%Q as H by (field;assumption).
-  rewrite H. setoid_rewrite  inj_Q_div with (H:=aPos).
-  unfold cf_div.
-  rewrite  inj_Q_One.
-  unfold cast, Cast_instace_Q_IR.
-  unfold Q2R.
-  autounfold with IRMC.
-  ring.
-Qed.
+
 
 
 Local Definition trComplicated : 'tr = f_rcpcl ('α) αNZ.
@@ -1089,15 +1079,7 @@ Definition leftBound : IR :=
 
 Lemma dNN : 0 ≤ ' α * ' d.
 Proof using firstQuadW.
-  destruct firstQuadW as [H _].
-  setoid_rewrite <- (@simple_associativity IR _ mult _ _) in H.
-  assert (2*(0:IR) = 0) as Hh by IRring.
-  rewrite <- Hh in H. clear Hh.
-  rewrite commutativity in H.
-  setoid_rewrite commutativity at 3 in H.
-  apply mult_cancel_leEq in H; auto.
-  apply zero_lt_posplus1.
-  eauto 3 with CoRN.
+  apply adNN. assumption.
 Qed.
 
 (** derive [firstQuadW] from this.*)
@@ -1296,13 +1278,14 @@ isBoundBottomWriggle1 miny ∧ isBoundBottomWriggle2 miny.
 Definition bottomBoundWriggle2 :IR :=
 (Y (minxy (confineRect2 (2 * 'α * 'd)))).
 
+Let adNN := adNN ('α)  ('d) firstQuadW. 
 Lemma bottomBoundWriggle2Correct : 
   isBoundBottomWriggle2 bottomBoundWriggle2.
 Proof using  firstQuadW ntriv turnCentreOut αPos. 
   unfold bottomBoundWriggle2.
   intro. simpl.
   intro Hb.
-  pose proof (firstQuadW2 _ αPos _ dNN firstQuadW _  Hb)
+  pose proof (firstQuadW2 _ αPos _ firstQuadW _  Hb)
     as Ht.
   apply (@order_preserving _ _ _ _ _ _ _ _).
     apply (@order_preserving _ _ _ _ _ _ _);
@@ -1436,7 +1419,7 @@ Lemma bottomBoundWriggle1Case1Correct :
 Proof using  firstQuadW ntriv turnCentreOut αPos. 
   simpl. intros Hu ?. simpl.
   intro Hb.
-  pose proof (firstQuadW1 _ αPos _ dNN firstQuadW _  Hb)
+  pose proof (firstQuadW1 _ αPos _ firstQuadW _  Hb)
     as Ht.
   unfold bottomBoundWriggle1Case1. simpl.
   apply (@order_preserving _ _ _ _ _ _ _ _).
@@ -1479,7 +1462,7 @@ Proof using firstQuadW αPos.
   unfold minYCriticalAngle.
   rewrite plus_negate_r.
   rewrite Cos_zero.
-  pose proof (firstQuadW1 _ αPos _ dNN firstQuadW _  Hb)
+  pose proof (firstQuadW1 _ αPos _ firstQuadW _  Hb)
     as Ht.
   apply (@order_preserving _ _ _ _ _ _ _ _).
   apply flip_le_negate.

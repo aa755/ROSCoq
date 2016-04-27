@@ -310,21 +310,44 @@ Proof using.
   apply half_1.
 Qed.
 
-Lemma QinvIRinv : forall (a : Q) (aPos : ((0:IR)[<]'a)), 
-let aNZ : 'a[#](0:IR) := (pos_ap_zero _ _ aPos) in
-'(Qinv a) = f_rcpcl ('a) aNZ.
+Lemma QinvIRinv1 : forall (a : Q) (aPos : ('a[#](0:IR))), 
+'(Qinv a) = f_rcpcl ('a) aPos.
 Proof using.
   intros.
   pose proof aPos as Hh.
-  eapply less_wdl in Hh;[|symmetry;apply inj_Q_Zero].
-  apply less_inj_Q in Hh. simpl in Hh.
-  assert ((Qinv a) == Qdiv 1 a)%Q as H by (field;lra).
-  rewrite H. setoid_rewrite inj_Q_div with (H:=aNZ).
+  eapply ap_wdr in Hh.
+  lapply Hh; [|symmetry;apply inj_Q_Zero].
+  clear Hh. intros Hh.
+  apply inj_Q_strext in Hh. simpl in Hh.
+  unfold Qap in Hh.
+  assert ((Qinv a) == Qdiv 1 a)%Q as H by (field;assumption).
+  rewrite H. setoid_rewrite  inj_Q_div with (H:=aPos).
   unfold cf_div.
   rewrite  inj_Q_One.
   unfold cast, Cast_instace_Q_IR.
   unfold Q2R.
   autounfold with IRMC.
   ring.
+Qed.
+
+Lemma QinvIRinv : forall (a : Q) (aPos : ((0:IR)[<]'a)), 
+let aNZ : 'a[#](0:IR) := (pos_ap_zero _ _ aPos) in
+'(Qinv a) = f_rcpcl ('a) aNZ.
+Proof using.
+  intros.
+  apply QinvIRinv1.
+Qed.
+
+(* generalize to arbitrary rings if possible *)
+Lemma halfNonNegIR (x:IR) : 0 ≤ 2*x -> 0 ≤ x.
+Proof using.
+  intros H.
+  assert (2*(0:IR) = 0) as Hh by (autounfold with IRMC; ring).
+  rewrite <- Hh in H. clear Hh.
+  rewrite commutativity in H.
+  setoid_rewrite commutativity at 3 in H.
+  apply mult_cancel_leEq in H; auto.
+  apply zero_lt_posplus1.
+  eauto 3 with CoRN.
 Qed.
 
