@@ -293,21 +293,19 @@ Section FirstQuadWriggle.
   points along the X axis.
   *)
 Variable α : IR.
-Hypothesis αPos : 0[<]α.
+Hypothesis αPos : α[#]0.
 Variable d : IR.
-Hypothesis dNN : 0≤d.
+(*Hypothesis dNN : 0≤d. *)
+Hypothesis  adNN : 0≤α*d.
+
 Hypothesis firstQuadW: 0 ≤ 2*α*d ≤ ½ * π.
 
-Local Definition  adNN : 0≤α*d.
-Proof using αPos dNN.
-exact  (mult_resp_nonneg ℝ α d (less_leEq ℝ [0] α αPos) dNN).
-Qed.
 
 (*Local Lemma is not supported prior to 8.5beta3*)  
 Local Definition firstQuadW1: ∀ θ : ℝ,
 0 ≤ θ ≤ (α * d)
 -> 0 ≤ θ ≤ ½ * π.
-Proof using firstQuadW αPos  dNN.
+Proof using firstQuadW αPos adNN.
   intros ? Hh.
   eapply inBetweenExpand; 
     [apply Hh |].
@@ -322,7 +320,7 @@ Qed.
 Local Definition firstQuadW2: ∀ θ : ℝ,
 (α * d) ≤ θ ≤ 2*α * d
 -> 0 ≤ θ ≤ ½ * π.
-Proof using firstQuadW αPos  dNN.
+Proof using firstQuadW αPos  adNN.
   intros ? Hh.
   eapply inBetweenExpand; 
     [apply Hh |].
@@ -333,19 +331,19 @@ Qed.
 
 Require Import MCMisc.rings.
 Lemma adPiBy2:  α *  d ≤ ½ * Pi.
-Proof using dNN firstQuadW αPos.
+Proof using adNN firstQuadW αPos.
   eapply transitivity;[| apply firstQuadW].
   rewrite <- (@simple_associativity _ _ mult _ _).
   apply RingLeProp2.
   apply adNN; auto.
 Qed.
 
-Local Notation  αNZ := ((pos_ap_zero _ _ αPos): α[#]0).
+Local Notation  αNZ := (αPos: α[#]0).
 Local Notation init  := (0:Rigid2DState IR).
 
 Local Notation SWriggle := (Wriggle α αNZ d).
 
-Local Notation tr := ((@f_rcpcl ℝ α (pos_ap_zero ℝ α αPos))).
+Local Notation tr := ((@f_rcpcl ℝ α αPos)).
 
 Require Import canonical_names.
 
@@ -478,7 +476,7 @@ Proof using All.
   simpl.
   apply iff_under_forall.
   intro θ. simpl.
-  remember (f_rcpcl α (pos_ap_zero ℝ α αPos)) as trr.
+  remember (f_rcpcl α αPos) as trr.
   clear Heqtrr.
   unfold inBetweenR.
   rewrite plus_0_l.
@@ -518,7 +516,7 @@ Proof using All.
   rewrite <- WriggleFirstQSpace.
   apply iff_under_forall.
   intro θ.
-  remember (f_rcpcl α (pos_ap_zero ℝ α αPos)) as trr.
+  remember (f_rcpcl α αPos) as trr.
   clear Heqtrr.
   apply and_iff_compat_lr.
   eapply andWeakenL.
@@ -603,7 +601,7 @@ Section FirstQuadWriggleQ.
 (**We will typically use the maximum turn curvature α, 
 is based on the geometry of the car.*)
 Variable α : Q.
-Hypothesis αPos : ((0:IR)[<]'α).
+Hypothesis αPos : ('α[#](0:IR)).
 
 (** Unlike α and cd, [d] will be determined from a solution to an optimization problem.
 The ideal value may be irrational. Being forced to use a rational value may complicate
@@ -614,15 +612,35 @@ Variable d : Q.
 
 Variable cd : CarDimensions Q.
 Hypothesis ntriv : nonTrivialCarDim (cd).
-Hypothesis dNN : ((0:IR)≤'d).
 Hypothesis firstQuadW: (0:IR) ≤ (2*'α*'d) ≤ ½ * π.
 Let tr :Q := Qinv α.
 
-Let αNZ := ((pos_ap_zero _ _ αPos): 'α[#](0:IR)).
+Let αNZ := αPos .
+
+(* Move and use in MCInstances.QinvIRinv *)
+Lemma QinvIRinv1 : forall (a : Q) (aPos : ('a[#]0)), 
+'(Qinv a) = f_rcpcl ('a) aPos.
+Proof using.
+  intros.
+  pose proof aPos as Hh.
+  eapply ap_wdr in Hh.
+  dimp Hh; [|symmetry;apply inj_Q_Zero].
+  apply inj_Q_strext in Hh. simpl in Hh.
+  unfold Qap in Hh.
+  assert ((Qinv a) == Qdiv 1 a)%Q as H by (field;assumption).
+  rewrite H. setoid_rewrite  inj_Q_div with (H:=aPos).
+  unfold cf_div.
+  rewrite  inj_Q_One.
+  unfold cast, Cast_instace_Q_IR.
+  unfold Q2R.
+  autounfold with IRMC.
+  ring.
+Qed.
+
 
 Local Definition trComplicated : 'tr = f_rcpcl ('α) αNZ.
 Proof using αPos.
-  apply QinvIRinv.
+  apply QinvIRinv1.
 Qed.
 
 (** The turn center cannot be inside the car. for that,
@@ -1069,13 +1087,28 @@ Definition leftBoundWriggle2 : IR :=
 Definition leftBound : IR :=
 (min leftBoundWriggle1 leftBoundWriggle2).
 
+Lemma dNN : 0 ≤ ' α * ' d.
+Proof using firstQuadW.
+  destruct firstQuadW as [H _].
+  setoid_rewrite <- (@simple_associativity IR _ mult _ _) in H.
+  assert (2*(0:IR) = 0) as Hh by IRring.
+  rewrite <- Hh in H. clear Hh.
+  rewrite commutativity in H.
+  setoid_rewrite commutativity at 3 in H.
+  apply mult_cancel_leEq in H; auto.
+  apply zero_lt_posplus1.
+  eauto 3 with CoRN.
+Qed.
+
 (** derive [firstQuadW] from this.*)
 Hypothesis maxNeededTurn 
   : (0 : ℝ) ≤ 2 * ' α * ' d ≤ (' polarTheta βPlusFront).
 
+
 Lemma leftBoundWriggle1Correct: 
 isBoundLeftWriggle1 leftBoundWriggle1.
-Proof using dNN firstQuadW ntriv turnCentreOut αPos.   
+Proof using firstQuadW ntriv turnCentreOut αPos.
+  pose proof dNN.   
   intros θ Hb. unfold leftBoundWriggle1.
   eapply confineRect1LeftMonotoneRight;
       [reflexivity| |eapply firstQuadW1; eauto].
@@ -1085,8 +1118,9 @@ Qed.
 
 Lemma leftBoundWriggle2Correct: 
 isBoundLeftWriggle2 leftBoundWriggle2.
-Proof using dNN firstQuadW lengthFrontGreater maxNeededTurn ntriv 
+Proof using firstQuadW lengthFrontGreater maxNeededTurn ntriv 
       turnCentreOut αPos. 
+  pose proof dNN as Hdnn.   
   intros θ Hb. unfold leftBoundWriggle2.
   simpl.
   apply (@order_preserving _ _ _ _ _ _ _ _).
@@ -1114,7 +1148,7 @@ Proof using dNN firstQuadW lengthFrontGreater maxNeededTurn ntriv
         apply MinusPiBy2Le0|].
         destruct Hb.
     eapply transitivity;[|apply H].
-    apply adNN; eauto.
+    apply dNN; eauto.
 
   - apply (@order_preserving _ _ _ _ _ _ _ _).
     apply flip_le_negate.
@@ -1123,7 +1157,7 @@ Qed.
 
 Lemma leftBoundCorrect: 
 isBoundLeftWriggle leftBound.
-Proof using dNN firstQuadW lengthFrontGreater maxNeededTurn 
+Proof using firstQuadW lengthFrontGreater maxNeededTurn 
       ntriv turnCentreOut αNZ.
   unfold leftBound.
   split; intros θ H.
@@ -1221,7 +1255,7 @@ Qed.
 
 Lemma rightBoundWriggle2Correct
   : isBoundRightWriggle2 rightBound.
-Proof using dNN firstQuadW maxNeededTurn ntriv turnCentreOut αPos.
+Proof using firstQuadW maxNeededTurn ntriv turnCentreOut αPos.
   unfold  rightBound.
   intros ? Hb. simpl.
   rewrite plus_0_l.
@@ -1232,7 +1266,7 @@ Proof using dNN firstQuadW maxNeededTurn ntriv turnCentreOut αPos.
        apply Cart2DRadNNegIR |].
   apply Cos_resp_leEq.
   - apply plus_resp_nonneg;[|apply firstQuadβMinusFront].
-    apply adNN; auto.
+    apply dNN; auto.
   - rewrite (divideBy2 Pi).
     apply plus_le_compat;[|apply firstQuadβMinusFront].
     eapply transitivity;[apply Hb|]. tauto.
@@ -1241,7 +1275,7 @@ Qed.
 
 Lemma rightBoundCorrect 
   : isBoundRight rightBound.
-Proof using dNN firstQuadW maxNeededTurn ntriv turnCentreOut αPos.
+Proof using  firstQuadW maxNeededTurn ntriv turnCentreOut αPos.
   split;[apply rightBoundWriggle1Correct |apply rightBoundWriggle2Correct].
 Qed.
 
@@ -1264,7 +1298,7 @@ Definition bottomBoundWriggle2 :IR :=
 
 Lemma bottomBoundWriggle2Correct : 
   isBoundBottomWriggle2 bottomBoundWriggle2.
-Proof using dNN firstQuadW ntriv turnCentreOut αPos. 
+Proof using  firstQuadW ntriv turnCentreOut αPos. 
   unfold bottomBoundWriggle2.
   intro. simpl.
   intro Hb.
@@ -1399,7 +1433,7 @@ Definition bottomBoundWriggle1Case1 :IR :=
 Lemma bottomBoundWriggle1Case1Correct :
 ('α * 'd ≤ minYCriticalAngle)
 -> isBoundBottomWriggle1 bottomBoundWriggle1Case1.
-Proof using dNN firstQuadW ntriv turnCentreOut αPos. 
+Proof using  firstQuadW ntriv turnCentreOut αPos. 
   simpl. intros Hu ?. simpl.
   intro Hb.
   pose proof (firstQuadW1 _ αPos _ dNN firstQuadW _  Hb)
@@ -1438,7 +1472,7 @@ Definition bottomBoundWriggle1Case2 :IR :=
 Lemma bottomBoundWriggle1Case2Correct: 
 (minYCriticalAngle ≤ 'α * 'd )
 -> isBoundBottomWriggle1 bottomBoundWriggle1Case2.
-Proof using dNN firstQuadW αPos.
+Proof using firstQuadW αPos.
   simpl. intros Hu ?. unfold bottomBoundWriggle1Case2.
   simpl.
   intro Hb.
@@ -1483,7 +1517,7 @@ Qed.
 Lemma bottomBoundCase1Correct : 
 ('α * 'd ≤ minYCriticalAngle)
 -> isBoundBottom bottomBoundCase1.
-Proof using dNN firstQuadW ntriv turnCentreOut αPos.
+Proof using firstQuadW ntriv turnCentreOut αPos.
   intros Hu.
   split; intro.
 - intros Hb. eapply transitivity;
@@ -1502,7 +1536,7 @@ Qed.
 Lemma bottomBoundCase2Correct : 
 (minYCriticalAngle ≤ 'α * 'd)
 -> isBoundBottom bottomBoundCase2.
-Proof using dNN firstQuadW ntriv turnCentreOut αPos.
+Proof using firstQuadW ntriv turnCentreOut αPos.
   intros Hu.
   split; intro.
 - intros Hb. eapply transitivity;
@@ -1539,7 +1573,8 @@ Y (maxxy (confineRect1 ('α * 'd))).
 
 Lemma upBoundWriggle1Correct 
   : isBoundUpWriggle1 upBoundWriggle1.
-Proof using dNN firstQuadW maxNeededTurn ntriv turnCentreOut αPos.
+Proof using  firstQuadW maxNeededTurn ntriv turnCentreOut αPos.
+  pose proof dNN as Hdnn.
   intros ? Hb. unfold upBoundWriggle1. simpl.
   apply (@order_preserving _ _ _ _ _ _ _ _).
   apply flip_le_negate.
@@ -1593,7 +1628,7 @@ max upBoundWriggle1 upBoundWriggle2.
 
 Lemma upBoundCorrect 
   : isBoundUp upBound.
-Proof using dNN firstQuadW maxNeededTurn ntriv turnCentreOut αPos.
+Proof using  firstQuadW maxNeededTurn ntriv turnCentreOut αPos.
   unfold upBound.
   split; intros θ H.
   - eapply transitivity;[|apply lft_leEq_Max].
@@ -1624,12 +1659,13 @@ Lemma WriggleMove1SpaceFirstQCase1Correct :
     (WriggleMove1SpaceFirstQ bottomBoundWriggle1Case1)
     (steerAndDrive ('α) αNZ ('d))
     (0 : Rigid2DState ℝ).
-Proof using dNN firstQuadW maxNeededTurn ntriv turnCentreOut αPos.
+Proof using  firstQuadW maxNeededTurn ntriv turnCentreOut αPos.
+  pose proof dNN as Hdnn.   
   pose proof ntriv as plaus.
   apply nonTrivialCarDimPlausible in plaus.
   intro Hcase1. simpl.
   apply WriggleMove1FirstQSpace2; auto.
-  intro.
+  intro. unfold αNZ.
   rewrite <- (proj1 (confineRectCorrect _)).
   intro Hb; split; split; simpl; revert Hb; revert θ;
   try apply leftBoundWriggle1Correct;
@@ -1645,12 +1681,13 @@ Lemma WriggleMove1SpaceFirstQCase2Correct :
     (WriggleMove1SpaceFirstQ bottomBoundWriggle1Case2)
     (steerAndDrive ('α) αNZ ('d))
     (0 : Rigid2DState ℝ).
-Proof using dNN firstQuadW maxNeededTurn ntriv turnCentreOut αPos.
+Proof using firstQuadW maxNeededTurn ntriv turnCentreOut αPos.
+  pose proof dNN as Hdnn.   
   pose proof ntriv as plaus.
   apply nonTrivialCarDimPlausible in plaus.
   intro Hcase1. simpl.
   apply WriggleMove1FirstQSpace2; auto.
-  intro.
+  intro. unfold αNZ.
   rewrite <- (proj1 (confineRectCorrect _)).
   intro Hb; split; split; simpl; revert Hb; revert θ;
   try apply leftBoundWriggle1Correct;
@@ -1666,13 +1703,14 @@ Lemma WriggleSpaceFirstQCase1Correct :
     (WriggleSpaceFirstQ bottomBoundCase1)
     SWriggle
     (0 : Rigid2DState ℝ).
-Proof using dNN firstQuadW lengthFrontGreater maxNeededTurn ntriv 
+Proof using firstQuadW lengthFrontGreater maxNeededTurn ntriv 
 turnCentreOut.
+  pose proof dNN as Hdnn.   
   intro Hcase1.
   pose proof ntriv as plaus.
   apply nonTrivialCarDimPlausible in plaus.
   apply WriggleFirstQSpace2; try assumption; [].
-  intro.
+  intro. unfold αNZ.
   rewrite <- (proj1 (confineRectCorrect _)).
   rewrite <- (proj2 (confineRectCorrect _)).
   split; intro Hb; split; split; simpl; revert Hb; revert θ;
@@ -1689,13 +1727,14 @@ Lemma WriggleSpaceFirstQCase2Correct :
     (WriggleSpaceFirstQ bottomBoundCase2)
     SWriggle
     (0 : Rigid2DState ℝ).
-Proof using dNN firstQuadW lengthFrontGreater maxNeededTurn ntriv 
+Proof using firstQuadW lengthFrontGreater maxNeededTurn ntriv 
 turnCentreOut.
+  pose proof dNN as Hdnn.   
   intro Hcase1.
   pose proof ntriv as plaus.
   apply nonTrivialCarDimPlausible in plaus.
   apply WriggleFirstQSpace2; try assumption; [].
-  intro.
+  intro. unfold αNZ.
   rewrite <- (proj1 (confineRectCorrect _)).
   rewrite <- (proj2 (confineRectCorrect _)).
   split; intro Hb; split; split; simpl; revert Hb; revert θ;
@@ -1724,7 +1763,7 @@ Lemma SidewaysSpaceFirstQCase1Correct :
     (sidewaysRectFirstQ bottomBoundCase1)
     sidewaysMove
     (0 : Rigid2DState ℝ).
-Proof using dNN firstQuadW lengthFrontGreater maxNeededTurn
+Proof using firstQuadW lengthFrontGreater maxNeededTurn
      ntriv turnCentreOut αNZ.
   intro Hcase1. unfold sidewaysRectFirstQ.
   apply SidewaysAuxSpace.
@@ -1738,7 +1777,7 @@ Lemma SidewaysConfineRectFirstQCase2Correct :
     (sidewaysRectFirstQ bottomBoundCase2)
     sidewaysMove
     (0 : Rigid2DState ℝ).
-Proof using dNN firstQuadW lengthFrontGreater 
+Proof using firstQuadW lengthFrontGreater 
     maxNeededTurn ntriv turnCentreOut αNZ.
   intro Hcase1. unfold sidewaysRectFirstQ.
   apply SidewaysAuxSpace.
@@ -2008,7 +2047,7 @@ Qed.
 Lemma nonTrivialExtraSpaceIf :
 ' α * ' d ≤ leftCriticalAngle
 → 'tr ≤ leftExtraSpaceTerm.
-Proof using dNN ntriv turnCentreOut αPos.
+Proof using  ntriv turnCentreOut αPos firstQuadW.
   unfold leftCriticalAngle.
   intro. rewrite leftExtraSpaceTermSimpl.
   unfold nonTrivialCarDim in ntriv.
@@ -2022,7 +2061,7 @@ Proof using dNN ntriv turnCentreOut αPos.
       [apply OrderPreserving_instance_0;
        apply Cart2DRadNNegIR |].
     apply Cos_resp_leEq.
-    + apply plus_resp_nonneg; [apply adNN; auto|].
+    + apply plus_resp_nonneg; [apply dNN; auto|].
       apply flip_le_minus_r.
       setoid_rewrite plus_0_l.
       apply firstQuadβPlusBack.
@@ -2038,7 +2077,8 @@ Qed.
 Lemma trivialExtraSpaceIf :
 leftCriticalAngle ≤ ' α * ' d
 → leftExtraSpaceTerm ≤ 'tr.
-Proof using dNN firstQuadW ntriv turnCentreOut αPos.
+Proof using firstQuadW ntriv turnCentreOut αPos.
+  pose proof dNN as Hdnn.
   unfold nonTrivialCarDim in ntriv.
   autounfold with QMC in ntriv.
   unfold leftCriticalAngle.
@@ -2208,7 +2248,8 @@ Lemma leftExtraSpaceWriggleSimplCase1 :
 ' α * ' d ≤ leftCriticalAngle
 → leftExtraSpaceWriggle =
     (2 * sin (' α * ' d) * (leftExtraSpaceTerm - 'tr)).
-Proof using dNN firstQuadW ntriv turnCentreOut αPos. 
+Proof using firstQuadW ntriv turnCentreOut αPos. 
+  pose proof dNN as Hdnn.
   intro.
   rewrite leftExtraSpaceSimpl1.
   rewrite leftExtraSpaceSimpl2.
@@ -2216,7 +2257,7 @@ Proof using dNN firstQuadW ntriv turnCentreOut αPos.
   rewrite <- (@simple_associativity _ _ mult _ _ ).
   apply RingLeProp3.
   apply nonneg_mult_compat; unfold PropHolds.
-  - apply Sin_nonneg;[apply adNN; assumption|].
+  - apply Sin_nonneg;[apply dNN; assumption|].
     eapply transitivity;[apply adPiBy2; assumption|].
     apply PiBy2LePiMC.
   - apply flip_le_minus_r. rewrite plus_0_l.
@@ -2230,7 +2271,7 @@ Definition extraSpaceXWriggleCase1 :IR :=
 Lemma extraSpaceXWriggleCase1Correct :
 ' α * ' d ≤ leftCriticalAngle
 → extraSpaceXWriggleCase1 = extraSpaceXWriggle.
-Proof using dNN firstQuadW ntriv turnCentreOut αPos.
+Proof using firstQuadW ntriv turnCentreOut αPos.
   unfold extraSpaceXWriggleCase1, extraSpaceXWriggle.
   intro H. rewrite leftExtraSpaceWriggleSimplCase1;[| assumption].
   reflexivity.
@@ -2739,7 +2780,7 @@ Lemma extraSpaceXSidewaysCase1Correct :
 extraSpaceXSidewaysCase1 ('d) d'=
 sidewaysTotalSpaceX 
 - ' totalLength cd (** subtracting the initially needed space*).
-Proof using dNN firstQuadW ntriv turnCentreOut  αNZ.
+Proof using  firstQuadW ntriv turnCentreOut  αNZ.
   intros Hle. unfold extraSpaceXSidewaysCase1.
   rewrite <- extraSpaceXWriggleCase1Simpl2.
   rewrite extraSpaceXWriggleCase1Correct;[| assumption].
