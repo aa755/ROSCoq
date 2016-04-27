@@ -57,6 +57,7 @@ Local Opaque Cos.
 Require Import CartIR2.
 
 Require Import robots.car.exampleDimensions.
+Require Import robots.car.wriggle.
 Require Import robots.car.sidewaysMove.
 Require Import MathClasses.implementations.bool.
 
@@ -194,7 +195,7 @@ Hypothesis Xsp : (0<Xs).
 (** space needed for the wriggle move for a given θ. The parameter
 [d] that we are after is just [θ/α] *)
 Let extraSpaceX1W  (θ:CR) : CR := 
-  compress (sidewaysMove.extraSpaceX1 α cd θ).
+  compress (wriggle.extraSpaceX1 α cd θ).
 
 
 (** Recap:
@@ -211,7 +212,7 @@ becomes trivial, and can be solved in just 1 move.
 *)
 
 Let leftCriticalAngle : CR := 
-  sidewaysMove.leftCriticalAngleCR  α cd.
+  wriggle.leftCriticalAngleCR  α cd.
 
 Definition extraSpaceX1WValid (θ:CR) : Prop :=
 0 ≤ θ ≤ leftCriticalAngle

@@ -15,7 +15,7 @@ Require Import MathClasses.orders.rings.
 Require Import MathClasses.interfaces.orders.
 Require Import atomicMoves.
 Require Import IRMisc.LegacyIRRing.
-Require Import sidewaysMove.
+Require Import wriggle.
 Hint Unfold One_instance_IR : IRMC.
 
   Local Notation minxy := (lstart).

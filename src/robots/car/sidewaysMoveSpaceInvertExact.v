@@ -55,6 +55,7 @@ Local Opaque Cos.
 Require Import CartIR2.
 
 Require Import robots.car.exampleDimensions.
+Require Import robots.car.wriggle.
 Require Import robots.car.sidewaysMove.
 
 
@@ -318,7 +319,7 @@ Qed.
 
 
 Local Notation βPlusBackNormSqrPos
-:= (sidewaysMove.βPlusBackNormSqrPos α cd ntriv).
+:= (wriggle.βPlusBackNormSqrPos α cd ntriv).
 
 Definition βPlusBackNormInv :IR :=
   normQIRInv  βPlusBack βPlusBackNormSqrPos.

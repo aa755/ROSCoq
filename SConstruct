@@ -7,7 +7,7 @@ dirs = []
 vs = []
 
 
-env = DefaultEnvironment(ENV = os.environ, tools=['default','Coq','CoqQuick'])
+env = DefaultEnvironment(ENV = os.environ, tools=['default','Coq'])
 
 while nodes:
   node = nodes.pop()
@@ -33,15 +33,11 @@ includes = ' '.join(map(lambda x: '-I ' + x, dirs[1:]))
 # See https://github.com/c-corn/corn
 Rs = '-R src ROSCOQ -R dependencies/corn CoRN -R dependencies/corn/math-classes MathClasses'
 coqcmd = 'coqc ${str(SOURCE)[:-2]} ' + Rs
-coqcmdquick = 'coqc ${str(SOURCE)[:-2]} -quick ' + Rs
 
 env['COQFLAGS'] = Rs
 
-quick = ARGUMENTS.get('quick', 0)
-if int(quick):
-  for node in vs: env.CoqQuick(node, COQCMDQUICK=coqcmdquick)
-else:
-  for node in vs: env.Coq(node, COQCMD=coqcmd)
+
+for node in vs: env.Coq(node, COQCMD=coqcmd)
 
 
 os.system('coqdep ' + ' '.join(map(str, vs)) + ' ' + includes + ' ' + Rs + ' > deps')
