@@ -68,32 +68,38 @@ Informally it denotes the following motion :
 
   Wiggle is parametrized by a nonzero [turnCurvature] and a drive distance,
   both of which may be signed.
+  Update : Althought the drive and reverse drive were supposed to be of same length, we will 
+  refrain from assuming this as much as possible.
   *)
 
 Variable α : IR.
 Hypothesis tcNZ : α[#]0.
-Variable d : IR.
+Variable d1 : IR.
   
 Local Notation turnRadius (*: IR *) := (f_rcpcl α tcNZ).
 (** In our formalism, wriggle is a composition of the following 2 atomic moves.
+Update: d1 and d2 be nevative, so the prefix 
+"rev" is only relative and does not mean backward driving
   *)
   
 Definition steerAndDrive : DAtomicMove IR := 
   existT _ 
-          {|am_tc := α; am_distance := d |} 
+          {|am_tc := α; am_distance := d1 |} 
           (inr tcNZ).
   (*note that [revSteerAndrevDrive] is not the same as
   - steerAndDrive*)
-Definition revSteerAndrevDrive : DAtomicMove  IR:=
+Definition revSteerAndrevDrive (d2 : IR) : DAtomicMove  IR:=
    existT _ 
-     {|am_tc := -α; am_distance := -d |}
+     {|am_tc := -α; am_distance := -d2 |}
       (inr (tcnegNZ _ tcNZ)).
 (** the distance covered during driving and 
   reverse driving is exactly the same.
   TODO: let them be slightly different, e.g. upto epsilon
  *)
-Definition Wriggle : list (DAtomicMove  IR) :=  
-  [steerAndDrive; revSteerAndrevDrive].
+Definition WriggleG (d2 : IR) : list (DAtomicMove  IR) :=  
+  [steerAndDrive; revSteerAndrevDrive d2].
+
+Definition Wriggle : list (DAtomicMove  IR) :=  WriggleG d1.
 
 (*
 Add Ring tempRingIR : (stdlib_ring_theory IR).
@@ -106,17 +112,17 @@ Hint Unfold One_instance_IR : IRMC.
   middle, final
  *)
 
-Lemma WriggleState : forall init,
+Lemma WriggleGState : forall d2 init,
   let θi := θ2D init in
-  let θm := θi +  α * d in
-  let θf := θi + 2 * α * d in
+  let θm := θi +  α * d1 in
+  let θf := θi +  α * (d1+d2) in
   let pf := pos2D init +
     (2*(unitVecT θm) - (unitVecT  θf) - (unitVecT θi))
     *{|X:=1;Y:=-1|}*'turnRadius in
-  stateAfterAtomicMoves Wriggle init
+  stateAfterAtomicMoves (WriggleG d2) init
   = {|pos2D := pf ; θ2D:= θf|}.
 Proof using.
-  intros ? ? ? ?. simpl.
+  intros ? ? ? ? ?. simpl.
   unfold stateAfterAtomicMove. simpl.
   split; simpl; [| subst  θi θm θf; simpl;
   IRring].
@@ -125,13 +131,31 @@ Proof using.
   fold Negate_instance_IR.
   fold (@negate IR _).
   assert 
-    (θ2D init + α * d + - α * - d
-    = θ2D init + 2 * α * d) as H by IRring.
+    (θ2D init + α * d1 + - α * - d2
+    = θ2D init + α * (d1+d2)) as H by IRring.
   rewrite H.
   fold θi.
   fold θm.
   fold θf.
   split; simpl; try IRring.
+Qed.
+
+Lemma WriggleState : forall init,
+   let θi := θ2D init in
+  let θm := θi +  α * d1 in
+  let θf := θi + 2 * α * d1 in
+   let pf := pos2D init +
+     (2*(unitVecT θm) - (unitVecT  θf) - (unitVecT θi))
+     *{|X:=1;Y:=-1|}*'turnRadius in
+  stateAfterAtomicMoves Wriggle init
+   = {|pos2D := pf ; θ2D:= θf|}.
+Proof using.
+  intros. 
+  unfold Wriggle.
+  rewrite WriggleGState. subst  θf θi θm pf.
+  assert (α * (d1 + d1) = 2 * α * d1) as Ht  by IRring.
+  repeat split; simpl;
+  rewrite Ht; auto.
 Qed.
 
 End Wriggle.
@@ -228,7 +252,7 @@ Lemma WriggleFirstQSpace :  ∀  (confineRect: Line2D IR),
   <->
   carConfinedDuringAMs cd confineRect SWriggle init.
 Proof using All.
-  intros ? ?. unfold Wriggle.
+  intros ? ?. unfold Wriggle, WriggleG.
   (*to stop reduction*)
   match goal with
   [|- context [?h::nil]] => remember (h::nil) as hh
@@ -438,26 +462,6 @@ the 4 coordinates can only take one of the following
 
 Require Import robots.car.exampleDimensions.
 
-Module CornerAngles.
-Section CornerAngles.
-
-Variable cd : CarDimensions Q.
-Variable tr: Q.
-
-Definition βMinusBack :(Cart2D Q) :=
-({|X :=  lengthBack cd; Y := tr - width cd |}).
-
-Definition βPlusBack :(Cart2D Q) :=
-({|X :=  lengthBack cd; Y := tr + width cd |}).
-
-Definition βMinusFront :(Cart2D Q) :=
-( {|X :=  lengthFront cd; Y := tr - width cd |}).
-
-Definition βPlusFront :(Cart2D Q) :=
-( {|X :=  lengthFront cd; Y := tr + width cd |}).
-
-End CornerAngles.
-End CornerAngles.
 
 
 Section FirstQuadWriggleQ.
@@ -479,7 +483,7 @@ Hypothesis ntriv : nonTrivialCarDim (cd).
 Hypothesis firstQuadW: (0:IR) ≤ (2*'α*'d) ≤ ½ * π.
 Let tr :Q := Qinv α.
 
-Let αNZ := αPos .
+Let αNZ := αPos.
 
 
 
@@ -489,16 +493,12 @@ Proof using αPos.
   apply QinvIRinv1.
 Qed.
 
-(** The turn center cannot be inside the car. for that,
-one of the front wheels have to rotate by more than 90 along 
-the vertical axis. 
-*)
-Hypothesis turnCentreOut : (Qle (width cd) tr).
 
 
 Definition NegPosition : Type := bool (*outside*) * bool(*inside*).
 
 Require Import CartIR2.
+
 
 Let βMinusBack : Cart2D Q := CornerAngles.βMinusBack cd tr.
 Let βMinusFront : Cart2D Q := CornerAngles.βMinusFront cd tr.
@@ -628,6 +628,12 @@ Ltac proveFirstQuad :=
   destruct ntriv as  [Ha Hbc]; destruct Hbc;
   split; simpl; autounfold with QMC; lra.
 
+(** The turn center cannot be inside the car. for that,
+one of the front wheels have to rotate by more than 90 along 
+the vertical axis. 
+*)
+Hypothesis turnCentreOut : (Qle (width cd) tr).
+
 Lemma firstQuadβMinusBack:
  (0:IR) ≤ ' polarTheta βMinusBack ≤  (½ * π).
 Proof using ntriv turnCentreOut.
@@ -639,7 +645,6 @@ Lemma firstQuadβPlusFront:
 Proof using ntriv turnCentreOut.
   proveFirstQuad.
 Qed.
-
 
 Lemma firstQuadβPlusBack:
  (0:IR) ≤ ' polarTheta βPlusBack ≤  (½ * π).

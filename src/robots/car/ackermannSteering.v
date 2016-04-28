@@ -254,3 +254,24 @@ End CornerPosAtTime.
 
 
 End Robot.
+
+Module CornerAngles.
+Section CornerAngles.
+
+Variable cd : CarDimensions Q.
+Variable tr: Q.
+
+Definition βMinusBack :(Cart2D Q) :=
+({|X :=  lengthBack cd; Y := tr - width cd |}).
+
+Definition βPlusBack :(Cart2D Q) :=
+({|X :=  lengthBack cd; Y := tr + width cd |}).
+
+Definition βMinusFront :(Cart2D Q) :=
+( {|X :=  lengthFront cd; Y := tr - width cd |}).
+
+Definition βPlusFront :(Cart2D Q) :=
+( {|X :=  lengthFront cd; Y := tr + width cd |}).
+
+End CornerAngles.
+End CornerAngles.
