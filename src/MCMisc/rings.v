@@ -124,6 +124,17 @@ Proof using All.
   assumption.
 Qed.
 
+Lemma RingLeProp1l  : forall 
+  a  b : A,
+  0 ≤ b
+  ->a ≤  a + b.
+Proof using All.
+  intros ? ? Hh.
+  rewrite commutativity.
+  apply RingLeProp1.
+  assumption.
+Qed.
+
 (** Proof is the dual of MathClasses.orders.rings.ge_1_mult_le_compat_r*)
 Lemma le_1_mult_le_compat_r x y z : z ≤ 1 → 0 ≤ x → x ≤ y → x * z ≤ y .
   Proof.
