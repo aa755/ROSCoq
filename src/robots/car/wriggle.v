@@ -175,45 +175,49 @@ Section FirstQuadWriggle.
 Variable α : IR.
 Hypothesis αPos : α[#]0.
 Variable d : IR.
+Variable dr : IR.
+Variable initθ : IR.
+
+Definition init :Rigid2DState IR  := {|pos2D := 0 ; θ2D := initθ|}.
+
 (*Variable initθ : IR. *)
-(*Hypothesis dNN : 0≤d. 
-Hypothesis  adNN : 0≤α*d.*)
+(*Hypothesis dNN : 0≤d. *)
 
-Hypothesis firstQuadW: 0 ≤ 2*α*d ≤ ½ * π.
+Hypothesis  adNN : 0≤α*d.
+Hypothesis  adrNN : 0≤α*dr.
 
-Lemma adNN : 0 ≤  α * d.
-Proof using firstQuadW.
-  destruct firstQuadW as [H _].
-  setoid_rewrite <- (@simple_associativity IR _ mult _ _) in H.
-  apply halfNonNegIR in H. assumption.
-Qed.
+Hypothesis firstQuadLB:  0 ≤ initθ.
+Hypothesis firstQuadUB:  initθ + α*(d+dr) ≤ ½ * π.
+
 
 
 (*Local Lemma is not supported prior to 8.5beta3*)  
-Local Definition firstQuadW1: ∀ θ : ℝ,
-0 ≤ θ ≤ (α * d)
+Local Lemma firstQuadW1: ∀ θ : ℝ,
+initθ ≤ θ ≤ initθ + (α * d)
 -> 0 ≤ θ ≤ ½ * π.
-Proof using firstQuadW αPos.
+Proof using firstQuadLB firstQuadUB adNN.
   intros ? Hh.
   eapply inBetweenExpand; 
     [apply Hh |].
   clear Hh.
-  split;[reflexivity|].
-  eapply transitivity;[| apply firstQuadW].
-  rewrite <- (@simple_associativity _ _ mult _ _ _).
-  apply rings.RingLeProp2.
-  apply adNN. 
+  split;[assumption|].
+  eapply transitivity;[| apply firstQuadUB].
+  rewrite plus_mult_distr_l.
+  apply order_preserving; [eauto with typeclass_instances|].
+  apply RingLeProp1l.
 Qed.
-  
+
+
 Local Definition firstQuadW2: ∀ θ : ℝ,
-(α * d) ≤ θ ≤ 2*α * d
+initθ + (α * d) ≤ θ ≤ initθ+ α * (d+dr)
 -> 0 ≤ θ ≤ ½ * π.
-Proof using firstQuadW αPos.
+Proof using firstQuadLB firstQuadUB adNN.
   intros ? Hh.
   eapply inBetweenExpand; 
     [apply Hh |].
   clear Hh.
-  split;[apply adNN|].
+  split;[apply firstQuadW1; split; auto; rewrite commutativity;
+       apply rings.RingLeProp1; eauto with typeclass_instances|].
   tauto.
 Qed.
 
@@ -227,7 +231,6 @@ Proof using  firstQuadW αPos.
 Qed.
 
 Local Notation  αNZ := (αPos: α[#]0).
-Local Notation init  := (0:Rigid2DState IR).
 
 Local Notation SWriggle := (Wriggle α αNZ d).
 
