@@ -190,12 +190,12 @@ Hypothesis firstQuadLB:  0 ≤ initθ.
 Hypothesis firstQuadUB:  initθ + α*(d+dr) ≤ ½ * π.
 
 
+Require Import MCMisc.rings.
 
-(*Local Lemma is not supported prior to 8.5beta3*)  
 Local Lemma firstQuadW1: ∀ θ : ℝ,
 initθ ≤ θ ≤ initθ + (α * d)
 -> 0 ≤ θ ≤ ½ * π.
-Proof using firstQuadLB firstQuadUB adNN.
+Proof using firstQuadLB firstQuadUB adNN adrNN.
   intros ? Hh.
   eapply inBetweenExpand; 
     [apply Hh |].
@@ -204,14 +204,16 @@ Proof using firstQuadLB firstQuadUB adNN.
   eapply transitivity;[| apply firstQuadUB].
   rewrite plus_mult_distr_l.
   apply order_preserving; [eauto with typeclass_instances|].
-  apply RingLeProp1l.
+  rewrite (@commutativity _ _ _ plus _ _ _ ).
+  apply RingLeProp1.
+  assumption.
 Qed.
 
 
 Local Definition firstQuadW2: ∀ θ : ℝ,
 initθ + (α * d) ≤ θ ≤ initθ+ α * (d+dr)
 -> 0 ≤ θ ≤ ½ * π.
-Proof using firstQuadLB firstQuadUB adNN.
+Proof using firstQuadLB firstQuadUB adNN adrNN.
   intros ? Hh.
   eapply inBetweenExpand; 
     [apply Hh |].
@@ -221,14 +223,12 @@ Proof using firstQuadLB firstQuadUB adNN.
   tauto.
 Qed.
 
-Require Import MCMisc.rings.
 Lemma adPiBy2:  α *  d ≤ ½ * Pi.
-Proof using  firstQuadW αPos.
-  eapply transitivity;[| apply firstQuadW].
-  rewrite <- (@simple_associativity _ _ mult _ _).
-  apply RingLeProp2.
-  apply adNN; auto.
-Qed.
+Proof using  firstQuadLB firstQuadUB αPos.
+  eapply transitivity;[| apply firstQuadUB].
+  rewrite plus_mult_distr_l.
+  rewrite PlusShuffle3l.
+Abort.
 
 Local Notation  αNZ := (αPos: α[#]0).
 
