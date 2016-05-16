@@ -500,10 +500,10 @@ Definition NegPosition : Type := bool (*outside*) * bool(*inside*).
 Require Import CartIR2.
 
 
-Let βMinusBack : Cart2D Q := CornerAngles.βMinusBack cd tr.
-Let βMinusFront : Cart2D Q := CornerAngles.βMinusFront cd tr.
-Let βPlusBack : Cart2D Q := CornerAngles.βPlusBack cd tr.
-Let βPlusFront : Cart2D Q := CornerAngles.βPlusFront cd tr.
+Let βMinusBack : Cart2D Q := βMinusBack cd tr.
+Let βMinusFront : Cart2D Q := βMinusFront cd tr.
+Let βPlusBack : Cart2D Q := βPlusBack cd tr.
+Let βPlusFront : Cart2D Q := βPlusFront cd tr.
 
 Definition minXY1 : (Cart2D ((Polar2D IR) * NegPosition)) :=
 {|X := ('βMinusBack,(true, true));
@@ -1708,7 +1708,7 @@ Proof using αPos.
   rewrite <- Min_plusl.
   rewrite plus_negate_r.
   rewrite negateMinAsMax.
-  subst. unfold βPlusBack, CornerAngles.βPlusBack.
+  subst. unfold βPlusBack, ackermannSteering.βPlusBack.
   apply Max_wd_unfolded; IRring.
 Qed.
 
@@ -1979,7 +1979,7 @@ Eval vm_compute in
 Eval vm_compute in  
   (approximateAngleAsDegrees
     (polarTheta 
-      (CornerAngles.βPlusFront 
+      (βPlusFront 
         ('carDim Mazda3Sedan2014sGT)
         (' minTR Mazda3Sedan2014sGT)
          ))).

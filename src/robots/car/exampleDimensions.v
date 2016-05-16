@@ -57,19 +57,7 @@ Definition Mazda3Sedan2014sGT_Dim : CarDimensions Z := {|
   lengthFront := 142;
 |}.
 
-
-Example Mazda3Sedan2014sGT_dims : 
-  totalLength Mazda3Sedan2014sGT_Dim =178 
-  /\ totalCarWidth Mazda3Sedan2014sGT_Dim =74
-  /\
-  let d :CR := (carDiagonal (cast _ (CarDimensions Q) (Mazda3Sedan2014sGT_Dim))) in
-  let da : Z := R2ZApprox d (QposMake 1 100) in
-  da = 193
-  /\ da - totalLength Mazda3Sedan2014sGT_Dim = 15.
-Proof using.
-  compute. dands; reflexivity.
-Abort.
-
+Locate βPlusFront.
 
 Definition Mazda3Sedan2014sGT : CarGeometry Z := {|
   carDim := Mazda3Sedan2014sGT_Dim;
@@ -83,5 +71,29 @@ Definition Mazda3Sedan2014sGT : CarGeometry Z := {|
   *)
   minTR := 150
 |}.
+
+Example Mazda3Sedan2014sGT_dims : 
+  let cdq := (cast _ (CarDimensions Q) (Mazda3Sedan2014sGT_Dim)) in
+  let trq :Z := minTR Mazda3Sedan2014sGT in
+  let w:Z := width Mazda3Sedan2014sGT_Dim in
+  totalLength Mazda3Sedan2014sGT_Dim =178 
+  /\ totalCarWidth Mazda3Sedan2014sGT_Dim =74
+  /\
+  let d :CR := (carDiagonal cdq) in
+  let da : Z := R2ZApprox d (QposMake 1 100) in
+  da = 193
+  /\ da - totalLength Mazda3Sedan2014sGT_Dim = 15 /\
+  let pb :CR:= (polarTheta (transpose (βPlusBack cdq trq))) in
+  let mb :CR := (polarTheta (transpose (βMinusBack cdq trq))) in
+  let dex : CR :=  ((norm (βMinusBack cdq trq)) * (CRcos.cos (pb+mb)))%mc in
+  let dex2 : CR :=  ((norm (βMinusBack cdq trq)) * (CRcos.cos (mb)))%mc in
+  11= approximateAngleAsDegrees pb
+  /\ 18 = approximateAngleAsDegrees mb
+  /\ 9 = (( trq) - w) - R2ZApprox dex (QposMake 1 100)
+    (* 9 inches from the curb needed, else increase turn radius in second move*)
+  /\ 0 = (( trq) - w) - R2ZApprox dex2 (QposMake 1 100) (* sanity check *).
+Proof using.
+  vm_compute. dands; reflexivity.
+Abort.
 
 Close Scope Z_scope.

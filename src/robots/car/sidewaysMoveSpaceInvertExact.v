@@ -140,10 +140,10 @@ Proof using αPos.
   IRring.
 Qed.
 
-Let βMinusBack : Cart2D Q := (CornerAngles.βMinusBack cd tr).
-Let βMinusFront : Cart2D Q := CornerAngles.βMinusFront cd tr.
-Let βPlusBack : Cart2D Q := CornerAngles.βPlusBack cd tr.
-Let βPlusFront : Cart2D Q := CornerAngles.βPlusFront cd tr.
+Let βMinusBack : Cart2D Q := (βMinusBack cd tr).
+Let βMinusFront : Cart2D Q := βMinusFront cd tr.
+Let βPlusBack : Cart2D Q := βPlusBack cd tr.
+Let βPlusFront : Cart2D Q := βPlusFront cd tr.
 
 (** 
 

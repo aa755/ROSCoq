@@ -189,10 +189,10 @@ Let tr := (/ α)%Q : Q.
 Hypothesis turnCentreOut : (width cd <= tr)%Q.
 
 Let αNZ := αPos : ' α [#] (0 : ℝ).
-Let βMinusBack := CornerAngles.βMinusBack cd tr : Cart2D Q.
-Let βMinusFront := CornerAngles.βMinusFront cd tr : Cart2D Q.
-Let βPlusBack := CornerAngles.βPlusBack cd tr : Cart2D Q.
-Let βPlusFront := CornerAngles.βPlusFront cd tr : Cart2D Q.
+Let βMinusBack := βMinusBack cd tr : Cart2D Q.
+Let βMinusFront := βMinusFront cd tr : Cart2D Q.
+Let βPlusBack := βPlusBack cd tr : Cart2D Q.
+Let βPlusFront := βPlusFront cd tr : Cart2D Q.
 Hypothesis lengthFrontGreater : (lengthBack cd <= lengthFront cd)%Q.
 Hypothesis  maxNeededTurn : (0 : ℝ) ≤ 2 * ' α * ' d ≤ ' polarTheta βPlusFront.
 

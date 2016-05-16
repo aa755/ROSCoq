@@ -183,10 +183,10 @@ the vertical axis.
 *)
 Hypothesis turnCentreOut : ((width cd) <= tr)%Q.
 
-Local Definition βMinusBack : Cart2D Q := CornerAngles.βMinusBack cd tr.
-Local Definition βMinusFront : Cart2D Q := CornerAngles.βMinusFront cd tr.
-Local Definition βPlusBack : Cart2D Q := CornerAngles.βPlusBack cd tr.
-Local Definition βPlusFront : Cart2D Q := CornerAngles.βPlusFront cd tr.
+Local Definition βMinusBack : Cart2D Q := βMinusBack cd tr.
+Local Definition βMinusFront : Cart2D Q := βMinusFront cd tr.
+Local Definition βPlusBack : Cart2D Q := βPlusBack cd tr.
+Local Definition βPlusFront : Cart2D Q := βPlusFront cd tr.
 
 (** extra space available t execute the sideways move *)
 Variable Xs : Q.
