@@ -495,7 +495,6 @@ Qed.
 
 
 
-Definition NegPosition : Type := bool (*outside*) * bool(*inside*).
 
 Require Import CartIR2.
 
@@ -505,39 +504,7 @@ Let βMinusFront : Cart2D Q := βMinusFront cd tr.
 Let βPlusBack : Cart2D Q := βPlusBack cd tr.
 Let βPlusFront : Cart2D Q := βPlusFront cd tr.
 
-Definition minXY1 : (Cart2D ((Polar2D IR) * NegPosition)) :=
-{|X := ('βMinusBack,(true, true));
-  Y := ('βPlusBack,(true, false))|}.
 
-Definition maxXY1 : (Cart2D ((Polar2D IR) * NegPosition)):=
-{|X := ('βPlusFront,(false, false)); 
-  Y :=('βMinusFront,(true, true))|}.
-
-
-Definition minXY2 : (Cart2D ((Polar2D IR) * NegPosition)):=
-{|X := ('βPlusBack,(true, false)); 
-  Y := ('βMinusBack,(false, true))|}.
-
-
-Definition maxXY2 : (Cart2D ((Polar2D IR) * NegPosition)):=
-{|X := ('βMinusFront,(false, true)) ; 
-   Y :=('βPlusFront,(false, false))|}.
-
-
-Definition negateIfTrue `{Negate A} (b:bool)(a:A) : A:=
-if b then (-a) else a.
-
-Definition decodeAsCos (nc: (Polar2D IR) * NegPosition) (theta:IR): IR :=
-let (c,n) := nc in
-let β :IR := θ c in
-let γ := theta + (negateIfTrue (negb (snd n)) β) in
-(negateIfTrue (fst n) ((rad c) * Cos γ)).
-
-Definition decodeAsCosXY (nc: Cart2D ((Polar2D IR) * NegPosition))
- (θ:IR): Cart2D IR :=
-let ync := (flipAngle (fst (Y nc)), snd (Y nc)) in
-{|X := decodeAsCos (X nc) θ;
-  Y := decodeAsCos ync θ|}.
 
 Local Notation init  := (0:Rigid2DState IR).
 Local Notation SWriggle := (Wriggle ('α) αNZ ('d)).
@@ -552,14 +519,14 @@ Definition constW2 := (' trr * {| X := 2 * Sin ('α * 'd);
 Definition confineRect1 (θ:IR): Line2D IR
  := 'constW1 +
  {|
-     minxy :=  decodeAsCosXY minXY1 θ ;
-     maxxy := decodeAsCosXY maxXY1 θ  |}.
+     minxy :=  decodeAsCosXY (minXYPos cd tr) θ;
+     maxxy := decodeAsCosXY (maxXYPos cd tr) θ  |}.
 
 Definition confineRect2 (θ:IR): Line2D IR
  := 'constW2 +
  {|
-     minxy :=  decodeAsCosXY minXY2 θ ;
-     maxxy := decodeAsCosXY maxXY2 θ  |}.
+     minxy :=  decodeAsCosXY (minXYNeg cd tr) θ ;
+     maxxy := decodeAsCosXY (maxXYNeg cd tr)  θ|}.
 
 Lemma confineRectCorrect: ∀ θ:IR,
 confineRect1 θ = confineRect1Raw ('α) αPos ('cd) θ
@@ -613,55 +580,41 @@ isBoundLeftWriggle1 minx
 ∧ isBoundLeftWriggle2 minx.
 
 
-
-Ltac proveFirstQuad :=
-  rewrite PiBy2DesugarIR;
-  rewrite <- (IRasCRasIR_id (Pi [/]TwoNZ));
-  rewrite <- CRPiBy2Correct1;
-  rewrite <- CRasIR0;
-  apply CR_leEq2_as_IR;
-  apply polarFirstQuad;
-  apply nonTrivialCarDimPlausible in ntriv;
-  unfold plausibleCarDim in ntriv;
-  simpl in ntriv;
-  do 3 rewrite inj_Q_nneg in ntriv;
-  destruct ntriv as  [Ha Hbc]; destruct Hbc;
-  split; simpl; autounfold with QMC; lra.
-
 (** The turn center cannot be inside the car. for that,
 one of the front wheels have to rotate by more than 90 along 
 the vertical axis. 
 *)
 Hypothesis turnCentreOut : (Qle (width cd) tr).
 
+(** TODO: reuse *)
 Lemma firstQuadβMinusBack:
  (0:IR) ≤ ' polarTheta βMinusBack ≤  (½ * π).
 Proof using ntriv turnCentreOut.
-  proveFirstQuad.
+  apply firstQuadβMinusBack; auto.
 Qed.
 
 Lemma firstQuadβPlusFront:
  (0:IR) ≤ ' polarTheta βPlusFront ≤  (½ * π).
 Proof using ntriv turnCentreOut.
-  proveFirstQuad.
+  apply firstQuadβPlusFront; auto.
 Qed.
 
 Lemma firstQuadβPlusBack:
  (0:IR) ≤ ' polarTheta βPlusBack ≤  (½ * π).
 Proof using ntriv turnCentreOut.
-  proveFirstQuad.
+  apply firstQuadβPlusBack; auto.
+Qed.
+
+Lemma firstQuadβMinusFront:
+ (0:IR) ≤ ' polarTheta βMinusFront ≤  (½ * π).
+Proof using ntriv turnCentreOut.
+  apply firstQuadβMinusFront; auto.
 Qed.
 
 Lemma βPlusBackLt90:
  ' polarTheta βPlusBack [<]  (½ * π).
 Proof using ntriv turnCentreOut.
 Abort.
-
-Lemma firstQuadβMinusFront:
- (0:IR) ≤ ' polarTheta βMinusFront ≤  (½ * π).
-Proof using ntriv turnCentreOut.
-  proveFirstQuad.
-Qed.
 
 Require Import MathClasses.orders.semirings.
 Require Import MCMisc.rings.
@@ -817,7 +770,7 @@ Local Transparent confineRect1.
     apply (@order_preserving _ _ _ _ _ _ _);
       [apply OrderPreserving_instance_0;
        apply Cart2DRadNNegIR |].
-    clear Hh.
+    clear Hh. unfold βPlusFront.
     rewrite plus_negate_r.
     rewrite Cos_zero. apply Cos_leEq_One.
 Qed.
@@ -1101,7 +1054,7 @@ Lemma rightBoundWriggle2Correct
 Proof using firstQuadW maxNeededTurn ntriv turnCentreOut αPos.
   unfold  rightBound.
   intros ? Hb. simpl.
-  rewrite plus_0_l.
+  rewrite plus_0_l. fold βMinusFront βPlusFront.
   rewrite <- transitionMaxX.
   apply (@order_preserving _ _ _ _ _ _ _ _).
   apply (@order_preserving _ _ _ _ _ _ _);
@@ -1320,7 +1273,7 @@ Proof using firstQuadW αPos.
   simpl. intros Hu ?. unfold bottomBoundWriggle1Case2.
   simpl.
   intro Hb.
-  unfold minYCriticalAngle.
+  unfold minYCriticalAngle. unfold βPlusBack.
   rewrite plus_negate_r.
   rewrite Cos_zero.
   pose proof (firstQuadW1 _ αPos _ firstQuadW _  Hb)
@@ -1457,7 +1410,8 @@ Lemma upBoundWriggle2Correct
 Proof using.
   intros ? Hb. unfold upBoundWriggle2. simpl.
   apply (@order_preserving _ _ _ _ _ _ _ _).
-  setoid_rewrite <- (mult_1_r (' (| βPlusFront |))) at 3.
+  unfold βPlusFront.
+  setoid_rewrite <- (mult_1_r (' (| ackermannSteering.βPlusFront cd tr|))) at 3.
   apply (@order_preserving _ _ _ _ _ _ _);
       [apply OrderPreserving_instance_0;
        apply Cart2DRadNNegIR |].
@@ -1665,9 +1619,10 @@ Lemma BottomBoundCase2Simpl : bottomBoundCase2 =
 min (trr - ' (| βPlusBack |)) (** extrema inside the 1st move*)
     bottomBoundCase1. (** end of 2nd move *)
 Proof using αPos.
-  unfold bottomBoundCase2, bottomBoundWriggle1Case2.
+  unfold bottomBoundCase2, bottomBoundWriggle1Case2 .
   apply Min_wd_unfolded; split;[| reflexivity].
-  simpl.
+  simpl. unfold minYCriticalAngle.
+  unfold βPlusBack.
   rewrite plus_negate_r.
   rewrite Cos_zero.
   IRring.

@@ -273,10 +273,11 @@ Section Rigid2DState.
   Qed.
 End Rigid2DState.
 
+Require Import MathClasses.interfaces.vectorspace.
+
 Section TurnMove.
   Variable cd :CarDimensions IR.
   
-Require Import MathClasses.interfaces.vectorspace.
 
 Definition carMinMaxXYAtθ2 (init : Rigid2DState ℝ)  (tr θ : ℝ) :=
 let θi:=θ2D init in
@@ -294,16 +295,37 @@ maxxy := {|
           unitVec θ⟩ + tr * cos θi |}
 |}.
 
+Definition carMinMaxXYAtθ3 (init : Rigid2DState ℝ)  (tr θ : ℝ) :=
+let θi:=θ2D init in
+' pos2D init - '(negY * ('tr) * unitVecT θi) +
+{|
+minxy := {|
+  X := ⟨{|X:= - lengthBack cd; Y:= tr- width cd|}, unitVec θ⟩;
+  Y := ⟨{|X:= - tr - width cd; Y:= - lengthBack cd|},unitVec θ⟩|};
+maxxy := {| 
+  X := ⟨{|X:= lengthFront cd; Y:= tr + width cd|}, unitVec θ⟩;
+  Y := ⟨{|X:= - tr + width cd; Y:=  lengthFront cd|},unitVec θ⟩|}
+|}.
+
 Lemma carMinMaxXYAtθ2Same (init : Rigid2DState ℝ)  (tr θ : ℝ):
   carMinMaxXYAtθ2 init tr θ = carMinMaxXYAtθ init cd tr θ.
 Proof using.
   unfold carMinMaxXYAtθ2, inprod, InProductCart2D.
   simpl. unfold carMinMaxXYAtθ.
+  split;split;simpl; try IRring.
+Qed.
+
+Lemma carMinMaxXYAtθ3Same (init : Rigid2DState ℝ)  (tr θ : ℝ):
+  carMinMaxXYAtθ3 init tr θ = carMinMaxXYAtθ init cd tr θ.
+Proof using.
+  rewrite <- carMinMaxXYAtθ2Same.
   split;split;simpl;IRring.
 Qed.
-  
+
+
+  Section Plausible.  
   Hypothesis nonTriv : plausibleCarDim cd.
-  
+
   Lemma carMinMaxXYAM : forall init tr θ,
   (0 ≤ θ ≤ (½ * π))
   ->
@@ -320,5 +342,151 @@ Qed.
     split;split; simpl;
     IRring.
   Qed.
-
+  End Plausible.
 End TurnMove.
+
+Require Import CartIR2.
+
+Ltac proveFirstQuad :=
+  rewrite PiBy2DesugarIR;
+  rewrite <- (IRasCRasIR_id (Pi [/]TwoNZ));
+  rewrite <- CRPiBy2Correct1;
+  rewrite <- CRasIR0;
+  apply CR_leEq2_as_IR;
+  apply polarFirstQuad;
+  match goal with
+  [ntriv:nonTrivialCarDim _ |- _] => 
+    apply nonTrivialCarDimPlausible in ntriv;
+    unfold plausibleCarDim in ntriv;
+    simpl in ntriv;
+    do 3 rewrite inj_Q_nneg in ntriv;
+    destruct ntriv as  [Ha Hbc]; destruct Hbc;
+    split; simpl; autounfold with QMC; lra
+  end.
+
+Section TurnMoveQ.
+  Variable cd :CarDimensions Q.
+  Hypothesis ntriv : nonTrivialCarDim cd.
+  Variable tr : Q.
+  Let βMinusBack : Cart2D Q := βMinusBack cd tr.
+  Let βMinusFront : Cart2D Q := βMinusFront cd tr.
+  Let βPlusBack : Cart2D Q := βPlusBack cd tr.
+  Let βPlusFront : Cart2D Q := βPlusFront cd tr.
+  Let NegPosition : Type := bool (*outside*) * bool(*inside*).
+  
+
+(** The turn center cannot be inside the car. for that,
+one of the front wheels have to rotate by more than 90 along 
+the vertical axis. 
+*)
+Hypothesis turnCentreOut : (Qle (width cd) tr).
+
+Lemma firstQuadβMinusBack:
+ (0:IR) ≤ ' polarTheta βMinusBack ≤  (½ * π).
+Proof using ntriv turnCentreOut.
+  proveFirstQuad.
+Qed.
+
+Lemma firstQuadβPlusFront:
+ (0:IR) ≤ ' polarTheta βPlusFront ≤  (½ * π).
+Proof using ntriv turnCentreOut.
+  proveFirstQuad.
+Qed.
+
+Lemma firstQuadβPlusBack:
+ (0:IR) ≤ ' polarTheta βPlusBack ≤  (½ * π).
+Proof using ntriv turnCentreOut.
+  proveFirstQuad.
+Qed.
+
+
+Lemma firstQuadβMinusFront:
+ (0:IR) ≤ ' polarTheta βMinusFront ≤  (½ * π).
+Proof using ntriv turnCentreOut.
+  proveFirstQuad.
+Qed.
+  
+  
+  Definition minXYPos : (Cart2D ((Polar2D IR) * NegPosition)) :=
+  {|X := ('βMinusBack,(true, true));
+    Y := ('βPlusBack,(true, false))|}.
+
+  Definition maxXYPos : (Cart2D ((Polar2D IR) * NegPosition)):=
+  {|X := ('βPlusFront,(false, false)); 
+    Y :=('βMinusFront,(true, true))|}.
+
+  Definition minXYNeg : (Cart2D ((Polar2D IR) * NegPosition)):=
+  {|X := ('βPlusBack,(true, false)); 
+    Y := ('βMinusBack,(false, true))|}.
+
+
+  Definition maxXYNeg : (Cart2D ((Polar2D IR) * NegPosition)):=
+  {|X := ('βMinusFront,(false, true)) ; 
+     Y :=('βPlusFront,(false, false))|}.
+
+  Let negateIfTrue `{Negate A} (b:bool)(a:A) : A:=
+    if b then (-a) else a.
+
+  Definition decodeAsCos (nc: (Polar2D IR) * NegPosition) (theta:IR): IR :=
+  let (c,n) := nc in
+  let β :IR := θ c in
+  let γ := theta + (negateIfTrue (negb (snd n)) β) in
+    (negateIfTrue (fst n) ((rad c) * Cos γ)).
+
+  Definition decodeAsCosXY (nc: Cart2D ((Polar2D IR) * NegPosition))
+  (θ:IR): Cart2D IR :=
+  let ync := (flipAngle (fst (Y nc)), snd (Y nc)) in
+  {|X := decodeAsCos (X nc) θ;
+    Y := decodeAsCos ync θ|}.
+
+  Definition confineRectPos  (init : Rigid2DState IR) (θ:IR) : Line2D IR :=
+  let θi := θ2D init in 
+  '(pos2D init) -  '(negY * (''tr) * unitVecT θi) +
+  {|
+     minxy :=  decodeAsCosXY minXYPos θ ;
+     maxxy := decodeAsCosXY maxXYPos θ  |}.
+
+  Definition confineRectNeg (init : Rigid2DState IR) (θ:IR): Line2D IR:= 
+  let θi := θ2D init in 
+  '(pos2D init) + '(negY * (''tr) * unitVecT θi) +
+   {|
+     minxy :=  decodeAsCosXY minXYNeg θ ;
+     maxxy := decodeAsCosXY maxXYNeg θ  |}.
+
+  Lemma confineRectCorrect: ∀ (θ:IR) init,
+    confineRectPos init θ = carMinMaxXYAtθ init ('cd) ('tr) θ
+    /\ confineRectNeg init θ = carMinMaxXYAtθ init ('cd) ('-tr) θ.
+  Proof using.
+  intros.
+  unfold confineRectPos, confineRectNeg.
+  do 2 rewrite <- carMinMaxXYAtθ3Same.
+  unfold decodeAsCosXY, decodeAsCos, carMinMaxXYAtθ3. simpl.
+  fold CosClassIR SinClassIR.
+  fold (@cos IR _) (@sin IR _).
+  do 2 rewrite preserves_negate.
+  do 1 rewrite negate_involutive.
+  do 4 (rewrite <- unitVDot).
+  do 4 (rewrite <- unitVDot2).
+  do 8 (rewrite multDotRight).
+  pose proof CartToPolarCorrect90Minus as Hr.
+  unfold norm, NormCart2DQ in Hr.
+  do 4 (rewrite <- Hr). clear Hr.
+  pose proof CartToPolarCorrect as Hr.
+  unfold norm, NormCart2DQ in Hr.
+  do 4 (rewrite <- Hr). clear Hr.
+  replace (@cast _ _ (@castCart Q IR _)) with (@castCart Q IR _);[| reflexivity].
+  unfold castCart. simpl.
+  pose proof  (@preserves_plus _ _ _ _ _ _ _ _ _ _ _ _
+   (cast Q IR) _ tr) as Hh.
+   unfold transpose.
+   simpl.
+  repeat rewrite Hh.
+  rewrite  preserves_negate.
+   unfold inprod, InProductCart2D;split; split; split; simpl;
+    try IRring.
+  Qed.
+
+End TurnMoveQ.
+
+
+    
