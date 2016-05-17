@@ -367,46 +367,14 @@ Ltac proveFirstQuad :=
 Section TurnMoveQ.
   Variable cd :CarDimensions Q.
   Hypothesis ntriv : nonTrivialCarDim cd.
+
   Variable tr : Q.
   Let βMinusBack : Cart2D Q := βMinusBack cd tr.
   Let βMinusFront : Cart2D Q := βMinusFront cd tr.
   Let βPlusBack : Cart2D Q := βPlusBack cd tr.
   Let βPlusFront : Cart2D Q := βPlusFront cd tr.
   Let NegPosition : Type := bool (*outside*) * bool(*inside*).
-  
 
-(** The turn center cannot be inside the car. for that,
-one of the front wheels have to rotate by more than 90 along 
-the vertical axis. 
-*)
-Hypothesis turnCentreOut : (Qle (width cd) tr).
-
-Lemma firstQuadβMinusBack:
- (0:IR) ≤ ' polarTheta βMinusBack ≤  (½ * π).
-Proof using ntriv turnCentreOut.
-  proveFirstQuad.
-Qed.
-
-Lemma firstQuadβPlusFront:
- (0:IR) ≤ ' polarTheta βPlusFront ≤  (½ * π).
-Proof using ntriv turnCentreOut.
-  proveFirstQuad.
-Qed.
-
-Lemma firstQuadβPlusBack:
- (0:IR) ≤ ' polarTheta βPlusBack ≤  (½ * π).
-Proof using ntriv turnCentreOut.
-  proveFirstQuad.
-Qed.
-
-
-Lemma firstQuadβMinusFront:
- (0:IR) ≤ ' polarTheta βMinusFront ≤  (½ * π).
-Proof using ntriv turnCentreOut.
-  proveFirstQuad.
-Qed.
-  
-  
   Definition minXYPos : (Cart2D ((Polar2D IR) * NegPosition)) :=
   {|X := ('βMinusBack,(true, true));
     Y := ('βPlusBack,(true, false))|}.
@@ -486,7 +454,110 @@ Qed.
     try IRring.
   Qed.
 
+(** The turn center cannot be inside the car. for that,
+one of the front wheels have to rotate by more than 90 along 
+the vertical axis. 
+*)
+  Hypothesis turnCentreOut : (Qle (width cd) tr).
+  
+  Let trPos : (Qle 0 tr)%Q.
+  Proof using.
+    apply proj2, proj1 in ntriv.
+    autounfold with QMC in ntriv.
+    lra.
+  Qed.
+  
+  Lemma firstQuadβMinusBack:
+   (0:IR) ≤ ' polarTheta βMinusBack ≤  (½ * π).
+  Proof using ntriv turnCentreOut.
+    proveFirstQuad.
+  Qed.
+  
+  Lemma firstQuadβPlusFront:
+   (0:IR) ≤ ' polarTheta βPlusFront ≤  (½ * π).
+  Proof using ntriv turnCentreOut.
+    proveFirstQuad.
+  Qed.
+  
+  Lemma firstQuadβPlusBack:
+   (0:IR) ≤ ' polarTheta βPlusBack ≤  (½ * π).
+  Proof using ntriv turnCentreOut.
+    proveFirstQuad.
+  Qed.
+  
+  
+  Lemma firstQuadβMinusFront:
+   (0:IR) ≤ ' polarTheta βMinusFront ≤  (½ * π).
+  Proof using ntriv turnCentreOut.
+  proveFirstQuad.
+  Qed.
+  
+  (** cannot be Q, because after moving a move, the end position,
+    which is the init position for the next
+    move, can be a real number *) 
+  Variable init: Rigid2DState IR.
+  Hypothesis initFirstQuad : 0 ≤ (θ2D init) ≤ (½ * π).
+
+  (* instead of modeling distance covered, we directly model the signed change in
+    angle. distance = θd * tr.
+    θd cannot be of type, because it's ideal value will be a solution of a trignometric
+    equation, and there is no reason to expect the solution to be a rational 
+  Variable θd: IR.*)
+  
+Require Import MathClasses.orders.semirings.
+Require Import MCMisc.rings.
+
+Let θi := (θ2D init).
+
+  (** * Moving forward with positive turn radius
+  * we will now characterize the monotonicity properties of each corner of the car
+  *)
+
+(*the car's leftmost point shifts right. *)
+Lemma confineRectPosLeftDecreasing (θ: IR) :
+θi ≤ θ ≤  (½ * π)
+→ X (minxy (confineRectPos init θi)) ≤ X (minxy (confineRectPos init θ)).
+Proof using turnCentreOut trPos ntriv initFirstQuad.
+  simpl. intros Hb.
+  apply (@order_preserving _ _ _ _ _ _ _ _).
+  apply flip_le_negate.
+  apply (@order_preserving _ _ _ _ _ _ _);
+    [apply OrderPreserving_instance_0;
+     apply Cart2DRadNNegIR |].
+(*   apply firstQuadW1 in Hb; trivial ;[]. *)
+  apply Cos_resp_leEq.
+  - apply plus_resp_nonneg;[tauto|].
+    apply firstQuadβMinusBack.
+  - rewrite (divideBy2 Pi).
+    apply plus_le_compat;[tauto| apply firstQuadβMinusBack].
+  - apply plus_le_compat;[tauto| reflexivity].
+Qed.
+
+(*the car's rightmost point shifts right? *)
+(*the car's bottommost point (closest to curb) shifts up if .... *)
+(*the car's bottommost point shifts down, but at most by ...., if .... *)
+
+  (** * Moving backward with negative turn radius
+  * we will now characterize the monotonicity properties of each corner of the car
+  *)
+
+(* the rightmost point shifts left *)
+Lemma confineRectNegLeftDecreasing (θ: IR) :
+θi ≤ θ ≤  (½ * π) (* θ keeps increasing, because the negations cancel out *)
+→ X (maxxy (confineRectNeg init θ)) ≤ X (maxxy (confineRectNeg init θi)).
+Proof using turnCentreOut trPos ntriv initFirstQuad.
+  simpl. intros Hb.
+  apply (@order_preserving _ _ _ _ _ _ _ _).
+  apply (@order_preserving _ _ _ _ _ _ _);
+      [apply OrderPreserving_instance_0;
+       apply Cart2DRadNNegIR |].
+  apply Cos_resp_leEq.
+  - apply plus_resp_nonneg;[|apply firstQuadβMinusFront].
+    apply initFirstQuad.
+  - rewrite (divideBy2 Pi).
+    apply plus_le_compat;[|apply firstQuadβMinusFront].
+    eapply transitivity;[apply Hb|]. reflexivity.
+  - apply plus_le_compat;[tauto| reflexivity].
+Qed.
+
 End TurnMoveQ.
-
-
-    
