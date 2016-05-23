@@ -514,7 +514,7 @@ Let θi := (θ2D init).
   *)
 
 (*the car's leftmost point shifts right. *)
-Lemma confineRectPosLeftDecreasing (θ: IR) :
+Lemma confineRectPosLeftmostRight (θ: IR) :
 θi ≤ θ ≤  (½ * π)
 → X (minxy (confineRectPos init θi)) ≤ X (minxy (confineRectPos init θ)).
 Proof using turnCentreOut trPos ntriv initFirstQuad.
@@ -533,7 +533,62 @@ Proof using turnCentreOut trPos ntriv initFirstQuad.
   - apply plus_le_compat;[tauto| reflexivity].
 Qed.
 
-(*the car's rightmost point shifts right? *)
+(*the car's rightmost (X (maxxy ..)) point initially shifts right *)
+Lemma confineRectRightmostRight1 (θ: IR) :
+(* confineRectPos is not even meaningful otherwise, although - θi ≤ ' polarTheta βPlusFront suffices instead*)
+0 ≤ θi 
+→ θi ≤ θ ≤  ' polarTheta βPlusFront
+→ X (maxxy (confineRectPos init θi)) ≤ X (maxxy (confineRectPos init θ)).
+Proof using turnCentreOut trPos ntriv initFirstQuad.
+  simpl. intros Hnn Hb.
+  apply (@order_preserving _ _ _ _ _ _ _ _).
+  apply (@order_preserving _ _ _ _ _ _ _);
+    [apply OrderPreserving_instance_0;
+     apply Cart2DRadNNegIR |].
+  rewrite CosMinusSwap.
+  setoid_rewrite CosMinusSwap at 2.
+  apply Cos_resp_leEq.
+  - apply flip_le_minus_l.
+    rewrite negate_involutive.
+    setoid_rewrite plus_0_l.
+    tauto.
+  - rewrite (divideBy2 Pi).
+    apply plus_le_compat;[apply firstQuadβPlusFront|].
+    apply flip_nonneg_negate in Hnn.
+    eapply transitivity;[apply Hnn|].
+    rewrite PiBy2DesugarIR.
+    apply PiBy2Ge0.
+  - apply plus_le_compat; [reflexivity| ].
+    apply flip_le_negate. tauto.
+Qed.
+
+(*the car's rightmost (X (maxxy ..)) point finally shifts left *)
+Lemma confineRectRightmostRight2 (θ: IR) :
+(* confineRectPos is not even meaningful otherwise *)
+θ ≤ ½ * π
+→ ' polarTheta βPlusFront ≤ θi ≤ θ
+→ X (maxxy (confineRectPos init θ)) ≤ X (maxxy (confineRectPos init θi)).
+Proof using turnCentreOut trPos ntriv initFirstQuad.
+  simpl. intros Hf Hb.
+  apply (@order_preserving _ _ _ _ _ _ _ _).
+  apply (@order_preserving _ _ _ _ _ _ _);
+    [apply OrderPreserving_instance_0;
+     apply Cart2DRadNNegIR |].
+  apply Cos_resp_leEq.
+  - apply flip_le_minus_l.
+    rewrite negate_involutive.
+    setoid_rewrite plus_0_l.
+    apply Hb.
+  - rewrite (divideBy2 Pi).
+    apply plus_le_compat;
+      [apply Hf |].
+    eapply transitivity;[|apply firstQuadβPlusFront].
+    apply between_nonneg. apply firstQuadβPlusFront.
+  - apply plus_le_compat; [| reflexivity].
+    apply Hb.
+Qed.
+
+
 (*the car's bottommost point (closest to curb) shifts up if .... *)
 (*the car's bottommost point shifts down, but at most by ...., if .... *)
 
