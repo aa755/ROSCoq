@@ -364,6 +364,16 @@ Ltac proveFirstQuad :=
     split; simpl; autounfold with QMC; lra
   end.
 
+(* comes up again and again *)
+Lemma minusLePiBy2 : forall θ:IR, 0 ≤ θ → - θ ≤ ½ * Pi.
+Proof using.
+  intros ? Hnn.
+  apply flip_nonneg_negate in Hnn.
+  eapply transitivity;[apply Hnn|].
+  rewrite PiBy2DesugarIR.
+  apply PiBy2Ge0.
+Qed.
+
 Section TurnMoveQ.
   Variable cd :CarDimensions Q.
   Hypothesis ntriv : nonTrivialCarDim cd.
@@ -513,7 +523,7 @@ Let θi := (θ2D init).
   * we will now characterize the monotonicity properties of each corner of the car
   *)
 
-(*the car's leftmost point shifts right. *)
+(*the car's leftmost (X (minxy ..)) point shifts right. *)
 Lemma confineRectPosLeftmostRight (θ: IR) :
 θi ≤ θ ≤  (½ * π)
 → X (minxy (confineRectPos init θi)) ≤ X (minxy (confineRectPos init θ)).
@@ -533,8 +543,11 @@ Proof using turnCentreOut trPos ntriv initFirstQuad.
   - apply plus_le_compat;[tauto| reflexivity].
 Qed.
 
+
+
+
 (*the car's rightmost (X (maxxy ..)) point initially shifts right *)
-Lemma confineRectRightmostRight1 (θ: IR) :
+Lemma confineRectRightmostRight (θ: IR) :
 (* confineRectPos is not even meaningful otherwise, although - θi ≤ ' polarTheta βPlusFront suffices instead*)
 0 ≤ θi 
 → θi ≤ θ ≤  ' polarTheta βPlusFront
@@ -554,16 +567,13 @@ Proof using turnCentreOut trPos ntriv initFirstQuad.
     tauto.
   - rewrite (divideBy2 Pi).
     apply plus_le_compat;[apply firstQuadβPlusFront|].
-    apply flip_nonneg_negate in Hnn.
-    eapply transitivity;[apply Hnn|].
-    rewrite PiBy2DesugarIR.
-    apply PiBy2Ge0.
+    apply minusLePiBy2; auto.
   - apply plus_le_compat; [reflexivity| ].
     apply flip_le_negate. tauto.
 Qed.
 
 (*the car's rightmost (X (maxxy ..)) point finally shifts left *)
-Lemma confineRectRightmostRight2 (θ: IR) :
+Lemma confineRectRightmostLeft (θ: IR) :
 (* confineRectPos is not even meaningful otherwise *)
 θ ≤ ½ * π
 → ' polarTheta βPlusFront ≤ θi ≤ θ
@@ -588,6 +598,62 @@ Proof using turnCentreOut trPos ntriv initFirstQuad.
     apply Hb.
 Qed.
 
+(*the car's downmost (Y (minxy ..)) point initially shifts down (towards the curb) *)
+Lemma confineRectDownmostDown (θ: IR) :
+0 ≤ θi 
+→ θi ≤ θ ≤ ½ * π - ' polarTheta βPlusBack
+→ Y (minxy (confineRectPos init θ)) ≤ Y (minxy (confineRectPos init θi)).
+Proof using turnCentreOut trPos ntriv initFirstQuad.
+  simpl. intros Hf Hb.
+  apply (@order_preserving _ _ _ _ _ _ _ _).
+  apply flip_le_negate.
+  apply (@order_preserving _ _ _ _ _ _ _);
+    [apply OrderPreserving_instance_0;
+     apply Cart2DRadNNegIR |].
+  rewrite CosMinusSwap.
+  setoid_rewrite CosMinusSwap at 2.
+  apply Cos_resp_leEq.
+  - apply flip_le_minus_l.
+    rewrite negate_involutive.
+    setoid_rewrite plus_0_l.
+    apply Hb.
+  - rewrite (divideBy2 Pi).
+    apply plus_le_compat;[| apply minusLePiBy2; assumption].
+    apply flip_le_minus_l.
+    apply RingLeProp1l.
+    apply firstQuadβPlusBack.
+  - apply plus_le_compat;[reflexivity|].
+    apply flip_le_negate.
+    apply Hb.
+Qed.
+
+(*the car's downmost (Y (minxy ..)) point finally shifts up (away from the curb) *)
+Lemma confineRectDownmostUp (θ: IR) :
+θ ≤ ½ * π
+→  ½ * π - ' polarTheta βPlusBack ≤ θi ≤ θ
+→ Y (minxy (confineRectPos init θi)) ≤ Y (minxy (confineRectPos init θ)).
+Proof using turnCentreOut trPos ntriv initFirstQuad.
+  simpl. intros Hf Hb.
+  apply (@order_preserving _ _ _ _ _ _ _ _).
+  apply flip_le_negate.
+  apply (@order_preserving _ _ _ _ _ _ _);
+    [apply OrderPreserving_instance_0;
+     apply Cart2DRadNNegIR |].
+  apply Cos_resp_leEq.
+  - apply flip_le_minus_l.
+    rewrite negate_involutive.
+    setoid_rewrite plus_0_l.
+    apply Hb.
+  - rewrite (divideBy2 Pi).
+    apply plus_le_compat;[apply Hf|].
+    apply minusLePiBy2.
+    apply flip_le_minus_l.
+    rewrite negate_involutive.
+    setoid_rewrite plus_0_l.
+    apply firstQuadβPlusBack.
+  - apply plus_le_compat;[|reflexivity].
+    apply Hb.
+Qed.
 
 (*the car's bottommost point (closest to curb) shifts up if .... *)
 (*the car's bottommost point shifts down, but at most by ...., if .... *)
@@ -614,5 +680,7 @@ Proof using turnCentreOut trPos ntriv initFirstQuad.
     eapply transitivity;[apply Hb|]. reflexivity.
   - apply plus_le_compat;[tauto| reflexivity].
 Qed.
+
+
 
 End TurnMoveQ.
