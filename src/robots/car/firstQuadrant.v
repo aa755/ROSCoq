@@ -655,15 +655,13 @@ Proof using turnCentreOut trPos ntriv initFirstQuad.
     apply Hb.
 Qed.
 
-(*the car's bottommost point (closest to curb) shifts up if .... *)
-(*the car's bottommost point shifts down, but at most by ...., if .... *)
 
   (** * Moving backward with negative turn radius
   * we will now characterize the monotonicity properties of each corner of the car
   *)
 
 (* the rightmost point shifts left *)
-Lemma confineRectNegLeftDecreasing (θ: IR) :
+Lemma revConfineRectRightmostLeft (θ: IR) :
 θi ≤ θ ≤  (½ * π) (* θ keeps increasing, because the negations cancel out *)
 → X (maxxy (confineRectNeg init θ)) ≤ X (maxxy (confineRectNeg init θi)).
 Proof using turnCentreOut trPos ntriv initFirstQuad.
@@ -681,6 +679,87 @@ Proof using turnCentreOut trPos ntriv initFirstQuad.
   - apply plus_le_compat;[tauto| reflexivity].
 Qed.
 
+(* the leftmost point initially shifts left *)
+Lemma revConfineRectLeftmostLeft (θ: IR) :
+θ ≤ ½ * π
+→ ' polarTheta βPlusBack ≤ θi ≤ θ
+(* θ keeps increasing, because the negations cancel out *)
+→ X (minxy (confineRectNeg init θi)) ≤ X (minxy (confineRectNeg init θ)).
+Proof using turnCentreOut trPos ntriv initFirstQuad.
+  simpl. intros Hnn Hb.
+  apply (@order_preserving _ _ _ _ _ _ _ _).
+  apply flip_le_negate.
+  apply (@order_preserving _ _ _ _ _ _ _);
+      [apply OrderPreserving_instance_0;
+       apply Cart2DRadNNegIR |].
+  apply Cos_resp_leEq.
+  - apply flip_le_minus_l.
+    rewrite negate_involutive.
+    setoid_rewrite plus_0_l.
+    apply Hb.
+  - rewrite (divideBy2 Pi).
+    apply plus_le_compat;[ apply Hnn| ].
+    apply minusLePiBy2.
+    apply firstQuadβPlusBack.
+  - apply plus_le_compat;[|reflexivity].
+    apply Hb.
+Qed.
 
+
+(* the leftmost point shifts finally right *)
+Lemma revConfineRectLeftmostRight (θ: IR) :
+0 ≤ θi 
+→ θi ≤ θ ≤  ' polarTheta βPlusBack
+(* θ keeps increasing, because the negations cancel out *)
+→ X (minxy (confineRectNeg init θ)) ≤ X (minxy (confineRectNeg init θi)).
+Proof using turnCentreOut trPos ntriv initFirstQuad.
+  simpl. intros Hnn Hb.
+  apply (@order_preserving _ _ _ _ _ _ _ _).
+  apply flip_le_negate.
+  apply (@order_preserving _ _ _ _ _ _ _);
+      [apply OrderPreserving_instance_0;
+       apply Cart2DRadNNegIR |].
+  rewrite CosMinusSwap.
+  setoid_rewrite CosMinusSwap at 2.
+  apply Cos_resp_leEq.
+  - apply flip_le_minus_l.
+    rewrite negate_involutive.
+    setoid_rewrite plus_0_l.
+    apply Hb.
+  - rewrite (divideBy2 Pi).
+    apply plus_le_compat;[| apply minusLePiBy2; assumption].
+    apply firstQuadβPlusBack.
+  - apply plus_le_compat;[reflexivity|].
+    apply flip_le_negate.
+    apply Hb.
+Qed.
+
+(* the downmost point shifts down *)
+Lemma revConfineRectDownmostDown (θ: IR) :
+0 ≤ θi 
+→ θi ≤ θ ≤  (½ * π)
+(* θ keeps increasing, because the negations cancel out *)
+→ Y (minxy (confineRectNeg init θ)) ≤ Y (minxy (confineRectNeg init θi)).
+Proof using turnCentreOut trPos ntriv initFirstQuad.
+  simpl. intros Hnn Hb.
+  apply (@order_preserving _ _ _ _ _ _ _ _).
+  apply (@order_preserving _ _ _ _ _ _ _);
+      [apply OrderPreserving_instance_0;
+       apply Cart2DRadNNegIR |].
+  apply Cos_resp_leEq.
+  - apply nonneg_plus_compat;
+    [ eapply transitivity; eauto using Hnn, (proj1 Hb)|].
+    apply flip_le_minus_l.
+    rewrite negate_involutive.
+    setoid_rewrite plus_0_l.
+    apply firstQuadβMinusBack.
+  - rewrite (divideBy2 Pi).
+    apply plus_le_compat;[apply Hb| ].
+    apply flip_le_minus_l.
+    apply RingLeProp1l.
+    apply firstQuadβMinusBack.
+  - apply plus_le_compat;[|reflexivity].
+    apply Hb.
+Qed.
 
 End TurnMoveQ.
