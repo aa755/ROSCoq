@@ -37,17 +37,19 @@ Set Implicit Arguments.
   *)
 Record CarGeometry (A:Type) := {
  carDim : CarDimensions A;
- minTR : A (**minimum turn radius, on either side*)
+ minTR : A (**minimum turn radius, on either side*);
+ carDimWheel : CarDimensions A;
 }.
 
 Definition nonTrivialCarGeometry (cd : CarGeometry Q) : Prop := 
-nonTrivialCarDim (carDim cd) /\ 0 < minTR cd.
+nonTrivialCarDim (carDim cd) /\ 0 < minTR cd /\ nonTrivialCarDim (carDimWheel cd).
 
 Global Instance CastCarGeometry `{Cast A B} 
   : Cast (CarGeometry A) (CarGeometry B) :=
 fun a =>  Build_CarGeometry
             ('carDim a)
-            ('minTR a).
+            ('minTR a)
+            ('carDimWheel a).
 
 Open Scope Z_scope.
 (**dimensions are in inches. always rounding up for safety. *)
@@ -57,7 +59,14 @@ Definition Mazda3Sedan2014sGT_Dim : CarDimensions Z := {|
   lengthFront := 142;
 |}.
 
-Locate βPlusFront.
+(* the dimensions of the bounding box containing the wheels.
+  when analyzing the collision with curb, this dimension matters *)
+Definition Mazda3Sedan2014sGT_DimWheel : CarDimensions Z := {|
+  width := width Mazda3Sedan2014sGT_Dim;
+  lengthBack := 12; 
+  lengthFront := 122; (* just an estimate. measure and fix *)
+|}.
+
 
 Definition Mazda3Sedan2014sGT : CarGeometry Z := {|
   carDim := Mazda3Sedan2014sGT_Dim;
@@ -69,29 +78,15 @@ Definition Mazda3Sedan2014sGT : CarGeometry Z := {|
   which the midpoint (of the line segment joining the rear wheels) 
   of the car was moving.
   *)
-  minTR := 150
-|}.
+  minTR := 150;
 
-Definition Mazda3Sedan2014sGTWheelsBound : CarGeometry Z := {|
-  carDim := {|
-  width := 37; (* excluding the side mirrors -- which is okay unless the curb is too high *)
-  lengthBack := 12 
   (* radius of wheel :=
      16/2 + 0.55*195mm converted to inches
 http://www.mycarhelpline.com/images/Tyre_Size_details.png     
-     *); 
-  lengthFront := 142;
-  |};
-  (**  To measure this, I turned the steering wheel fully left and 
-  executed a U turn in a single move, in a parking lot. During this,
-  the midpoint of the car moved sideways by 300 inches 
-  (about 2.75 parking slots, each 110 inches wide).
-  This displacement is equal to the diameter of the circle in
-  which the midpoint (of the line segment joining the rear wheels) 
-  of the car was moving.
-  *)
-  minTR := 150
+     *)
+  carDimWheel := Mazda3Sedan2014sGT_DimWheel;
 |}.
+
 
 Example Mazda3Sedan2014sGT_dims : 
   let cdq := (cast _ (CarDimensions Q) (Mazda3Sedan2014sGT_Dim)) in
@@ -129,8 +124,8 @@ Proof using.
 Abort.
 
 Example Mazda3Sedan2014sGTWheelsBound_dims : 
-  let cdq := (cast _ (CarDimensions Q) (carDim Mazda3Sedan2014sGTWheelsBound)) in
-  let trq :Z := minTR Mazda3Sedan2014sGTWheelsBound in
+  let cdq := (cast _ (CarDimensions Q) (carDimWheel Mazda3Sedan2014sGT)) in
+  let trq :Z := minTR Mazda3Sedan2014sGT in
   let w:Z := width Mazda3Sedan2014sGT_Dim in
   let pb :CR:= (polarTheta (transpose (βPlusBack cdq trq))) in
   let mb :CR := (polarTheta (transpose (βMinusBack cdq trq))) in

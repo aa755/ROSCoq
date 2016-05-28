@@ -468,7 +468,7 @@ Section TurnMoveQ.
 one of the front wheels have to rotate by more than 90 along 
 the vertical axis. 
 *)
-  Hypothesis turnCentreOut : (Qle (width cd) tr).
+  Hypothesis turnCentreOut : ((width cd) <= tr)%Q.
   
   Let trPos : (Qle 0 tr)%Q.
   Proof using.
@@ -506,7 +506,7 @@ the vertical axis.
     which is the init position for the next
     move, can be a real number *) 
   Variable init: Rigid2DState IR.
-  Hypothesis initFirstQuad : 0 ≤ (θ2D init) ≤ (½ * π).
+(*  Hypothesis initFirstQuad : 0 ≤ (θ2D init) ≤ (½ * π). *)
 
   (* instead of modeling distance covered, we directly model the signed change in
     angle. distance = θd * tr.
@@ -525,10 +525,11 @@ Let θi := (θ2D init).
 
 (*the car's leftmost (X (minxy ..)) point shifts right. *)
 Lemma confineRectPosLeftmostRight (θ: IR) :
-θi ≤ θ ≤  (½ * π)
+0 ≤ θi 
+→ θi ≤ θ ≤  (½ * π)
 → X (minxy (confineRectPos init θi)) ≤ X (minxy (confineRectPos init θ)).
-Proof using turnCentreOut trPos ntriv initFirstQuad.
-  simpl. intros Hb.
+Proof using turnCentreOut trPos ntriv.
+  simpl. intros Hi Hb.
   apply (@order_preserving _ _ _ _ _ _ _ _).
   apply flip_le_negate.
   apply (@order_preserving _ _ _ _ _ _ _);
@@ -536,7 +537,7 @@ Proof using turnCentreOut trPos ntriv initFirstQuad.
      apply Cart2DRadNNegIR |].
 (*   apply firstQuadW1 in Hb; trivial ;[]. *)
   apply Cos_resp_leEq.
-  - apply plus_resp_nonneg;[tauto|].
+  - apply plus_resp_nonneg; [tauto|].
     apply firstQuadβMinusBack.
   - rewrite (divideBy2 Pi).
     apply plus_le_compat;[tauto| apply firstQuadβMinusBack].
@@ -552,7 +553,7 @@ Lemma confineRectRightmostRight (θ: IR) :
 0 ≤ θi 
 → θi ≤ θ ≤  ' polarTheta βPlusFront
 → X (maxxy (confineRectPos init θi)) ≤ X (maxxy (confineRectPos init θ)).
-Proof using turnCentreOut trPos ntriv initFirstQuad.
+Proof using turnCentreOut trPos ntriv.
   simpl. intros Hnn Hb.
   apply (@order_preserving _ _ _ _ _ _ _ _).
   apply (@order_preserving _ _ _ _ _ _ _);
@@ -578,7 +579,7 @@ Lemma confineRectRightmostLeft (θ: IR) :
 θ ≤ ½ * π
 → ' polarTheta βPlusFront ≤ θi ≤ θ
 → X (maxxy (confineRectPos init θ)) ≤ X (maxxy (confineRectPos init θi)).
-Proof using turnCentreOut trPos ntriv initFirstQuad.
+Proof using turnCentreOut trPos ntriv.
   simpl. intros Hf Hb.
   apply (@order_preserving _ _ _ _ _ _ _ _).
   apply (@order_preserving _ _ _ _ _ _ _);
@@ -603,7 +604,7 @@ Lemma confineRectDownmostDown (θ: IR) :
 0 ≤ θi 
 → θi ≤ θ ≤ ½ * π - ' polarTheta βPlusBack
 → Y (minxy (confineRectPos init θ)) ≤ Y (minxy (confineRectPos init θi)).
-Proof using turnCentreOut trPos ntriv initFirstQuad.
+Proof using turnCentreOut trPos ntriv.
   simpl. intros Hf Hb.
   apply (@order_preserving _ _ _ _ _ _ _ _).
   apply flip_le_negate.
@@ -632,7 +633,7 @@ Lemma confineRectDownmostUp (θ: IR) :
 θ ≤ ½ * π
 →  ½ * π - ' polarTheta βPlusBack ≤ θi ≤ θ
 → Y (minxy (confineRectPos init θi)) ≤ Y (minxy (confineRectPos init θ)).
-Proof using turnCentreOut trPos ntriv initFirstQuad.
+Proof using turnCentreOut trPos ntriv.
   simpl. intros Hf Hb.
   apply (@order_preserving _ _ _ _ _ _ _ _).
   apply flip_le_negate.
@@ -662,17 +663,18 @@ Qed.
 
 (* the rightmost point shifts left *)
 Lemma revConfineRectRightmostLeft (θ: IR) :
-θi ≤ θ ≤  (½ * π) (* θ keeps increasing, because the negations cancel out *)
+0 ≤ θi
+→ θi ≤ θ ≤  (½ * π) (* θ keeps increasing, because the negations cancel out *)
 → X (maxxy (confineRectNeg init θ)) ≤ X (maxxy (confineRectNeg init θi)).
-Proof using turnCentreOut trPos ntriv initFirstQuad.
-  simpl. intros Hb.
+Proof using turnCentreOut trPos ntriv.
+  simpl. intros Hi Hb.
   apply (@order_preserving _ _ _ _ _ _ _ _).
   apply (@order_preserving _ _ _ _ _ _ _);
       [apply OrderPreserving_instance_0;
        apply Cart2DRadNNegIR |].
   apply Cos_resp_leEq.
   - apply plus_resp_nonneg;[|apply firstQuadβMinusFront].
-    apply initFirstQuad.
+    apply Hi.
   - rewrite (divideBy2 Pi).
     apply plus_le_compat;[|apply firstQuadβMinusFront].
     eapply transitivity;[apply Hb|]. reflexivity.
@@ -685,7 +687,7 @@ Lemma revConfineRectLeftmostLeft (θ: IR) :
 → ' polarTheta βPlusBack ≤ θi ≤ θ
 (* θ keeps increasing, because the negations cancel out *)
 → X (minxy (confineRectNeg init θi)) ≤ X (minxy (confineRectNeg init θ)).
-Proof using turnCentreOut trPos ntriv initFirstQuad.
+Proof using turnCentreOut trPos ntriv.
   simpl. intros Hnn Hb.
   apply (@order_preserving _ _ _ _ _ _ _ _).
   apply flip_le_negate.
@@ -712,7 +714,7 @@ Lemma revConfineRectLeftmostRight (θ: IR) :
 → θi ≤ θ ≤  ' polarTheta βPlusBack
 (* θ keeps increasing, because the negations cancel out *)
 → X (minxy (confineRectNeg init θ)) ≤ X (minxy (confineRectNeg init θi)).
-Proof using turnCentreOut trPos ntriv initFirstQuad.
+Proof using turnCentreOut trPos ntriv.
   simpl. intros Hnn Hb.
   apply (@order_preserving _ _ _ _ _ _ _ _).
   apply flip_le_negate.
@@ -740,7 +742,7 @@ Lemma revConfineRectDownmostDown (θ: IR) :
 → θi ≤ θ ≤  (½ * π)
 (* θ keeps increasing, because the negations cancel out *)
 → Y (minxy (confineRectNeg init θ)) ≤ Y (minxy (confineRectNeg init θi)).
-Proof using turnCentreOut trPos ntriv initFirstQuad.
+Proof using turnCentreOut trPos ntriv.
   simpl. intros Hnn Hb.
   apply (@order_preserving _ _ _ _ _ _ _ _).
   apply (@order_preserving _ _ _ _ _ _ _);
@@ -763,3 +765,83 @@ Proof using turnCentreOut trPos ntriv initFirstQuad.
 Qed.
 
 End TurnMoveQ.
+
+Set Implicit Arguments.
+Record ParkingEnv (R:Type) :=
+{
+  miny : R;
+  minx : R;
+  maxx : R
+}.
+
+
+Require Import exampleDimensions.
+
+(* Move to exampleDimensions.v *)
+Definition acceptableGeometry (cg : CarGeometry Q) :=
+nonTrivialCarDim (carDim cg) /\ nonTrivialCarDim (carDimWheel cg) /\
+((width (carDim cg)) <= (minTR cg))%Q /\ ((width (carDimWheel cg)) <= (minTR cg))%Q.
+Require Import MathClasses.orders.semirings.
+Require Import MCMisc.rings.
+
+Require Import MathClasses.interfaces.functors.
+
+(*
+Global Instance SFmapCart2D : SFmap Cart2D :=
+fun _ _ f c => {|X:= f (X c); Y:= f (Y c)|}.
+
+Global Instance SFmapRigid2D : SFmap Rigid2DState :=
+fun _ _ f c => {|pos2D := sfmap f (pos2D c); θ2D := f (θ2D c)|}.
+*)
+Section Solutions.
+  Variable cg : CarGeometry Q.
+  Variable pe : ParkingEnv Q.
+  
+  Definition carSafeInParkingEnv (s:Rigid2DState IR):= 
+  (('minx pe):IR) ≤ X (minxy (carMinMaxXY ('carDim cg) s))
+  /\ X (maxxy (carMinMaxXY ('carDim cg) s)) ≤ (('maxx pe):IR)
+  /\ (('minx pe):IR) ≤ X (minxy (carMinMaxXY ('carDim cg) s)).
+
+  Hypothesis ntriv : acceptableGeometry cg.
+
+  Let  tr : Q := (minTR cg).
+(*  Let βMinusBack : Cart2D Q := βMinusBack cd tr.
+  Let βMinusFront : Cart2D Q := βMinusFront cd tr.
+  Let βPlusBack : Cart2D Q := βPlusBack cd tr.
+  Let βPlusFront : Cart2D Q := βPlusFront cd tr. *)
+
+  Definition θInvariant  (θ:IR) :=
+    (½ * π - 'polarTheta (βPlusBack (carDim cg) tr)) ≤ θ ≤ (½ * π).
+    
+  Definition Invariant  (s:Rigid2DState IR) :=
+  carSafeInParkingEnv s /\ θInvariant (θ2D s).
+
+Require Import MathClasses.interfaces.functors.
+  Variable initcr: Rigid2DState CR.
+  Locate sfmap.
+(*  Hypothesis initFirstQuad : 0 ≤ (θ2D init) ≤ (½ * π). *)
+  Let init : Rigid2DState IR := sfmap (cast CR IR) initcr.
+    
+  Let θi : IR := (θ2D init).
+  
+  (* this invariant is always maintained *)
+  Hypothesis inv : Invariant init.
+  
+  Section Forward.
+  
+  (* this is true initially, and the backward move re-establishes it *)
+  Hypothesis positiveSpaceAhead:
+     X (maxxy (carMinMaxXY ('carDim cg) init)) [<] (('maxx pe):IR).
+
+  End Forward.
+
+  Section Backward.
+  
+  (* the forward move re-establishes it *)
+  Hypothesis positiveSpaceBelowAndBehind :
+  (((('minx pe):IR) [<] X (minxy (carMinMaxXY ('carDim cg) init))) *
+   ((('minx pe):IR) [<] X (minxy (carMinMaxXY ('carDim cg) init))))%type.
+
+  End Backward.
+  
+End Solutions.
