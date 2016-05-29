@@ -1545,6 +1545,49 @@ Section  SpaceInvertability.
 Add Ring tempRingIR : (stdlib_ring_theory IR).
 
 Require Import MathClasses.interfaces.canonical_names.
+
+Lemma holdsDuringAMEndpoints: forall P
+  (m : (DAtomicMove IR))
+  (init : Rigid2DState IR),
+holdsDuringAM m init P
+→ (`P) (stateAfterAtomicMove init m)
+   /\ (`P) init.
+Proof.
+  intros ? ? ? Hc.
+  destruct P as [P Pp]. simpl.
+  destruct m as [m s]. simpl in Hc.
+  destruct s as [s|s].
+- simpl.
+  pose proof (Hc 0) as Hl.
+  unfold inBetweenR in Hl.
+  dimp Hl;[| eauto with *].
+  pose proof (Hc (am_distance m)) as Hr.
+  unfold inBetweenR in Hr.
+  dimp Hr;[| eauto with *].
+  unfold stateAfterAtomicMove. simpl.
+  rewrite s, mult_0_l, plus_0_r.
+  rewrite preserves_0 in Hl.
+  rewrite  mult_0_l, plus_0_r in Hl.
+  destruct init; simpl in *.
+  dands; tauto.
+- unfold stateAfterAtomicMove; simpl.
+  unfold confinedTurningAM in Hc.
+  pose proof (Hc (θ2D init)) as Hcc.
+  unfold turnRigidStateAtθ in Hcc.
+  specialize (Hc (θ2D init + am_tc m * am_distance m)).
+  unfold turnRigidStateAtθ in Hc.
+  simpl in Hcc.
+  rewrite plus_negate_r in Hcc.
+  rewrite plus_negate_r in Hcc.
+  fold (@Zero_instance_Cart2D IR _) in Hcc.
+  fold (@zero (Cart2D IR) _) in Hcc.
+  rewrite mult_0_l, plus_0_r in Hcc.
+  destruct init; simpl in *.
+  split;[ apply Hc | apply Hcc]; clear Hc Hcc;
+  unfold inBetweenR;
+  split; eauto with CoRN.
+Qed.
+
 Lemma carConfinedDuringAMEndpoints: forall
   (cd : CarDimensions IR)
   (rect : Line2D IR) 
@@ -1554,40 +1597,24 @@ carConfinedDuringAM cd rect m init
 → (carMinMaxXY cd (stateAfterAtomicMove init m) ⊆ rect
    /\ carMinMaxXY cd init ⊆ rect).
 Proof.
-  intros ? ? ? ? Hc.
-  destruct m as [m s]. simpl in Hc.
-  destruct s as [s|s].
-- simpl.
-  rewrite holdsDuringStAMIff in Hc.
-  unfold straightAMSpaceRequirement in Hc.
-  apply boundingUnionIff in Hc.
-  simpl in Hc.
-  repnd.
-  split;[| exact Hcl].
-  eapply (@transitivity (Line2D ℝ) le _);
-      [|apply Hcr].
-  apply eq_le.
-  rewrite <- displacedCarMinMaxXY. simpl.
-  unfold stateAfterAtomicMove; simpl.
-  rewrite s, mult_0_l, plus_0_r.
-  reflexivity.
-- 
-  unfold stateAfterAtomicMove; simpl.
- unfold confinedTurningAM in Hc.
-  pose proof (Hc (θ2D init)) as Hcc.
-  unfold turnRigidStateAtθ in Hcc.
-  specialize (Hc (θ2D init + am_tc m * am_distance m)).
-  simpl in Hcc.
-  rewrite plus_negate_r in Hcc.
-  rewrite plus_negate_r in Hcc.
-  fold (@Zero_instance_Cart2D IR _) in Hcc.
-  fold (@zero (Cart2D IR) _) in Hcc.
-  rewrite mult_0_l, plus_0_r in Hcc.
-  split;[ apply Hc | apply Hcc]; clear Hc Hcc;
-  unfold inBetweenR;
-  split; eauto with CoRN.
+  intros ? ? ? ?.
+  apply holdsDuringAMEndpoints.
 Qed.
-  
+
+(*a more convenient characterization 
+of the single case*)
+Lemma holdsDuringAMsSingle: forall P
+  (m : (DAtomicMove IR))
+  (init : Rigid2DState IR),
+holdsDuringAMs [m] init P
+<-> holdsDuringAM m init P.
+Proof using.
+  intros ? ? ?. simpl.
+  split;[tauto|].
+  intros Hc. split;[assumption|].
+  apply holdsDuringAMEndpoints in Hc.
+  tauto.
+Qed.
 
 (*a more convenient characterization 
 of the single case*)
@@ -1599,11 +1626,7 @@ Lemma carConfinedDuringAMsSingle: forall
 carConfinedDuringAMs cd rect [m] init
 <-> carConfinedDuringAM cd rect m init.
 Proof using.
-  intros ? ? ? ?. simpl.
-  split;[tauto|].
-  intros Hc. split;[assumption|].
-  apply carConfinedDuringAMEndpoints in Hc.
-  tauto.
+  intros ? ? ?. apply holdsDuringAMsSingle.
 Qed.
 
 Definition DAtomicMoveInv `{Zero R}
@@ -1638,10 +1661,10 @@ Definition MovesStateInverse (damsl damsr : list (DAtomicMove IR)) :=
     = pos2D initr - pos2D endr
     /\ θ2D initl = θ2D endr).
 
-Lemma carConfinedDuringAMsAppend : forall cd rect la lb init,
-carConfinedDuringAMs cd rect (la++lb) init
-<-> (carConfinedDuringAMs cd rect la init 
-    /\ carConfinedDuringAMs cd rect lb (stateAfterAtomicMoves la init)).
+Lemma holdsDuringAMsAppend : forall P la lb init,
+holdsDuringAMs (la++lb) init P
+<-> (holdsDuringAMs la init P
+    /\ holdsDuringAMs lb (stateAfterAtomicMoves la init) P).
 Proof.
   induction la; intros lb init.
 - simpl. split; [|tauto].
@@ -1649,8 +1672,16 @@ Proof.
   destruct lb;[simpl in *; tauto|].
   simpl in *. repnd. split;[| tauto].
   clear Hcr.
-  apply carConfinedDuringAMEndpoints in Hcl; tauto.
+  apply holdsDuringAMEndpoints in Hcl; tauto.
 - simpl. rewrite IHla. tauto.
+Qed. 
+
+Lemma carConfinedDuringAMsAppend : forall cd rect la lb init,
+carConfinedDuringAMs cd rect (la++lb) init
+<-> (carConfinedDuringAMs cd rect la init 
+    /\ carConfinedDuringAMs cd rect lb (stateAfterAtomicMoves la init)).
+Proof.
+  intros ? ?. apply holdsDuringAMsAppend.
 Qed. 
 
 
@@ -1762,7 +1793,7 @@ Proof using.
   destruct m as [m s].
   simpl in *.
   destruct s as [s | s].
-  - unfold straightAMSpaceRequirement,
+  - rewrite holdsDuringStAMIff. unfold straightAMSpaceRequirement,
     stateAfterAtomicMove in *.
     simpl in *. rewrite s in Ht.
     rewrite mult_0_l, plus_0_r in Ht.
@@ -1794,8 +1825,9 @@ Proof using.
     apply order_preserving; 
       [eauto 2 with typeclass_instances|].
     rewrite  (@commutativity _ _ _ boundingUnion _ _ ).
+    rewrite holdsDuringStAMIff in Hcon.
     exact Hcon.
-  - unfold confinedTurningAM, inBetweenR in *. 
+  - unfold holdsDuringTurningAM, confinedTurningAM, inBetweenR in *. 
     simpl in *.
     intro.
     rewrite Ht.
@@ -1859,7 +1891,7 @@ Proof using Type.
   intros ? ? ? ? ? Ht Hcon;
   remember disp as d;
   assert (d=disp) as Heq by (rewrite Heqd; reflexivity);
-  clear Heqd; subst disp.
+  clear Heqd; subst disp; unfold carConfinedDuringAMs.
 - simpl in *.
   rewrite (@commutativity _ _ _ plus _) in Heq.
   apply RingShiftMinus in Heq.
@@ -1976,6 +2008,7 @@ carConfinedDuringAMs cd rect m init
 → (carMinMaxXY cd (stateAfterAtomicMoves m init) ⊆ rect
    /\ carMinMaxXY cd init ⊆ rect).
 Proof.
+  unfold carConfinedDuringAMs.
   induction m; intros ? Hc;simpl in *;
     [tauto|].
   repnd.
@@ -2012,7 +2045,9 @@ Proof.
   fold stateAfterAtomicMoves in H2c.
   split;[|exact H2c].
   apply carConfinedDuringAMsSingle.
-  simpl. unfold straightAMSpaceRequirement.
+  simpl.
+  rewrite holdsDuringStAMIff.
+  unfold straightAMSpaceRequirement.
   simpl.
   apply boundingUnionIff.
   apply carConfinedDuringAMsEndpoints in H1c.
