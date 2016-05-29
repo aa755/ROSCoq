@@ -355,15 +355,17 @@ Section AtomicMove.
         rewrite  XX in Hj. exact Hj.
     Qed.
 
-  Definition confinedTurningAM  (init : Rigid2DState IR) 
-        (confineRect : Line2D IR) :=
+  Definition holdsDuringTurningAM  (init : Rigid2DState IR) 
+        (P : (Rigid2DState IR) -> Prop) :=
     let θi := (θ2D init) in
     let θf := θi + tc * distance in
     ∀ (θ : IR), 
       inBetweenR θ θi θf
-       -> carMinMaxXY cd
-          (turnRigidStateAtθ init
-           turnRadius θ)  ⊆ confineRect.
+       -> P (turnRigidStateAtθ init turnRadius θ).
+
+  Definition confinedTurningAM  (init : Rigid2DState IR) 
+        (confineRect : Line2D IR) :=
+    holdsDuringTurningAM init (fun s => carMinMaxXY cd s ⊆ confineRect).
 
 Lemma confinedDuringSplit : forall (confineRect : Line2D IR)
   (ts tm te :Time),
@@ -388,7 +390,7 @@ Qed.
      ->  confinedDuring acs tstart tend cd confineRect.
   Proof using All.
     intros ?  hh.
-    unfold confinedTurningAM in hh. simpl in hh.
+    unfold confinedTurningAM, holdsDuringTurningAM in hh. simpl in hh.
     unfold inBetweenR in hh.
     setoid_rewrite <- AtomicMoveθ in hh.
     pose proof am_timeIncWeaken. repnd.
@@ -645,7 +647,50 @@ Qed.
       let bi := carMinMaxXY cd init  in
       let bf := bi + '(('distance) * (unitVec (θ2D init))) in
           (boundingUnion bi bf).
-          
+
+   Definition holdsDuringStAM  (init : Rigid2DState IR) 
+        (P : (Rigid2DState IR) -> Prop) :=
+     ∀ (d : IR), 
+       inBetweenR d 0 distance
+       -> P {|pos2D := pos2D init + ( 'd * (unitVec (θ2D init))); θ2D := θ2D init|}.
+
+   Lemma straightAMSpaceRequirementCorrectAux :
+    let init := (rigidStateAtTime acs tstart) in
+    holdsDuringStAM init (fun s => carMinMaxXY cd s ⊆ straightAMSpaceRequirement init).
+   Proof using All.
+     unfold straightAMSpaceRequirement. unfold holdsDuringStAM.
+     intros d Hb. simpl.
+     unfold boundingUnion.
+     assert ((minxy (carMinMaxAtT acs cd tstart)) 
+        = (minxy (carMinMaxAtT acs cd tstart)) + 0) as H0 by ring.
+     rewrite H0. clear H0.
+     assert ((maxxy (carMinMaxAtT acs cd tstart)) 
+        = (maxxy (carMinMaxAtT acs cd tstart)) + 0) as H0 by ring.
+     rewrite H0. clear H0.
+     setoid_rewrite  minCartSum.
+     setoid_rewrite  maxCartSum.
+     rewrite foldPlusLine.
+     replace {|
+        lstart := minxy (carMinMaxAtT acs cd tstart);
+        lend := maxxy (carMinMaxAtT acs cd tstart) |}
+        with  (carMinMaxAtT acs cd tstart);[| reflexivity].
+     simpl.
+     pose proof (displacedCarMinMaxXY (rigidStateAtTime acs tstart) (' d * unitVec θs))
+      as Hd.
+     simpl in Hd.
+     rewrite Hd.
+     apply order_preserving; eauto with
+      typeclass_instances.
+      rename Hb into Hn.
+     unfold inBetweenR in Hn.
+     pose proof Hn as Hns.
+     eapply MinMax0Mult with (k:= cos θs)in Hn.
+     eapply MinMax0Mult with (k:= sin θs)in Hns.
+     repnd.     
+     split; split; simpl; tauto.
+   Qed.
+ 
+    (* TODO : use the lemma  straightAMSpaceRequirementCorrectAux above *)
    Lemma straightAMSpaceRequirementCorrect :
       noSignChangeDuring (linVel acs) tstart tend
       -> confinedDuring acs tstart tend cd 
@@ -687,6 +732,7 @@ Qed.
      repnd.     
      split; split; simpl; tauto.
     Qed.
+    
   End XYBounds.
   End TCZ.
 
@@ -782,6 +828,17 @@ Proof using.
   - rewrite s. rewrite mult_0_l, plus_0_r. eapply AtomicMoveZFinal; eauto. 
   - split; simpl; [eapply  AtomicMoveXY | eapply AtomicMoveθ]; eauto.
 Qed. 
+
+Definition holdsDuringAM 
+  (cd : CarDimensions IR)
+  (ams : DAtomicMove IR)
+  (init : Rigid2DState IR) P
+   := 
+let (am,s) :=ams in
+match s with
+| inl _ => holdsDuringStAM am init P
+| inr turn => holdsDuringTurningAM am turn init P
+end.
 
 (** combine the sufficient conditions on space required,
     both for the cases of turning and driving straignt*)
