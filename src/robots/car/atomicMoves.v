@@ -51,14 +51,42 @@ Local Notation maxxy := (lend).
 Local Notation  "∫" := Cintegral.
 
 Require Import MathClasses.interfaces.orders.
-
+Require Import MathClasses.theory.setoids.
 Unset Implicit Arguments.
 (* Move to MCMisc. Does MC have such a construct? *)
 Definition Setoid_Mor (A B :Type) `{Equiv A} `{Equiv B} : Type:=
   sig (@Setoid_Morphism A B _ _).
 Set Implicit Arguments.
 
+
+
 Infix "-->" := (Setoid_Mor).
+
+Typeclasses Transparent Setoid_Mor.
+Global Instance EquivSetoisMor (A B :Type) `{Equiv A} `{Equiv B} :
+  Equiv  (A --> B).
+Proof.
+  apply sig_equiv.
+Defined.  
+
+Global Instance EquivalenceSetoisMor (A B :Type) `{Equiv A} `{Equiv B} :
+  Equivalence (@equiv (A --> B) _).
+Proof.
+  constructor.
+- intros ? ?. apply ext_equiv_refl.
+- intros ? ?. eapply ext_equiv_sym.
+- intros ? ? ? . eapply ext_equiv_trans.
+Unshelve.
+destruct x. destruct s. 
+eauto with relations typeclass_instances.
+destruct x. destruct s. 
+eauto with relations typeclass_instances.
+destruct x. destruct s. 
+eauto with typeclass_instances.
+destruct x. destruct s. 
+eauto with typeclass_instances.
+Qed.
+Set Implicit Arguments.
 
 (** * Atomic Move
 
@@ -797,17 +825,12 @@ Defined.
 Global Instance EquivalenceDAtomicMove  `{Setoid R} `{Zero R} `{ApartT R}
    : Equivalence EquivDAtomicMove.
 Proof using .
-  unfold EquivDAtomicMove.
+  fold (@equiv (DAtomicMove R) _).
+  eapply setoids.sigT_setoid.
+  Unshelve.
+  unfold Setoid.
   eauto with typeclass_instances.
-  unfold equiv, EquivDAtomicMove, sigT_equiv. split.
-  - intros x. destruct x. simpl. split; auto with *.
-  - intros x y. destruct x,y. simpl. intros Hd; repnd;
-      rewrite Hd; reflexivity.
-
-  - intros x y z. destruct x,y,z. simpl. intros h0 h1.
-    repnd; rewrite h0; rewrite h1. reflexivity. 
 Qed.
-
 
 (** combine the final positions for,
     both for the cases of turning and driving straignt*)
@@ -921,9 +944,32 @@ Proof using.
   reflexivity.
 Qed.
 
+(*
 Global Instance EquivRigid2DProp : Equiv (Rigid2DState ℝ --> Prop).
   apply sig_equiv .
 Defined.
+*)
+
+(*
+Global Instance EquivalenceRigid2DProp : Equivalence  EquivRigid2DProp.
+  apply setoids.sig_setoid.
+Defined.
+*)
+(*
+Global Instance EquivalenceDAtomicMove  `{Setoid R} `{Zero R} `{ApartT R}
+   : Equivalence EquivDAtomicMove.
+Proof using .
+  unfold EquivDAtomicMove.
+  eauto with typeclass_instances.
+  unfold equiv, EquivDAtomicMove, sigT_equiv. split.
+  - intros x. destruct x. simpl. split; auto with *.
+  - intros x y. destruct x,y. simpl. intros Hd; repnd;
+      rewrite Hd; reflexivity.
+
+  - intros x y z. destruct x,y,z. simpl. intros h0 h1.
+    repnd; rewrite h0; rewrite h1. reflexivity. 
+Qed.
+*)
 
 (* Move to the definition of holdsDuringStAM*)
 Global Instance ProperHoldsDuringStAM:
@@ -1252,7 +1298,6 @@ Proof using Type.
     simpl in Hcc. repnd.
     eapply carConfinedDuringAMCorrect with (p0:=pl) in Hccl;
       eauto.
-    fold (@carConfinedDuringAMs cd rect tm (stateAfterAtomicMove (rigidStateAtTime acs tstart) m)) in Hccr.
     rewrite <- stateAfterAtomicMoveCorrect 
       with (p0:=pl) in Hccr; destruct X; eauto.
     apply IHHam in Hccr.
@@ -1883,6 +1928,14 @@ Proof using.
     exact Hcon.
   Qed.
 
+(* Move *)
+Global Instance ProperConfinedInRect :
+  Proper (equiv ==> equiv ==> equiv) confinedInRect.
+Proof.
+  intros ? ? H1 ? ? H2 ? ? H3. unfold confinedInRect. simpl.
+  rewrite H1, H2, H3.
+  reflexivity.
+Qed.
 
 Lemma atomicMovesSpaceInvertibleAux :
   ∀ (m : list (DAtomicMove IR)), MovesSpaceInverse (DAtomicMovesInv m) m.
@@ -1923,8 +1976,6 @@ Proof using Type.
   rewrite RingShiftMinus in Ht.
   symmetry in Ht.
   rewrite (@commutativity _ _ _ plus _) in Ht.
-   fold (@carConfinedDuringAMs cd (confineRect + 'd) 
-    tl (stateAfterAtomicMove initr h)).
   split;[|rewrite Heq; apply Hind; auto].
   clear Hconl.
   simpl stateAfterAtomicMoves in Hconr. 
