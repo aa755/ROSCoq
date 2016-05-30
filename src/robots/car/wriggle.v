@@ -235,6 +235,8 @@ Local Notation tr := ((@f_rcpcl ℝ α αPos)).
 
 Require Import canonical_names.
 
+Local Opaque Min.
+Local Opaque Max.
 Variable cd : CarDimensions ℝ.
 Hypothesis nTriv : plausibleCarDim cd.
 Lemma WriggleFirstQSpace :  ∀  (confineRect: Line2D IR),
@@ -253,23 +255,24 @@ Lemma WriggleFirstQSpace :  ∀  (confineRect: Line2D IR),
   carConfinedDuringAMs cd confineRect SWriggle init.
 Proof using All.
   intros ? ?. unfold Wriggle, WriggleG.
+  unfold carConfinedDuringAMs.
   (*to stop reduction*)
   match goal with
   [|- context [?h::nil]] => remember (h::nil) as hh
   end.
   simpl. subst hh.
-  rewrite carConfinedDuringAMsSingle.
+  setoid_rewrite carConfinedDuringAMsSingle.
   simpl. unfold stateAfterAtomicMove.
   simpl. unfold confinedTurningAM. simpl.
 (*  SearchAbout ((∀ a:?A, ?P a <-> ?Q a)). *)
-  rewrite  conjunction_under_forall.
+  setoid_rewrite  conjunction_under_forall.
 (*  SearchAbout ((∀ a:?A, ?P a /\ ?Q a)).  *)
   apply iff_under_forall.
   intro θ.
   match goal with
   [|- ?l ↔ _] => remember l as ll
   end.
-  unfold inBetweenR.
+  unfold inBetweenR. simpl in *.
   setoid_rewrite plus_0_l.
   setoid_rewrite plus_0_l.
   setoid_rewrite  reciprocalNeg with (xp:=αNZ).
