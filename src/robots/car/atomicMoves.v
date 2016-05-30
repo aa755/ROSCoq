@@ -365,29 +365,8 @@ Section AtomicMove.
   Qed.
 
    Hypothesis nosign : noSignChangeDuring (linVel acs) tstart tend.
-    
-    (*Local*) Lemma confinedDuringTurningAMIfAux : forall (confineRect : Line2D IR),
-    (∀ (θ : IR), inBetweenR θ ({theta acs} tstart) ({theta acs} tend)
-     -> carMinMaxXY cd
-          (turnRigidStateAtθ (rigidStateAtTime acs tstart) turnRadius θ ) 
-           ⊆ confineRect)
-     ->  confinedDuring acs tdrive tend cd confineRect.
-    Proof using All.
-      intros ? Hb.
-      eapply noSignChangeDuringWeaken in nosign;
-        [ |  exact (proj1 am_timeIncWeaken)
-        | apply leEq_reflexive].
-      destruct am_timeIncWeaken.
-      pose proof (rigidStateNoChange tdrive) as XX.
-      dimp XX;[|split;auto].
-      eapply auxConfinedDuringAMIf; auto.
-      - apply AMTurnCurvature.
-      - intros ? Hj. rewrite XX.
-        apply Hb. clear Hb.
-        unfold inBetweenR in Hj. apply proj2 in XX.
-        simpl in XX.
-        rewrite  XX in Hj. exact Hj.
-    Qed.
+
+
 
   Definition holdsDuringTurningAM  (init : Rigid2DState IR) 
         (P : (Rigid2DState IR) --> Prop) :=
@@ -411,6 +390,30 @@ Section AtomicMove.
         (confineRect : Line2D IR) :=
     holdsDuringTurningAM init (confinedInRect confineRect).
 
+Lemma holdsDuringSplit : forall (P:Rigid2DState ℝ --> Prop)
+  (ts tm te :Time) (stabl : forall s, util.Stable ((`P) s)) ,
+  ts ≤ tm
+  -> tm ≤ te
+  -> (∀ t : Time, ts ≤ t ≤ tm → (`P) (rigidStateAtTime acs t))
+  -> (∀ t : Time, tm ≤ t ≤ te → (`P) (rigidStateAtTime acs t))
+  -> (∀ t : Time, ts ≤ t ≤ te → (`P) (rigidStateAtTime acs t)).
+Proof using.
+  intros ? ? ? ? ? hl hr cl cr t Hb.
+  apply stable. 
+  pose proof (leEq_or_leEq _ t tm) as Hd.
+  eapply DN_fmap;[exact Hd|]. clear Hd. intro Hd.
+  destruct Hd;[apply cl|apply cr];
+  repnd; split; auto.
+Qed.
+
+Global Instance confineInRectStable :
+∀ s : Rigid2DState ℝ, util.Stable ((` (confinedInRect confineRect)) s).
+Proof using.
+  intros ? ?. simpl.
+  apply StableSubsetLine2D.
+  apply StableLeIR.  
+Qed.
+
 Lemma confinedDuringSplit : forall (confineRect : Line2D IR)
   (ts tm te :Time),
   ts ≤ tm
@@ -419,33 +422,85 @@ Lemma confinedDuringSplit : forall (confineRect : Line2D IR)
   ->confinedDuring acs tm te cd confineRect
   ->confinedDuring acs ts te cd confineRect.
 Proof using.
-  intros ? ? ? ? hl hr cl cr t Hb.
-  eapply stable. 
-      Unshelve. Focus 2. apply StableSubsetLine2D.
-           apply StableLeIR;fail.
-  pose proof (leEq_or_leEq _ t tm) as Hd.
-  eapply DN_fmap;[exact Hd|]. clear Hd. intro Hd.
-  destruct Hd;[apply cl|apply cr];
-  repnd; split; auto.
+  intros ? ? ? ? ? ?.
+  unfold confinedDuring.
+  eapply holdsDuringSplit with (P:= confinedInRect confineRect); auto.
+  (* eauto with typeclass_instances. *)
+  apply confineInRectStable.
 Qed.
-           
-  Lemma confinedTurningAMCorrect : forall (confineRect : Line2D IR),
-    confinedTurningAM (rigidStateAtTime acs tstart) confineRect
-     ->  confinedDuring acs tstart tend cd confineRect.
+
+  Local Opaque Min.
+  Local Opaque Max.
+
+  Lemma holdsDuringTurningAMCorrect : forall (P:Rigid2DState ℝ --> Prop)
+    (stabl : forall s, util.Stable ((`P) s)),
+    holdsDuringTurningAM (rigidStateAtTime acs tstart) P
+    ->  ∀ t : Time, tstart ≤ t ≤ tend → (`P) (rigidStateAtTime acs t).
   Proof using pr nosign amc.
-    intros ?  hh.
+    intros ?  hs hh.
     unfold confinedTurningAM, holdsDuringTurningAM in hh. simpl in hh.
     unfold inBetweenR in hh.
     setoid_rewrite <- AtomicMoveθ in hh.
     pose proof am_timeIncWeaken. repnd.
-    apply confinedDuringSplit with (tm:=tdrive);
-    auto; [|]; intros t Hb.
-    - apply confinedDuringTurningAMIfAux in hh.
-      rewrite rigidStateNoChange;[| repnd; split; auto].
-      rewrite <- (rigidStateNoChange tdrive); [| split; auto;apply am_timeIncWeaken].
-      apply hh. split; auto;apply am_timeIncWeaken.
-    - apply confinedDuringTurningAMIfAux; auto.
+    destruct P as [P pp].
+    apply holdsDuringSplit with (tm:=tdrive);
+    trivial; [|]; intros t Hb; simpl in *.
+    - rewrite rigidStateNoChange;[| repnd; split; auto].
+      specialize (hh θs).
+      unfold turnRigidStateAtθ in hh. simpl in hh.
+      do 2 rewrite plus_negate_r in hh.
+      setoid_rewrite mult_0_l in hh.
+      rewrite plus_0_r in hh.
+      apply hh. split; eauto with *.
+    - 
+      eapply noSignChangeDuringWeaken in nosign;
+        [ |  exact (proj1 am_timeIncWeaken)
+        | apply leEq_reflexive].
+      destruct am_timeIncWeaken.
+      pose proof (rigidStateNoChange tdrive) as XX.
+      dimp XX;[|split;auto].
+      eapply holdsDuringAMIf; eauto.
+      + apply AMTurnCurvature.
+      + intros ? Hj. rewrite XX.
+        apply hh. clear hh.
+        unfold inBetweenR in Hj. apply proj2 in XX.
+        simpl in XX.
+        rewrite  XX in Hj. exact Hj.
   Qed.
+
+    (* TODO: reuse the second bullet of holdsDuringTurningAMCorrect above *)
+    (*Local*) Lemma confinedDuringTurningAMIfAux : forall (confineRect : Line2D IR),
+    (∀ (θ : IR), inBetweenR θ ({theta acs} tstart) ({theta acs} tend)
+     -> carMinMaxXY cd
+          (turnRigidStateAtθ (rigidStateAtTime acs tstart) turnRadius θ ) 
+           ⊆ confineRect)
+     ->  confinedDuring acs tdrive tend cd confineRect.
+    Proof using All.
+      intros ? Hb. 
+      eapply noSignChangeDuringWeaken in nosign;
+        [ |  exact (proj1 am_timeIncWeaken)
+        | apply leEq_reflexive].
+      destruct am_timeIncWeaken.
+      pose proof (rigidStateNoChange tdrive) as XX.
+      dimp XX;[|split;auto].
+      eapply auxConfinedDuringAMIf; auto.
+      - apply AMTurnCurvature.
+      - intros ? Hj. rewrite XX.
+        apply Hb. clear Hb.
+        unfold inBetweenR in Hj. apply proj2 in XX.
+        simpl in XX.
+        rewrite  XX in Hj. exact Hj.
+    Qed.
+
+  Lemma confinedTurningAMCorrect : forall (confineRect : Line2D IR),
+    confinedTurningAM (rigidStateAtTime acs tstart) confineRect
+     ->  confinedDuring acs tstart tend cd confineRect.
+  Proof using pr nosign amc.
+    intros ?  hh ?.
+      eapply holdsDuringTurningAMCorrect 
+        with (P:=confinedInRect  confineRect); eauto with typeclass_instances.
+  Qed.
+
 
   End XYBounds.
   End TCNZ.
@@ -775,6 +830,29 @@ Qed.
     simpl in *. eauto with relations.
   Qed.
 
+
+   Lemma holdsDuringStAMCorrect : forall (P: (Rigid2DState IR) -> Prop)
+    `{@Setoid_Morphism  _ _ _ _ P},
+    noSignChangeDuring (linVel acs) tstart tend
+    -> holdsDuringStAM (rigidStateAtTime acs tstart) P
+    ->  ∀ t : Time, tstart ≤ t ≤ tend → P (rigidStateAtTime acs t).
+   Proof using tcZ amc pr.
+     intros ? ? Hn Hh t Hb.
+     destruct Hb as [pl prr].
+     eapply nosignChangeInBwInt with (pl:=pl)
+        (Hab := am_timeStartEnd) in Hn;[| assumption].
+     unfold inBetweenR in Hn.
+     rewrite <- am_driveDistanceFull in Hn.
+     unfold rigidStateAtTime.
+     rewrite AtomicMoveZθ; [|auto].
+     rewrite AtomicMoveZ with (pl:=pl); [|auto].
+     specialize (Hh (∫ (mkIntBnd pl) (linVel acs)) Hn).
+     clear Hn.
+     simpl in *.
+     assumption.
+    Qed.
+
+  (* TODO : reuse [holdsDuringStAMCorrect] above *)
    Lemma straightAMSpaceRequirementCorrect :
       noSignChangeDuring (linVel acs) tstart tend
       -> confinedDuring acs tstart tend cd 
@@ -798,6 +876,7 @@ Qed.
      rewrite <- displacedCarMinMaxXY. simpl.
      reflexivity.
     Qed.
+
     
   End XYBounds.
   End TCZ.
@@ -907,6 +986,25 @@ Definition carConfinedDuringAM
   (ams : DAtomicMove IR)
   (init : Rigid2DState IR)
    := holdsDuringAM ams init (confinedInRect cd rect).
+
+Lemma holdsDuringAMCorrect:  forall (P : Rigid2DState ℝ --> Prop)
+  (stable : ∀ s0 : Rigid2DState ℝ, util.Stable ((` P) s0))
+  (ams : DAtomicMove IR)
+  (tstart tend :Time)
+  (p: tstart < tend),
+  @CarMonotonicallyExecsAtomicMoveDuring _ acs (projT1 ams) tstart tend  p
+  -> holdsDuringAM ams (rigidStateAtTime acs tstart) P
+  -> ∀ t : Time, tstart ≤ t ≤ tend → (`P) (rigidStateAtTime acs t).
+Proof using Type.
+  intros  ? ? ? ? ? ? Ham Hcc.
+  destruct Ham as [Ham Hnosign].
+  destruct ams as [am s].
+  destruct s as [s | s]; simpl in Hcc.
+  - intros t Hb.
+    eapply holdsDuringStAMCorrect; eauto.
+  - intros t Hb.
+    eapply holdsDuringTurningAMCorrect; eauto.
+Qed.
 
 Lemma carConfinedDuringAMCorrect:  forall 
   (cd : CarDimensions IR)
@@ -1272,6 +1370,40 @@ Proof using.
   reflexivity.
 Qed.
 
+Lemma holdsDuringAMsCorrect : forall (P : Rigid2DState ℝ --> Prop)
+  (stable : ∀ s0 : Rigid2DState ℝ, util.Stable ((` P) s0))
+  (tstart tend :Time)
+  p
+  (dams : list (DAtomicMove IR)),
+  let ams := List.map (@projT1 _ _) dams in
+  CarMonotonicallyExecsAtomicMovesDuring acs ams tstart tend  p
+  ->  holdsDuringAMs dams (rigidStateAtTime acs tstart) P
+  ->  ∀ t : Time, tstart ≤ t ≤ tend → (`P) (rigidStateAtTime acs t).
+Proof using Type.
+  intros  ? ? ? ? ? ? ? Ham. remember ams as l. subst ams.
+  revert Heql. revert dams. 
+  induction Ham; intros ? ? Hcc.
+  - destruct dams; inverts Heql. simpl in Hcc.
+    intros ? Hb. rewrite <- pe in Hb.
+    destruct Hb as [Hbl Hbr]. 
+    eapply po_antisym in Hbl. specialize (Hbl Hbr).
+    clear Hbr.
+    destruct P as [P pp]. simpl in *.
+    rewrite <- Hbl. assumption.
+  - destruct dams as [| m tm];inverts Heql as Heql Haa Hbb.
+    pose proof (timeLtWeaken  pl).
+    specialize (IHHam _ eq_refl).
+    unfold carConfinedDuringAMs in Hcc.
+    simpl in Hcc. repnd.
+    rewrite <- stateAfterAtomicMoveCorrect 
+      with (p0:=pl) in Hccr; destruct X; eauto.
+    eapply holdsDuringSplit with (tm0:=tmid); eauto.
+    clear IHHam.
+    intros.
+    eapply holdsDuringAMCorrect with (p0:=pl) in Hccl; eauto.
+    split; auto.
+  Qed.
+
 Lemma carConfinedDuringAMsCorrect : forall
   (cd : CarDimensions IR)
   (rect : Line2D IR)
@@ -1283,27 +1415,9 @@ Lemma carConfinedDuringAMsCorrect : forall
   -> @carConfinedDuringAMs cd rect dams (rigidStateAtTime acs tstart)
   -> confinedDuring acs tstart tend cd rect.
 Proof using Type.
-  intros  ? ? ? ? ? ? ? Ham. remember ams as l. subst ams.
-  revert Heql. revert dams. 
-  induction Ham; intros ? ? Hcc.
-  - destruct dams; inverts Heql. simpl in Hcc.
-    intros ? Hb. rewrite <- pe in Hb.
-    destruct Hb as [Hbl Hbr]. 
-    eapply po_antisym in Hbl. specialize (Hbl Hbr).
-    clear Hbr. rewrite <- Hbl. assumption.
-  - destruct dams as [| m tm];inverts Heql as Heql Haa Hbb.
-    pose proof (timeLtWeaken  pl).
-    specialize (IHHam _ eq_refl).
-    unfold carConfinedDuringAMs in Hcc.
-    simpl in Hcc. repnd.
-    eapply carConfinedDuringAMCorrect with (p0:=pl) in Hccl;
-      eauto.
-    rewrite <- stateAfterAtomicMoveCorrect 
-      with (p0:=pl) in Hccr; destruct X; eauto.
-    apply IHHam in Hccr.
-    clear IHHam c Ham. revert pl pr Hccl Hccr. clear.
-    intros. eapply confinedDuringSplit with (tm:=tmid); eauto.
-    apply timeLtWeaken. assumption.
+  intros  ? ? ? ? ? ? ? ? ? ?.
+   eapply holdsDuringAMsCorrect 
+       with (P:=confinedInRect cd rect); eauto with typeclass_instances.
 Qed.
 
 End Wddd.

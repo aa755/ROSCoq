@@ -472,6 +472,24 @@ Context {maxTurnCurvature : Qpos}
     split;simpl;[apply fixedSteeeringX | apply fixedSteeeringY];
     assumption.
   Qed.
+
+  Lemma holdsDuringAMIf : forall(P: (Rigid2DState IR) -> Prop)
+    `{@Setoid_Morphism  _ _ _ _ P},
+    noSignChangeDuring (linVel acs) tstart tend
+    ->
+    (∀ (θ : IR), inBetweenR θ ({theta acs} tstart) ({theta acs} tend)
+      -> P (turnRigidStateAtθ (rigidStateAtTime acs tstart) turnRadius θ))
+     ->  (∀ t : Time, tstart ≤ t ≤ tend → P (rigidStateAtTime acs t)).
+  Proof using fixed tstartEnd.
+    intros ? ?  Hn hh t Hb.
+    specialize (hh ({theta acs}t)).
+    rewrite turnRigidStateAtθCorrect;[| assumption].
+    apply hh.
+    apply thetaMonotone; try assumption.
+    pose proof (fst (less_conf_ap _ _ _) tcNZ) as Hdec.
+    autounfold with IRMC.
+    destruct Hdec; [left|right]; eauto 2 with CoRN.
+  Qed.
     
   Lemma auxConfinedDuringAMIf : forall (confineRect : Line2D IR) cd,
     noSignChangeDuring (linVel acs) tstart tend
@@ -482,15 +500,13 @@ Context {maxTurnCurvature : Qpos}
            ⊆ confineRect)
      ->  confinedDuring cd confineRect.
   Proof using fixed tstartEnd.
-    intros ? ? Hn hh t Hb.
-    specialize (hh ({theta acs}t)).
-    rewrite turnRigidStateAtθCorrect;[| assumption].
-    apply hh.
-    apply thetaMonotone; try assumption.
-    pose proof (fst (less_conf_ap _ _ _) tcNZ) as Hdec.
-    autounfold with IRMC.
-    destruct Hdec; [left|right]; eauto 2 with CoRN.
+    
+    intros ? ? Hn hh t Hb. apply holdsDuringAMIf; auto.
+    constructor; eauto 2 with typeclass_instances.
+    unfold Setoid. eauto 2 with typeclass_instances.
+    intros ? ? Heq. rewrite Heq. reflexivity.
   Qed.
+  
   End TCNZ.
   End FixedSteeringWheel.
 
