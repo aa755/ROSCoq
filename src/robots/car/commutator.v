@@ -104,9 +104,11 @@ Proof.
   intros ? ? ? ? ? Hc Hs.
   destruct a as [a s].
   destruct s as [s|s]; simpl in *.
-- unfold straightAMSpaceRequirement.
+- rewrite holdsDuringStAMIff in *.
+  unfold straightAMSpaceRequirement.
   eapply transitivity;[apply Hc| apply Hs].
 - intros ? Hb. specialize (Hc _ Hb).
+  simpl in *.
   eapply transitivity;[apply Hc| apply Hs].
 Qed.
 
@@ -116,9 +118,14 @@ carConfinedDuringAMs cd r1 a init
 -> r1 ⊆ r2
 -> carConfinedDuringAMs cd r2 a init.
 Proof.
+  unfold carConfinedDuringAMs.
   induction a; intros ? Hc Hs; simpl in *.
 - eapply transitivity;[apply Hc| apply Hs].
-- repnd. split; eauto using carConfinedDuringAMSubset.
+- repnd. split;
+  eauto using carConfinedDuringAMSubset.
+  fold (carConfinedDuringAM cd r2 a init ).
+  fold (carConfinedDuringAM cd r1 a init ) in Hcl.
+  eauto using carConfinedDuringAMSubset.
 Qed.
 
 
