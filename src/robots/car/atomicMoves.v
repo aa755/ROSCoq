@@ -1923,6 +1923,8 @@ Proof using Type.
   rewrite RingShiftMinus in Ht.
   symmetry in Ht.
   rewrite (@commutativity _ _ _ plus _) in Ht.
+   fold (@carConfinedDuringAMs cd (confineRect + 'd) 
+    tl (stateAfterAtomicMove initr h)).
   split;[|rewrite Heq; apply Hind; auto].
   clear Hconl.
   simpl stateAfterAtomicMoves in Hconr. 
