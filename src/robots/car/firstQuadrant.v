@@ -812,9 +812,31 @@ Section Solutions.
 
   Definition θInvariant  (θ:IR) :=
     (½ * π - 'polarTheta (βPlusBack (carDim cg) tr)) ≤ θ ≤ (½ * π).
-    
-  Definition Invariant  (s:Rigid2DState IR) :=
-  carSafeInParkingEnv s /\ θInvariant (θ2D s).
+  
+  Require Import atomicMoves.
+  Definition Invariant  : ((Rigid2DState IR) --> Prop).
+  exists (fun s => carSafeInParkingEnv s /\ θInvariant (θ2D s)).
+  constructor; unfold Setoid;  eauto 2 with typeclass_instances.
+  intros ? ? Heq. unfold carSafeInParkingEnv, θInvariant.
+  rewrite Heq.
+  reflexivity.
+  Qed.
+
+(*
+needed to invoke holdsDuringAMsCorrect:
+Check holdsDuringAMsCorrect.
+*)
+  Lemma InvariantStable  : 
+  (∀ s : Rigid2DState ℝ, Stable ((` Invariant) s)).
+  Abort.
+  
+
+  Definition positiveSpaceAhead init : Type :=
+     X (maxxy (carMinMaxXY ('carDim cg) init)) [<] (('maxx pe):IR).
+     
+  Definition positiveSpaceBelowAndBehind init : Type :=
+  (((('minx pe):IR) [<] X (minxy (carMinMaxXY ('carDim cg) init))) *
+   ((('minx pe):IR) [<] X (minxy (carMinMaxXY ('carDim cg) init))))%type.
 
 Require Import MathClasses.interfaces.functors.
   Variable initcr: Rigid2DState CR.
@@ -825,22 +847,31 @@ Require Import MathClasses.interfaces.functors.
   Let θi : IR := (θ2D init).
   
   (* this invariant is always maintained *)
-  Hypothesis inv : Invariant init.
+  Hypothesis inv : (`Invariant) init.
   
   Section Forward.
-  
+  Hypothesis fwd : positiveSpaceAhead init.
   (* this is true initially, and the backward move re-establishes it *)
-  Hypothesis positiveSpaceAhead:
-     X (maxxy (carMinMaxXY ('carDim cg) init)) [<] (('maxx pe):IR).
+
+Require Import fastReals.implCR.
+
+  Lemma nextMoveF : sigT (fun m : DAtomicMove IR (*make it CR and use Cast*) =>
+   let tend := stateAfterAtomicMove init(*cr*) m in
+     (holdsDuringAM m init Invariant) *
+       (positiveSpaceBelowAndBehind tend))%type.
+  Abort.
 
   End Forward.
 
   Section Backward.
+  Hypothesis bwd : positiveSpaceBelowAndBehind init.
   
   (* the forward move re-establishes it *)
-  Hypothesis positiveSpaceBelowAndBehind :
-  (((('minx pe):IR) [<] X (minxy (carMinMaxXY ('carDim cg) init))) *
-   ((('minx pe):IR) [<] X (minxy (carMinMaxXY ('carDim cg) init))))%type.
+  Lemma nextMoveB : sigT (fun m : DAtomicMove IR (*make it CR and use Cast*) =>
+   let tend := stateAfterAtomicMove init(*cr*) m in
+     (holdsDuringAM m init Invariant) *
+       (positiveSpaceAhead tend))%type.
+  Abort.
 
   End Backward.
   
