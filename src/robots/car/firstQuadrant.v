@@ -500,6 +500,13 @@ the vertical axis.
   Proof using ntriv turnCentreOut.
     proveFirstQuad.
   Qed.
+
+  Lemma firstQuadβMinusBackT:
+   (0:IR) ≤ ' polarTheta (transpose βMinusBack) ≤  (½ * π).
+  Proof using ntriv turnCentreOut.
+    proveFirstQuad.
+  Qed.
+
   
   Lemma firstQuadβPlusFront:
    (0:IR) ≤ ' polarTheta βPlusFront ≤  (½ * π).
@@ -513,6 +520,12 @@ the vertical axis.
     proveFirstQuad.
   Qed.
   
+  Lemma firstQuadβPlusBackT:
+   (0:IR) ≤ ' polarTheta (transpose βPlusBack) ≤  (½ * π).
+  Proof using ntriv turnCentreOut.
+    proveFirstQuad.
+  Qed.
+
   
   Lemma firstQuadβMinusFront:
    (0:IR) ≤ ' polarTheta βMinusFront ≤  (½ * π).
@@ -623,7 +636,7 @@ Qed.
 (*the car's downmost (Y (minxy ..)) point initially shifts down (towards the curb) *)
 Lemma confineRectDownmostDown (θ: IR) :
 0 ≤ θi 
-→ θi ≤ θ ≤  ½ * π - 'polarTheta βPlusBack
+→ θi ≤ θ ≤  'polarTheta (transpose βPlusBack)
 → Y (minxy (confineRectPos init θ)) ≤ Y (minxy (confineRectPos init θi)).
 Proof using turnCentreOut trPos ntriv.
   simpl. intros Hf Hb.
@@ -642,9 +655,7 @@ Proof using turnCentreOut trPos ntriv.
     apply Hb.
   - rewrite (divideBy2 Pi).
     apply plus_le_compat;[| apply minusLePiBy2; assumption].
-    apply flip_le_minus_l.
-    apply RingLeProp1l.
-    apply firstQuadβPlusBack.
+    apply firstQuadβPlusBackT.
   - apply plus_le_compat;[reflexivity|].
     apply flip_le_negate.
     apply Hb.
@@ -653,7 +664,7 @@ Qed.
 (*the car's downmost (Y (minxy ..)) point finally shifts up (away from the curb) *)
 Lemma confineRectDownmostUp (θ: IR) :
 θ ≤ ½ * π
-→  ½ * π - ' polarTheta βPlusBack ≤ θi ≤ θ
+→  ' polarTheta (transpose βPlusBack) ≤ θi ≤ θ
 → Y (minxy (confineRectPos init θi)) ≤ Y (minxy (confineRectPos init θ)).
 Proof using turnCentreOut trPos ntriv.
   simpl. intros Hf Hb.
@@ -670,10 +681,7 @@ Proof using turnCentreOut trPos ntriv.
   - rewrite (divideBy2 Pi).
     apply plus_le_compat;[apply Hf|].
     apply minusLePiBy2.
-    apply flip_le_minus_l.
-    rewrite negate_involutive.
-    setoid_rewrite plus_0_l.
-    apply firstQuadβPlusBack.
+    apply firstQuadβPlusBackT.
   - apply plus_le_compat;[|reflexivity].
     apply Hb.
 Qed.
@@ -774,15 +782,10 @@ Proof using turnCentreOut trPos ntriv.
   apply Cos_resp_leEq.
   - apply nonneg_plus_compat;
     [ eapply transitivity; eauto using Hnn, (proj1 Hb)|].
-    apply flip_le_minus_l.
-    rewrite negate_involutive.
-    setoid_rewrite plus_0_l.
-    apply firstQuadβMinusBack.
+    apply firstQuadβMinusBackT.
   - rewrite (divideBy2 Pi).
     apply plus_le_compat;[apply Hb| ].
-    apply flip_le_minus_l.
-    apply RingLeProp1l.
-    apply firstQuadβMinusBack.
+    apply firstQuadβMinusBackT.
   - apply plus_le_compat;[|reflexivity].
     apply Hb.
 Qed.
@@ -887,11 +890,11 @@ Check confineRectDownmostUp. (* not a bottleneck *)
 
 SearchAbout Datatypes.comparison CR.
 
-(* to be realized *)
+(* 
 
 Definition targetAngle : CR :=
 if approxDecLtRR X (maxxy (carMinMaxXY ('carDim cg) s)) ≤ (('maxx pe):IR)
-
+*)
 Require Import fastReals.implCR.
 
   Lemma nextMoveF : sigT (fun m : DAtomicMove IR (*make it CR and use Cast*) =>
