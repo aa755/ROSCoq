@@ -857,7 +857,9 @@ Require Import fastReals.implCR.
 
   Lemma nextMoveF : sigT (fun m : DAtomicMove IR (*make it CR and use Cast*) =>
    let tend := stateAfterAtomicMove init(*cr*) m in
-     (holdsDuringAM m init Invariant) *
+     (holdsDuringAM m init Invariant) 
+     * amTurn (projT1 m) 
+     * (0 [<] am_distance ((projT1 m))) *
        (positiveSpaceBelowAndBehind tend))%type.
   Abort.
 
@@ -869,7 +871,8 @@ Require Import fastReals.implCR.
   (* the forward move re-establishes it *)
   Lemma nextMoveB : sigT (fun m : DAtomicMove IR (*make it CR and use Cast*) =>
    let tend := stateAfterAtomicMove init(*cr*) m in
-     (holdsDuringAM m init Invariant) *
+     (holdsDuringAM m init Invariant)  * amTurn (projT1 m) 
+     * (0 [<] am_distance ((projT1 m))) *
        (positiveSpaceAhead tend))%type.
   Abort.
 
