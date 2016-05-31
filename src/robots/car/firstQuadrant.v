@@ -385,46 +385,63 @@ Section TurnMoveQ.
   Let βPlusFront : Cart2D Q := βPlusFront cd tr.
   Let NegPosition : Type := bool (*outside*) * bool(*inside*).
 
-  Definition minXYPos : (Cart2D ((Polar2D IR) * NegPosition)) :=
-  {|X := ('βMinusBack,(true, true));
-    Y := ('βPlusBack,(true, false))|}.
+  Definition minXYPos 
+   : (Cart2D ((Cart2D Q) * NegPosition)) :=
+  {|X := (βMinusBack,(true, true));
+    Y := (βPlusBack,(true, false))|}.
 
-  Definition maxXYPos : (Cart2D ((Polar2D IR) * NegPosition)):=
-  {|X := ('βPlusFront,(false, false)); 
-    Y :=('βMinusFront,(true, true))|}.
+  Definition maxXYPos 
+   : (Cart2D ((Cart2D Q) * NegPosition)):=
+  {|X := (βPlusFront,(false, false)); 
+    Y :=(βMinusFront,(true, true))|}.
 
-  Definition minXYNeg : (Cart2D ((Polar2D IR) * NegPosition)):=
-  {|X := ('βPlusBack,(true, false)); 
-    Y := ('βMinusBack,(false, true))|}.
+  Definition minXYNeg
+ : (Cart2D ((Cart2D Q) * NegPosition)):=
+  {|X := (βPlusBack,(true, false)); 
+    Y := (βMinusBack,(false, true))|}.
 
 
-  Definition maxXYNeg : (Cart2D ((Polar2D IR) * NegPosition)):=
-  {|X := ('βMinusFront,(false, true)) ; 
-     Y :=('βPlusFront,(false, false))|}.
+  Definition maxXYNeg
+ : (Cart2D ((Cart2D Q) * NegPosition)):=
+  {|X := (βMinusFront,(false, true)) ; 
+     Y :=(βPlusFront,(false, false))|}.
 
   Let negateIfTrue `{Negate A} (b:bool)(a:A) : A:=
     if b then (-a) else a.
 
-  Definition decodeAsCos (nc: (Polar2D IR) * NegPosition) (theta:IR): IR :=
+  Definition decodeAsCos 
+  `{Cast (Cart2D Q) (Polar2D R)}
+ `{CosClass R} `{Ring R}
+  (nc: (Cart2D Q) * NegPosition) (theta:R): R :=
   let (c,n) := nc in
-  let β :IR := θ c in
+  let c : Polar2D R:= 'c in
+  let β :R := θ c in
   let γ := theta + (negateIfTrue (negb (snd n)) β) in
-    (negateIfTrue (fst n) ((rad c) * Cos γ)).
+    (negateIfTrue (fst n) ((rad c) * cos γ)).
 
-  Definition decodeAsCosXY (nc: Cart2D ((Polar2D IR) * NegPosition))
-  (θ:IR): Cart2D IR :=
-  let ync := (flipAngle (fst (Y nc)), snd (Y nc)) in
+  Definition decodeAsCosXY 
+    `{Cast (Cart2D Q) (Polar2D R)}
+ `{CosClass R} `{Ring R}
+  (nc: Cart2D ((Cart2D Q) * NegPosition))
+  (θ:R): Cart2D R :=
+  let ync : ( (Cart2D Q) * NegPosition) := ((transpose (fst (Y nc))), snd (Y nc)) in
   {|X := decodeAsCos (X nc) θ;
     Y := decodeAsCos ync θ|}.
 
-  Definition confineRectPos  (init : Rigid2DState IR) (θ:IR) : Line2D IR :=
+  Definition confineRectPos
+    `{Cast (Cart2D Q) (Polar2D R)} 
+ `{CosClass R} `{SinClass R} `{Ring R} `{Cast Q R}
+ (init : Rigid2DState R) (θ:R) : Line2D R :=
   let θi := θ2D init in 
   '(pos2D init) -  '(negY * (''tr) * unitVecT θi) +
   {|
      minxy :=  decodeAsCosXY minXYPos θ ;
      maxxy := decodeAsCosXY maxXYPos θ  |}.
 
-  Definition confineRectNeg (init : Rigid2DState IR) (θ:IR): Line2D IR:= 
+  Definition confineRectNeg     `{Cast (Cart2D Q) (Polar2D R)} 
+ `{CosClass R} `{SinClass R} `{Ring R} `{Cast Q R}
+ 
+ (init : Rigid2DState R) (θ:R): Line2D R:= 
   let θi := θ2D init in 
   '(pos2D init) + '(negY * (''tr) * unitVecT θi) +
    {|
@@ -446,12 +463,13 @@ Section TurnMoveQ.
   do 4 (rewrite <- unitVDot).
   do 4 (rewrite <- unitVDot2).
   do 8 (rewrite multDotRight).
-  pose proof CartToPolarCorrect90Minus as Hr.
+(*  pose proof CartToPolarCorrect90Minus as Hr.
   unfold norm, NormCart2DQ in Hr.
-  do 4 (rewrite <- Hr). clear Hr.
+  do 4 (rewrite <- Hr). clear Hr. 
+  *)
   pose proof CartToPolarCorrect as Hr.
   unfold norm, NormCart2DQ in Hr.
-  do 4 (rewrite <- Hr). clear Hr.
+  do 8 (rewrite <- Hr). clear Hr.
   replace (@cast _ _ (@castCart Q IR _)) with (@castCart Q IR _);[| reflexivity].
   unfold castCart. simpl.
   pose proof  (@preserves_plus _ _ _ _ _ _ _ _ _ _ _ _
@@ -544,14 +562,13 @@ Proof using turnCentreOut trPos ntriv.
   - apply plus_le_compat;[tauto| reflexivity].
 Qed.
 
-
-
+Definition rightTransition : CR :=  polarTheta βPlusFront.
 
 (*the car's rightmost (X (maxxy ..)) point initially shifts right *)
 Lemma confineRectRightmostRight (θ: IR) :
 (* confineRectPos is not even meaningful otherwise, although - θi ≤ ' polarTheta βPlusFront suffices instead*)
 0 ≤ θi 
-→ θi ≤ θ ≤  ' polarTheta βPlusFront
+→ θi ≤ θ ≤  ' rightTransition
 → X (maxxy (confineRectPos init θi)) ≤ X (maxxy (confineRectPos init θ)).
 Proof using turnCentreOut trPos ntriv.
   simpl. intros Hnn Hb.
@@ -559,6 +576,7 @@ Proof using turnCentreOut trPos ntriv.
   apply (@order_preserving _ _ _ _ _ _ _);
     [apply OrderPreserving_instance_0;
      apply Cart2DRadNNegIR |].
+  unfold cos, CosClassIR.
   rewrite CosMinusSwap.
   setoid_rewrite CosMinusSwap at 2.
   apply Cos_resp_leEq.
@@ -573,11 +591,12 @@ Proof using turnCentreOut trPos ntriv.
     apply flip_le_negate. tauto.
 Qed.
 
+
 (*the car's rightmost (X (maxxy ..)) point finally shifts left *)
 Lemma confineRectRightmostLeft (θ: IR) :
 (* confineRectPos is not even meaningful otherwise *)
 θ ≤ ½ * π
-→ ' polarTheta βPlusFront ≤ θi ≤ θ
+→ ' rightTransition ≤ θi ≤ θ
 → X (maxxy (confineRectPos init θ)) ≤ X (maxxy (confineRectPos init θi)).
 Proof using turnCentreOut trPos ntriv.
   simpl. intros Hf Hb.
@@ -599,10 +618,12 @@ Proof using turnCentreOut trPos ntriv.
     apply Hb.
 Qed.
 
+(* Definition downTransition : CR := . *)
+
 (*the car's downmost (Y (minxy ..)) point initially shifts down (towards the curb) *)
 Lemma confineRectDownmostDown (θ: IR) :
 0 ≤ θi 
-→ θi ≤ θ ≤ ½ * π - ' polarTheta βPlusBack
+→ θi ≤ θ ≤  ½ * π - 'polarTheta βPlusBack
 → Y (minxy (confineRectPos init θ)) ≤ Y (minxy (confineRectPos init θi)).
 Proof using turnCentreOut trPos ntriv.
   simpl. intros Hf Hb.
@@ -611,6 +632,7 @@ Proof using turnCentreOut trPos ntriv.
   apply (@order_preserving _ _ _ _ _ _ _);
     [apply OrderPreserving_instance_0;
      apply Cart2DRadNNegIR |].
+  unfold cos, CosClassIR.
   rewrite CosMinusSwap.
   setoid_rewrite CosMinusSwap at 2.
   apply Cos_resp_leEq.
@@ -721,6 +743,7 @@ Proof using turnCentreOut trPos ntriv.
   apply (@order_preserving _ _ _ _ _ _ _);
       [apply OrderPreserving_instance_0;
        apply Cart2DRadNNegIR |].
+  unfold cos,CosClassIR.
   rewrite CosMinusSwap.
   setoid_rewrite CosMinusSwap at 2.
   apply Cos_resp_leEq.
@@ -850,32 +873,49 @@ Require Import MathClasses.interfaces.functors.
   Hypothesis inv : (`Invariant) init.
   
   Section Forward.
-  Hypothesis fwd : positiveSpaceAhead init.
+
   (* this is true initially, and the backward move re-establishes it *)
+  Hypothesis fwd : positiveSpaceAhead init.
+  
+  (* while moving forward, the following monotonicity lemmas are relevant *)
+Check confineRectPosLeftmostRight. (* not a bottleneck *)
+Check confineRectRightmostRight. (* bottleneck!. if we clear this transition, we can go all the way to ½ * π*)
+Locate confineRectPos.
+Check confineRectRightmostLeft (* not a bottleneck *).
+Check confineRectDownmostDown. (* not relevant because of θInvariant*)
+Check confineRectDownmostUp. (* not a bottleneck *)
+
+SearchAbout Datatypes.comparison CR.
+
+(* to be realized *)
+
+Definition targetAngle : CR :=
+if approxDecLtRR X (maxxy (carMinMaxXY ('carDim cg) s)) ≤ (('maxx pe):IR)
 
 Require Import fastReals.implCR.
 
   Lemma nextMoveF : sigT (fun m : DAtomicMove IR (*make it CR and use Cast*) =>
    let tend := stateAfterAtomicMove init(*cr*) m in
-     (holdsDuringAM m init Invariant) 
+     (holdsDuringAM m init Invariant) (* implies that Invariant holds at the end *)
      * amTurn (projT1 m) 
-     * (0 [<] am_distance ((projT1 m))) *
-       (positiveSpaceBelowAndBehind tend))%type.
+     * (θ2D init (* + a constant *) [<] θ2D tend)
+     * (positiveSpaceBelowAndBehind tend))%type.
   Abort.
 
   End Forward.
 
   Section Backward.
-  Hypothesis bwd : positiveSpaceBelowAndBehind init.
-  
+
   (* the forward move re-establishes it *)
+  Hypothesis bwd : positiveSpaceBelowAndBehind init.
+
   Lemma nextMoveB : sigT (fun m : DAtomicMove IR (*make it CR and use Cast*) =>
    let tend := stateAfterAtomicMove init(*cr*) m in
      (holdsDuringAM m init Invariant)  * amTurn (projT1 m) 
-     * (0 [<] am_distance ((projT1 m))) *
-       (positiveSpaceAhead tend))%type.
+     * (θ2D init (* + a constant *) [<] θ2D tend)
+     * (positiveSpaceAhead tend))%type.
   Abort.
 
   End Backward.
-  
+
 End Solutions.
