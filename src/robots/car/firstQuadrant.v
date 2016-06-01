@@ -864,6 +864,10 @@ Check holdsDuringAMsCorrect.
   (((('minx pe):IR) [<] X (minxy (carMinMaxXY ('carDim cg) init))) *
    ((('minx pe):IR) [<] X (minxy (carMinMaxXY ('carDim cg) init))))%type.
 
+  Definition rightCorner `{Cast (Cart2D Q) (Polar2D R)} 
+   `{CosClass R} `{SinClass R} `{Ring R} `{Cast Q R} (init : Rigid2DState R)(θ:R) : R :=
+    X (maxxy (confineRectPos ((carDim cg)) tr init θ)).
+
 Require Import MathClasses.interfaces.functors.
   Variable initcr: Rigid2DState CR.
   Locate sfmap.
@@ -888,14 +892,20 @@ Check confineRectRightmostLeft (* not a bottleneck *).
 Check confineRectDownmostDown. (* not relevant because of θInvariant*)
 Check confineRectDownmostUp. (* not a bottleneck *)
 
-SearchAbout Datatypes.comparison CR.
+(* see wriggle.v . define a continuous functional version, then
+derive the derivative and then prove isderiv. *)
 
-(* 
+Local Lemma carRightMost : forall θ1 θ2 :IR,
+  rightCorner init θ1 - rightCorner init θ2  ≤  ' (| βPlusFront (carDim cg) tr |) * (θ1 - θ2).
+Proof.
+  intros. unfold rightCorner. simpl. ring_simplify.
+Abort.
 
+(*
 Definition targetAngle : CR :=
 if approxDecLtRR X (maxxy (carMinMaxXY ('carDim cg) s)) ≤ (('maxx pe):IR)
-*)
 Require Import fastReals.implCR.
+*)
 
   Lemma nextMoveF : sigT (fun m : DAtomicMove IR (*make it CR and use Cast*) =>
    let tend := stateAfterAtomicMove init(*cr*) m in
