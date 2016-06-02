@@ -313,6 +313,7 @@ Axiom showN : (nat) -> string.
 Extract Constant showQQQQ => "(Prelude.show)".
 Extract Constant showZZ => "(Prelude.show)".
 Extract Constant showN => "(Prelude.show)".
+Require Import ROSCOQ.geometry2D.
 
 Section simulator.
 Variable carGeo : CarGeometry Z.
@@ -585,17 +586,16 @@ Definition mkDAtomicMoveQ (qa: AtomicMove Q) : (DAtomicMove CR).
   rewrite Heqqd.
   apply preserves_0.
 - right. apply Qeq_bool_neq in Heqqd. apply Qap_CRap. assumption.
-Qed.
+Defined.
 
 
-Definition mkRelativeMove (rel : Q*Q) : DAtomicMove CR :=
+Definition mkRelativeMove (rel : Q*Q) : DAtomicMove CR:=
   let (turnCurv, distance) := rel in
   mkDAtomicMoveQ  (mkAtomicMove (Qmult distance (width myCarDimZ)) (Qdiv turnCurv (minTR carGeo))).
 
-Definition mkNamedRelativeMove (rel : Q*Q) :NameDAtomicMove :=
-  ((EmptyString (* convert rel to string*) , EmptyString), mkRelativeMove rel).
+Definition mkNamedRelativeMove (rel :DAtomicMove CR) :NameDAtomicMove :=
+  ((EmptyString (* convert rel to string*) , EmptyString), rel).
 
-Require Import ROSCOQ.geometry2D.
 Definition relGlobalBound (initb :  BoundingRectangle Z) (extra : BoundingRectangle Q) : BoundingRectangle Z := 
 let extra := (''' finerRes) * extra in
 let rightExtraZ  := sfmap Qround.Qfloor ({|X:=' totalLength myCarDimZ; Y:=' width myCarDimZ|} * (maxxy extra)) in 
@@ -603,10 +603,10 @@ let leftExtraZ  :=  sfmap Qround.Qfloor ({|X:=' totalLength myCarDimZ; Y:=' widt
 initb + {| minxy := -leftExtraZ ; maxxy := rightExtraZ|}.
 
 Definition animateSpaceReq 
-   (moves : list (Q*Q))
+   (moves : list NameDAtomicMove)
    (extraSpace : BoundingRectangle Q)
    (framesPerMove : Z⁺) : string := 
-  let sidewaysMove : list NameDAtomicMove := List.map mkNamedRelativeMove moves  in
+  let sidewaysMove : list NameDAtomicMove := moves  in
   let initStp := (mkRenderingInfo (EmptyString,EmptyString),initSt) in
   let cs := (finerMovesStates framesPerMove sidewaysMove initStp) in
   let namedLines : list ((string * string) * list (Line2D Z)) 
@@ -639,12 +639,47 @@ Definition animateSpaceReq
       sconcat frames
   end.
 
-Definition extra :BoundingRectangle Q :=
-{| minxy := {|X:=Qmake 1 5; Y:= Qmake 1 10|}; maxxy := {|X:=Qmake 1 5; Y:= Qmake 1 1|} |}.
+
+Definition animateSpaceReq1
+   (moves : list (DAtomicMove CR))
+   (extraSpace : BoundingRectangle Q)
+   (framesPerMove : Z⁺) : string :=
+animateSpaceReq (List.map (mkNamedRelativeMove) moves)  extraSpace framesPerMove.
+   
+
+Definition animateSpaceReqRel
+   (moves : list (Q*Q))
+   (extraSpace : BoundingRectangle Q)
+   (framesPerMove : Z⁺) : string := 
+animateSpaceReq (List.map (mkNamedRelativeMove ∘ mkRelativeMove) moves)  extraSpace framesPerMove.
+
+Require Import firstQuadrant.
+
+Definition carGeoR : CarDimensions CR := '(carDim carGeo).
 
 
-Definition moves : (list (Q*Q)) :=
-[(1, Qmake 1 3); (-1, Qmake 1 3) ].
+Typeclasses eauto :=10.
+
+
+Definition relParkingEnv (extra : BoundingRectangle Q) (*: ParkingEnv Q *):= 
+let maxExtra : Cart2D Q := (('{|X:= totalLength myCarDimZ; Y:= width myCarDimZ|}) * (maxxy extra)) in 
+let minExtra : Cart2D Q := (('{|X:= totalLength myCarDimZ; Y:= width myCarDimZ|}) * (minxy extra)) in  
+let cdr : CarDimensions CR := carGeoR in
+let initb := carBoundingRectCR cdr (csrigid2D initSt) in
+let initbq :BoundingRectangle Q := sfmap (fun r => approximate r eps) initb in
+let b := initbq + {| minxy := -maxExtra ; maxxy := maxExtra|} in
+{|miny := Y (minxy b); minx := X (minxy b); maxx := X (maxxy b)|}.
+
+
+Hypothesis accGeo : acceptableGeometry ('carGeo).
+
+Definition optimalFwdMove extra : DAtomicMove CR :=
+fst (@nextMoveFb ('carGeo) (relParkingEnv extra) accGeo (csrigid2D initSt) eps ).
+
+Definition animateSpaceReqOpt
+   (extraSpace : BoundingRectangle Q)
+   (framesPerMove : Z⁺) : string :=
+   animateSpaceReq1 [optimalFwdMove extraSpace] extraSpace framesPerMove.
 
 (*
 Definition animationAutoBounding : string := 
@@ -742,15 +777,27 @@ Definition colorAndNames : (list (string * string )) :=
 
 
 End simulator.
+  Local Notation minxy := (lstart).
+  Local Notation maxxy := (lend).
+
+Definition extra :BoundingRectangle Q :=
+{| minxy := {|X:=Qmake 1 5; Y:= Qmake 1 10|}; maxxy := {|X:=Qmake 1 5; Y:= Qmake 1 1|} |}.
+
+Definition moves : (list (Q*Q)) :=
+[(1, Qmake 1 3); (-1, Qmake 1 3) ].
+
 
 (*
 Definition spaceXplotStr : string := sconcat (List.map  spaceXplotnStr (seq 0 5)).
 *)
 
 (*
-Definition toPrint : string := animateSpaceReqOptimalMove Mazda3Sedan2014sGT (4)%positive. *)
+Definition toPrint : string := animateSpaceReqOptimalMove Mazda3Sedan2014sGT (4)%positive. 
+Definition toPrint : string := animateSpaceReqRel Mazda3Sedan2014sGT moves extra (4)%positive.
+*)
+Definition toPrint : string := animateSpaceReqOpt acceptableGeometryMazda extra (4)%positive.
 
-Definition toPrint : string := animateSpaceReq Mazda3Sedan2014sGT moves extra (4)%positive.
+
 
 Close Scope string_scope.
 Locate posCompareContAbstract43820948120402312.

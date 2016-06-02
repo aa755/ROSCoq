@@ -87,6 +87,17 @@ http://www.mycarhelpline.com/images/Tyre_Size_details.png
   carDimWheel := Mazda3Sedan2014sGT_DimWheel;
 |}.
 
+Definition acceptableGeometry (cg : CarGeometry Q) :=
+nonTrivialCarDim (carDim cg) /\ nonTrivialCarDim (carDimWheel cg) /\
+((width (carDim cg)) <= (minTR cg))%Q /\ ((width (carDimWheel cg)) <= (minTR cg))%Q.
+
+
+Lemma acceptableGeometryMazda : acceptableGeometry (cast _ (CarGeometry Q)Mazda3Sedan2014sGT).
+Proof.
+  unfold acceptableGeometry, nonTrivialCarDim. simpl.
+  vm_compute.
+  dands; auto; intro H; discriminate.
+Defined.
 
 Example Mazda3Sedan2014sGT_dims : 
   let cdq := (cast _ (CarDimensions Q) (Mazda3Sedan2014sGT_Dim)) in

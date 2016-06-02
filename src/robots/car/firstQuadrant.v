@@ -54,10 +54,15 @@ Proof.
   intros ? H. repnd;
   dands; simpl; apply preserves_nonneg; apply lt_le; assumption.
 Qed.
-  
+
+
   Local Notation minxy := (lstart).
   Local Notation maxxy := (lend).
   Local Notation  "∫" := Cintegral.
+Require Import MathClasses.interfaces.functors.
+Global Instance SFmapLine2D : SFmap Line2D :=
+fun _ _ f c => {|minxy:= sfmap f (minxy c); maxxy:= sfmap f (maxxy c)|}.
+
   
 (** Many trignometric comparisons can be made easily
 if the angles are in a fixed quadrant
@@ -804,22 +809,11 @@ Record ParkingEnv (R:Type) :=
 
 Require Import exampleDimensions.
 
-(* Move to exampleDimensions.v *)
-Definition acceptableGeometry (cg : CarGeometry Q) :=
-nonTrivialCarDim (carDim cg) /\ nonTrivialCarDim (carDimWheel cg) /\
-((width (carDim cg)) <= (minTR cg))%Q /\ ((width (carDimWheel cg)) <= (minTR cg))%Q.
 Require Import MathClasses.orders.semirings.
 Require Import MCMisc.rings.
 
 Require Import MathClasses.interfaces.functors.
 
-(*
-Global Instance SFmapCart2D : SFmap Cart2D :=
-fun _ _ f c => {|X:= f (X c); Y:= f (Y c)|}.
-
-Global Instance SFmapRigid2D : SFmap Rigid2DState :=
-fun _ _ f c => {|pos2D := sfmap f (pos2D c); θ2D := f (θ2D c)|}.
-*)
 Section Solutions.
   Variable cg : CarGeometry Q.
   Variable pe : ParkingEnv Q.
@@ -950,6 +944,7 @@ Definition nextMoveQFb : (Q*Q) * bool (* true => continue *).
   split;[| exact (notNone targetAngle)].
 *)
 
+Locate acceptableGeometry.
 Definition nextMoveFb : DAtomicMove CR * bool (* true => continue *).
   set (t:= opExtract targetAngle   ½ * π).
   split;[| exact (notNone targetAngle)].
