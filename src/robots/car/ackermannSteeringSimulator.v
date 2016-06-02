@@ -593,7 +593,7 @@ Definition mkRelativeMove (rel : Q*Q) : DAtomicMove CR:=
   let (turnCurv, distance) := rel in
   mkDAtomicMoveQ  (mkAtomicMove (Qmult distance (width myCarDimZ)) (Qdiv turnCurv (minTR carGeo))).
 
-Definition mkNamedRelativeMove (rel :DAtomicMove CR) :NameDAtomicMove :=
+Definition mkNamedMove (rel :DAtomicMove CR) :NameDAtomicMove :=
   ((EmptyString (* convert rel to string*) , EmptyString), rel).
 
 Definition relGlobalBound (initb :  BoundingRectangle Z) (extra : BoundingRectangle Q) : BoundingRectangle Z := 
@@ -644,14 +644,14 @@ Definition animateSpaceReq1
    (moves : list (DAtomicMove CR))
    (extraSpace : BoundingRectangle Q)
    (framesPerMove : Z⁺) : string :=
-animateSpaceReq (List.map (mkNamedRelativeMove) moves)  extraSpace framesPerMove.
+animateSpaceReq (List.map (mkNamedMove) moves)  extraSpace framesPerMove.
    
 
 Definition animateSpaceReqRel
    (moves : list (Q*Q))
    (extraSpace : BoundingRectangle Q)
    (framesPerMove : Z⁺) : string := 
-animateSpaceReq (List.map (mkNamedRelativeMove ∘ mkRelativeMove) moves)  extraSpace framesPerMove.
+animateSpaceReq (List.map (mkNamedMove ∘ mkRelativeMove) moves)  extraSpace framesPerMove.
 
 Require Import firstQuadrant.
 
@@ -666,7 +666,7 @@ let maxExtra : Cart2D Q := (('{|X:= totalLength myCarDimZ; Y:= width myCarDimZ|}
 let minExtra : Cart2D Q := (('{|X:= totalLength myCarDimZ; Y:= width myCarDimZ|}) * (minxy extra)) in  
 let cdr : CarDimensions CR := carGeoR in
 let initb := carBoundingRectCR cdr (csrigid2D initSt) in
-let initbq :BoundingRectangle Q := sfmap (fun r => approximate r eps) initb in
+let initbq :BoundingRectangle Q := sfmap (fun r => approximate (compress r) eps) initb in
 let b := initbq + {| minxy := -maxExtra ; maxxy := maxExtra|} in
 {|miny := Y (minxy b); minx := X (minxy b); maxx := X (maxxy b)|}.
 
@@ -680,58 +680,6 @@ Definition animateSpaceReqOpt
    (extraSpace : BoundingRectangle Q)
    (framesPerMove : Z⁺) : string :=
    animateSpaceReq1 [optimalFwdMove extraSpace] extraSpace framesPerMove.
-
-(*
-Definition animationAutoBounding : string := 
-  let (rs, sidewaysMove) := sidewaysMoveAndRightShift in
-  let sidewaysMove := List.zip moveNamesSideways sidewaysMove  in
-  let initStp := (mkRenderingInfo (sconcat spacedMoves),initSt) in
-  let cs := (finerMovesStates 3 sidewaysMove initStp) in
-  let namedLines : list ((string * string) * list (Line2D Z)) 
-      := carStatesFrames cs in
-  let allLines : list (Line2D Z) :=  (*cbvApply*) (flat_map snd) namedLines in
-  let globalB : BoundingRectangle Z := computeBoundingRectLines allLines in
-  match namedLines return string with
-  | [] => ""
-  | h::tl => 
-      let initb := computeBoundingRectLines (snd h) in
-      let (preface, textPos) := drawEnv globalB initb in 
-      let textTikZ  : string -> string  
-        := fun label => "\node[below right] at " ++ tikZPoint textPos 
-            ++ "{" ++ label ++ "};" ++ newLineString in
-      let frames := List.map (fun p => frameWithLines 
-          (preface ++ textTikZ (fst p))  (snd p)) namedLines in
-      sconcat frames
-  end.
-*)
-
-
-(*
-Definition fstMoveOnlyAnimation : string := 
-  let (rs, sidewaysMove) := sidewaysMoveAndRightShift in
-  let sidewaysMove := List.zip [EmptyString] [mazdaMaxCurvTurnMove ('singleMoveDistance)] in
-  let initStp : string * carState CR := (EmptyString,initSt) in
-  let cs : list NamedCarState := (finerMovesStates 10 sidewaysMove initStp) in
-  let namedLines : list (string * list (Line2D Z)) := carStatesFrames  cs in
-  let allLines : list (Line2D Z) :=  (*cbvApply*) (flat_map snd) namedLines in
-  match namedLines return string with
-  | [] => ""
-  | h::tl => 
-      let initb := computeBoundingRectLines (snd h) in
-      (* the 2 items below are just guesses. TODO : compute them from the bounds derived in sidewaysMove.v *)
-      let upExtra :  CR := '(Zdiv (width (myCarDimZ)) (5%Z)) in
-      let downExtra : CR := '(Zdiv (width (myCarDimZ)) (5%Z)) in
-      let globalB : BoundingRectangle Z := globalBound initb rs upExtra downExtra  in
-      let (preface, textPos) := drawEnv globalB initb in 
-      let textTikZ  : string -> string  
-        := fun label => "\node[below right] at " ++ tikZPoint textPos 
-            ++ "{" ++ label ++ "};" ++ newLineString in
-      let frames := List.map (fun p => frameWithLines 
-          (preface ++ textTikZ (fst p))  (snd p)) namedLines in
-      sconcat frames
-  end.
-*)
-
 
 
 Definition numXspaceSamples : positive := (60)%positive.
@@ -783,9 +731,20 @@ End simulator.
 Definition extra :BoundingRectangle Q :=
 {| minxy := {|X:=Qmake 1 5; Y:= Qmake 1 10|}; maxxy := {|X:=Qmake 1 5; Y:= Qmake 1 1|} |}.
 
+Global Instance SFmapParkingEnv : SFmap ParkingEnv :=
+fun _ _ f c => {|minx:= f (minx c)
+                  ; maxx:= f (maxx c)
+                  ; miny:= f (miny c)|}.
+
+(*
 Definition moves : (list (Q*Q)) :=
 [(1, Qmake 1 3); (-1, Qmake 1 3) ].
+*)
 
+Let rp :=  (@relParkingEnv (Mazda3Sedan2014sGT) extra).
+Let ta := (@targetAngle _ rp acceptableGeometryMazda (csrigid2D initSt) eps).
+Eval vm_compute in  (sfmap (fun q => approximateQ q 100) rp).
+Eval vm_compute in  (option_map approximateAngleAsDegrees ta).
 
 (*
 Definition spaceXplotStr : string := sconcat (List.map  spaceXplotnStr (seq 0 5)).

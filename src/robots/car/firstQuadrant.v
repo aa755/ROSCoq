@@ -946,9 +946,9 @@ Definition nextMoveQFb : (Q*Q) * bool (* true => continue *).
 
 Locate acceptableGeometry.
 Definition nextMoveFb : DAtomicMove CR * bool (* true => continue *).
-  set (t:= opExtract targetAngle   ½ * π).
+  set (t:= opExtract targetAngle   (½ * π)).
   split;[| exact (notNone targetAngle)].
-  exists {|am_tc := 'Qinv tr; am_distance := '(Qinv tr) * (t- (θ2D initcr))|}.
+  exists {|am_tc := 'Qinv tr; am_distance := ('tr) * (t- (θ2D initcr))|}.
   right. simpl. right.
   apply Qlt_CRltT.
   apply Qinv_lt_0_compat.
@@ -957,7 +957,9 @@ Definition nextMoveFb : DAtomicMove CR * bool (* true => continue *).
   autounfold with QMC in *.
   lra.
 Defined.
-
+(*
+  Lemma nextMoveFbCorrect1 : stateAfterAtomicMove initcr (fst nextMoveFb)
+*)
 
   Lemma nextMoveF : sigT (fun m : DAtomicMove IR (*make it CR and use Cast*) =>
    let tend := stateAfterAtomicMove init(*cr*) m in
