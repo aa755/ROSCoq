@@ -415,3 +415,64 @@ Proof using.
   apply rational_arctan_increasing_strict.
   exact Hrle.
 Qed.
+
+Require Import Qminmax.
+
+Local Opaque CR.
+
+Require Import MCMisc.rings.
+
+Lemma normPositiveSubproof: forall (a: Cart2D Q),
+  0 < X a 
+  → 0 < Y a
+  →(' Qmin (X a) (Y a) <= (| a |) - 0)%CR.
+Proof.
+  intros.
+  fold (CRopp).
+  fold (CRplus).
+  fold (@negate CR _).
+  fold (@plus CR _).
+  change  (inject_Q_CR (Qmake Z0 xH)) with  (@zero CR _).
+  fold (@le CR _).
+  pose proof (@minus_0_r CR _ _ _ _ _ _ _) as Hh.
+  unfold RightIdentity in Hh.
+  simpl in Hh.
+  rewrite Hh.
+  apply RingLeIfSqrLe.
+  - rewrite commutativity. apply RingPosNnegCompatPlus.
+    + apply preserves_pos, Q.min_glb_lt; assumption.
+    + apply Cart2PolarRadRange.
+  - unfold sqr.
+    rewrite <- preserves_mult.
+    setoid_rewrite CRsqrt_sqr1Q1.
+    apply (@order_preserving _ _ _ _ _ _ _ _ _ _ ).
+    simpl.
+    rewrite nat_pow.nat_pow_2.
+    rewrite nat_pow.nat_pow_2.
+    eapply transitivity;[apply RingLeProp1l; reflexivity|].
+    apply plus_le_compat;[| apply square_nonneg].
+    apply mult_le_compat.
+    + apply Qlt_le_weak.
+      apply Q.min_glb_lt; assumption.
+    + apply Qlt_le_weak.
+      apply Q.min_glb_lt; assumption.
+    + apply Q.le_min_l.
+    + apply Q.le_min_l.
+Qed.
+
+Lemma normPositive : forall (a: Cart2D Q),
+  0 < X a 
+  → 0 < Y a
+  → (0 < (|a|))%CR.
+Proof.
+  intros.
+  exists ((Qmin (X a) (Y a)) ↾ (Q.min_glb_lt _ _ _ H H0)).
+  simpl.
+  apply normPositiveSubproof;
+  assumption.
+Defined.
+
+(*Require Import MCMisc.rings.
+
+ Definition arcCos (c: CR):= θ (Cart2Polar ({|X:=c; Y:= √(1+ sqr())|})) *)
+

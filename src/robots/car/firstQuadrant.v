@@ -35,6 +35,7 @@ Require Import MathClasses.orders.rings.
 Require Import MathClasses.interfaces.orders.
 Require Import ackermannSteeringProp.
 Require Import IRMisc.LegacyIRRing.
+Require Import CRMisc.numericalOpt.
 
 
 Local Opaque CSine.
@@ -878,6 +879,7 @@ Require Import MathClasses.interfaces.functors.
   
   (* this invariant is always maintained *)
   Hypothesis inv : (`Invariant) init.
+  Variable ε : Qpos.
   
   Section Forward.
 
@@ -892,20 +894,70 @@ Check confineRectRightmostLeft (* not a bottleneck *).
 Check confineRectDownmostDown. (* not relevant because of θInvariant*)
 Check confineRectDownmostUp. (* not a bottleneck *)
 
-(* see wriggle.v . define a continuous functional version, then
-derive the derivative and then prove isderiv. *)
-
 Local Lemma carRightMost : forall θ1 θ2 :IR,
-  rightCorner init θ1 - rightCorner init θ2  ≤  ' (| βPlusFront (carDim cg) tr |) * (θ1 - θ2).
+  θ1 ≤ θ2 ≤ '(rightTransition (carDim cg) tr)
+  ->
+  rightCorner init θ2 - rightCorner init θ1  ≤  ' (| βPlusFront (carDim cg) tr |) * (θ2 - θ1).
 Proof.
   intros. unfold rightCorner. simpl. ring_simplify.
 Abort.
 
-(*
-Definition targetAngle : CR :=
-if approxDecLtRR X (maxxy (carMinMaxXY ('carDim cg) s)) ≤ (('maxx pe):IR)
+
+
 Require Import fastReals.implCR.
-*)
+
+Lemma bppos: ((| βPlusFront (carDim cg) tr |)  >< ' 0%Q)%CR.
+Proof.
+  right.
+  apply normPositive; simpl;
+  destruct ntriv; destruct H;
+  autounfold with QMC in *; unfold tr;  try lra.
+Defined.
+
+(* None means ½ * π, and that no more moves are needed *)
+Definition targetAngle : option CR :=
+let rt : CR := (rightTransition (carDim cg) tr) in 
+if approxDecLtRQ  ε (rightCorner initcr rt) (maxx pe) then None
+else
+  let θcr : CR := (θ2D initcr) in
+  let rc : CR := (rightCorner initcr θcr) in
+  let m1 : CR := θcr + ('(maxx pe) - rc) * (CRinvT _ bppos) in
+  let m2 : option Q := solveIncCR  (rightCorner initcr) ('(maxx pe)) ε (θcr, rt) 100 in
+  let ans := 
+    match m2 with
+    | Some m2 => CRmax m1 ('m2)
+    | None => m1
+     end in
+    Some ans.
+Local Opaque CR.
+
+(* Move *)
+Lemma Qlt_CRltT : forall a :Q, Qlt 0 a ->  CRltT 0 ('a).
+Proof.
+  intros  ? H.
+  exists (a ↾ H).
+  simpl.
+  fold (CRopp).
+  fold (CRplus).
+  fold (@negate CR _).
+  fold (@plus CR _).
+  apply RingLeProp1l.
+  rewrite negate_0. reflexivity.
+Defined.
+
+Definition nextMoveFb : DAtomicMove CR * bool (* true => continue *).
+  set (t:= opExtract targetAngle   ½ * π).
+  split;[| exact (notNone targetAngle)].
+  exists {|am_tc := 'Qinv tr; am_distance := '(Qinv tr) * (t- (θ2D initcr))|}.
+  right. simpl. right.
+  apply Qlt_CRltT.
+  apply Qinv_lt_0_compat.
+  unfold tr.
+  destruct ntriv. destruct H.
+  autounfold with QMC in *.
+  lra.
+Defined.
+
 
   Lemma nextMoveF : sigT (fun m : DAtomicMove IR (*make it CR and use Cast*) =>
    let tend := stateAfterAtomicMove init(*cr*) m in
