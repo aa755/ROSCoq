@@ -383,7 +383,7 @@ match tail with
 end.
 
 
-Require Import sidewaysMoveImpl.
+(* Require Import sidewaysMoveImpl. *)
 
 (*
 Local Definition wriggleMove : DAtomicMoves :=
@@ -392,9 +392,10 @@ Local Definition wriggleMove : DAtomicMoves :=
 
 Definition totalAvailXExtraSpace : Qpos := (QposMake 35 1). 
 
+(*
 Local Definition sidewaysMoveAndRightShift :  CR * DAtomicMoves :=
   optimalSidewaysMoveMazda totalAvailXExtraSpace.
-
+*)
 
 Open Scope string_scope.
 Definition moveNamesWriggle : list string := 
@@ -498,7 +499,7 @@ initb + {| minxy := -leftExtraZ ; maxxy := rightExtraZ|}.
 
 
 
-
+(*
 
 Definition animation (n: Z⁺): string := 
   let (rs, sidewaysMove) := sidewaysMoveAndRightShift in
@@ -529,6 +530,7 @@ Definition animation (n: Z⁺): string :=
           namedLines in
       sconcat frames
   end.
+*)
 
 Fixpoint  fold_left_inter {A B : Type} (f : A → B → A) (l : list B) 
   (a0 : A) {struct l} : list A := 
@@ -537,6 +539,7 @@ Fixpoint  fold_left_inter {A B : Type} (f : A → B → A) (l : list B)
   | b :: t => (f a0 b)::(fold_left_inter f t (f a0 b))
   end.
 
+(*
 Definition animateSpaceReqOptimalMove (n: Z⁺) : string := 
   let (_, sidewaysMove) := sidewaysMoveAndRightShift in
   let sidewaysMove := List.zip sidewaysMovesInfo sidewaysMove  in
@@ -571,6 +574,7 @@ Definition animateSpaceReqOptimalMove (n: Z⁺) : string :=
           lineRects in
       sconcat frames
   end.
+*)
 
 (* Move *)
 Definition mkDAtomicMoveQ (qa: AtomicMove Q) : (DAtomicMove CR).
@@ -701,7 +705,6 @@ Definition numXspaceSamples : positive := (60)%positive.
 the denominator is 100 in Coq is not sufficient after extraction.
 We are extracting (just the type) of Coq rationals to Haskell rationals,
 just to access printing, and conversion to/from floats.
-*)
 Definition spaceXplot : (list (Z ** (list Z))) :=
   let QtoZ q := Qround.Qfloor (q*(100)%Z) in
   let mf (p:(Q ** (list Q)))
@@ -712,6 +715,17 @@ Definition spaceXplotn (n:nat) : list (Z*Z):=
   List.map 
     (fun (p:(Z ** (list Z))) => let (a,b) := p in (fst p, nth n b 0%Z)) 
     spaceXplot.
+Definition spaceXplotnStr (n:nat) : string :=
+  let (color, name) := nth n colorAndNames ("exception","garbage") in
+  let preamble n :=
+    sconcat ["\addplot[color="; color ; "] coordinates {"] in
+  let cs:=
+    (sconcat (List.map 
+            (fun p => endLine (showZZ p)) 
+            (spaceXplotn n))) in
+    sconcat [preamble n; cs ; "}; \addlegendentry{";name;"}" 
+      ; newLineString; newLineString].
+*)
 
 Definition endLine (s:string) : string := sconcat [s; newLineString].
 
@@ -727,20 +741,11 @@ Definition colorAndNames : (list (string * string )) :=
 (*Definition singleMoveDistance :Z :=25. *)
 
 
-Definition spaceXplotnStr (n:nat) : string :=
-  let (color, name) := nth n colorAndNames ("exception","garbage") in
-  let preamble n :=
-    sconcat ["\addplot[color="; color ; "] coordinates {"] in
-  let cs:=
-    (sconcat (List.map 
-            (fun p => endLine (showZZ p)) 
-            (spaceXplotn n))) in
-    sconcat [preamble n; cs ; "}; \addlegendentry{";name;"}" 
-      ; newLineString; newLineString].
 End simulator.
 
+(*
 Definition spaceXplotStr : string := sconcat (List.map  spaceXplotnStr (seq 0 5)).
-
+*)
 
 (*
 Definition toPrint : string := animateSpaceReqOptimalMove Mazda3Sedan2014sGT (4)%positive. *)

@@ -944,6 +944,11 @@ Proof.
   apply RingLeProp1l.
   rewrite negate_0. reflexivity.
 Defined.
+(*
+Definition nextMoveQFb : (Q*Q) * bool (* true => continue *).
+  set (t:= opExtract targetAngle   ½ * π).
+  split;[| exact (notNone targetAngle)].
+*)
 
 Definition nextMoveFb : DAtomicMove CR * bool (* true => continue *).
   set (t:= opExtract targetAngle   ½ * π).
