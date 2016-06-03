@@ -884,7 +884,7 @@ Check holdsDuringAMsCorrect.
     Y (minxy (confineRectNeg ((carDim cg)) tr init θ)).
 
   Variable ε : Qpos.
-  Let searchDepth: nat := 10.
+  Variable searchDepth: nat.
   Section NextMove.
   Variable initcr: Rigid2DState CR.
 Definition mkFwMoveFromTarget (ot : option CR) : DAtomicMove CR * bool.
@@ -962,15 +962,16 @@ if approxDecLtRQ  ε (rightCorner initcr rt) (maxx pe) then None
 else
   let θcr : CR := (θ2D initcr) in
   let rc : CR := (rightCorner initcr θcr) in
-  let m1 : CR := θcr + ('(maxx pe) - rc) * (CRinvT _ bpfpos) in
+(*  let m1 : CR := θcr + ('(maxx pe) - rc) * (CRinvT _ bpfpos) in *)
   let m2 : option Q := solveIncCR  
-      (fun r => compress (rightCorner initcr r)) ('(maxx pe)) ε (compress θcr, compress rt) searchDepth in
+      (fun r => compress (rightCorner initcr r)) ('(maxx pe)) ε (compress θcr, compress rt) searchDepth in (option_map (cast Q CR) m2).
+(*      
   let ans := 
     match m2 with
     | Some m2 => CRmax m1 ('m2)
     | None => m1
      end in
-    Some ans.
+    Some ans. *)
 Local Opaque CR.
 
 
@@ -1028,15 +1029,17 @@ if approxDecLtRR  ε ('b) (revLeftCorner initcr rt) then None
 else
   let θcr : CR := (θ2D initcr) in
   let rc : CR := (revLeftCorner initcr θcr) in
-  let m1 : CR := θcr + (rc - 'b) * (CRinvT _ bpbpos) in
+(*  let m1 : CR := θcr + (rc - 'b) * (CRinvT _ bpbpos) in *)
   let m2 : option Q := solveDecCR  
       (fun r => compress (revLeftCorner initcr r)) ('b) ε (compress θcr, compress rt) searchDepth in
-  let ans := 
+      (option_map (cast Q CR) m2).
+(*  let ans := 
     match m2 with
     | Some m2 => CRmax m1 ('m2)
     | None => m1
      end in
     Some ans.
+*)
 
 Local Lemma carRightMost : forall θ1 θ2 :IR,
   θ1 ≤ θ2
@@ -1062,15 +1065,17 @@ if approxDecLtRR  ε ('b) (revDownCorner initcr rt) then None
 else
   let θcr : CR := (θ2D initcr) in
   let rc : CR := (revDownCorner initcr θcr) in
-  let m1 : CR := θcr + (rc - 'b) * (CRinvT _ bmbpos) in
+(*  let m1 : CR := θcr + (rc - 'b) * (CRinvT _ bmbpos) in *)
   let m2 : option Q := solveDecCR  
-      (revDownCorner initcr) ('b) ε (compress θcr, compress rt) searchDepth in
-  let ans := 
+      (fun r => compress (revDownCorner initcr r))
+         ('b) ε (compress θcr, compress rt) searchDepth in (option_map (cast Q CR) m2).
+(*  let ans := 
     match m2 with
     | Some m2 => CRmax m1 ('m2)
     | None => m1
      end in
     Some ans.
+*)
 
 (* Move. None represents infininty *)
 Definition opMin {A} (min: A-> A-> A) (ox oy : option A) :

@@ -674,7 +674,7 @@ let b := initbq + {| minxy := -minExtra ; maxxy := maxExtra|} in
 Hypothesis accGeo : acceptableGeometry ('carGeo).
 
 Definition optimalFwdMove extra : list (DAtomicMove CR) :=
-fst (fst (@wriggleMoves ('carGeo) (relParkingEnv extra) accGeo eps 0)).
+fst (fst (@wriggleMoves ('carGeo) (relParkingEnv extra) accGeo eps 20 1)).
 
 Definition animateSpaceReqOpt
    (extraSpace : BoundingRectangle Q)
@@ -740,16 +740,15 @@ fun _ _ f c => {|minx:= f (minx c)
 Definition moves : (list (Q*Q)) :=
 [(1, Qmake 1 3); (-1, Qmake 1 3) ].
 *)
-
 (*
 Let rp :=  (@relParkingEnv (Mazda3Sedan2014sGT) extra).
-Let ta := (@targetAngle _ rp acceptableGeometryMazda (csrigid2D initSt) eps).
-Let tarl := (@revTargetAngleL _ rp acceptableGeometryMazda (csrigid2D initSt) eps).
-Let tarb := (@revTargetAngleB _ rp acceptableGeometryMazda (csrigid2D initSt) eps).
+Let ta := (@targetAngle ('Mazda3Sedan2014sGT) rp eps 20 (csrigid2D initSt)).
+Let tarl := (@revTargetAngleL ('Mazda3Sedan2014sGT) rp  eps 20 (csrigid2D initSt)).
+Let tarb := (@revTargetAngleB ('Mazda3Sedan2014sGT) rp  eps 20 (csrigid2D initSt)).
 Eval vm_compute in  (sfmap (fun q => approximateQ q 100) rp).
-Eval vm_compute in  (option_map approximateAngleAsDegrees tarb).
 Eval vm_compute in  (option_map approximateAngleAsDegrees tarl).
 Eval vm_compute in  (option_map approximateAngleAsDegrees ta).
+Eval vm_compute in  (option_map approximateAngleAsDegrees tarb).
 *)
 
 (*
