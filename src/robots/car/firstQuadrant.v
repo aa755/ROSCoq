@@ -884,7 +884,7 @@ Check holdsDuringAMsCorrect.
     Y (minxy (confineRectNeg ((carDim cg)) tr init θ)).
 
   Variable ε : Qpos.
-
+  Let searchDepth: nat := 20.
   Section NextMove.
   Variable initcr: Rigid2DState CR.
 Definition mkFwMoveFromTarget (ot : option CR) : DAtomicMove CR * bool.
@@ -964,7 +964,7 @@ else
   let rc : CR := (rightCorner initcr θcr) in
   let m1 : CR := θcr + ('(maxx pe) - rc) * (CRinvT _ bpfpos) in
   let m2 : option Q := solveIncCR  
-      (fun r => compress (rightCorner initcr r)) ('(maxx pe)) ε (compress θcr, compress rt) 30 in
+      (fun r => compress (rightCorner initcr r)) ('(maxx pe)) ε (compress θcr, compress rt) searchDepth in
   let ans := 
     match m2 with
     | Some m2 => CRmax m1 ('m2)
@@ -1030,7 +1030,7 @@ else
   let rc : CR := (revLeftCorner initcr θcr) in
   let m1 : CR := θcr + (rc - 'b) * (CRinvT _ bpbpos) in
   let m2 : option Q := solveDecCR  
-      (fun r => compress (revLeftCorner initcr r)) ('b) ε (compress θcr, compress rt) 30 in
+      (fun r => compress (revLeftCorner initcr r)) ('b) ε (compress θcr, compress rt) searchDepth in
   let ans := 
     match m2 with
     | Some m2 => CRmax m1 ('m2)
@@ -1064,7 +1064,7 @@ else
   let rc : CR := (revDownCorner initcr θcr) in
   let m1 : CR := θcr + (rc - 'b) * (CRinvT _ bmbpos) in
   let m2 : option Q := solveDecCR  
-      (revDownCorner initcr) ('b) ε (compress θcr, compress rt) 30 in
+      (revDownCorner initcr) ('b) ε (compress θcr, compress rt) searchDepth in
   let ans := 
     match m2 with
     | Some m2 => CRmax m1 ('m2)
@@ -1102,12 +1102,32 @@ mkBwMoveFromTarget (opMin min revTargetAngleL revTargetAngleB).
   End Backward.
   End NextMove.
   Let init : Rigid2DState CR := {|pos2D := 0; θ2D:=0|}.
-  (*
-  Definition first2Moves : list (DAtomicMove CR) :=
+  
+  
+  (* Move *)
+  Definition clamp `{MinClass A} `{MaxClass A} (v lower upper: A):=
+    min upper (max v lower).
+
+(* the goal is to have both the left and the bottom corners touch the boundary at the end
+  of these moves. So the first move is a forward straight drive.*)
+  Definition first2Moves : list (DAtomicMove CR) * bool :=
   let orb := revTargetAngleB init in
-  let rb := 
-  let rb
-  *)
+  let rb := opExtract  orb (½ * π)  in
+  let rbb := min rb (revLeftTransition (carDim cg) tr) in 
+  (* to stay in the monotonous zone for left corner *)
+  let lc : CR := revLeftCorner init rbb in
+  let dispx :CR :=  ('minx pe) - lc in
+  let minDisp : Q := (minx pe) - lengthBack (carDim cg) in
+  let maxDisp : Q := (maxx pe) - lengthFront (carDim cg) in
+  let dispx1 :CR := clamp dispx ('minDisp) ('maxDisp) in 
+  (*because dispx1 may be less than dispx, to avoid collision, we need to compute the backward
+    move again*)
+  let init2  := {|pos2D:={|X:=dispx1; Y:=0|}; θ2D:=0|} in 
+  let move2 : (DAtomicMove CR)*bool := nextMoveBb init2 in
+  ([(mkStraightMove dispx1); fst move2], snd move2).
+  
+(*  Definition next2Moves *)
+  
 (*  Goal False.*)
 
 End Solutions.

@@ -673,13 +673,13 @@ let b := initbq + {| minxy := -minExtra ; maxxy := maxExtra|} in
 
 Hypothesis accGeo : acceptableGeometry ('carGeo).
 
-Definition optimalFwdMove extra : DAtomicMove CR :=
-fst (@nextMoveBb ('carGeo) (relParkingEnv extra) accGeo (csrigid2D initSt) eps ).
+Definition optimalFwdMove extra : list (DAtomicMove CR) :=
+fst (@first2Moves ('carGeo) (relParkingEnv extra) accGeo eps).
 
 Definition animateSpaceReqOpt
    (extraSpace : BoundingRectangle Q)
    (framesPerMove : Z⁺) : string :=
-   animateSpaceReq1 [optimalFwdMove extraSpace] extraSpace framesPerMove.
+   animateSpaceReq1 (optimalFwdMove extraSpace) extraSpace framesPerMove.
 
 
 Definition numXspaceSamples : positive := (60)%positive.
