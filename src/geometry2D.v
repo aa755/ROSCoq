@@ -98,6 +98,8 @@ Record Line2D (A:Type):=
   lend : Cart2D A
 }.
 
+Global Instance SFmapLine2D : SFmap Line2D :=
+fun _ _ f c => {|lstart := sfmap f (lstart c); lend:= sfmap f (lend c)|}.
 
 Global Instance PairLikeLine2D (A:Type): 
     PairLike  (@Build_Line2D A) (@lstart A) (@lend A).

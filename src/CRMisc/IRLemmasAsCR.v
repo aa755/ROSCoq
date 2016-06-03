@@ -2144,3 +2144,27 @@ Proof using.
   simpl in *.
   lra.
 Qed.
+
+
+
+
+Lemma Qlt_CRltT : forall a b :Q, Qlt a b ->  CRltT ('a) ('b).
+Proof.
+  intros  ? ? H.
+  apply flip_pos_minus in H.
+  exists ((b-a) ↾ H).
+  simpl.
+  fold (CRopp).
+  fold (CRplus).
+  fold (@negate CR _).
+  fold (@plus CR _).
+  rewrite <- preserves_minus.
+  reflexivity.
+Defined. (* transparent => CRinvT will not get stuck*)
+
+(*
+Lemma Qlt_CRltT0 : forall a :Q, Qlt 0 a ->  CRltT 0 ('a).
+Proof using.
+  apply Qlt_CRltT.
+Defined.
+*)

@@ -667,14 +667,14 @@ let minExtra : Cart2D Q := (('{|X:= totalLength myCarDimZ; Y:= width myCarDimZ|}
 let cdr : CarDimensions CR := carGeoR in
 let initb := carBoundingRectCR cdr (csrigid2D initSt) in
 let initbq :BoundingRectangle Q := sfmap (fun r => approximate (compress r) eps) initb in
-let b := initbq + {| minxy := -maxExtra ; maxxy := maxExtra|} in
+let b := initbq + {| minxy := -minExtra ; maxxy := maxExtra|} in
 {|miny := Y (minxy b); minx := X (minxy b); maxx := X (maxxy b)|}.
 
 
 Hypothesis accGeo : acceptableGeometry ('carGeo).
 
 Definition optimalFwdMove extra : DAtomicMove CR :=
-fst (@nextMoveFb ('carGeo) (relParkingEnv extra) accGeo (csrigid2D initSt) eps ).
+fst (@nextMoveBb ('carGeo) (relParkingEnv extra) accGeo (csrigid2D initSt) eps ).
 
 Definition animateSpaceReqOpt
    (extraSpace : BoundingRectangle Q)
@@ -741,10 +741,16 @@ Definition moves : (list (Q*Q)) :=
 [(1, Qmake 1 3); (-1, Qmake 1 3) ].
 *)
 
+(*
 Let rp :=  (@relParkingEnv (Mazda3Sedan2014sGT) extra).
 Let ta := (@targetAngle _ rp acceptableGeometryMazda (csrigid2D initSt) eps).
+Let tarl := (@revTargetAngleL _ rp acceptableGeometryMazda (csrigid2D initSt) eps).
+Let tarb := (@revTargetAngleB _ rp acceptableGeometryMazda (csrigid2D initSt) eps).
 Eval vm_compute in  (sfmap (fun q => approximateQ q 100) rp).
+Eval vm_compute in  (option_map approximateAngleAsDegrees tarb).
+Eval vm_compute in  (option_map approximateAngleAsDegrees tarl).
 Eval vm_compute in  (option_map approximateAngleAsDegrees ta).
+*)
 
 (*
 Definition spaceXplotStr : string := sconcat (List.map  spaceXplotnStr (seq 0 5)).

@@ -89,7 +89,7 @@ http://www.mycarhelpline.com/images/Tyre_Size_details.png
 
 Definition acceptableGeometry (cg : CarGeometry Q) :=
 nonTrivialCarDim (carDim cg) /\ nonTrivialCarDim (carDimWheel cg) /\
-((width (carDim cg)) <= (minTR cg))%Q /\ ((width (carDimWheel cg)) <= (minTR cg))%Q.
+((width (carDim cg)) < (minTR cg))%Q /\ ((width (carDimWheel cg)) <= (minTR cg))%Q.
 
 
 Lemma acceptableGeometryMazda : acceptableGeometry (cast _ (CarGeometry Q)Mazda3Sedan2014sGT).

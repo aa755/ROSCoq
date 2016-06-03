@@ -60,8 +60,6 @@ Qed.
   Local Notation maxxy := (lend).
   Local Notation  "∫" := Cintegral.
 Require Import MathClasses.interfaces.functors.
-Global Instance SFmapLine2D : SFmap Line2D :=
-fun _ _ f c => {|minxy:= sfmap f (minxy c); maxxy:= sfmap f (maxxy c)|}.
 
   
 (** Many trignometric comparisons can be made easily
@@ -717,10 +715,12 @@ Proof using turnCentreOut trPos ntriv.
   - apply plus_le_compat;[tauto| reflexivity].
 Qed.
 
+Definition revLeftTransition : CR :=  polarTheta βPlusBack.
+
 (* the leftmost point initially shifts left *)
 Lemma revConfineRectLeftmostLeft (θ: IR) :
 θ ≤ ½ * π
-→ ' polarTheta βPlusBack ≤ θi ≤ θ
+→ ' revLeftTransition ≤ θi ≤ θ
 (* θ keeps increasing, because the negations cancel out *)
 → X (minxy (confineRectNeg init θi)) ≤ X (minxy (confineRectNeg init θ)).
 Proof using turnCentreOut trPos ntriv.
@@ -747,7 +747,7 @@ Qed.
 (* the leftmost point shifts finally right *)
 Lemma revConfineRectLeftmostRight (θ: IR) :
 0 ≤ θi 
-→ θi ≤ θ ≤  ' polarTheta βPlusBack
+→ θi ≤ θ ≤  ' revLeftTransition
 (* θ keeps increasing, because the negations cancel out *)
 → X (minxy (confineRectNeg init θ)) ≤ X (minxy (confineRectNeg init θi)).
 Proof using turnCentreOut trPos ntriv.
@@ -811,12 +811,16 @@ Require Import exampleDimensions.
 
 Require Import MathClasses.orders.semirings.
 Require Import MCMisc.rings.
+  Require Import atomicMoves.
 
 Require Import MathClasses.interfaces.functors.
+Require Import fastReals.implCR.
+
 
 Section Solutions.
   Variable cg : CarGeometry Q.
   Variable pe : ParkingEnv Q.
+
   
   Definition carSafeInParkingEnv (s:Rigid2DState IR):= 
   (('minx pe):IR) ≤ X (minxy (carMinMaxXY ('carDim cg) s))
@@ -831,17 +835,25 @@ Section Solutions.
   Let βPlusBack : Cart2D Q := βPlusBack cd tr.
   Let βPlusFront : Cart2D Q := βPlusFront cd tr. *)
 
+
   Definition θInvariant  (θ:IR) :=
     (½ * π - 'polarTheta (βPlusBack (carDim cg) tr)) ≤ θ ≤ (½ * π).
   
-  Require Import atomicMoves.
   Definition Invariant  : ((Rigid2DState IR) --> Prop).
-  exists (fun s => carSafeInParkingEnv s /\ θInvariant (θ2D s)).
-  constructor; unfold Setoid;  eauto 2 with typeclass_instances.
-  intros ? ? Heq. unfold carSafeInParkingEnv, θInvariant.
-  rewrite Heq.
-  reflexivity.
-  Qed.
+    exists (fun s => carSafeInParkingEnv s /\ θInvariant (θ2D s)).
+    constructor; unfold Setoid;  eauto 2 with typeclass_instances.
+    intros ? ? Heq. unfold carSafeInParkingEnv, θInvariant.
+    rewrite Heq.
+    reflexivity.
+  Defined.
+
+  Definition Invariant1  : ((Rigid2DState IR) --> Prop).
+    exists (fun s => carSafeInParkingEnv s).
+    constructor; unfold Setoid;  eauto 2 with typeclass_instances.
+    intros ? ? Heq. unfold carSafeInParkingEnv.
+    rewrite Heq.
+    reflexivity.
+  Defined.
 
 (*
 needed to invoke holdsDuringAMsCorrect:
@@ -863,20 +875,56 @@ Check holdsDuringAMsCorrect.
    `{CosClass R} `{SinClass R} `{Ring R} `{Cast Q R} (init : Rigid2DState R)(θ:R) : R :=
     X (maxxy (confineRectPos ((carDim cg)) tr init θ)).
 
-Require Import MathClasses.interfaces.functors.
+  Definition revLeftCorner `{Cast (Cart2D Q) (Polar2D R)} 
+   `{CosClass R} `{SinClass R} `{Ring R} `{Cast Q R} (init : Rigid2DState R)(θ:R) : R :=
+    X (minxy (confineRectNeg ((carDim cg)) tr init θ)).
+
+  Definition revDownCorner `{Cast (Cart2D Q) (Polar2D R)} 
+   `{CosClass R} `{SinClass R} `{Ring R} `{Cast Q R} (init : Rigid2DState R)(θ:R) : R :=
+    Y (minxy (confineRectNeg ((carDim cg)) tr init θ)).
+
+  Variable ε : Qpos.
+
+  Section NextMove.
   Variable initcr: Rigid2DState CR.
-  Locate sfmap.
+Definition mkFwMoveFromTarget (ot : option CR) : DAtomicMove CR * bool.
+  set (t:= opExtract ot   (½ * π)).
+  split;[| exact (notNone ot)].
+  exists {|am_tc := 'Qinv tr; am_distance := compress (('tr) * (t- (θ2D initcr))) |}.
+  right. simpl. right.
+  apply Qlt_CRltT.
+  apply Qinv_lt_0_compat.
+  unfold tr.
+  destruct ntriv. destruct H.
+  autounfold with QMC in *.
+  lra.
+Defined.
+
+Definition mkBwMoveFromTarget (ot : option CR) : DAtomicMove CR * bool (* true => continue *).
+  set (t:= opExtract  ot (½ * π)).
+  split;[| exact (notNone ot)].
+  exists {|am_tc := 'Qinv (-tr); am_distance := compress (('tr) * ((θ2D initcr) - t)) |}.
+  right. simpl. left.
+  apply Qlt_CRltT.
+  rewrite <- RMicromega.Qinv_opp.
+  apply flip_pos_negate.
+  apply Qinv_lt_0_compat.
+  unfold tr.
+  destruct ntriv. destruct H.
+  autounfold with QMC in *.
+  lra.
+Defined.
+
 (*  Hypothesis initFirstQuad : 0 ≤ (θ2D init) ≤ (½ * π). *)
   Let init : Rigid2DState IR := sfmap (cast CR IR) initcr.
     
   Let θi : IR := (θ2D init).
   
   (* this invariant is always maintained *)
-  Hypothesis inv : (`Invariant) init.
-  Variable ε : Qpos.
   
   Section Forward.
 
+  Hypothesis inv : (`Invariant) init.
   (* this is true initially, and the backward move re-establishes it *)
   Hypothesis fwd : positiveSpaceAhead init.
   
@@ -898,9 +946,8 @@ Abort.
 
 
 
-Require Import fastReals.implCR.
 
-Lemma bppos: ((| βPlusFront (carDim cg) tr |)  >< ' 0%Q)%CR.
+Lemma bpfpos: ((| βPlusFront (carDim cg) tr |)  >< ' 0%Q)%CR.
 Proof.
   right.
   apply normPositive; simpl;
@@ -915,8 +962,9 @@ if approxDecLtRQ  ε (rightCorner initcr rt) (maxx pe) then None
 else
   let θcr : CR := (θ2D initcr) in
   let rc : CR := (rightCorner initcr θcr) in
-  let m1 : CR := θcr + ('(maxx pe) - rc) * (CRinvT _ bppos) in
-  let m2 : option Q := solveIncCR  (rightCorner initcr) ('(maxx pe)) ε (θcr, rt) 100 in
+  let m1 : CR := θcr + ('(maxx pe) - rc) * (CRinvT _ bpfpos) in
+  let m2 : option Q := solveIncCR  
+      (fun r => compress (rightCorner initcr r)) ('(maxx pe)) ε (compress θcr, compress rt) 30 in
   let ans := 
     match m2 with
     | Some m2 => CRmax m1 ('m2)
@@ -925,38 +973,10 @@ else
     Some ans.
 Local Opaque CR.
 
-(* Move *)
-Lemma Qlt_CRltT : forall a :Q, Qlt 0 a ->  CRltT 0 ('a).
-Proof.
-  intros  ? H.
-  exists (a ↾ H).
-  simpl.
-  fold (CRopp).
-  fold (CRplus).
-  fold (@negate CR _).
-  fold (@plus CR _).
-  apply RingLeProp1l.
-  rewrite negate_0. reflexivity.
-Defined.
-(*
-Definition nextMoveQFb : (Q*Q) * bool (* true => continue *).
-  set (t:= opExtract targetAngle   ½ * π).
-  split;[| exact (notNone targetAngle)].
-*)
 
-Locate acceptableGeometry.
-Definition nextMoveFb : DAtomicMove CR * bool (* true => continue *).
-  set (t:= opExtract targetAngle   (½ * π)).
-  split;[| exact (notNone targetAngle)].
-  exists {|am_tc := 'Qinv tr; am_distance := ('tr) * (t- (θ2D initcr))|}.
-  right. simpl. right.
-  apply Qlt_CRltT.
-  apply Qinv_lt_0_compat.
-  unfold tr.
-  destruct ntriv. destruct H.
-  autounfold with QMC in *.
-  lra.
-Defined.
+Definition nextMoveFb : DAtomicMove CR * bool (* true => continue *) :=
+  mkFwMoveFromTarget targetAngle.
+
 (*
   Lemma nextMoveFbCorrect1 : stateAfterAtomicMove initcr (fst nextMoveFb)
 *)
@@ -972,6 +992,102 @@ Defined.
   End Forward.
 
   Section Backward.
+  Hypothesis inv : (`Invariant1) init.
+
+(* relevant monotonicity lemmas *)
+Check  revConfineRectRightmostLeft. (* not a bottleneck *)
+Check revConfineRectLeftmostLeft. (*bottleneck  (until polarTheta (βPlusBack cd tr)) *)
+Check revConfineRectLeftmostRight. (* not a bottleneck *)
+Check revConfineRectDownmostDown. (* always a bottleneck *)
+
+Local Lemma carRightMost : forall θ1 θ2 :IR,
+  θ1 ≤ θ2 ≤ '(revLeftTransition (carDim cg) tr)
+  ->
+  revLeftCorner init θ2 - revLeftCorner init θ1  ≤  ' (| βPlusBack (carDim cg) tr |) * (θ2 - θ1).
+Proof.
+  intros. unfold revLeftCorner. simpl.
+  autounfold with IRMC. ring_simplify.
+Abort.
+
+
+
+Lemma bpbpos: ((| βPlusBack (carDim cg) tr |)  >< ' 0%Q)%CR.
+Proof.
+  right.
+  apply normPositive; simpl;
+  destruct ntriv; destruct H;
+  autounfold with QMC in *; unfold tr;  try lra.
+Defined.
+
+
+(* None means ½ * π, and that no more moves are needed *)
+Definition revTargetAngleL : option CR :=
+let rt : CR := (revLeftTransition (carDim cg) tr) in 
+let b : Q :=  (minx pe) in
+if approxDecLtRR  ε ('b) (revLeftCorner initcr rt) then None
+else
+  let θcr : CR := (θ2D initcr) in
+  let rc : CR := (revLeftCorner initcr θcr) in
+  let m1 : CR := θcr + (rc - 'b) * (CRinvT _ bpbpos) in
+  let m2 : option Q := solveDecCR  
+      (fun r => compress (revLeftCorner initcr r)) ('b) ε (compress θcr, compress rt) 30 in
+  let ans := 
+    match m2 with
+    | Some m2 => CRmax m1 ('m2)
+    | None => m1
+     end in
+    Some ans.
+
+Local Lemma carRightMost : forall θ1 θ2 :IR,
+  θ1 ≤ θ2
+  ->
+  revDownCorner init θ2 - revDownCorner init θ1  ≤  ' (| βMinusBack (carDim cg) tr |) * (θ2 - θ1).
+Proof.
+  intros. unfold revDownCorner. simpl.
+  autounfold with IRMC. ring_simplify.
+Abort.
+
+Lemma bmbpos: ((| βMinusBack (carDim cg) tr |)  >< ' 0%Q)%CR.
+Proof.
+  right.
+  apply normPositive; simpl;
+  destruct ntriv; destruct H;
+  autounfold with QMC in *; unfold tr;  try lra.
+Defined.
+
+Definition revTargetAngleB : option CR :=
+let rt : CR :=  (½ * π) in 
+let b : Q :=  (miny pe) in
+if approxDecLtRR  ε ('b) (revDownCorner initcr rt) then None
+else
+  let θcr : CR := (θ2D initcr) in
+  let rc : CR := (revDownCorner initcr θcr) in
+  let m1 : CR := θcr + (rc - 'b) * (CRinvT _ bmbpos) in
+  let m2 : option Q := solveDecCR  
+      (revDownCorner initcr) ('b) ε (compress θcr, compress rt) 30 in
+  let ans := 
+    match m2 with
+    | Some m2 => CRmax m1 ('m2)
+    | None => m1
+     end in
+    Some ans.
+
+(* Move. None represents infininty *)
+Definition opMin {A} (min: A-> A-> A) (ox oy : option A) :
+  option A:=
+match ox with
+| Some x => 
+  match oy with
+  | Some y => Some (min x y)
+  | None => Some x
+  end
+| None => oy
+end.
+  
+
+
+Definition nextMoveBb : DAtomicMove CR * bool (* true => continue *) :=
+mkBwMoveFromTarget (opMin min revTargetAngleL revTargetAngleB).
 
   (* the forward move re-establishes it *)
   Hypothesis bwd : positiveSpaceBelowAndBehind init.
@@ -984,5 +1100,16 @@ Defined.
   Abort.
 
   End Backward.
+  End NextMove.
+  Let init : Rigid2DState CR := {|pos2D := 0; θ2D:=0|}.
+  (*
+  Definition first2Moves : list (DAtomicMove CR) :=
+  let orb := revTargetAngleB init in
+  let rb := 
+  let rb
+  *)
+(*  Goal False.*)
 
 End Solutions.
+
+
