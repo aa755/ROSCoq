@@ -884,7 +884,7 @@ Check holdsDuringAMsCorrect.
     Y (minxy (confineRectNeg ((carDim cg)) tr init θ)).
 
   Variable ε : Qpos.
-  Let searchDepth: nat := 20.
+  Let searchDepth: nat := 10.
   Section NextMove.
   Variable initcr: Rigid2DState CR.
 Definition mkFwMoveFromTarget (ot : option CR) : DAtomicMove CR * bool.
@@ -1101,7 +1101,6 @@ mkBwMoveFromTarget (opMin min revTargetAngleL revTargetAngleB).
 
   End Backward.
   End NextMove.
-  Let init : Rigid2DState CR := {|pos2D := 0; θ2D:=0|}.
   
   
   (* Move *)
@@ -1110,7 +1109,8 @@ mkBwMoveFromTarget (opMin min revTargetAngleL revTargetAngleB).
 
 (* the goal is to have both the left and the bottom corners touch the boundary at the end
   of these moves. So the first move is a forward straight drive.*)
-  Definition first2Moves : list (DAtomicMove CR) * bool :=
+  Definition first2Moves : list (DAtomicMove CR) * (Rigid2DState CR) * bool :=
+  let init : Rigid2DState CR := {|pos2D := 0; θ2D:=0|} in
   let orb := revTargetAngleB init in
   let rb := opExtract  orb (½ * π)  in
   let rbb := min rb (revLeftTransition (carDim cg) tr) in 
@@ -1124,9 +1124,43 @@ mkBwMoveFromTarget (opMin min revTargetAngleL revTargetAngleB).
     move again*)
   let init2  := {|pos2D:={|X:=dispx1; Y:=0|}; θ2D:=0|} in 
   let move2 : (DAtomicMove CR)*bool := nextMoveBb init2 in
-  ([(mkStraightMove dispx1); fst move2], snd move2).
+  ([(mkStraightMove dispx1); fst move2], stateAfterAtomicMove init2 (fst move2), snd move2).
   
-(*  Definition next2Moves *)
+  Definition next2Moves (init : Rigid2DState CR) : list (DAtomicMove CR) * (Rigid2DState CR) * bool :=
+  let m1 := nextMoveFb init in
+  let init2:= stateAfterAtomicMove init (fst m1) in
+  if (snd m1) 
+      then 
+        let m2 := nextMoveBb init2 in
+        ([fst m1;fst m2],stateAfterAtomicMove init2 (fst m2), snd m2)
+      else 
+        ([fst m1],init2, false).
+        Print Pos.size_nat.
+
+Definition bind 
+(nm1:list (DAtomicMove CR) * (Rigid2DState CR) * bool)
+(f : (Rigid2DState CR) -> (list (DAtomicMove CR) * (Rigid2DState CR) * bool)) :
+(list (DAtomicMove CR) * (Rigid2DState CR) * bool) :=
+    if (snd nm1) then 
+      let nm2 : list (DAtomicMove CR) * (Rigid2DState CR) * bool := f ((snd ∘ fst) nm1) in
+      (((fst ∘ fst) nm1) ++ ((fst ∘ fst) nm2), (snd ∘ fst) nm2, snd nm2)
+    else 
+      nm1.
+
+
+  
+  Fixpoint nextPairs (n:nat) (init : Rigid2DState CR)  {struct n}: list (DAtomicMove CR) * (Rigid2DState CR) * bool :=
+  match n with
+  | 0 => ([], init , false)
+  | S n => 
+    let nm1 : list (DAtomicMove CR) * (Rigid2DState CR) * bool := next2Moves init in
+    bind nm1 (nextPairs n)
+  end.
+
+  Definition wriggleMoves (n:nat (*max pairs*)) :  list (DAtomicMove CR) * (Rigid2DState CR) * bool :=
+  let nm1 := first2Moves in
+  bind nm1 (nextPairs n).
+  
   
 (*  Goal False.*)
 
