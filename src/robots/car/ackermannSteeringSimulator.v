@@ -640,11 +640,41 @@ Definition animateSpaceReq
   end.
 
 
+Definition animateSpaceReqNoGreen
+   (moves : list NameDAtomicMove)
+   (extraSpace : BoundingRectangle Q)
+   (framesPerMove : Z⁺) : string := 
+  let sidewaysMove : list NameDAtomicMove := moves  in
+  let initStp := (mkRenderingInfo (EmptyString,EmptyString),initSt) in
+  let cs := (finerMovesStates framesPerMove sidewaysMove initStp) in
+  let namedLines : list ((string * string) * list (Line2D Z)) 
+      := carStatesFrames cs in
+  let lineRects := namedLines in
+  match lineRects return string with
+  | [] => ""
+  | h::tl => 
+      let initb := computeBoundingRectLines (snd h) in
+      let globalB :  (Line2D Z) 
+        := relGlobalBound initb extraSpace in
+      let (pp, textPos) := drawEnv globalB initb in 
+      let textTikZ  : string -> string  
+        := fun label => "\node[below right] at " ++ tikZPoint textPos 
+            ++ "{" ++ label ++ "};" ++ newLineString in
+      let frames :=
+        List.map (fun p => 
+        let preface :=  sconcat [pp] in
+          frameWithLines 
+            (sconcat [ preface ; textTikZ (fst (fst p)); snd (fst p)])
+            (snd p)) 
+          lineRects in
+      sconcat frames
+  end.
+
 Definition animateSpaceReq1
    (moves : list (DAtomicMove CR))
    (extraSpace : BoundingRectangle Q)
    (framesPerMove : Z⁺) : string :=
-animateSpaceReq (List.map (mkNamedMove) moves)  extraSpace framesPerMove.
+animateSpaceReqNoGreen (List.map (mkNamedMove) moves)  extraSpace framesPerMove.
    
 
 Definition animateSpaceReqRel
@@ -674,7 +704,7 @@ let b := initbq + {| minxy := -minExtra ; maxxy := maxExtra|} in
 Hypothesis accGeo : acceptableGeometry ('carGeo).
 
 Definition optimalFwdMove extra : list (DAtomicMove CR) :=
-fst (fst (@wriggleMoves ('carGeo) (relParkingEnv extra) accGeo eps 20 1)).
+fst (fst (@wriggleMoves ('carGeo) (relParkingEnv extra) accGeo eps 20 5)).
 
 Definition animateSpaceReqOpt
    (extraSpace : BoundingRectangle Q)
@@ -729,7 +759,11 @@ End simulator.
   Local Notation maxxy := (lend).
 
 Definition extra :BoundingRectangle Q :=
-{| minxy := {|X:=Qmake 1 5; Y:= Qmake 1 10|}; maxxy := {|X:=Qmake 1 5; Y:= Qmake 1 1|} |}.
+{| minxy := {|X:=Qmake 4 100; Y:= Qmake 4 10|}; maxxy := {|X:=Qmake 8 100; Y:= Qmake 2 1|} |}.
+
+(* easier to read and change in the Haskell extract. Make sure to keep in sync with
+the above definition in Coq. *)
+Extract Constant extra => "Build_Line2D (MkCart2D 0.04 0.4) (MkCart2D 0.08 2)".
 
 Global Instance SFmapParkingEnv : SFmap ParkingEnv :=
 fun _ _ f c => {|minx:= f (minx c)
