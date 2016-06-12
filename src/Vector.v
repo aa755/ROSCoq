@@ -231,7 +231,7 @@ Proof.
   intros. destruct c. simpl. reflexivity.
 Qed.
 
-Require Import interfaces.orders.
+Require Import MathClasses.interfaces.orders.
 
 Global Instance LeCart2DPreorder `{l:Le A} `{PreOrder A l}
   : PreOrder (Cart2D_instance_le).

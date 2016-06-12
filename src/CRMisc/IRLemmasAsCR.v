@@ -922,8 +922,8 @@ Qed.
 
 
 
-Require  Import orders.rings.
-Require  Import theory.rings.
+Require  Import MathClasses.orders.rings.
+Require  Import MathClasses.theory.rings.
 Require  Import MCMisc.fields.
 
   

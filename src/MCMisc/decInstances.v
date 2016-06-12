@@ -6,7 +6,7 @@ Require Import ROSCOQ.StdlibMisc.
 (*Move the 2 functions below to other file*)
 
 
-Require Import interfaces.abstract_algebra.
+Require Import MathClasses.interfaces.abstract_algebra.
 Require Export Coq.Lists.List.
 
 Instance InstanceDecidableEq {T:Type} {deq : DecEq T} (x y:T) : Decision (x ≡ y).

@@ -69,7 +69,7 @@ Proof.
         unfoldMC; intros; lra.
 Qed.
 
-Require Export orders.
+Require Export MathClasses.interfaces.orders.
 
 Hint Resolve CRweakenLt CRLtAddLHS CRLtAddRHS : CRBasics.
 

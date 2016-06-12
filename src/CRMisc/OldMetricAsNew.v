@@ -99,6 +99,7 @@ Qed.
 
 End OldNew.
 
+(*
 Require Export CoRN.metric2.UniformContinuity.
 Require Export CoRN.metric2.StepFunction.
 Require Export CoRN.metric2.Limit.
@@ -126,3 +127,4 @@ Require Export CoRN.model.metric2.LinfMetric.
 Require Export CoRN.model.metric2.L1metric.
 Require Export CoRN.model.metric2.Qmetric.
 Require Export CoRN.model.metric2.BoundedFunction.
+*)

@@ -13,7 +13,7 @@ Instance SqrtFun_instancee_IR : SqrtFun IR IR.
 intros r. apply (sqrt (AbsIR r)). apply AbsIR_nonneg.
 Defined.
 
-Require Import interfaces.abstract_algebra.
+Require Import MathClasses.interfaces.abstract_algebra.
 Require Import MathClasses.theory.rings.
 
 Definition decAuto :  ∀ (P: Prop) `{Decision P},

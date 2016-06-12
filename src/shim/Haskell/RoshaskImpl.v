@@ -103,7 +103,7 @@ Section RunSwAgent.
   Variable tpInfo :  @TopicInfo Topic. (** which topics [sw] subscribes/publishes to*)
 
   Require Import decInstances.
-  Require Import interfaces.abstract_algebra.
+  Require Import MathClasses.interfaces.abstract_algebra.
   Require Import RoshaskMsg.
 
   Definition updateDepMap `{DecEq A} {B: A -> Type} (init : forall a:A, B a) (a:A) (newb : B a) (x:A) : B x.

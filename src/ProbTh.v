@@ -41,7 +41,7 @@ Variable A : CRing.
 
 Require Export CRRing2MCRing.
 
-Require Export MCMisc.BooleanAlgebra.
+Require Export MCMisc.BooleanRing.
 
 
 (** make sure that A4 and A5 are provable. 
@@ -67,7 +67,7 @@ Definition MeasurePropM23
 
 Class MeasureAlgebra  (μ : CSetoid_fun A  IR) 
   := {
-  mpmboolean :>  BooleanAlgebra A;
+  mpmboolean :>  BooleanRing A;
   mpm0 : MeasureNonZero μ;
   mpm1 : MeasurePropM1 μ;
   mpm2 : MeasurePropM23 μ
@@ -160,7 +160,7 @@ Proof.
     rewrite boolean_mult.
     assert (b * a + b + b * a + b * a + a =
              a +  b + b * a + (b * a + b * a)) as Hr by ring.
-    rewrite BooleanAlgebraXplusX in Hr.
+    rewrite BooleanRingXplusX in Hr.
     rewrite Hr.
     autounfold with IRMC.
     rewrite cm_rht_unit_unfolded.
@@ -176,9 +176,8 @@ Proof.
       as Hr by ring; rewrite Hr; clear Hr.
     rewrite boolean_mult.
     rewrite boolean_mult.
-    rewrite BooleanAlgebraXplusX.
+    rewrite BooleanRingXplusX.
     rewrite  MeasurePropM2Implies; auto with Alg.
-    unfold negate.
     rewrite minus_0_r.
     autounfold with IRMC.
     apply addNNegLeEq.
@@ -213,11 +212,11 @@ Definition ProbAlgebraPsMSP : CPsMetricSpace.
   apply plus_cancel_ap_rht with (z:= y).
   eapply ap_wdr_unfolded;[apply Hgt|].
   symmetry.
-  apply BooleanAlgebraXplusX.
+  apply BooleanRingXplusX.
 - unfold tri_ineq. intros ? ? ?.
   simpl. simpl.
   assert (x + (y + y) + z = (x + y) + (y + z)) as Hr by ring.
-  rewrite BooleanAlgebraXplusX in Hr.
+  rewrite BooleanRingXplusX in Hr.
   autounfold with IRMC in Hr.
 (* Add Ring RisaRing1: (CRing_Ring A). *)
   rewrite  cm_rht_unit_unfolded in Hr.
@@ -234,7 +233,7 @@ Definition ProbAlgebraMSP : CMetricSpace.
   apply mpm2.
   apply op_rht_resp_ap with (z:=y) in Hap.
   eapply ap_wdr_unfolded in Hap;[exact Hap|].
-  apply BooleanAlgebraXplusX.
+  apply BooleanRingXplusX.
 Defined. 
 
 Notation "a -ᵈ b" := (cms_d a b) (at level 90).
@@ -326,7 +325,7 @@ Proof.
   apply paperEq2.
 Qed.
 
-Require Export OldMetricAsNew.
+Require Import CRMisc.OldMetricAsNew.
 
 (* now we get access to the completion operation.
     metric2/ seems to be more developed
@@ -385,21 +384,14 @@ Qed.
 
 Definition Qplus_uc : Q_as_MetricSpace --> Q_as_MetricSpace --> Q_as_MetricSpace :=
 Build_UniformlyContinuousFunction Qplus_uc_prf.
-*)
 Definition PlusSlow_uc : (AMS --> AMS --> AMS).
 Admitted.
   
-Require Export CoRN.metric2.Compact.
-
-Definition MetricallyComplete : CProp := 
-  CompleteSubset AMS (λ x, True).
-
-Definition AMSC : MetricSpace := Complete AMS.
 
 Definition PlusSlowUC : (AMSC --> AMSC --> AMSC) :=
    Cmap2_slow PlusSlow_uc.
 
-(** general definition of a completion of a 
+(* general definition of a completion of a 
     metric ring? generalize the development of CR
       (e.g. [CRPlus_uc])
     Make it fast by assuming [PrelengthSpace]
@@ -407,7 +399,15 @@ Definition PlusSlowUC : (AMSC --> AMSC --> AMSC) :=
     Do we need more axioms to prove that [AMS]
     is a prelengthspace?
 *)
+*)
 
+
+Require Export CoRN.metric2.Compact.
+
+Definition MetricallyComplete : CProp := 
+  CompleteSubset AMS (λ x, True).
+
+Definition AMSC : MetricSpace := Complete AMS.
 
 End MetricSpace.
 End BoolRing.

@@ -233,7 +233,7 @@ Local Notation SWriggle := (Wriggle α αNZ d).
 
 Local Notation tr := ((@f_rcpcl ℝ α αPos)).
 
-Require Import canonical_names.
+Require Import MathClasses.interfaces.canonical_names.
 
 Local Opaque Min.
 Local Opaque Max.
