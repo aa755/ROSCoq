@@ -95,7 +95,7 @@ Definition fromOldMetricTheory :MetricSpace.
     assert (0 < qb)%Q as qbp by (lra).
     specialize (H (mkQpos qbp)).
     apply leEq_def in H; auto.
-Qed.
+Defined.
 
 End OldNew.
 
