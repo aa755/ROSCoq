@@ -31,22 +31,99 @@ Local Opaque Cosine.
 Local Opaque Sin.
 Local Opaque Cos.
 
+Require Import CoRN.metric2.Metric.
 Require Import CRMisc.OldMetricAsNew.
-Section AtomicMove.
+Require Import MCMisc.rings.
+Require Import MathClasses.theory.rings.
+Let rball : Qpos → IR → IR → Prop  :=
+@ball (fromOldMetricTheory IR_as_CMetricSpace). 
 
+
+Section Car.
   Context  {maxTurnCurvature : Qpos}
    (acs : AckermannCar maxTurnCurvature).
-  Variable am : AtomicMove IR.
-  
   Variable tstart : Time.
   Variable tend : Time.
 
+  Variable am : AtomicMove IR.
+  Section Drive.
+
+  Variable tcErr : IR.
+  Variable distErr : IR.
+
+  Hypothesis timeInc : (tstart ≤ tend).
+
+  (* assume that the steering wheel is already in the right position *)
+  Definition amExecDirect :=
+    (∀ (t:Time), (tstart ≤ t ≤ tend)
+          ->  AbsSmall tcErr (({turnCurvature acs} t) - (am_tc am))) ∧
+    (let driveIb := (@mkIntBnd _ tstart tend timeInc) in
+         AbsSmall distErr ((∫ driveIb (linVel acs)) - (am_distance am))).
+
+  Hypothesis ame: amExecDirect.
+
+(*
+Local Opaque Time.
+    destruct acs. simpl in *.
+Local Transparent Time.
+
+*)
+
+Add Ring TContRisaRing: (stdlib_ring_theory TContR).
+
+(* cant use TDerivativeAbs because the time difference is unbounded *)
+  Lemma thetaBall : 
+           AbsSmall
+             (tcErr* (am_distance am))
+             ({theta acs} tend - {theta acs} tstart
+                        -(am_tc am)*(am_distance am)) .
+  Proof using.
+    apply proj1 in ame. simpl.
+    setoid_rewrite <- TBarrow with (p:=timeInc);[| apply derivRot].
+    set (per  := (ContConstFun _ _ (am_tc am)): TContR).
+    assert (turnCurvature acs = (per + (turnCurvature acs - per))) as Heq by ring.
+    rewrite Heq. clear Heq.
+    rewrite plus_mult_distr_l.
+    setoid_rewrite mult_comm at 2.
+    setoid_rewrite CIntegral_plus. unfold per.
+    unfold mult at 2. unfold Mult_instance_TContR.
+    rewrite CIntegral_scale.
+  Abort.
+(*
+  SearchAbout Cintegral.
+    
+    setoid_rewrite <- PlusShuffle3l.
+SearchAbout Cintegral.
+    subst per.
+    SearchAbout AbsSmall csg_op.
+  SearchAbout Cintegral.
+    rewrite mult_distr_sum_rht.
+
+    ring.
+    erewrite (@Cintegral_wd2 _ _ _ _ 
+      (linVel acs *(ContConstFun _ _ (am_tc am)) 
+        + linVel acs *() ) ).
+    end.  
+  
+    eapply TDerivativeAbs;eauto using derivRot.
+    intros ? Hbw.
+    apply AbsSmall_imp_AbsIR.
+    apply ame.
+    simpl.
+    unfold rball in ame.
+    simpl in ame.
+    unfold dIR in ame.
+
+*)
+
+
+  End Drive.
+
+  Section AtomicMove.
+  
+
   Variable tcErr : Qpos.
   Variable distErr : Qpos.
-Require Import CoRN.metric2.Metric.
-
-Let rball : Qpos → IR → IR → Prop  :=
-@ball (fromOldMetricTheory IR_as_CMetricSpace).
    
 
   Set Implicit Arguments.
@@ -63,14 +140,14 @@ Let rball : Qpos → IR → IR → Prop  :=
  
   (** From time [tsteer] to [drive], the steerring wheel rotates to attain a configuration 
     with turn curvature [tc]. The brakes are firmly placed pressed.*)
-    am_steeringControls : ({turnCurvature acs} am_tdrive) = (am_tc am) 
+    am_steeringControls : rball tcErr ({turnCurvature acs} am_tdrive)  (am_tc am) 
       /\ forall (t:Time), (tstart ≤ t ≤ am_tdrive) 
           -> {linVel acs} t = 0;
 
  
-  (** From time [tdrive] to [tend], the steering wheel is held fixed*)
+  (** From time [tdrive] to [tend], the steering wheel is held NEARLY fixed*)
     am_driveControls : forall (t:Time), (am_tdrive ≤ t ≤ tend) 
-          ->  rball tcErr ({turnCurvature acs} t) ({turnCurvature acs} am_tdrive);
+          ->  rball tcErr ({turnCurvature acs} t) (am_tc am);
           
    am_driveDistance : 
       let pf := (timeLtWeaken (proj2 (am_timeInc))) in 
@@ -79,4 +156,7 @@ Let rball : Qpos → IR → IR → Prop  :=
   }.
 
 End AtomicMove.
+End Car.
+
+
 

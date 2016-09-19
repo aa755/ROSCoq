@@ -1385,6 +1385,35 @@ Proof.
   IRRing.
 Qed.
 
+Lemma TDerivativeAbs :forall (F F' : TContR)
+   (ta tb : Time) (Hab : ta [<=]  tb) (c eps: ℝ),
+   isDerivativeOf F' F
+   -> (forall (t:Time), ((clcr ta tb) t) -> AbsIR ({F'} t [-] c) [<=] eps)
+   -> AbsIR({F} tb[-] {F} ta [-] c[*](tb [-] ta)) [<=] eps [*] (tb [-] ta).
+Proof.
+  intros ? ? ? ? ? ? ? Hder Habs.
+  pose proof (λ t p, (AbsMinusUB _ _ _ (Habs t p))) as Hub.
+  pose proof (λ t p, (AbsMinusLB _ _ _ (Habs t p))) as Hlb.
+  clear Habs.
+  apply AbsSmall_imp_AbsIR.
+  unfold AbsSmall.
+  apply TDerivativeUB3 with (F:=F) in Hub; auto;[].
+  apply TDerivativeLB3 with (F:=F) in Hlb; auto;[].
+  clear Hder.
+  split;[clear Hub | clear Hlb].
+- apply shift_leEq_minus'.
+  eapply leEq_transitive;[| apply Hlb].
+  apply eqImpliesLeEq.
+  unfold Q2R.
+  IRRing.
+- apply shift_minus_leEq.
+  eapply leEq_transitive;[apply Hub|].
+  apply eqImpliesLeEq.
+  unfold Q2R.
+  IRRing.
+Qed.
+
+
   Hint Rewrite  inj_Q_One : InjQDown.
   Hint Rewrite  inj_Q_inv : InjQDown.
   Hint Rewrite  inj_Q_plus : InjQDown.
