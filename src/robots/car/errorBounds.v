@@ -44,12 +44,14 @@ Section Car.
    (acs : AckermannCar maxTurnCurvature).
   Variable tstart : Time.
   Variable tend : Time.
+  Hypothesis nsc : noSignChangeDuring (linVel acs) tstart tend.
 
   Variable am : AtomicMove IR.
   Section Drive.
 
   Variable tcErr : IR.
-  Variable distErr : IR.
+(*  One step at a time .. will worry about it later.
+ Variable distErr : IR. *)
 
   Hypothesis timeInc : (tstart ≤ tend).
 
@@ -58,7 +60,7 @@ Section Car.
     (∀ (t:Time), (tstart ≤ t ≤ tend)
           ->  AbsSmall tcErr (({turnCurvature acs} t) - (am_tc am))) ∧
     (let driveIb := (@mkIntBnd _ tstart tend timeInc) in
-         AbsSmall distErr ((∫ driveIb (linVel acs)) - (am_distance am))).
+         (∫ driveIb (linVel acs)) = (am_distance am)).
 
   Hypothesis ame: amExecDirect.
 
@@ -74,11 +76,11 @@ Add Ring TContRisaRing: (stdlib_ring_theory TContR).
 (* cant use TDerivativeAbs because the time difference is unbounded *)
   Lemma thetaBall : 
            AbsSmall
-             (tcErr* (am_distance am))
+             (|(am_distance am) * tcErr|)
              ({theta acs} tend - {theta acs} tstart
                         -(am_tc am)*(am_distance am)) .
   Proof using.
-    apply proj1 in ame. simpl.
+    destruct ame as [amec amed]. simpl.
     setoid_rewrite <- TBarrow with (p:=timeInc);[| apply derivRot].
     set (per  := (ContConstFun _ _ (am_tc am)): TContR).
     assert (turnCurvature acs = (per + (turnCurvature acs - per))) as Heq by ring.
@@ -88,6 +90,33 @@ Add Ring TContRisaRing: (stdlib_ring_theory TContR).
     setoid_rewrite CIntegral_plus. unfold per.
     unfold mult at 2. unfold Mult_instance_TContR.
     rewrite CIntegral_scale.
+    rewrite amed.
+    setoid_rewrite <- PlusShuffle3l.
+    rewrite plus_negate_r, plus_0_r.
+    apply AbsIR_imp_AbsSmall.
+    eapply transitivity.
+  SearchAbout Cintegral.
+(*
+[apply AbsOfIntegral|].
+    apply Abs
+    rewrite AbsOfIntegral.
+Locate IntegralMonotone.
+    setoid_rewrite AbsIR_resp_mult.
+    fold (@mult IR _).
+    split.
+  - 
+SearchAbout noSignChangeDuring.
+SearchAbout AbsIR cr_mult.
+    unfold AbsSmall.
+    destruct nsc.
+    SearchAbout Cintegral AbsIR.
+
+SearchAbout noSignChangeDuring.
+    rewrite (@RingProp2 IR).    
+    fold (Plus_instance_IR).
+    fold (@plus IR _).
+    ring_simplify.
+*)
   Abort.
 (*
   SearchAbout Cintegral.
@@ -114,6 +143,7 @@ SearchAbout Cintegral.
     simpl in ame.
     unfold dIR in ame.
 
+ackermannSteeringProp.fixedSteeeringX
 *)
 
 

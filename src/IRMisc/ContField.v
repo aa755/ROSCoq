@@ -1046,6 +1046,26 @@ Proof.
   simpl. apply intvlIncluded.
 Qed.
 
+
+Lemma CIntegral_opp : 
+   Cintegral (mkIntBnd p) ([--] G) 
+    [=] [--] (Cintegral (mkIntBnd p) G).
+Proof.
+  unfold Cintegral.
+  erewrite <- integral_inv; eauto.
+  apply integral_wd.
+  apply Feq_symmetric.
+  eapply included_Feq; [|apply toPartInv]; eauto.
+  simpl. apply intvlIncluded.
+  Grab Existential Variables.
+  eapply Continuous_I_wd.
+  eapply included_Feq.
+  Focus 2. apply Feq_symmetric. apply toPartInv; fail.
+           simpl. apply intvlIncluded; fail.
+  eapply included_imp_Continuous. apply (scs_prf _ _ ([--]G)).
+  simpl. apply intvlIncluded.
+Qed.
+
 End CIntegralArith.
 
 
@@ -1163,6 +1183,9 @@ Definition composeIContRGeneral
   apply toFromPartId.
 Defined.
 
+
+
+
 Notation "{ f }" := (getF f).
 
 (** specialize the above the common case where J is [realline].
@@ -1224,6 +1247,63 @@ Definition CFCos
   (I : interval) (pI : proper I)
   (theta : IContR I pI ) : IContR I pI := (CCos [∘] theta).
 
+
+Definition CFAbs
+  (I : interval) (pI : proper I)
+  (theta : IContR I pI ) : IContR I pI.
+  eexists (fromPart _  (FAbs (toPart theta)) _).
+Unshelve.
+Focus 2.
+  simpl. intros ? ?. split; assumption.
+
+  eapply Continuous_wd.
+  apply toFromPartId.
+  apply Continuous_abs.
+  apply scs_prf.
+Defined.
+
+
+Lemma CFAbsAp : ∀  (I : interval) (pI : proper I) (F : IContR I pI ) t,
+  {CFAbs F} t [=] AbsIR ({F} t).
+Proof.
+  intros.
+Local Opaque AbsIR.
+Local Opaque FAbs. simpl.
+  destruct t. simpl.
+  rewrite FAbs_char. simpl.
+  unfold mkRIntvl. simpl.
+  reflexivity.
+Qed.
+
+(*
+Lemma AbsOfIntegral (itvl : interval) (pI : proper itvl) 
+  (a b : RInIntvl itvl) (p: a [<=] b) 
+  (F : IContR itvl pI) :
+  Cintegral (mkIntBnd p) F [<=] Cintegral (mkIntBnd p) (CFAbs F).
+Proof using.
+  apply IntegralMonotone.
+  intros. rewrite CFAbsAp.
+  apply leEq_AbsIR.
+Qed.
+*)
+
+Lemma AbsOfIntegral (itvl : interval) (pI : proper itvl) 
+  (a b : RInIntvl itvl) (p: a [<=] b) 
+  (F : IContR itvl pI) :
+  AbsIR (Cintegral (mkIntBnd p) F) [<=] Cintegral (mkIntBnd p) (CFAbs F).
+Proof using.
+  apply AbsSmall_imp_AbsIR.
+  split.
+- SearchAbout cof_leEq cg_inv.
+  apply inv_cancel_leEq.
+  rewrite cg_inv_inv.
+  rewrite <- CIntegral_opp.
+  apply IntegralMonotone.
+  intros. rewrite CFAbsAp. apply inv_leEq_AbsIR.
+- apply IntegralMonotone.
+  intros. rewrite CFAbsAp.
+  apply leEq_AbsIR.
+Qed.
 
 Local Opaque Sine.
 
