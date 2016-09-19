@@ -30,6 +30,7 @@ Local Opaque Sine.
 Local Opaque Cosine.
 Local Opaque Sin.
 Local Opaque Cos.
+Local Opaque Min Max.
 
 Require Import CoRN.metric2.Metric.
 Require Import CRMisc.OldMetricAsNew.
@@ -73,13 +74,20 @@ Local Transparent Time.
 
 Add Ring TContRisaRing: (stdlib_ring_theory TContR).
 
+(* Move *)
+Lemma prodConj : forall (A B : Prop), (prod A B) ↔ (A ∧ B).
+Proof using.
+  intros. tauto.
+Qed.
+
+
 (* cant use TDerivativeAbs because the time difference is unbounded *)
   Lemma thetaBall : 
            AbsSmall
-             (|(am_distance am) * tcErr|)
+             (| tcErr * (am_distance am)|)
              ({theta acs} tend - {theta acs} tstart
                         -(am_tc am)*(am_distance am)) .
-  Proof using.
+  Proof using timeInc nsc ame.
     destruct ame as [amec amed]. simpl.
     setoid_rewrite <- TBarrow with (p:=timeInc);[| apply derivRot].
     set (per  := (ContConstFun _ _ (am_tc am)): TContR).
@@ -94,55 +102,31 @@ Add Ring TContRisaRing: (stdlib_ring_theory TContR).
     setoid_rewrite <- PlusShuffle3l.
     rewrite plus_negate_r, plus_0_r.
     apply AbsIR_imp_AbsSmall.
+    eapply transitivity;[apply AbsOfIntegral|].
+    setoid_rewrite CFAbs_resp_mult.
     eapply transitivity.
-  SearchAbout Cintegral.
+    apply IntegralMonotone with 
+        (G:= (ContConstFun (closel [0]) I (AbsIR (tcErr)))*(CFAbs (linVel acs))).
+  - intros ? Hb.
+    rewrite mult_comm.
+    unfold mult, Mult_instance_TContR, negate, Negate_instance_TContR, plus, Plus_instance_TContR.
+    autorewrite with IContRApDown.
+    apply mult_resp_leEq_lft;[| apply AbsIR_nonneg].
+    simpl in Hb.
+    apply prodConj in Hb.
+    rewrite leEq_imp_Min_is_lft in Hb by assumption.
+    rewrite leEq_imp_Max_is_rht in Hb by assumption.
+    apply amec in Hb.
+    apply AbsSmall_imp_AbsIR in Hb.
+    eapply transitivity; eauto using leEq_AbsIR.
+  - setoid_rewrite CIntegral_scale.
+    rewrite noSignChangeAbsOfIntegral by assumption.
+    rewrite amed.
+    rewrite <- AbsIR_resp_mult.
+    reflexivity.
+  Qed.
+
 (*
-[apply AbsOfIntegral|].
-    apply Abs
-    rewrite AbsOfIntegral.
-Locate IntegralMonotone.
-    setoid_rewrite AbsIR_resp_mult.
-    fold (@mult IR _).
-    split.
-  - 
-SearchAbout noSignChangeDuring.
-SearchAbout AbsIR cr_mult.
-    unfold AbsSmall.
-    destruct nsc.
-    SearchAbout Cintegral AbsIR.
-
-SearchAbout noSignChangeDuring.
-    rewrite (@RingProp2 IR).    
-    fold (Plus_instance_IR).
-    fold (@plus IR _).
-    ring_simplify.
-*)
-  Abort.
-(*
-  SearchAbout Cintegral.
-    
-    setoid_rewrite <- PlusShuffle3l.
-SearchAbout Cintegral.
-    subst per.
-    SearchAbout AbsSmall csg_op.
-  SearchAbout Cintegral.
-    rewrite mult_distr_sum_rht.
-
-    ring.
-    erewrite (@Cintegral_wd2 _ _ _ _ 
-      (linVel acs *(ContConstFun _ _ (am_tc am)) 
-        + linVel acs *() ) ).
-    end.  
-  
-    eapply TDerivativeAbs;eauto using derivRot.
-    intros ? Hbw.
-    apply AbsSmall_imp_AbsIR.
-    apply ame.
-    simpl.
-    unfold rball in ame.
-    simpl in ame.
-    unfold dIR in ame.
-
 ackermannSteeringProp.fixedSteeeringX
 *)
 

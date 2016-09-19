@@ -475,6 +475,25 @@ Proof.
   apply Hn. tauto.
 Qed.
 
+Lemma noSignChangeAbsOfIntegral :forall (F : TContR)
+   (tstart tend : Time) (pl : tstart[<=]tend),
+   noSignChangeDuring F tstart tend
+   -> Cintegral (mkIntBnd pl) (CFAbs F)
+      [=]  AbsIR (Cintegral (mkIntBnd pl) F).
+Proof.
+  intros ? ? ? ? Hn.
+  destruct Hn as [Hn | Hn].
+- rewrite AbsIR_eq_x;[| apply DerivNonNegIntegral; assumption].
+  apply Cintegral_wd2; auto. intros ? ?.
+  rewrite CFAbsAp. rewrite AbsIR_eq_x; auto.
+  reflexivity.
+- rewrite AbsIR_eq_inv_x;[| apply DerivNonPosIntegral; assumption].
+  rewrite <- CIntegral_opp.
+  apply Cintegral_wd2; auto. intros ? ?.
+  rewrite CFAbsAp. rewrite AbsIR_eq_inv_x; auto.
+  reflexivity.
+Qed.
+
 
 Lemma nosignChangeInBwInt :forall (F : TContR)
    (tstart tend : Time) (Hab : tstart[<=]tend),

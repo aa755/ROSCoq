@@ -1294,8 +1294,7 @@ Lemma AbsOfIntegral (itvl : interval) (pI : proper itvl)
 Proof using.
   apply AbsSmall_imp_AbsIR.
   split.
-- SearchAbout cof_leEq cg_inv.
-  apply inv_cancel_leEq.
+- apply inv_cancel_leEq.
   rewrite cg_inv_inv.
   rewrite <- CIntegral_opp.
   apply IntegralMonotone.
@@ -1303,6 +1302,17 @@ Proof using.
 - apply IntegralMonotone.
   intros. rewrite CFAbsAp.
   apply leEq_AbsIR.
+Qed.
+
+Lemma CFAbs_resp_mult (itvl : interval) (pI : proper itvl) 
+  (F G : IContR itvl pI) :
+  (CFAbs (F[*]G) [=] (CFAbs F) [*] (CFAbs G)).
+Proof using.
+  apply ExtEqIContR.
+  intros. do 1 rewrite IContRMultAp.
+  do 3 rewrite CFAbsAp.
+  do 1 rewrite IContRMultAp.
+  apply AbsIR_resp_mult.
 Qed.
 
 Local Opaque Sine.
@@ -1578,4 +1588,4 @@ Proof.
 Qed.
 
 
-Hint Rewrite CFCosAp IContRConstAp IContRInvAp CFSineAp IContRPlusAp IContRMultAp IContRMinusAp IContRIdAp: IContRApDown.
+Hint Rewrite CFCosAp IContRConstAp IContRInvAp CFAbsAp CFSineAp IContRPlusAp IContRMultAp IContRMinusAp IContRIdAp: IContRApDown.
