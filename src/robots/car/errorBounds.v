@@ -102,11 +102,15 @@ Qed.
     setoid_rewrite <- PlusShuffle3l.
     rewrite plus_negate_r, plus_0_r.
     apply AbsIR_imp_AbsSmall.
-    eapply transitivity;[apply AbsOfIntegral|].
+    rewrite AbsOfIntegral.
     setoid_rewrite CFAbs_resp_mult.
-    eapply transitivity.
-    apply IntegralMonotone with 
+    rewrite IntegralMonotone with 
         (G:= (ContConstFun (closel [0]) I (AbsIR (tcErr)))*(CFAbs (linVel acs))).
+  - setoid_rewrite CIntegral_scale.
+    rewrite noSignChangeAbsOfIntegral by assumption.
+    rewrite amed.
+    rewrite <- AbsIR_resp_mult.
+    reflexivity.
   - intros ? Hb.
     rewrite mult_comm.
     unfold mult, Mult_instance_TContR, negate, Negate_instance_TContR, plus, Plus_instance_TContR.
@@ -119,11 +123,6 @@ Qed.
     apply amec in Hb.
     apply AbsSmall_imp_AbsIR in Hb.
     eapply transitivity; eauto using leEq_AbsIR.
-  - setoid_rewrite CIntegral_scale.
-    rewrite noSignChangeAbsOfIntegral by assumption.
-    rewrite amed.
-    rewrite <- AbsIR_resp_mult.
-    reflexivity.
   Qed.
 
 (*
@@ -137,14 +136,14 @@ ackermannSteeringProp.fixedSteeeringX
       divided by the non-zero real number [b], where [bp] is the proof of non-zero-hood
       of [b].
    *)
-  Lemma fixedSteeeringX : forall (t :Time) (_: tstart ≤ t ≤ tend),
-    let ideal := ((Sin ({theta acs} t) - Sin ({theta acs} tstart)) [/] (am_tc am) [//] tcNZ) in
+  Lemma fixedSteeeringX :
+    let ideal := ((Sin ({theta acs} tend) - Sin ({theta acs} tstart)) [/] (am_tc am) [//] tcNZ) in
     AbsSmall 
-        (|tcErr * (am_distance am) [/] (am_tc am) [//] tcNZ|) (*Fix*) 
-        (({X (position acs)} t - {X (position acs)} tstart) - ideal).
+        (|tcErr * (am_distance am) [/] (am_tc am) [//] tcNZ|)
+        (({X (position acs)} tend - {X (position acs)} tstart) - ideal).
   Proof.
-    intros  ? Hb. simpl.
-    setoid_rewrite <- TBarrow with (p:= proj1 Hb);[| apply (derivX acs)].
+    simpl.
+    setoid_rewrite <- TBarrow with (p:= timeInc);[| apply (derivX acs)].
     pose proof (@TContRDerivativeSin _ _ _ _ (derivRot acs)) as X.
     apply AbsIR_imp_AbsSmall.
     apply mult_cancel_leEq with (z:= (AbsIR (am_tc am)));[apply AbsIR_pos; assumption | ].
@@ -166,7 +165,41 @@ ackermannSteeringProp.fixedSteeeringX
     rewrite CFSineAp, CFSineAp.
     setoid_rewrite <- PlusShuffle3l.
     setoid_rewrite plus_negate_r. rewrite plus_0_r.
-  Abort.
+
+    (* now only the error term is left *)
+    rewrite AbsOfIntegral.
+    setoid_rewrite CFAbs_resp_mult.
+    unfold mult, Mult_instance_TContR, Mult_instance_IR.
+    rewrite CFAbs_resp_mult.
+    destruct ame as [amec amed].
+    rewrite IntegralMonotone with 
+        (G:= (ContConstFun (closel [0]) I (AbsIR (tcErr)))*(CFAbs (linVel acs))).
+  - setoid_rewrite CIntegral_scale.
+    rewrite noSignChangeAbsOfIntegral by assumption.
+    rewrite amed.
+    rewrite <- AbsIR_resp_mult.
+    reflexivity.
+  - intros ? Hb.
+    rewrite mult_comm.
+    unfold mult, Mult_instance_TContR, negate, Negate_instance_TContR, plus, Plus_instance_TContR.
+    subst per.
+    autorewrite with IContRApDown.
+    setoid_rewrite MultShuffle3l.
+    rewrite <- (@mult_assoc IR) by (eauto with typeclass_instances).
+    apply mult_resp_leEq_lft;[| apply AbsIR_nonneg].
+    simpl in Hb.
+    apply prodConj in Hb.
+    rewrite leEq_imp_Min_is_lft in Hb by assumption.
+    rewrite leEq_imp_Max_is_rht in Hb by assumption.
+    apply amec in Hb.
+    apply AbsSmall_imp_AbsIR in Hb.
+    setoid_rewrite AbsIR_minus.
+    rewrite (leEq_AbsIR tcErr) in Hb.
+    rewrite <- (mult_1_r (AbsIR tcErr)).
+    apply mult_resp_leEq_both;
+      try apply AbsIR_nonneg; auto;[].
+    apply AbsIR_Cos_leEq_One.
+  Qed.
 
 
   End Drive.
