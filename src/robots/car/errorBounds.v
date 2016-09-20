@@ -129,6 +129,44 @@ Qed.
 (*
 ackermannSteeringProp.fixedSteeeringX
 *)
+  Hypothesis tcNZ : (am_tc am [#] 0).
+  Local Notation turnRadius  (* :IR *) := (f_rcpcl (am_tc am) tcNZ).
+  
+  (** [X] coordinate of the [position] at a given time. Note that in CoRN,
+      division is a ternary operator. [a[/]b[//][bp]] denotes the real number [a]
+      divided by the non-zero real number [b], where [bp] is the proof of non-zero-hood
+      of [b].
+   *)
+  Lemma fixedSteeeringX : forall (t :Time) (_: tstart ≤ t ≤ tend),
+    let ideal := ((Sin ({theta acs} t) - Sin ({theta acs} tstart)) [/] (am_tc am) [//] tcNZ) in
+    AbsSmall 
+        (|tcErr * (am_distance am) [/] (am_tc am) [//] tcNZ|) (*Fix*) 
+        (({X (position acs)} t - {X (position acs)} tstart) - ideal).
+  Proof.
+    intros  ? Hb. simpl.
+    setoid_rewrite <- TBarrow with (p:= proj1 Hb);[| apply (derivX acs)].
+    pose proof (@TContRDerivativeSin _ _ _ _ (derivRot acs)) as X.
+    apply AbsIR_imp_AbsSmall.
+    apply mult_cancel_leEq with (z:= (AbsIR (am_tc am)));[apply AbsIR_pos; assumption | ].
+    rewrite <- AbsIR_resp_mult.
+    setoid_rewrite <- AbsIR_resp_mult.
+    setoid_rewrite ring_distr2.
+    unfold turnRadius.
+    setoid_rewrite div_1.
+    rewrite (@mult_commut_unfolded IR).
+    rewrite <- CIntegral_scale.
+    set (per  := (ContConstFun _ _ (am_tc am)): TContR).
+    assert (per = (turnCurvature acs + (per - turnCurvature acs))) as Heq by ring.
+    rewrite Heq. clear Heq.
+    setoid_rewrite plus_mult_distr_r.
+    setoid_rewrite CIntegral_plus.
+    rewrite MultShuffle3l.
+    rewrite mult_comm.
+    rewrite TBarrow;[| apply X]. fold (CFSine (theta acs)).
+    rewrite CFSineAp, CFSineAp.
+    setoid_rewrite <- PlusShuffle3l.
+    setoid_rewrite plus_negate_r. rewrite plus_0_r.
+  Abort.
 
 
   End Drive.
