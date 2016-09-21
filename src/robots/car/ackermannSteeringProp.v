@@ -29,6 +29,7 @@ Require Export ackermannSteering.
 Require Import MCMisc.tactics.
 Require Import fastReals.interface.
 Require Import fastReals.misc.
+Require Import errorBounds.
 
   Require Import IRMisc.LegacyIRRing.
   Add Ring cart2dir : Cart2DIRRing.
@@ -200,9 +201,37 @@ Context {maxTurnCurvature : Qpos}
   Section FixedSteeringWheel.
   Variable tc : IR.
 
+  Lemma absSmall0 : forall x:IR,
+    AbsSmall 0 x <-> x=0.
+  Proof using.
+    intros ?. split; intros Xx.
+  - apply AbsSmall_imp_AbsIR in Xx.
+    apply AbsIRLe0. assumption.
+  - rewrite Xx. split; try reflexivity;[].
+    setoid_rewrite negate_0. reflexivity.
+  Qed.
+
 (* TODO: It suffices to assume it for just rational times, because of continuity *)  
   Hypothesis fixed : forall (t :Time), 
     (tstart ≤ t ≤ tend)  -> {turnCurvature acs} t = tc.
+
+  Lemma fixed2 : ∀ (t:Time), (tstart ≤ t ≤ tend)
+    -> AbsSmall 0 (({turnCurvature acs} t) - tc).
+  Proof using fixed.
+    intros. apply absSmall0.
+    apply equal_by_zero_sum.
+    apply fixed. assumption.
+  Qed.
+
+  Lemma fixed3 : ∀ (t1:Time), (tstart ≤ t1 ≤ tend)
+    -> forall t, (tstart ≤ t ≤ t1)
+    -> AbsSmall 0 (({turnCurvature acs} t) - tc).
+  Proof using fixed.
+    intros. apply fixed2.
+    split; try tauto.
+    repnd.
+    eapply transitivity; eauto.
+  Qed.
 
   (** [theta] at time [t] is also needed obtain position at time [t] by integration *)
   Lemma fixedSteeringTheta : forall (t :Time)  (p: tstart ≤ t ≤ tend),
@@ -219,6 +248,8 @@ Context {maxTurnCurvature : Qpos}
     repnd. autounfold with IRMC. unfold Le_instance_Time.
     split; eauto 2 with CoRN.
   Qed.
+(* could use
+   errorBounds.thetaBall, but that has an extra no sign change assumption*)
 
 
   Section NoSignChange.

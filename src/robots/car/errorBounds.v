@@ -5,25 +5,21 @@ Require Import MCInstances.
 Require Import ackermannSteering.
 Require Import MCMisc.tactics.
 Require Import CartIR.
-Require Import ackermannSteering.
 Require Import fastReals.interface.
 Require Import fastReals.misc.
 Require Import geometry2D.
 Require Import geometry2DProps.
-Require Import ackermannSteeringProp.
 Require Import MathClasses.orders.rings.
 Require Import MathClasses.interfaces.orders.
-Require Import atomicMoves.
 Require Import IRMisc.LegacyIRRing.
-Require Import wriggle.
 Hint Unfold One_instance_IR : IRMC.
+Require Import CartIR2.
 
   Local Notation minxy := (lstart).
   Local Notation maxxy := (lend).
   Local Notation  "∫" := Cintegral.
   Local Notation ConfineRect := (Line2D).
 
-  
 Local Opaque CSine.
 Local Opaque CCos.
 Local Opaque Sine.
@@ -45,25 +41,33 @@ Section Car.
    (acs : AckermannCar maxTurnCurvature).
   Variable tstart : Time.
   Variable tend : Time.
-  Hypothesis nsc : noSignChangeDuring (linVel acs) tstart tend.
-
-  Variable am : AtomicMove IR.
   Section Drive.
+  Hypothesis nsc : noSignChangeDuring (linVel acs) tstart tend.
+  Hypothesis timeInc : (tstart ≤ tend).
+  Let dist := ∫ (mkIntBnd timeInc) (linVel acs).
+  Variable tc : IR.
 
   Variable tcErr : IR.
 (*  One step at a time .. will worry about it later.
  Variable distErr : IR. *)
 
-  Hypothesis timeInc : (tstart ≤ tend).
 
-  (* assume that the steering wheel is already in the right position *)
-  Definition amExecDirect :=
+  (** assume that the steering wheel is already in the right position *)
+  Definition steeringAlmostFixed :=
     (∀ (t:Time), (tstart ≤ t ≤ tend)
-          ->  AbsSmall tcErr (({turnCurvature acs} t) - (am_tc am))) ∧
-    (let driveIb := (@mkIntBnd _ tstart tend timeInc) in
-         (∫ driveIb (linVel acs)) = (am_distance am)).
+          ->  AbsSmall tcErr (({turnCurvature acs} t) - tc)).
+  (** Another useful version of the lemma could consider 2 different runs of the car
+      for the same duration of the time. Both the controls (steering wheel and linVel)
+      differ by atmost epsilon at all corresponding times.
 
-  Hypothesis ame: amExecDirect.
+      The version in this file assumes nothing about how linVel evolves,
+      except that it doesnt change sign. But it assumes that steering wheel is held
+      nearly constant.
+      So neither of these versions is more
+      general than the other.
+   *)
+
+  Hypothesis amec: steeringAlmostFixed.
 
 (*
 Local Opaque Time.
@@ -80,17 +84,14 @@ Proof using.
   intros. tauto.
 Qed.
 
-
 (* cant use TDerivativeAbs because the time difference is unbounded *)
   Lemma thetaBall : 
-           AbsSmall
-             (| tcErr * (am_distance am)|)
-             ({theta acs} tend - {theta acs} tstart
-                        -(am_tc am)*(am_distance am)) .
-  Proof using timeInc nsc ame.
-    destruct ame as [amec amed]. simpl.
+    AbsSmall
+      (| tcErr * dist|)
+      ({theta acs} tend - {theta acs} tstart - tc*dist) .
+  Proof using timeInc nsc amec.
     setoid_rewrite <- TBarrow with (p:=timeInc);[| apply derivRot].
-    set (per  := (ContConstFun _ _ (am_tc am)): TContR).
+    set (per  := (ContConstFun _ _ tc): TContR).
     assert (turnCurvature acs = (per + (turnCurvature acs - per))) as Heq by ring.
     rewrite Heq. clear Heq.
     rewrite plus_mult_distr_l.
@@ -98,7 +99,7 @@ Qed.
     setoid_rewrite CIntegral_plus. unfold per.
     unfold mult at 2. unfold Mult_instance_TContR.
     rewrite CIntegral_scale.
-    rewrite amed.
+    fold dist.
     setoid_rewrite <- PlusShuffle3l.
     rewrite plus_negate_r, plus_0_r.
     apply AbsIR_imp_AbsSmall.
@@ -108,7 +109,7 @@ Qed.
         (G:= (ContConstFun (closel [0]) I (AbsIR (tcErr)))*(CFAbs (linVel acs))).
   - setoid_rewrite CIntegral_scale.
     rewrite noSignChangeAbsOfIntegral by assumption.
-    rewrite amed.
+    fold dist.
     rewrite <- AbsIR_resp_mult.
     reflexivity.
   - intros ? Hb.
@@ -128,8 +129,8 @@ Qed.
 (*
 ackermannSteeringProp.fixedSteeeringX
 *)
-  Hypothesis tcNZ : (am_tc am [#] 0).
-  Local Notation turnRadius  (* :IR *) := (f_rcpcl (am_tc am) tcNZ).
+  Hypothesis tcNZ : (tc [#] 0).
+  Local Notation turnRadius  (* :IR *) := (f_rcpcl tc tcNZ).
   
   (** [X] coordinate of the [position] at a given time. Note that in CoRN,
       division is a ternary operator. [a[/]b[//][bp]] denotes the real number [a]
@@ -137,23 +138,23 @@ ackermannSteeringProp.fixedSteeeringX
       of [b].
    *)
   Lemma fixedSteeeringX :
-    let ideal := ((Sin ({theta acs} tend) - Sin ({theta acs} tstart)) [/] (am_tc am) [//] tcNZ) in
+    let ideal := ((Sin ({theta acs} tend) - Sin ({theta acs} tstart)) [/] tc [//] tcNZ) in
     AbsSmall 
-        (|tcErr * (am_distance am) [/] (am_tc am) [//] tcNZ|)
+        (|tcErr * dist [/] tc [//] tcNZ|)
         (({X (position acs)} tend - {X (position acs)} tstart) - ideal).
-  Proof using timeInc nsc ame.
+  Proof using timeInc nsc amec.
     simpl.
     setoid_rewrite <- TBarrow with (p:= timeInc);[| apply (derivX acs)].
     pose proof (@TContRDerivativeSin _ _ _ _ (derivRot acs)) as X.
     apply AbsIR_imp_AbsSmall.
-    apply mult_cancel_leEq with (z:= (AbsIR (am_tc am)));[apply AbsIR_pos; assumption | ].
+    apply mult_cancel_leEq with (z:= (AbsIR tc));[apply AbsIR_pos; assumption | ].
     rewrite <- AbsIR_resp_mult.
     setoid_rewrite <- AbsIR_resp_mult.
     setoid_rewrite ring_distr2.
     setoid_rewrite div_1.
     rewrite (@mult_commut_unfolded IR).
     rewrite <- CIntegral_scale.
-    set (per  := (ContConstFun _ _ (am_tc am)): TContR).
+    set (per  := (ContConstFun _ _ tc): TContR).
     assert (per = (turnCurvature acs + (per - turnCurvature acs))) as Heq by ring.
     rewrite Heq. clear Heq.
     setoid_rewrite plus_mult_distr_r.
@@ -170,12 +171,11 @@ ackermannSteeringProp.fixedSteeeringX
     setoid_rewrite CFAbs_resp_mult.
     unfold mult, Mult_instance_TContR, Mult_instance_IR.
     rewrite CFAbs_resp_mult.
-    destruct ame as [amec amed].
     rewrite IntegralMonotone with 
         (G:= (ContConstFun (closel [0]) I (AbsIR (tcErr)))*(CFAbs (linVel acs))).
   - setoid_rewrite CIntegral_scale.
     rewrite noSignChangeAbsOfIntegral by assumption.
-    rewrite amed.
+    fold dist.
     rewrite <- AbsIR_resp_mult.
     reflexivity.
   - intros ? Hb.
@@ -201,17 +201,17 @@ ackermannSteeringProp.fixedSteeeringX
   Qed.
 
   Lemma fixedSteeeringY :
-    let ideal := ((Cos ({theta acs} tstart) - Cos ({theta acs} tend)) [/] (am_tc am) [//] tcNZ) in
+    let ideal := ((Cos ({theta acs} tstart) - Cos ({theta acs} tend)) [/] tc [//] tcNZ) in
     AbsSmall 
-        (|tcErr * (am_distance am) [/] (am_tc am) [//] tcNZ|)
+        (|tcErr * dist [/] tc [//] tcNZ|)
         (({Y (position acs)} tend - {Y (position acs)} tstart) - ideal).
-  Proof using  timeInc nsc ame.
+  Proof using  timeInc nsc amec.
     simpl.
     setoid_rewrite <- TBarrow with (p:= timeInc);[| apply (derivY acs)].
     pose proof (@IContRDerivativeCos _ _ _ _ (derivRot acs)) as X.
     apply AbsIR_imp_AbsSmall.
-    apply mult_cancel_leEq with (z:= (AbsIR ((am_tc am))));[apply AbsIR_pos; assumption | ].
-    rewrite (AbsIR_inv (am_tc am)) at 1.
+    apply mult_cancel_leEq with (z:= (AbsIR (tc)));[apply AbsIR_pos; assumption | ].
+    rewrite (AbsIR_inv tc) at 1.
     rewrite <- AbsIR_resp_mult.
     setoid_rewrite <- AbsIR_resp_mult.
     setoid_rewrite ring_distr2. unfold cg_minus.
@@ -226,7 +226,7 @@ ackermannSteeringProp.fixedSteeeringX
     rewrite <- CIntegral_opp.
     setoid_rewrite <-cring_inv_mult_lft.
     rewrite <- CIntegral_scale.
-    set (per  := (ContConstFun _ _ (am_tc am)): TContR).
+    set (per  := (ContConstFun _ _ tc): TContR).
     rewrite <- CartIR2.composeIContRNegate.
     assert (per = (turnCurvature acs + (per - turnCurvature acs))) as Heq by ring.
     rewrite Heq. clear Heq.
@@ -246,12 +246,11 @@ ackermannSteeringProp.fixedSteeeringX
     change ((linVel acs * (per - turnCurvature acs))) 
       with ( (linVel acs [*] (per - turnCurvature acs))).
     rewrite CFAbs_resp_mult.
-    destruct ame as [amec amed].
     rewrite IntegralMonotone with 
         (G:= (ContConstFun (closel [0]) I (AbsIR (tcErr)))*(CFAbs (linVel acs))).
   - setoid_rewrite CIntegral_scale.
     rewrite noSignChangeAbsOfIntegral by assumption.
-    rewrite amed.
+    fold dist.
     rewrite <- AbsIR_resp_mult.
     reflexivity.
   - intros ? Hb.
@@ -277,18 +276,19 @@ ackermannSteeringProp.fixedSteeeringX
     autorewrite with IContRApDown.
     rewrite <- AbsIR_inv.
     fold (CFSine (theta acs)).
-    rewrite CFSineAp.
+    setoid_rewrite CFSineAp.
     apply AbsIR_Sin_leEq_One.
   Qed.
 
+
   End Drive.
 
+(*
   Section AtomicMove.
   
 
   Variable tcErr : Qpos.
   Variable distErr : Qpos.
-   
 
   Set Implicit Arguments.
   (** This defines what it means for the car's controls to 
@@ -320,6 +320,8 @@ ackermannSteeringProp.fixedSteeeringX
   }.
 
 End AtomicMove.
+*)
+
 End Car.
 
 
