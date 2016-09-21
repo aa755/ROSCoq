@@ -42,9 +42,9 @@ Section Car.
   Variable tstart : Time.
   Variable tend : Time.
   Section Drive.
-  Hypothesis nsc : noSignChangeDuring (linVel acs) tstart tend.
   Hypothesis timeInc : (tstart ≤ tend).
   Let dist := ∫ (mkIntBnd timeInc) (linVel acs).
+  Let adist := ∫ (mkIntBnd timeInc) (CFAbs (linVel acs)).
   Variable tc : IR.
 
   Variable tcErr : IR.
@@ -87,9 +87,9 @@ Qed.
 (* cant use TDerivativeAbs because the time difference is unbounded *)
   Lemma thetaBall : 
     AbsSmall
-      (| tcErr * dist|)
+      (| tcErr * adist|)
       ({theta acs} tend - {theta acs} tstart - tc*dist) .
-  Proof using timeInc nsc amec.
+  Proof using timeInc amec.
     setoid_rewrite <- TBarrow with (p:=timeInc);[| apply derivRot].
     set (per  := (ContConstFun _ _ tc): TContR).
     assert (turnCurvature acs = (per + (turnCurvature acs - per))) as Heq by ring.
@@ -108,10 +108,10 @@ Qed.
     rewrite IntegralMonotone with 
         (G:= (ContConstFun (closel [0]) I (AbsIR (tcErr)))*(CFAbs (linVel acs))).
   - setoid_rewrite CIntegral_scale.
-    rewrite noSignChangeAbsOfIntegral by assumption.
-    fold dist.
-    rewrite <- AbsIR_resp_mult.
-    reflexivity.
+    setoid_rewrite AbsIR_resp_mult.
+    rewrite (AbsIR_eq_x adist);[reflexivity|].
+    apply DerivNonNegIntegral.
+    intros ? ?. rewrite CFAbsAp. apply AbsIR_nonneg.
   - intros ? Hb.
     rewrite mult_comm.
     unfold mult, Mult_instance_TContR, negate, Negate_instance_TContR, plus, Plus_instance_TContR.
@@ -140,9 +140,9 @@ ackermannSteeringProp.fixedSteeeringX
   Lemma fixedSteeeringX :
     let ideal := ((Sin ({theta acs} tend) - Sin ({theta acs} tstart)) [/] tc [//] tcNZ) in
     AbsSmall 
-        (|tcErr * dist [/] tc [//] tcNZ|)
+        (|tcErr * adist [/] tc [//] tcNZ|)
         (({X (position acs)} tend - {X (position acs)} tstart) - ideal).
-  Proof using timeInc nsc amec.
+  Proof using timeInc amec.
     simpl.
     setoid_rewrite <- TBarrow with (p:= timeInc);[| apply (derivX acs)].
     pose proof (@TContRDerivativeSin _ _ _ _ (derivRot acs)) as X.
@@ -174,10 +174,10 @@ ackermannSteeringProp.fixedSteeeringX
     rewrite IntegralMonotone with 
         (G:= (ContConstFun (closel [0]) I (AbsIR (tcErr)))*(CFAbs (linVel acs))).
   - setoid_rewrite CIntegral_scale.
-    rewrite noSignChangeAbsOfIntegral by assumption.
-    fold dist.
-    rewrite <- AbsIR_resp_mult.
-    reflexivity.
+    setoid_rewrite AbsIR_resp_mult.
+    rewrite (AbsIR_eq_x adist);[reflexivity|].
+    apply DerivNonNegIntegral.
+    intros ? ?. rewrite CFAbsAp. apply AbsIR_nonneg.
   - intros ? Hb.
     rewrite mult_comm.
     unfold mult, Mult_instance_TContR, negate, Negate_instance_TContR, plus, Plus_instance_TContR.
@@ -203,9 +203,9 @@ ackermannSteeringProp.fixedSteeeringX
   Lemma fixedSteeeringY :
     let ideal := ((Cos ({theta acs} tstart) - Cos ({theta acs} tend)) [/] tc [//] tcNZ) in
     AbsSmall 
-        (|tcErr * dist [/] tc [//] tcNZ|)
+        (|tcErr * adist [/] tc [//] tcNZ|)
         (({Y (position acs)} tend - {Y (position acs)} tstart) - ideal).
-  Proof using  timeInc nsc amec.
+  Proof using  timeInc amec.
     simpl.
     setoid_rewrite <- TBarrow with (p:= timeInc);[| apply (derivY acs)].
     pose proof (@IContRDerivativeCos _ _ _ _ (derivRot acs)) as X.
@@ -249,10 +249,10 @@ ackermannSteeringProp.fixedSteeeringX
     rewrite IntegralMonotone with 
         (G:= (ContConstFun (closel [0]) I (AbsIR (tcErr)))*(CFAbs (linVel acs))).
   - setoid_rewrite CIntegral_scale.
-    rewrite noSignChangeAbsOfIntegral by assumption.
-    fold dist.
-    rewrite <- AbsIR_resp_mult.
-    reflexivity.
+    setoid_rewrite AbsIR_resp_mult.
+    rewrite (AbsIR_eq_x adist);[reflexivity|].
+    apply DerivNonNegIntegral.
+    intros ? ?. rewrite CFAbsAp. apply AbsIR_nonneg.
   - intros ? Hb.
     rewrite mult_comm.
     unfold mult, Mult_instance_TContR, negate, Negate_instance_TContR, plus, Plus_instance_TContR.
@@ -280,6 +280,14 @@ ackermannSteeringProp.fixedSteeeringX
     apply AbsIR_Sin_leEq_One.
   Qed.
 
+Lemma noChangeAbs:
+  noSignChangeDuring (linVel acs) tstart tend
+  -> adist = AbsIR dist.
+  Proof using.
+    intros.
+    unfold adist, dist.
+    rewrite noSignChangeAbsOfIntegral; auto.
+  Qed.
 
   End Drive.
 

@@ -240,13 +240,12 @@ Context {maxTurnCurvature : Qpos}
     ({theta acs} t - {theta acs} tstart) = tc* (∫ ib (linVel acs)).
   Proof using fixed.
     intros ? Hb ?.
-    setoid_rewrite <- TBarrowScale;
-      [| apply (derivRot acs)|];[reflexivity|].
-    intros tb Hbb.  rewrite mult_comm.
-    simpl. apply mult_wd;[| reflexivity].
-    apply fixed. unfold intgBndL, intgBndR in Hbb.  simpl in Hbb.
-    repnd. autounfold with IRMC. unfold Le_instance_Time.
-    split; eauto 2 with CoRN.
+    pose proof (fixed3 _ Hb) as Ht.
+    apply errorBounds.thetaBall with (timeInc:=proj1 Hb) in Ht.
+    rewrite mult_0_l in Ht.
+    setoid_rewrite AbsIR_eq_x in Ht;[| reflexivity].
+    apply absSmall0 in Ht.
+    apply equal_by_zero_sum. assumption.
   Qed.
 (* could use
    errorBounds.thetaBall, but that has an extra no sign change assumption*)
@@ -293,29 +292,17 @@ Context {maxTurnCurvature : Qpos}
         ((Sin ({theta acs} t) - Sin ({theta acs} tstart)) [/] tc [//] tcNZ).
   Proof using (fixed tcNZ).
     intros  ? Hb.
-    setoid_rewrite <- TBarrow with (p:= proj1 Hb);[| apply (derivX acs)].
-    pose proof (@TContRDerivativeSin _ _ _ _ (derivRot acs)) as X.
-    apply mult_cancel_rht with (z:=tc);[exact tcNZ|].
-    rewrite div_1.
-    rewrite (@mult_commut_unfolded IR).
-    rewrite <- CIntegral_scale.
-    match type of X with
-      isIDerivativeOf ?l _ => rewrite (@Cintegral_wd2 _ _ _ _ l)
-    end.
-    - rewrite TBarrow;[| apply X]. fold (CFSine (theta acs)).
-      rewrite CFSineAp, CFSineAp. reflexivity.
-    - intros tb Hbb.
-      autounfold with IRMC in Hb.
-      unfold Le_instance_Time in Hb. 
-      autounfold with TContRMC.
-      fold (CFCos (theta acs)).
-      (* autorewrite with IContRApDown. *)
-      rewrite IContRMultAp,IContRMultAp,IContRMultAp,IContRMultAp, CFCosAp,IContRConstAp.
-      rewrite fixed with (t:=tb); [ring |].
-      autounfold with IRMC.  unfold Le_instance_Time.
-      unfold inBounds in Hbb. simpl in Hbb. repnd.
-      split; eauto 2 with CoRN.
+    pose proof (fixed3 _ Hb) as Ht.
+    apply errorBounds.fixedSteeeringX
+        with (timeInc:=proj1 Hb) (tcNZ0:=tcNZ) in Ht.
+    unfold cf_div in Ht.
+    rewrite mult_0_l in Ht.
+    setoid_rewrite mult_0_l in Ht.
+    setoid_rewrite AbsIR_eq_x in Ht;[| reflexivity].
+    apply absSmall0 in Ht.
+    apply equal_by_zero_sum. assumption.
   Qed.
+
 
   Lemma tcnegNZ : - tc [#] 0.
   Proof using tcNZ. 
@@ -327,37 +314,15 @@ Context {maxTurnCurvature : Qpos}
         ((Cos ({theta acs} tstart) - Cos ({theta acs} t)) [/] tc [//] tcNZ).
   Proof using (fixed tcNZ).
     intros  ? Hb.
-    setoid_rewrite <- TBarrow with (p:= proj1 Hb);[| apply (derivY acs)].
-    pose proof (@IContRDerivativeCos _ _ _ _ (derivRot acs)) as X.
-    apply mult_cancel_rht with (z:=-tc);[exact tcnegNZ|].
-    autounfold with IRMC.
-    symmetry. rewrite cring_inv_mult_lft. symmetry.
-    rewrite div_1.
-    rewrite (@mult_commut_unfolded IR).
-    rewrite <- CIntegral_scale.
-    match type of X with
-      isIDerivativeOf ?l _ => rewrite (@Cintegral_wd2 _ _ _ _ l)
-    end.
-    - rewrite TBarrow;[| apply X]. fold (CFCos (theta acs)).
-      rewrite CFCosAp, CFCosAp. unfold cg_minus.
-      autounfold with IRMC.
-      ring.
-    - intros tb Hbb.
-      autounfold with IRMC in Hb.
-      unfold Le_instance_Time in Hb. 
-      autounfold with TContRMC.
-      rewrite IContRMultAp,IContRMultAp,IContRMultAp,IContRMultAp, CFSineAp,IContRConstAp.
-      rewrite composeIContAp.
-      simpl. symmetry.
-      pose proof (@pfwdef2 _ Sine ({theta acs} tb) (fst Continuous_Sin ({theta acs} tb) I) I) as Hr. 
-      rewrite Hr.
-      Local Transparent Sin.
-      unfold Sin. simpl.
-      Local Opaque Sin.
-      rewrite fixed with (t:=tb); [ring |].
-      autounfold with IRMC.  unfold Le_instance_Time.
-      unfold inBounds in Hbb. simpl in Hbb. repnd.
-      split; eauto 2 with CoRN.
+    pose proof (fixed3 _ Hb) as Ht.
+    apply errorBounds.fixedSteeeringY
+      with (timeInc:=proj1 Hb) (tcNZ0:=tcNZ) in Ht.
+    unfold cf_div in Ht.
+    rewrite mult_0_l in Ht.
+    setoid_rewrite mult_0_l in Ht.
+    setoid_rewrite AbsIR_eq_x in Ht;[| reflexivity].
+    apply absSmall0 in Ht.
+    apply equal_by_zero_sum. assumption.
   Qed.
 
 
