@@ -37,14 +37,26 @@ Let rball : Qpos → IR → IR → Prop  :=
 
 
 Section Car.
+Add Ring TContRisaRing: (stdlib_ring_theory TContR).
+
   Context  {maxTurnCurvature : Qpos}
    (acs : AckermannCar maxTurnCurvature).
   Variable tstart : Time.
   Variable tend : Time.
-  Section Drive.
   Hypothesis timeInc : (tstart ≤ tend).
+
   Let dist := ∫ (mkIntBnd timeInc) (linVel acs).
   Let adist := ∫ (mkIntBnd timeInc) (CFAbs (linVel acs)).
+
+  Lemma noChangeAbs:
+  noSignChangeDuring (linVel acs) tstart tend
+  -> adist = AbsIR dist.
+  Proof using.
+    intros.
+    unfold adist, dist.
+    rewrite noSignChangeAbsOfIntegral; auto.
+  Qed.
+
   Variable tc : IR.
 
   Variable tcErr : IR.
@@ -76,7 +88,6 @@ Local Transparent Time.
 
 *)
 
-Add Ring TContRisaRing: (stdlib_ring_theory TContR).
 
 (* Move *)
 Lemma prodConj : forall (A B : Prop), (prod A B) ↔ (A ∧ B).
@@ -126,9 +137,7 @@ Qed.
     eapply transitivity; eauto using leEq_AbsIR.
   Qed.
 
-(*
-ackermannSteeringProp.fixedSteeeringX
-*)
+  Section NZ.
   Hypothesis tcNZ : (tc [#] 0).
   Local Notation turnRadius  (* :IR *) := (f_rcpcl tc tcNZ).
   
@@ -209,6 +218,7 @@ ackermannSteeringProp.fixedSteeeringX
     simpl.
     setoid_rewrite <- TBarrow with (p:= timeInc);[| apply (derivY acs)].
     pose proof (@IContRDerivativeCos _ _ _ _ (derivRot acs)) as X.
+  SearchAbout AbsSmall cr_mult.
     apply AbsIR_imp_AbsSmall.
     apply mult_cancel_leEq with (z:= (AbsIR (tc)));[apply AbsIR_pos; assumption | ].
     rewrite (AbsIR_inv tc) at 1.
@@ -280,16 +290,43 @@ ackermannSteeringProp.fixedSteeeringX
     apply AbsIR_Sin_leEq_One.
   Qed.
 
-Lemma noChangeAbs:
-  noSignChangeDuring (linVel acs) tstart tend
-  -> adist = AbsIR dist.
-  Proof using.
-    intros.
-    unfold adist, dist.
-    rewrite noSignChangeAbsOfIntegral; auto.
-  Qed.
 
-  End Drive.
+
+  End NZ.
+
+  Check FCos.
+
+  (* generalize and move *)
+  Global Instance ProperFCos (I : interval) (pI : proper I) :
+    Proper (equiv ==> equiv) (@FCos I pI).
+  Admitted.
+
+(* is there an automatic way (internal or via tactic) to lift lemmas about
+Cos to lemmas about FCos? *)
+Lemma FCos_plus: ∀ x y : TContR (* IContR*),
+   FCos (x + y) = FCos x * FCos y - FSin x * FSin y.
+Admitted.
+
+
+  Lemma AtomicMoveZX :
+    let ideal := (∫ (mkIntBnd timeInc) (linVel acs)) * (Cos tstart)  in
+    AbsSmall 0
+      ({X (position acs)} tend - {X (position acs)} tstart
+        - ideal).
+  Proof using.
+    simpl.
+    rewrite mult_comm.
+    setoid_rewrite <- TBarrow with (p := timeInc);
+      [| apply derivX].
+    set (per := (ContConstFun _ _ ({theta acs} tstart)):TContR).
+    assert (theta acs = theta acs - per + per) as Heq by ring.
+    rewrite Heq.
+    rewrite FCos_plus.
+    (* use this instead for per? *)
+    set (per2 := (ContConstFun _ _ (Cos ({theta acs} tstart))):TContR).
+  Abort.
+
+(*  End Car. *)
 
 (*
   Section AtomicMove.
