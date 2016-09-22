@@ -41,6 +41,7 @@ Add Ring TContRisaRing: (stdlib_ring_theory TContR).
 
   Context  {maxTurnCurvature : Qpos}
    (acs : AckermannCar maxTurnCurvature).
+  Section Turn.
   Variable tstart : Time.
   Variable tend : Time.
   Hypothesis timeInc : (tstart ≤ tend).
@@ -137,7 +138,6 @@ Qed.
     eapply transitivity; eauto using leEq_AbsIR.
   Qed.
 
-  Section NZ.
   Hypothesis tcNZ : (tc [#] 0).
   Local Notation turnRadius  (* :IR *) := (f_rcpcl tc tcNZ).
   
@@ -294,22 +294,43 @@ Qed.
     apply AbsIR_Sin_leEq_One.
   Qed.
 
+  End Turn.
+
+(* we need the intermediate values of theta. Unless we end the section
+  and force generalization, we only have [theta] for [tend]. *)
+
+  Section Straight.
+  Variable tstart : Time.
+  Variable tend : Time.
+  Hypothesis timeInc : (tstart ≤ tend).
+
+  Let dist := ∫ (mkIntBnd timeInc) (linVel acs).
+  Let adist := ∫ (mkIntBnd timeInc) (CFAbs (linVel acs)).
 
 
-  End NZ.
+  Variable tcErr : IR.
+(*  One step at a time .. will worry about it later.
+ Variable distErr : IR. *)
 
-  Check FCos.
+
+  Hypothesis amec: steeringAlmostFixed tstart tend 0 tcErr.
+
+
 
   (* generalize and move *)
   Global Instance ProperFCos (I : interval) (pI : proper I) :
     Proper (equiv ==> equiv) (@FCos I pI).
-  Admitted.
+  Abort.
 
 (* is there an automatic way (internal or via tactic) to lift lemmas about
 Cos to lemmas about FCos? *)
 Lemma FCos_plus: ∀ x y : TContR (* IContR*),
    FCos (x + y) = FCos x * FCos y - FSin x * FSin y.
 Abort.
+
+Lemma sineAbsXLe (x:IR): AbsIR (Sin x)  [<=] AbsIR x.
+Admitted.
+
 
 Local Opaque Half.
 
@@ -343,6 +364,31 @@ Proof using.
 Qed.
 
 
+  Lemma thetaBallInter (r:Time)  (Hb : tstart [<=] r ∧ r [<=] tend):
+    AbsIR ({theta acs} r - {theta acs} tstart) 
+    [<=] AbsIR (tcErr [*] adist).
+  Proof.
+    pose proof (thetaBall _ _ (proj1 Hb) 0 tcErr) as Ht.
+    rewrite mult_0_l, minus_0_r in Ht.
+    (* tc=0 was not used above. *)
+    lapply Ht;
+     [ | intros ? ?; apply amec; split; try tauto;
+         repnd; eapply transitivity; eauto].
+    clear Ht. intro Ht.
+    apply AbsSmall_imp_AbsIR in Ht.
+    eapply transitivity; eauto.
+    setoid_rewrite AbsIR_resp_mult.
+    apply mult_resp_leEq_lft;[| apply AbsIR_nonneg].
+    unfold adist.
+    do 2 (rewrite AbsIR_eq_x;
+      [| apply DerivNonNegIntegral; 
+         intros ? ?; rewrite CFAbsAp; apply AbsIR_nonneg]).
+    rewrite CintegralSplit with (pl := (proj1 Hb)) (pr := (proj2 Hb)).
+    apply RingLeProp1l.
+    apply DerivNonNegIntegral; 
+         intros ? ?; rewrite CFAbsAp; apply AbsIR_nonneg.
+  Qed.
+    
 (* this lemma is different from the work in iCreate beause here there
    is no dependence on the duration of motion. there, there was a dependence.
   There, the linear velocity was nearly constant. Here we are making 
@@ -350,11 +396,11 @@ Qed.
 
   Lemma AtomicMoveZX :
     let ideal := (∫ (mkIntBnd timeInc) (linVel acs)) * (Cos ({theta acs} tstart))  in
-    AbsSmall 0
+    AbsSmall ( (|tcErr|) * sqr (adist))
       ({X (position acs)} tend - {X (position acs)} tstart
         - ideal).
-  Proof using.
-    simpl.
+  Proof using amec.
+    simpl. remember ((| tcErr |) * sqr adist) as errb.
     rewrite mult_comm.
     setoid_rewrite <- TBarrow with (p := timeInc);
       [| apply derivX].
@@ -374,18 +420,21 @@ Qed.
     rewrite AbsOfIntegral.
     setoid_rewrite CFAbs_resp_mult.
     rewrite IntegralMonotone with 
-        (G:= (ContConstFun (closel [0]) I (AbsIR (tcErr)))*(CFAbs (linVel acs))).
-  - setoid_rewrite CIntegral_scale.
-(*    setoid_rewrite AbsIR_resp_mult.
-    rewrite (AbsIR_eq_x adist);[reflexivity|].
+        (G:= (ContConstFun (closel [0]) I (AbsIR (tcErr * adist)))
+              * (CFAbs (linVel acs))).
+  - setoid_rewrite CIntegral_scale. fold adist.
+    subst errb. apply eq_imp_leEq.
+    setoid_rewrite AbsIR_resp_mult. unfold sqr, norm, NormSpace_instance_IR.
+    rewrite (AbsIR_eq_x adist);[IRring|].
     apply DerivNonNegIntegral.
-    intros ? ?. rewrite CFAbsAp. apply AbsIR_nonneg. *) admit.
+    intros ? ?. rewrite CFAbsAp. apply AbsIR_nonneg.
   - intros ? Hb.
     rewrite mult_comm.
     unfold fc.
     unfold mult, Mult_instance_TContR, negate, Negate_instance_TContR, 
-      plus, Plus_instance_TContR.
+      plus, Plus_instance_TContR, Mult_instance_IR.
     autorewrite with IContRApDown.
+    remember (tcErr [*] adist) as rhs.
     apply mult_resp_leEq_lft;[| apply AbsIR_nonneg].
     simpl in Hb.
     apply prodConj in Hb.
@@ -393,13 +442,11 @@ Qed.
     rewrite leEq_imp_Max_is_rht in Hb by assumption.
     setoid_rewrite minus_cos.
     do 1 setoid_rewrite AbsIR_resp_mult.
-    rewrite <- (mult_1_r (AbsIR tcErr)).
+    rewrite <- (mult_1_r (AbsIR rhs)).
     apply mult_resp_leEq_both;
       try apply AbsIR_nonneg; auto;[| apply AbsIR_Sin_leEq_One].
     do 1 setoid_rewrite AbsIR_resp_mult.
     setoid_rewrite <- AbsIR_inv.
-Lemma sineAbsXLe (x:IR): AbsIR (Sin x)  [<=] AbsIR x.
-Admitted.
     eapply transitivity;
       [apply mult_resp_leEq_lft;[apply sineAbsXLe| apply AbsIR_nonneg] | ].
     do 1 setoid_rewrite AbsIR_resp_mult.
@@ -408,8 +455,13 @@ Admitted.
     rewrite mult_assoc_unfolded.
     setoid_rewrite mult_commut_unfolded at 2.
     rewrite half_1. setoid_rewrite mult_1_l.
-Check thetaBall.
-  Abort.
+    subst rhs.
+    apply thetaBallInter. assumption.
+  Qed.
+
+SearchAbout isIDerivativeOf.
+Check IsDerivativeOne.
+Check IsDerivativeCos.
 
 (*  End Car. *)
 
