@@ -145,6 +145,10 @@ Qed.
       division is a ternary operator. [a[/]b[//][bp]] denotes the real number [a]
       divided by the non-zero real number [b], where [bp] is the proof of non-zero-hood
       of [b].
+
+    Note that the error scales linearly with turn radius.
+    So this is not a good characterization
+    for driving (nearly) straight.
    *)
   Lemma fixedSteeeringX :
     let ideal := ((Sin ({theta acs} tend) - Sin ({theta acs} tstart)) [/] tc [//] tcNZ) in
@@ -305,11 +309,47 @@ Qed.
 Cos to lemmas about FCos? *)
 Lemma FCos_plus: ∀ x y : TContR (* IContR*),
    FCos (x + y) = FCos x * FCos y - FSin x * FSin y.
-Admitted.
+Abort.
 
+Local Opaque Half.
+
+(* Move *)
+Lemma minus_cos : ∀ x y : IR,
+   Cos x - Cos y = 
+    - Two * Sin (Half * (x - y)) [*] Sin (Half * (x + y)).
+Proof using.
+  clear.
+  intros.
+  set (u:=Half*(x+y)).
+  set (v:=Half*(x-y)).
+  assert (Half * (x + y) + Half * (x - y) =
+          Half*Two*x) as Heq by IRring.
+  setoid_rewrite half_1 in Heq.
+  setoid_rewrite mult_1_l in Heq.
+  
+  assert (Half * (x + y) - Half * (x - y) =
+          Half*Two*y) as Heqy by IRring.
+  setoid_rewrite half_1 in Heqy.
+  setoid_rewrite mult_1_l in Heqy.
+  rewrite <- Heq. rewrite <- Heqy at 3.
+  unfold u,v.
+  autounfold with IRMC.
+  rewrite Cos_plus.
+  rewrite Cos_plus.
+  repeat rewrite Cos_inv.
+  repeat rewrite Sin_inv.
+  autounfold with IRMC.
+  IRring.
+Qed.
+
+
+(* this lemma is different from the work in iCreate beause here there
+   is no dependence on the duration of motion. there, there was a dependence.
+  There, the linear velocity was nearly constant. Here we are making 
+  no such assumption *)
 
   Lemma AtomicMoveZX :
-    let ideal := (∫ (mkIntBnd timeInc) (linVel acs)) * (Cos tstart)  in
+    let ideal := (∫ (mkIntBnd timeInc) (linVel acs)) * (Cos ({theta acs} tstart))  in
     AbsSmall 0
       ({X (position acs)} tend - {X (position acs)} tstart
         - ideal).
@@ -318,12 +358,57 @@ Admitted.
     rewrite mult_comm.
     setoid_rewrite <- TBarrow with (p := timeInc);
       [| apply derivX].
-    set (per := (ContConstFun _ _ ({theta acs} tstart)):TContR).
-    assert (theta acs = theta acs - per + per) as Heq by ring.
-    rewrite Heq.
-    rewrite FCos_plus.
-    (* use this instead for per? *)
-    set (per2 := (ContConstFun _ _ (Cos ({theta acs} tstart))):TContR).
+    set (per := (ContConstFun _ _ (Cos ({theta acs} tstart))):TContR).
+    set (fc:=FCos (theta acs):TContR).
+    assert (fc  = fc - per + per) as Heq by ring.
+    rewrite Heq. clear Heq.
+    rewrite plus_mult_distr_l.
+    setoid_rewrite mult_comm at 2.
+    setoid_rewrite CIntegral_plus. unfold per.
+    unfold mult at 2. unfold Mult_instance_TContR.
+    rewrite CIntegral_scale.
+    fold dist.
+    setoid_rewrite RingProp2.
+  (* now only the error term is left *)
+    apply AbsIR_imp_AbsSmall.
+    rewrite AbsOfIntegral.
+    setoid_rewrite CFAbs_resp_mult.
+    rewrite IntegralMonotone with 
+        (G:= (ContConstFun (closel [0]) I (AbsIR (tcErr)))*(CFAbs (linVel acs))).
+  - setoid_rewrite CIntegral_scale.
+(*    setoid_rewrite AbsIR_resp_mult.
+    rewrite (AbsIR_eq_x adist);[reflexivity|].
+    apply DerivNonNegIntegral.
+    intros ? ?. rewrite CFAbsAp. apply AbsIR_nonneg. *) admit.
+  - intros ? Hb.
+    rewrite mult_comm.
+    unfold fc.
+    unfold mult, Mult_instance_TContR, negate, Negate_instance_TContR, 
+      plus, Plus_instance_TContR.
+    autorewrite with IContRApDown.
+    apply mult_resp_leEq_lft;[| apply AbsIR_nonneg].
+    simpl in Hb.
+    apply prodConj in Hb.
+    rewrite leEq_imp_Min_is_lft in Hb by assumption.
+    rewrite leEq_imp_Max_is_rht in Hb by assumption.
+    setoid_rewrite minus_cos.
+    do 1 setoid_rewrite AbsIR_resp_mult.
+    rewrite <- (mult_1_r (AbsIR tcErr)).
+    apply mult_resp_leEq_both;
+      try apply AbsIR_nonneg; auto;[| apply AbsIR_Sin_leEq_One].
+    do 1 setoid_rewrite AbsIR_resp_mult.
+    setoid_rewrite <- AbsIR_inv.
+Lemma sineAbsXLe (x:IR): AbsIR (Sin x)  [<=] AbsIR x.
+Admitted.
+    eapply transitivity;
+      [apply mult_resp_leEq_lft;[apply sineAbsXLe| apply AbsIR_nonneg] | ].
+    do 1 setoid_rewrite AbsIR_resp_mult.
+    rewrite AbsIR_eq_x;[| apply less_leEq, pos_two].
+    rewrite AbsIR_eq_x;[| apply less_leEq, pos_half].
+    rewrite mult_assoc_unfolded.
+    setoid_rewrite mult_commut_unfolded at 2.
+    rewrite half_1. setoid_rewrite mult_1_l.
+Check thetaBall.
   Abort.
 
 (*  End Car. *)
