@@ -328,9 +328,121 @@ Lemma FCos_plus: ∀ x y : TContR (* IContR*),
    FCos (x + y) = FCos x * FCos y - FSin x * FSin y.
 Abort.
 
-Lemma sineAbsXLe (x:IR): AbsIR (Sin x)  [<=] AbsIR x.
-Admitted.
+(* Move *)
+  Local Transparent CSine CCos.
+Lemma CSineAp x : {CSine} x = Sin x.
+Proof using.
+  simpl. apply SineSin.
+Qed.
 
+Lemma CCosAp x : {CCos} x = Cos x.
+Proof using.
+  simpl. apply CosineCos.
+Qed.
+
+Hint Rewrite CSineAp CCosAp : IContRApDown.
+
+(* Move *)
+
+Lemma SineLe (x:IR): 
+  0 [<=] x ->  (Sin x)  [<=] x.
+Proof using.
+  intro Hn.
+  pose proof (TBarrow 
+                (IsDerivativeOne realline I)
+                {|scs_elem:=0; scs_prf:=I|} 
+                {|scs_elem:=x; scs_prf:=I|} Hn) as Hone.
+  pose proof (TBarrow 
+                IsDerivativeCos
+                {|scs_elem:=0; scs_prf:=I|} 
+                {|scs_elem:=x; scs_prf:=I|} Hn) as Hc.
+  autorewrite with IContRApDown in *.
+
+  Local Opaque cg_inv cr_one.
+  simpl in *.
+  simpl in Hc.
+  rewrite Sin_zero in Hc.
+  setoid_rewrite minus_0_r in Hone.
+  setoid_rewrite minus_0_r in Hc.
+  rewrite <- Hc.
+  rewrite <- Hone at 2.
+  apply IntegralMonotone.
+  intros ? ? . simpl. rewrite CosineCos.
+  apply Cos_leEq_One.
+Qed.
+
+Lemma Cos_leEq_minus_one r : [--] [1] [<=] Cos r.
+Proof using.
+  pose proof (AbsIR_Cos_leEq_One r) as Hl.
+  apply AbsIR_imp_AbsSmall in Hl.
+  apply Hl.
+Qed.
+
+
+Lemma NegSineLe (x:IR): 
+  0 [<=] x ->  -(Sin x)  [<=] x.
+Proof using.
+  intro Hn.
+  pose proof (TBarrow 
+                (IsDerivativeOne realline I)
+                {|scs_elem:=0; scs_prf:=I|} 
+                {|scs_elem:=x; scs_prf:=I|} Hn) as Hone.
+  pose proof IsDerivativeCos as Hcc.
+  apply TContRDerivativeOpp in Hcc.
+  pose proof (TBarrow 
+                Hcc
+                {|scs_elem:=0; scs_prf:=I|} 
+                {|scs_elem:=x; scs_prf:=I|} Hn) as Hc.
+  autorewrite with IContRApDown in *.
+  simpl in *.
+  rewrite Sin_zero in Hc.
+  setoid_rewrite negate_0 in Hc.
+  setoid_rewrite minus_0_r in Hone.
+  setoid_rewrite minus_0_r in Hc.
+  rewrite <- Hc.
+  rewrite <- Hone at 2.
+  apply IntegralMonotone.
+  intros ? ? .
+  autorewrite with IContRApDown.
+  Local Transparent cr_one.
+ simpl.
+  apply inv_cancel_leEq.
+  setoid_rewrite negate_involutive.
+  apply Cos_leEq_minus_one.
+Qed.
+
+Lemma AbsSineLe (x:IR): 
+  0 [<=] x -> AbsIR (Sin x)  [<=] x.
+Proof using.
+  intros Hn.
+  apply stable.
+  pose proof (leEq_or_leEq _ 0 (Sin x)) as Hdec.
+  eapply Stability.DN_fmap; eauto.
+  clear Hdec. intros Hdec.
+  destruct Hdec as [Hdec | Hdec].
+- rewrite (AbsIR_eq_x) by assumption.
+  apply SineLe. assumption.
+- rewrite (AbsIR_eq_inv_x) by assumption.
+  apply NegSineLe. assumption.
+Qed.
+  
+
+Lemma sineAbsXLe (x:IR): AbsIR (Sin x)  [<=] AbsIR x.
+Proof using.
+  apply stable.
+  pose proof (leEq_or_leEq _ 0 x) as Hdec.
+  eapply Stability.DN_fmap; eauto.
+  clear Hdec. intros Hdec.
+  destruct Hdec as [Hdec | Hdec].
+- rewrite (AbsIR_eq_x x) by assumption.
+  apply  AbsSineLe. assumption.
+- rewrite (AbsIR_eq_inv_x x) by assumption.
+  eapply transitivity;
+    [ | eapply AbsSineLe;
+    setoid_rewrite <- flip_nonpos_negate; assumption].
+  rewrite Sin_inv, <- AbsIR_inv.
+  reflexivity.
+Qed.
 
 Local Opaque Half.
 
@@ -459,9 +571,7 @@ Qed.
     apply thetaBallInter. assumption.
   Qed.
 
-SearchAbout isIDerivativeOf.
-Check IsDerivativeOne.
-Check IsDerivativeCos.
+End Straight.
 
 (*  End Car. *)
 
