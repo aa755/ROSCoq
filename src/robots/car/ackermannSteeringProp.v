@@ -247,8 +247,6 @@ Context {maxTurnCurvature : Qpos}
     apply absSmall0 in Ht.
     apply equal_by_zero_sum. assumption.
   Qed.
-(* could use
-   errorBounds.thetaBall, but that has an extra no sign change assumption*)
 
 
   Section NoSignChange.
