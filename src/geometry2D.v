@@ -239,8 +239,42 @@ Qed.
 
 Require Import MathClasses.interfaces.orders.
 
+Global Instance LeRigid2DState  `{Le A}: Le (Rigid2DState A).
+Proof.
+  apply pair_instance_le.
+Defined.
 
-(* Existing Instance *)
+
+Global Instance LeRigid2DStatePreorder `{Ring A}
+  `{l:Le A} `{PreOrder A l}
+  : @PreOrder _ LeRigid2DState.
+Proof.
+  apply LePairPreorder.
+Qed.
+
+Global Instance LeRigid2DStatePartialOrder `{Ring A}  `{l: Le A}
+  `{@PartialOrder A equiv l} :
+      @PartialOrder (Rigid2DState A) _ _.
+Proof.
+  apply LePairPartialOrder.
+Qed.
+
+Global Instance PairSemiringOrder 
+`{Ring A} 
+`{Le A}
+    `{@orders.SemiRingOrder A equiv plus mult zero one le} :
+    `{@orders.SemiRingOrder (Rigid2DState A) _ _ _ _ _ _}.
+Proof.
+  apply PairSemiringOrder.
+Qed.
+
+Global Instance StableLeRigid2DState `{Le A} : 
+    (forall x y : A, Stable (x≤y))
+    -> (forall a b : Rigid2DState A, Stable (a ≤ b)).
+Proof.
+  intros Hh. apply StableLePair; auto.
+  apply StableLeCart2D. auto.
+Qed.
 
 Infix "⊆" := (@le _ LeAsSubset)  (at level 70, no associativity): mc_scope.
 

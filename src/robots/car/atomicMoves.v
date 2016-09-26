@@ -212,20 +212,14 @@ Section AtomicMove.
       let driveIb := (@mkIntBnd _ tstart tend am_timeStartEnd) in 
           (am_distance am) = ∫ driveIb (linVel acs).
    Proof using Type.
-    simpl. 
-    rewrite CintegralSplit 
-      with (pl:= proj1 am_timeIncWeaken)
-           (pr:= proj2 am_timeIncWeaken).
+    simpl.
     pose proof (am_steeringControls amc) as steeringControls.
-    apply proj2 in steeringControls.
-    rewrite (@Cintegral_wd2  _ _ _ _ [0]).
+    rewrite <- CintegralSplitTrivialL with (m:=tdrive) (pr:= proj2 am_timeIncWeaken);
+    [ | apply am_timeIncWeaken | ].
     Focus 2.
       intros x Hb. simpl. destruct Hb as [Hbl Hbr].
       simpl in Hbl, Hbr. apply steeringControls.
-      split; timeReasoning.
-    rewrite CintegralZero.
-    autounfold with IRMC.
-    ring_simplify.
+      split; timeReasoning; fail.
     rewrite (am_driveDistance).
     apply Cintegral_wd;[| reflexivity].
     simpl. split;
@@ -338,6 +332,25 @@ Section AtomicMove.
   
   Require Import CoRN.logic.Stability.
 
+  Definition confinedInRect (cd :CarDimensions IR) (rect : Line2D IR) 
+  : (Rigid2DState IR) --> Prop.
+  Proof using.
+  exists (fun s => carMinMaxXY cd s ⊆ rect).
+  constructor; unfold Setoid; eauto 2 with typeclass_instances.
+  intros ? ? Heq.
+  rewrite Heq. reflexivity.
+  Defined. 
+
+  Global Instance ProperConfinedInRect :
+    Proper (equiv ==> equiv ==> equiv) confinedInRect.
+  Proof.
+    intros ? ? H1 ? ? H2 ? ? H3. unfold confinedInRect. simpl.
+    rewrite H1, H2, H3.
+    reflexivity.
+  Qed.
+
+
+
     Section XYBounds.
     Variable cd :CarDimensions IR.
 
@@ -376,18 +389,11 @@ Section AtomicMove.
        -> (`P) (turnRigidStateAtθ init turnRadius θ).
 
 
-  Definition confinedInRect  (rect : Line2D IR) 
-  : (Rigid2DState IR) --> Prop.
-  Proof using cd.
-  exists (fun s => carMinMaxXY cd s ⊆ rect).
-  constructor; unfold Setoid; eauto 2 with typeclass_instances.
-  intros ? ? Heq.
-  rewrite Heq. reflexivity.
-  Defined.  
+
 
   Definition confinedTurningAM  (init : Rigid2DState IR) 
         (confineRect : Line2D IR) :=
-    holdsDuringTurningAM init (confinedInRect confineRect).
+    holdsDuringTurningAM init (confinedInRect cd confineRect).
 
 Lemma holdsDuringSplit : forall (P:Rigid2DState ℝ --> Prop)
   (ts tm te :Time) (stabl : forall s, util.Stable ((`P) s)) ,
@@ -406,7 +412,7 @@ Proof using.
 Qed.
 
 Global Instance confineInRectStable :
-∀ s : Rigid2DState ℝ, util.Stable ((` (confinedInRect confineRect)) s).
+∀ s : Rigid2DState ℝ, util.Stable ((` (confinedInRect cd confineRect)) s).
 Proof using.
   intros ? ?. simpl.
   apply StableSubsetLine2D.
@@ -423,7 +429,7 @@ Lemma confinedDuringSplit : forall (confineRect : Line2D IR)
 Proof using.
   intros ? ? ? ? ? ?.
   unfold confinedDuring.
-  eapply holdsDuringSplit with (P:= confinedInRect confineRect); auto.
+  eapply holdsDuringSplit with (P:= confinedInRect cd confineRect); auto.
   (* eauto with typeclass_instances. *)
   apply confineInRectStable.
 Qed.
@@ -497,13 +503,14 @@ Qed.
   Proof using pr nosign amc.
     intros ?  hh ?.
       eapply holdsDuringTurningAMCorrect 
-        with (P:=confinedInRect  confineRect); eauto with typeclass_instances.
+        with (P:=confinedInRect cd confineRect); eauto with typeclass_instances.
   Qed.
 
-
   End XYBounds.
+
   End TCNZ.
-              
+
+
   Section TCZ.
   Hypothesis (tcZ : amNoTurn).
   
@@ -587,6 +594,7 @@ Qed.
       rewrite  (am_driveDistanceFull).
      apply AtomicMoveZ. auto.
    Qed.
+
 
    Section XYBounds.
    Variable cd :CarDimensions IR.
@@ -2041,14 +2049,9 @@ Proof using.
     exact Hcon.
   Qed.
 
-(* Move *)
-Global Instance ProperConfinedInRect :
-  Proper (equiv ==> equiv ==> equiv) confinedInRect.
-Proof.
-  intros ? ? H1 ? ? H2 ? ? H3. unfold confinedInRect. simpl.
-  rewrite H1, H2, H3.
-  reflexivity.
-Qed.
+
+
+
 
 Lemma atomicMovesSpaceInvertibleAux :
   ∀ (m : list (DAtomicMove IR)), MovesSpaceInverse (DAtomicMovesInv m) m.
@@ -2119,21 +2122,6 @@ Global Instance NegateDAtomicMove
 Global Instance NegateDAtomicMoves `{Zero R}
 `{ApartT R} `{Equiv R} `{Negate R} : Negate (list (DAtomicMove R)) :=
   DAtomicMovesInv.
-
-(*Move *)
-Global Instance Properfold_left `{Equiv A} `{Equiv B}
-(f:A->B->A) :
-(Proper (equiv ==> equiv ==> equiv) f)
--> (Proper (equiv ==> equiv ==> equiv) (fold_left f)).
-Proof.
-  intros Hp ? ? H1. induction H1; intros ? ? H3;
-  [assumption|].
-  simpl.
-  specialize (Hp _ _ H3 _ _ H1).
-  specialize (IHpointWiseRelated _ _ Hp).
-  assumption.
-Qed.
-
 
 Lemma atomicMovesSpaceInvertible :
   ∀ (m : list (DAtomicMove IR)), MovesSpaceInverse m (-m).

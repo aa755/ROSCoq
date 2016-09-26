@@ -497,5 +497,10 @@ Qed.
 Definition totalSpaceX (c : ConfineRect IR) :IR :=
   X (maxxy c) - X (minxy c).
 
+Require Import MathClasses.interfaces.functors.
 
+(* pointwise Norm *)
+Definition pNorm `{NormSpace A A} (r: Rigid2DState A) :=
+  sfmap CanonicalNotations.norm r.
+ 
 

@@ -670,46 +670,6 @@ Qed.
 
 End Straight.
 
-(*  End Car. *)
-
-(*
-  Section AtomicMove.
-  
-
-  Variable tcErr : Qpos.
-  Variable distErr : Qpos.
-
-  Set Implicit Arguments.
-  (** This defines what it means for the car's controls to 
-    realistically follow the atomic move [am] during time [tstart] to [tend] *)
-  Record CarExecutesAtomicMoveDuring (p: tstart < tend) : Type :=
-  {
-    am_tdrive : Time;
-
-    (**strict inequalities prevents impossilities like covering non-zero distance in 0 time.
-      Note that [linVel] and [turnCurvature] evolve continuously.
-     *)
-    am_timeInc : (tstart < am_tdrive < tend);
- 
-  (** From time [tsteer] to [drive], the steerring wheel rotates to attain a configuration 
-    with turn curvature [tc]. The brakes are firmly placed pressed.*)
-    am_steeringControls : rball tcErr ({turnCurvature acs} am_tdrive)  (am_tc am) 
-      /\ forall (t:Time), (tstart ≤ t ≤ am_tdrive) 
-          -> {linVel acs} t = 0;
-
- 
-  (** From time [tdrive] to [tend], the steering wheel is held NEARLY fixed*)
-    am_driveControls : forall (t:Time), (am_tdrive ≤ t ≤ tend) 
-          ->  rball tcErr ({turnCurvature acs} t) (am_tc am);
-          
-   am_driveDistance : 
-      let pf := (timeLtWeaken (proj2 (am_timeInc))) in 
-      let driveIb := (@mkIntBnd _ am_tdrive tend pf) in 
-         rball distErr (am_distance am)  (∫ driveIb (linVel acs))
-  }.
-
-End AtomicMove.
-*)
 
 End Car.
 

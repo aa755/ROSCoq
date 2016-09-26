@@ -1131,6 +1131,28 @@ Qed.
 End CIntegralProps.
 
 
+Lemma CintegralSplitTrivialL
+(a b : RInIntvl)
+(p : a [<=] b)
+(F : IContR)
+(m:RInIntvl)
+  (pl : a [<=] m) (pr : m [<=] b)
+  (p0 : forall (t: RInIntvl), (a [<=] t /\ t [<=] m) -> {F} t [=] [0]):
+  Cintegral (mkIntBnd pr) F [=] Cintegral (mkIntBnd p) F.
+Proof.
+  rewrite CintegralSplit 
+      with (pl0:= pl)
+           (pr0:= pr).
+  rewrite <- (cm_lft_unit_unfolded) at 1.
+  apply csg_op_wd;[| reflexivity].
+  rewrite (@Cintegral_wd2  _ _ [0]).
+    Focus 2.
+      intros x Hb. simpl. destruct Hb as [Hbl Hbr].
+      simpl in Hbl, Hbr. apply p0. auto.
+    rewrite CintegralZero. reflexivity.
+Qed.
+
+
 (** holds in general for groups. Move. *)
 Lemma invInvIContR : forall (r:IContR), [--][--]r [=] r.
 Proof.

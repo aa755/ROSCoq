@@ -307,6 +307,21 @@ Proof.
   apply OrderPreservingLePlusPair.
 Qed.
 
+Require Import CoRN.logic.Stability.
+
+
+Instance StableLePair
+`{@PairLike Pair A B mkpair pfst psnd}
+`{Le A}
+`{Le B} :
+  (forall x y : A, Stable (x≤y))
+  -> (forall x y : B, Stable (x≤y))
+  -> (forall a b : Pair, Stable (a≤b)).
+Proof.
+  intros Hca Hcb  a b.
+  apply stable_conjunction; eauto.
+Qed.
+
 
 End ForgetTypeclassInstances.
 

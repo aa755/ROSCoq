@@ -166,10 +166,12 @@ Inductive pointWiseRelated {A:Type} (R : A-> A -> Prop): (list A) -> (list A) ->
   -> pointWiseRelated R (hl::tl) (hr::tr).
   
 
-(** same size and elements must be point-wise equal (upto [equiv])*)
+(** same size and elements must be point-wise equal (upto [equiv])
+*)
 Global Instance Equiv_List `{Equiv A} :  Equiv (list A) :=
   (pointWiseRelated equiv).
 
+(* Move to MCMisc *)
 Global Instance Equivalence_List  `{Equiv A} `{@Equivalence A equiv} :
     @Equivalence (list A) equiv.
 Proof.
@@ -185,6 +187,21 @@ Proof.
     eauto with relations.
     eapply IHl; eauto with relations.
 Qed.
+
+(*Move *)
+Global Instance Properfold_left `{Equiv A} `{Equiv B}
+(f:A->B->A) :
+(Proper (equiv ==> equiv ==> equiv) f)
+-> (Proper (equiv ==> equiv ==> equiv) (fold_left f)).
+Proof.
+  intros Hp ? ? H1. induction H1; intros ? ? H3;
+  [assumption|].
+  simpl.
+  specialize (Hp _ _ H3 _ _ H1).
+  specialize (IHpointWiseRelated _ _ Hp).
+  assumption.
+Qed.
+
 
 Global Instance Equiv_List_Cons  `{Equiv A}  :
    Proper (equiv ==> equiv ==> equiv) cons.

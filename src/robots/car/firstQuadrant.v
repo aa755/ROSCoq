@@ -786,7 +786,6 @@ Require Import MCMisc.rings.
 
 Require Import MathClasses.interfaces.functors.
 
-
 Section Solutions.
   Variable cg : CarGeometry Q.
   Variable pe : ParkingEnv Q.
