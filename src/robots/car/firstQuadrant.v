@@ -786,13 +786,7 @@ Require Import MCMisc.rings.
 
 Require Import MathClasses.interfaces.functors.
 
-(*
-Global Instance SFmapCart2D : SFmap Cart2D :=
-fun _ _ f c => {|X:= f (X c); Y:= f (Y c)|}.
 
-Global Instance SFmapRigid2D : SFmap Rigid2DState :=
-fun _ _ f c => {|pos2D := sfmap f (pos2D c); θ2D := f (θ2D c)|}.
-*)
 Section Solutions.
   Variable cg : CarGeometry Q.
   Variable pe : ParkingEnv Q.

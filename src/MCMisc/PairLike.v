@@ -183,6 +183,131 @@ Proof.
    reflexivity.
 Qed.
 
+Instance pair_instance_le 
+`{@PairLike Pair A B mkpair pfst psnd}
+`{Le A}
+`{Le B}
+: Le (Pair) :=
+  λ p1 p2, (pfst p1 ≤ pfst p2) ∧ (psnd p1 ≤ psnd p2).
+
+(*
+Instahce : SFmap Rigid2DState :=
+fun _ _ f c => {|pos2D := sfmap f (pos2D c); θ2D := f (θ2D c)|}.
+*)
+
+Require Import StdlibMisc.
+
+Instance LePairPreorder
+`{@PairLike Pair A B mkpair pfst psnd}
+{la: Le A}
+{lb: Le B}
+{_: @PreOrder A la}
+{_: @PreOrder B lb}
+  : PreOrder (pair_instance_le).
+Proof.
+  split; intros ?; unfold le, pair_instance_le;
+  eauto with relations.
+  intros. repnd. eauto with relations.
+Qed.
+
+Require Import MathClasses.interfaces.orders.
+
+Instance LePairPartialOrder
+`{@PairLike Pair A B mkpair pfst psnd}
+`{Ring A}  `{Ring B}
+`{Le A}
+`{Le B}
+`{@PartialOrder A _ _}
+`{@PartialOrder B _ _}
+  : PartialOrder (pair_instance_le).
+Proof.
+  split; eauto with typeclass_instances.
+  - split; eauto with typeclass_instances.
+  - intros ? ? H1e ? ? H2e; unfold le, pair_instance_le.
+    rewrite H1e, H2e. tauto.
+  - intros ? ?. unfold le, pair_instance_le. intros ? ?.
+    repnd. split; simpl; eapply  po_antisym; eauto.
+Qed.
+
+Instance OrderPreservingLePlusPair
+`{@PairLike Pair A B mkpair pfst psnd}
+`{Ring A}  `{Ring B}
+`{Le A}
+`{Le B}
+`{@PartialOrder A _ _}
+`{@PartialOrder B _ _}
+  {_:forall a:A, OrderPreserving (plus a)}
+  {_:forall b:B, OrderPreserving (plus b)}
+(z : Pair): 
+  OrderPreserving (plus z).
+Proof.
+  split; eauto  with typeclass_instances.
+  - split; eauto with typeclass_instances;
+    split; eauto with typeclass_instances;
+    split; eauto with typeclass_instances;
+    unfold plus,PlusPairLike;
+    repeat rewrite pairLikeFst;
+    repeat rewrite pairLikeSnd;
+    rewrite H8;  auto.
+  - intros ? ?. unfold le, pair_instance_le.
+    intros. repnd;
+    simpl.
+    split;
+    unfold plus,PlusPairLike;
+    repeat rewrite pairLikeFst;
+    repeat rewrite pairLikeSnd;
+    eauto with typeclass_instances.
+Qed.
+
+Instance MultLeSemiRingOrderPair
+`{@PairLike Pair A B mkpair pfst psnd}
+`{Ring A}  `{Ring B}
+`{Le A}
+`{Le B}
+  {Ha:∀ (x y :  A) , PropHolds (0 ≤ x) → PropHolds (0 ≤ y) 
+      → PropHolds (0 ≤ x * y) }
+  {Hb:∀ (x y :  B) , PropHolds (0 ≤ x) → PropHolds (0 ≤ y) 
+      → PropHolds (0 ≤ x * y) }:
+  ∀ x y : (Pair) , PropHolds (0 ≤ x) → PropHolds (0 ≤ y) → PropHolds (0 ≤ x * y) .
+Proof.
+    unfold le, pair_instance_le, PropHolds.
+    unfold  PropHolds in Ha, Hb.
+    simpl.
+    intros.
+    unfold zero, ZeroPairLike in *.
+    rewrite pairLikeFst in H4, H5;
+    rewrite pairLikeSnd in H4, H5;
+    repnd; 
+    simpl;
+    split;
+    unfold mult,MultPairLike;
+    repeat rewrite pairLikeFst in *;
+    repeat rewrite pairLikeSnd in *;
+    eauto with typeclass_instances.
+Qed.
+
+
+
+Require Import MathClasses.orders.rings.
+
+Local Existing Instance RingPairLike.
+
+Instance 
+PairSemiringOrder 
+`{@PairLike Pair A B mkpair pfst psnd}
+`{Ring A}  `{Ring B}
+`{Le A}
+`{Le B}
+    `{@orders.SemiRingOrder A equiv plus mult zero one le}
+    `{@orders.SemiRingOrder B equiv plus mult zero one le}:
+    `{orders.SemiRingOrder (@canonical_names.le Pair _)}.
+Proof.
+  apply from_ring_order;
+  eauto with typeclass_instances;[].
+  apply OrderPreservingLePlusPair.
+Qed.
+
+
 End ForgetTypeclassInstances.
 
 

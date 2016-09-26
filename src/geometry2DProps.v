@@ -496,3 +496,6 @@ Qed.
 
 Definition totalSpaceX (c : ConfineRect IR) :IR :=
   X (maxxy c) - X (minxy c).
+
+
+

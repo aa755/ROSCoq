@@ -1,6 +1,3 @@
-Set Suggest Proof Using.
-Require Export Coq.Program.Tactics.
-Require Export LibTactics.
 (** printing × $\times$ #×# *)
 (** printing :> $:$ #:># *)
 (** printing ≡ $\equiv$ #≡# *)
@@ -22,10 +19,8 @@ Require Export LibTactics.
 (** printing ' $ $ #'# *)
 
 Require Import Vector.
-
-    Ltac dimp H :=
-    lapply H;[clear H; intro H|].
-
+Require Export Coq.Program.Tactics.
+Require Export LibTactics.
 Require Import MathClasses.interfaces.canonical_names.
 Require Import MCInstances.
 Require Import ackermannSteering.
@@ -38,6 +33,19 @@ Require Import geometry2D.
 Require Import geometry2DProps.
 Require Import ackermannSteeringProp.
 Require Import IRMisc.LegacyIRRing.
+Require Import errorBounds.
+Require Import MCMisc.rings.
+Require Import atomicMoves.
+Require Import MathClasses.interfaces.orders.
+Require Import MathClasses.theory.setoids.
+Set Implicit Arguments.
+
+Set Suggest Proof Using.
+
+    Ltac dimp H :=
+    lapply H;[clear H; intro H|].
+
+
 
 Local Opaque CSine.
 Local Opaque CCos.
@@ -50,142 +58,65 @@ Local Notation minxy := (lstart).
 Local Notation maxxy := (lend).
 Local Notation  "∫" := Cintegral.
 
-Require Import MathClasses.interfaces.orders.
-Require Import MathClasses.theory.setoids.
-Unset Implicit Arguments.
-(* Move to MCMisc. Does MC have such a construct? *)
-Definition Setoid_Mor (A B :Type) `{Equiv A} `{Equiv B} : Type:=
-  sig (@Setoid_Morphism A B _ _).
-Set Implicit Arguments.
 
 
-Infix "-->" := (Setoid_Mor).
-
-Typeclasses Transparent Setoid_Mor.
-Global Instance EquivSetoisMor (A B :Type) `{Equiv A} `{Equiv B} :
-  Equiv  (A --> B).
-Proof.
-  apply sig_equiv.
-Defined.  
-
-Global Instance EquivalenceSetoisMor (A B :Type) `{Equiv A} `{Equiv B} :
-  Equivalence (@equiv (A --> B) _).
-Proof.
-  constructor.
-- intros ? ?. apply ext_equiv_refl.
-- intros ? ?. eapply ext_equiv_sym.
-- intros ? ? ? . eapply ext_equiv_trans.
-Unshelve.
-destruct x. destruct s. 
-eauto with relations typeclass_instances.
-destruct x. destruct s. 
-eauto with relations typeclass_instances.
-destruct x. destruct s. 
-eauto with typeclass_instances.
-destruct x. destruct s. 
-eauto with typeclass_instances.
-Qed.
-Set Implicit Arguments.
-
-(** * Atomic Move
-
-We will build complex manueuvers out of the following basic move :
-turn the steering wheel so that the turnCurvature has a particular value ([tc]),
-and then drive for a particular distance ([distance]).
-Note that both [tc] and [distance] are signed -- the turn center can be on the either side,
-and one can drive both forward and backward *)
-  Record AtomicMove (R:Type) := mkAtomicMove
-  {
-     am_distance : R;
-     am_tc : R
-  }.
-
-  (** Needed because equality on reals (IR) is different 
-      from syntactic equality 
-      ([≡]). *)
-      
-  Global Instance Equiv_AtomicMove `{Equiv R} : Equiv (AtomicMove R) :=
-    fun (ml mr : AtomicMove R) => (am_distance ml = am_distance mr) 
-          /\ (am_tc ml = am_tc mr).
-
-  (** To make tactics like [reflexivity] work, we needs to show
-  that the above defined custom defined equality on [AtomicMove] 
-  is an equivalence relation.*)
-  Global Instance Equivalence_instance_AtomicMove `{Setoid R} 
-    : @Equivalence (AtomicMove R) equiv.
- Proof using .
-  unfold equiv, Equiv_AtomicMove. split.
-  - intros x. destruct x. simpl. split; auto with *.
-  - intros x y. destruct x,y. simpl. intros Hd; destruct Hd;
-      split; auto with relations.
-
-  - intros x y z. destruct x,y,z. simpl. intros H0 H1.
-    repnd.
-    split; eauto 10
-    with relations.
-  Qed.
-
-Global Instance ProperAMTC `{Equiv R} : 
-Proper (equiv ==> equiv) (@am_tc R).
-Proof using.
-  intros ? ? Heq. destruct Heq. tauto.
-Qed.
-
-Global Instance ProperAMDistance `{Equiv R} : 
-Proper (equiv ==> equiv) (@am_distance R).
-Proof using.
-  intros ? ? Heq. destruct Heq. tauto.
-Qed.
-
-Section AtomicMove.
+Section AtomicMoveExec.
 
   Context  {maxTurnCurvature : Qpos}
    (acs : AckermannCar maxTurnCurvature).
-  Variable am : AtomicMove IR.
-  Definition amTurn := (am_tc am) [#] 0.
-  Definition amNoTurn := (am_tc am) = 0.
-  
+  Variable am : AtomicMove IR.  
   Variable tstart : Time.
   Variable tend : Time.
 
+(* check that there we dont redefine the concepts in atomicMoves.v *)
 
   Set Implicit Arguments.
+
+  Section Error.
+    Variable tcErr : IR.
+    Variable distErr : IR.
+
+  (** This defines what it means for the car's controls to 
+    realistically follow the atomic move [am] during time [tstart] to [tend] *)
+    Record CarExecutesAtomicMoveDuring (p: tstart < tend) : Type :=
+    {
+      am_tdrive : Time;
+  
+      (**strict inequalities prevents impossilities like covering non-zero distance in 0 time.
+        Note that [linVel] and [turnCurvature] evolve continuously.
+       *)
+      am_timeInc : (tstart < am_tdrive < tend);
+
+    (** From time [tsteer] to [drive], the steerring wheel rotates to attain a configuration 
+      with turn curvature [tc]. The brakes are firmly placed pressed.*)
+      am_steeringControls : forall (t:Time), (tstart ≤ t ≤ am_tdrive) 
+            -> {linVel acs} t = 0;
+
+    (** From time [tdrive] to [tend], the steering wheel is held NEARLY fixed*)
+      am_driveControls :  steeringAlmostFixed acs tstart tend (am_tc am) tcErr;
+
+      am_driveDistance : 
+        let driveIb := (@mkIntBnd _ tstart tend (timeLtWeaken p)) in 
+           AbsSmall distErr ((am_distance am) - (∫ driveIb (linVel acs)))
+    }.
+
+
+  End Error.
+
   (** This defines what it means for the car's controls to follow the atomic move [am] during time [tstart] to [tend] *)
-  Record CarExecutesAtomicMoveDuring (p: tstart < tend) : Type :=
-  {
-    am_tdrive : Time;
+  Definition CarExecutesAtomicMoveDuringIdeal (p: tstart < tend)  :=
+    CarExecutesAtomicMoveDuring 0 0.
 
-    (**strict inequalities prevents impossilities like covering non-zero distance in 0 time.
-      Note that [linVel] and [turnCurvature] evolve continuously.
-     *)
-    am_timeInc : (tstart < am_tdrive < tend);
- 
-    am_steeringControls : ({turnCurvature acs} am_tdrive) = (am_tc am) 
-      /\ forall (t:Time), (tstart ≤ t ≤ am_tdrive) 
-          -> {linVel acs} t = 0;
 
- 
-  (** From time [tdrive] to [tend], the steering wheel is held fixed*)
-    am_driveControls : forall (t:Time), (am_tdrive ≤ t ≤ tend) 
-          ->  {turnCurvature acs} t = {turnCurvature acs} am_tdrive;
-          
-  (** From time [tsteer] to [drive], the steerring wheel rotates to attain a configuration 
-    with turn curvature [tc]. The brakes are firmly placed pressed.*)
-   am_driveDistance : 
-      let pf := (timeLtWeaken (proj2 (am_timeInc))) in 
-      let driveIb := (@mkIntBnd _ am_tdrive tend pf) in 
-          (am_distance am) = ∫ driveIb (linVel acs)
-  }.
-
-  Definition CarMonotonicallyExecsAtomicMoveDuring (p: tstart < tend) : Type :=
-    CarExecutesAtomicMoveDuring p
-    and (noSignChangeDuring (linVel acs) tstart tend). 
   
   Hypothesis pr : tstart < tend.
+
+    Variable tcErr : IR.
+    Variable distErr : IR.
   
   (** Now, we assume that the car executes the atomic move [am] from [tstart] to [tend],
     and characterize the position and orientation at [tend], in terms of their values at [tstart]. *)
-  Hypothesis amc : CarExecutesAtomicMoveDuring pr.
+  Hypothesis amc : CarExecutesAtomicMoveDuring tcErr distErr pr.
   
   Local Notation tc := (am_tc am).
   Local Notation distance := (am_distance am).
@@ -208,37 +139,43 @@ Section AtomicMove.
     repnd.  timeReasoning.
   Qed.
 
-   Lemma am_driveDistanceFull : 
-      let driveIb := (@mkIntBnd _ tstart tend am_timeStartEnd) in 
-          (am_distance am) = ∫ driveIb (linVel acs).
+   Lemma am_driveDistanceNop : 
+      let driveFull := (@mkIntBnd _ tstart tend am_timeStartEnd) in 
+      let drive := (@mkIntBnd _ tdrive tend (proj2 am_timeIncWeaken)) in 
+          ∫ drive (linVel acs) = ∫ driveFull (linVel acs).
    Proof using Type.
     simpl. 
     rewrite CintegralSplit 
       with (pl:= proj1 am_timeIncWeaken)
            (pr:= proj2 am_timeIncWeaken).
+  
     pose proof (am_steeringControls amc) as steeringControls.
-    apply proj2 in steeringControls.
+    setoid_rewrite plus_comm.
+    apply RingShiftMinus. rewrite plus_negate_r.
     rewrite (@Cintegral_wd2  _ _ _ _ [0]).
     Focus 2.
       intros x Hb. simpl. destruct Hb as [Hbl Hbr].
       simpl in Hbl, Hbr. apply steeringControls.
       split; timeReasoning.
-    rewrite CintegralZero.
-    autounfold with IRMC.
-    ring_simplify.
-    rewrite (am_driveDistance).
-    apply Cintegral_wd;[| reflexivity].
-    simpl. split;
-    reflexivity.
+    rewrite CintegralZero. reflexivity.
   Qed.
+
 
   Local Notation θs := ({theta acs} tstart).
   Local Notation Xs := ({X (position acs)} tstart).
   Local Notation Ys := ({Y (position acs)} tstart).
   Local Notation Ps := (posAtTime acs tstart).
 
+(***   Lemma AtomicMoveθ : {theta acs} tend =  θs + tc * distance. *)
 
-  Lemma AtomicMoveθ : {theta acs} tend =  θs + tc * distance.
+Check errorBounds.thetaBall.
+  Lemma AtomicMoveθ : 
+
+bsSmall (| tcErr0 * ∫ (mkIntBnd timeInc) (CFAbs (linVel acs)) |)
+           ({theta acs0} tend - θs -
+            tc * ∫ (mkIntBnd timeInc) (linVel acs0))
+
+{theta acs} tend =  θs + tc * distance.
   Proof using All.
     pose proof (am_driveControls amc) as driveControls.
     eapply  fixedSteeringTheta with (t:= tend) in driveControls.

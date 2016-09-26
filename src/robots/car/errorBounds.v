@@ -35,6 +35,9 @@ Require Import MathClasses.theory.rings.
 Let rball : Qpos → IR → IR → Prop  :=
 @ball (fromOldMetricTheory IR_as_CMetricSpace). 
 
+(*
+  Lemma ss (x: Cart2D IR) : x ≤ x.
+  Lemma ss (x: Rigid2DState IR) : x ≤ x. *)
 
 Section Car.
 Add Ring TContRisaRing: (stdlib_ring_theory TContR).

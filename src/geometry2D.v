@@ -6,6 +6,7 @@ Require Export ROSCOQ.fastReals.interface.
 
 Set Implicit Arguments.
 
+
 Definition unitVec {R:Type} `{SinClass R}`{CosClass R} (θ : R) : Cart2D R 
   := {| X := cos θ; Y := sin θ |}.
 
@@ -238,6 +239,9 @@ Qed.
 
 Require Import MathClasses.interfaces.orders.
 
+
+(* Existing Instance *)
+
 Infix "⊆" := (@le _ LeAsSubset)  (at level 70, no associativity): mc_scope.
 
 Global Instance LeSubsetPreorder `{Ring A}
@@ -301,13 +305,6 @@ Proof.
 Qed.
 *)
 
-Global Instance SemiRingorderLeCart `{Ring A} `{Le A}
-    `{@orders.SemiRingOrder A equiv plus mult zero one le}:
-    `{orders.SemiRingOrder (@canonical_names.le (Cart2D A) _)}.
-Proof.
-  apply from_ring_order;
-  eauto with typeclass_instances.
-Qed.
 
 Lemma foldPlusLine `{Ring A} : forall xa xb ya yb: Cart2D A,
    {| lstart := xa + xb; lend :=ya + yb |} = {|lstart :=xa; lend :=ya|} 
