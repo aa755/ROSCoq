@@ -38,6 +38,8 @@ Require Import geometry2D.
 Require Import geometry2DProps.
 Require Import ackermannSteeringProp.
 Require Import IRMisc.LegacyIRRing.
+Require Import errorBounds.
+Require Import MCMisc.rings.
 
 Local Opaque CSine.
 Local Opaque CCos.
@@ -151,42 +153,52 @@ Section AtomicMove.
 
 
   Set Implicit Arguments.
+
+  Section Error.
+    Variable tcErr : IR.
+    Variable distErr : IR.
+
+  (** This defines what it means for the car's controls to 
+    realistically follow the atomic move [am] during time [tstart] to [tend] *)
+    Record CarExecutesAtomicMoveDuring (p: tstart < tend) : Type :=
+    {
+      am_tdrive : Time;
+  
+      (**strict inequalities prevents impossilities like covering non-zero distance in 0 time.
+        Note that [linVel] and [turnCurvature] evolve continuously.
+       *)
+      am_timeInc : (tstart < am_tdrive < tend);
+
+    (** From time [tsteer] to [drive], the steerring wheel rotates to attain a configuration 
+      with turn curvature [tc]. The brakes are firmly placed pressed.*)
+      am_steeringControls : forall (t:Time), (tstart ≤ t ≤ am_tdrive) 
+            -> {linVel acs} t = 0;
+
+    (** From time [tdrive] to [tend], the steering wheel is held NEARLY fixed*)
+      am_driveControls :  steeringAlmostFixed acs tstart tend (am_tc am) tcErr;
+
+      am_driveDistance : 
+        let driveIb := (@mkIntBnd _ tstart tend (timeLtWeaken p)) in 
+           AbsSmall distErr ((am_distance am) - (∫ driveIb (linVel acs)))
+    }.
+
+
+  End Error.
+
   (** This defines what it means for the car's controls to follow the atomic move [am] during time [tstart] to [tend] *)
-  Record CarExecutesAtomicMoveDuring (p: tstart < tend) : Type :=
-  {
-    am_tdrive : Time;
+  Definition CarExecutesAtomicMoveDuringIdeal (p: tstart < tend)  :=
+    CarExecutesAtomicMoveDuring 0 0.
 
-    (**strict inequalities prevents impossilities like covering non-zero distance in 0 time.
-      Note that [linVel] and [turnCurvature] evolve continuously.
-     *)
-    am_timeInc : (tstart < am_tdrive < tend);
- 
-    am_steeringControls : ({turnCurvature acs} am_tdrive) = (am_tc am) 
-      /\ forall (t:Time), (tstart ≤ t ≤ am_tdrive) 
-          -> {linVel acs} t = 0;
 
- 
-  (** From time [tdrive] to [tend], the steering wheel is held fixed*)
-    am_driveControls : forall (t:Time), (am_tdrive ≤ t ≤ tend) 
-          ->  {turnCurvature acs} t = {turnCurvature acs} am_tdrive;
-          
-  (** From time [tsteer] to [drive], the steerring wheel rotates to attain a configuration 
-    with turn curvature [tc]. The brakes are firmly placed pressed.*)
-   am_driveDistance : 
-      let pf := (timeLtWeaken (proj2 (am_timeInc))) in 
-      let driveIb := (@mkIntBnd _ am_tdrive tend pf) in 
-          (am_distance am) = ∫ driveIb (linVel acs)
-  }.
-
-  Definition CarMonotonicallyExecsAtomicMoveDuring (p: tstart < tend) : Type :=
-    CarExecutesAtomicMoveDuring p
-    and (noSignChangeDuring (linVel acs) tstart tend). 
   
   Hypothesis pr : tstart < tend.
+
+    Variable tcErr : IR.
+    Variable distErr : IR.
   
   (** Now, we assume that the car executes the atomic move [am] from [tstart] to [tend],
     and characterize the position and orientation at [tend], in terms of their values at [tstart]. *)
-  Hypothesis amc : CarExecutesAtomicMoveDuring pr.
+  Hypothesis amc : CarExecutesAtomicMoveDuring tcErr distErr pr.
   
   Local Notation tc := (am_tc am).
   Local Notation distance := (am_distance am).
@@ -209,7 +221,31 @@ Section AtomicMove.
     repnd.  timeReasoning.
   Qed.
 
+   Lemma am_driveDistanceNop : 
+      let driveFull := (@mkIntBnd _ tstart tend am_timeStartEnd) in 
+      let drive := (@mkIntBnd _ tdrive tend (proj2 am_timeIncWeaken)) in 
+          ∫ drive (linVel acs) = ∫ driveFull (linVel acs).
+   Proof using Type.
+    simpl. 
+    rewrite CintegralSplit 
+      with (pl:= proj1 am_timeIncWeaken)
+           (pr:= proj2 am_timeIncWeaken).
+  
+    pose proof (am_steeringControls amc) as steeringControls.
+    setoid_rewrite plus_comm.
+    apply RingShiftMinus. rewrite plus_negate_r.
+    rewrite (@Cintegral_wd2  _ _ _ _ [0]).
+    Focus 2.
+      intros x Hb. simpl. destruct Hb as [Hbl Hbr].
+      simpl in Hbl, Hbr. apply steeringControls.
+      split; timeReasoning.
+    rewrite CintegralZero. reflexivity.
+  Qed.
+
+(*
    Lemma am_driveDistanceFull : 
+        let driveIb := (@mkIntBnd _ tstart tend (timeLtWeaken p)) in 
+           AbsSmall distErr ((am_distance am) - (∫ driveIb (linVel acs)))
       let driveIb := (@mkIntBnd _ tstart tend am_timeStartEnd) in 
           (am_distance am) = ∫ driveIb (linVel acs).
    Proof using Type.
@@ -232,14 +268,23 @@ Section AtomicMove.
     simpl. split;
     reflexivity.
   Qed.
+*)
 
   Local Notation θs := ({theta acs} tstart).
   Local Notation Xs := ({X (position acs)} tstart).
   Local Notation Ys := ({Y (position acs)} tstart).
   Local Notation Ps := (posAtTime acs tstart).
 
+(***   Lemma AtomicMoveθ : {theta acs} tend =  θs + tc * distance. *)
 
-  Lemma AtomicMoveθ : {theta acs} tend =  θs + tc * distance.
+Check errorBounds.thetaBall.
+  Lemma AtomicMoveθ : 
+
+bsSmall (| tcErr0 * ∫ (mkIntBnd timeInc) (CFAbs (linVel acs)) |)
+           ({theta acs0} tend - θs -
+            tc * ∫ (mkIntBnd timeInc) (linVel acs0))
+
+{theta acs} tend =  θs + tc * distance.
   Proof using All.
     pose proof (am_driveControls amc) as driveControls.
     eapply  fixedSteeringTheta with (t:= tend) in driveControls.
