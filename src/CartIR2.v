@@ -710,3 +710,149 @@ Proof using.
   reflexivity.
 Qed.
 
+Local Opaque Half.
+
+Lemma minus_cos : ∀ x y : IR,
+   Cos x - Cos y = 
+    - Two * Sin (Half * (x - y)) [*] Sin (Half * (x + y)).
+Proof using.
+  clear.
+  intros.
+  set (u:=Half*(x+y)).
+  set (v:=Half*(x-y)).
+  assert (Half * (x + y) + Half * (x - y) =
+          Half*Two*x) as Heq by IRring.
+  setoid_rewrite half_1 in Heq.
+  setoid_rewrite mult_1_l in Heq.
+  
+  assert (Half * (x + y) - Half * (x - y) =
+          Half*Two*y) as Heqy by IRring.
+  setoid_rewrite half_1 in Heqy.
+  setoid_rewrite mult_1_l in Heqy.
+  rewrite <- Heq. rewrite <- Heqy at 3.
+  unfold u,v.
+  autounfold with IRMC.
+  rewrite Cos_plus.
+  rewrite Cos_plus.
+  repeat rewrite Cos_inv.
+  repeat rewrite Sin_inv.
+  autounfold with IRMC.
+  IRring.
+Qed.
+
+Lemma minus_sin : ∀ x y : IR,
+   Sin x - Sin y = 
+     Two * Sin (Half * (x - y)) [*] Cos (Half * (x + y)).
+Proof using.
+  clear.
+  intros.
+  set (u:=Half*(x+y)).
+  set (v:=Half*(x-y)).
+  assert (Half * (x + y) + Half * (x - y) =
+          Half*Two*x) as Heq by IRring.
+  setoid_rewrite half_1 in Heq.
+  setoid_rewrite mult_1_l in Heq.
+  assert (Half * (x + y) - Half * (x - y) =
+          Half*Two*y) as Heqy by IRring.
+  setoid_rewrite half_1 in Heqy.
+  setoid_rewrite mult_1_l in Heqy.
+  rewrite <- Heq. rewrite <- Heqy at 3.
+  unfold u,v.
+  autounfold with IRMC.
+(* only the next 2 lines were changed w.r.t minus_cos *)
+  rewrite Sin_plus.
+  rewrite Sin_plus.
+  repeat rewrite Cos_inv.
+  repeat rewrite Sin_inv.
+  autounfold with IRMC.
+  IRring.
+Qed.
+
+Local Opaque Sin Cos cr_one.
+
+Lemma SineLe (x:IR): 
+  [0] [<=] x ->  (Sin x)  [<=] x.
+Proof using.
+  intro Hn.
+  pose proof (TBarrow 
+                (IsDerivativeOne realline I)
+                {|scs_elem:=[0]; scs_prf:=I|} 
+                {|scs_elem:=x; scs_prf:=I|} Hn) as Hone.
+  pose proof (TBarrow 
+                IsDerivativeCos
+                {|scs_elem:=[0]; scs_prf:=I|} 
+                {|scs_elem:=x; scs_prf:=I|} Hn) as Hc.
+  autorewrite with IContRApDown in *.
+  simpl in *.
+  simpl in Hc.
+  rewrite Sin_zero in Hc.
+  unfold cg_minus in *. ring_simplify in Hone. ring_simplify in Hc.
+  rewrite <- Hc.
+  rewrite <- Hone at 2.
+  apply IntegralMonotone.
+  intros ? ? . simpl. rewrite CCosAp.
+  apply Cos_leEq_One.
+Qed.
+
+Lemma NegSineLe (x:IR): 
+  [0] [<=] x ->  [--] (Sin x)  [<=] x.
+Proof using.
+  intro Hn.
+  pose proof (TBarrow 
+                (IsDerivativeOne realline I)
+                {|scs_elem:=[0]; scs_prf:=I|} 
+                {|scs_elem:=x; scs_prf:=I|} Hn) as Hone.
+  pose proof IsDerivativeCos as Hcc.
+  apply TContRDerivativeOpp in Hcc.
+  pose proof (TBarrow 
+                Hcc
+                {|scs_elem:=[0]; scs_prf:=I|} 
+                {|scs_elem:=x; scs_prf:=I|} Hn) as Hc.
+  autorewrite with IContRApDown in *.
+  Local Opaque cg_inv.
+  simpl in *.
+  rewrite Sin_zero in Hc. unfold cg_minus in *.
+  ring_simplify in Hone. ring_simplify in Hc.
+  rewrite <- Hc.
+  rewrite <- Hone at 2.
+  apply IntegralMonotone.
+  intros ? ? .
+  autorewrite with IContRApDown.
+  Local Transparent cr_one.
+ simpl.
+  apply inv_cancel_leEq. ring_simplify.
+  apply Cos_leEq_minus_one.
+Qed.
+
+Lemma AbsSineLe (x:IR): 
+  [0] [<=] x -> AbsIR (Sin x)  [<=] x.
+Proof using.
+  intros Hn.
+  apply stable.
+  pose proof (leEq_or_leEq _ 0 (Sin x)) as Hdec.
+  eapply Stability.DN_fmap; eauto.
+  clear Hdec. intros Hdec.
+  destruct Hdec as [Hdec | Hdec].
+- rewrite (AbsIR_eq_x) by assumption.
+  apply SineLe. assumption.
+- rewrite (AbsIR_eq_inv_x) by assumption.
+  apply NegSineLe. assumption.
+Qed.
+  
+
+Lemma sineAbsXLe (x:IR): AbsIR (Sin x)  [<=] AbsIR x.
+Proof using.
+  apply stable.
+  pose proof (leEq_or_leEq _ 0 x) as Hdec.
+  eapply Stability.DN_fmap; eauto.
+  clear Hdec. intros Hdec.
+  destruct Hdec as [Hdec | Hdec].
+- rewrite (AbsIR_eq_x x) by assumption.
+  apply  AbsSineLe. assumption.
+- rewrite (AbsIR_eq_inv_x x) by assumption.
+  eapply transitivity;
+    [ | eapply AbsSineLe;
+    setoid_rewrite <- flip_nonpos_negate; assumption].
+  rewrite Sin_inv, <- AbsIR_inv.
+  reflexivity.
+Qed.

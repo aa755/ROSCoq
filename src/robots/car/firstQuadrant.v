@@ -33,7 +33,8 @@ Require Import geometry2DProps.
 Require Import ackermannSteeringProp.
 Require Import MathClasses.orders.rings.
 Require Import MathClasses.interfaces.orders.
-Require Import ackermannSteeringProp.
+Require Import car.errorBounds.
+Require Import ackermannSteeringProp. (* this should come after errorBounds *)
 Require Import IRMisc.LegacyIRRing.
 
 

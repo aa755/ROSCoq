@@ -1,5 +1,6 @@
 Require Export Coq.Program.Tactics.
 Require Export LibTactics.
+
 (** printing × $\times$ #×# *)
 (** printing :> $:$ #:># *)
 (** printing ≡ $\equiv$ #≡# *)
@@ -28,6 +29,7 @@ Require Import MathClasses.interfaces.canonical_names.
 Require Import MCInstances.
 Require Import CartCR.
 Require Export ackermannSteering.
+Require Import car.errorBounds.
 Require Export ackermannSteeringProp.
 
   Require Import IRMisc.LegacyIRRing.

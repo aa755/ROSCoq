@@ -192,4 +192,12 @@ Proof.
   apply PiBy2Ge0.
 Qed.
 
+
+Lemma Cos_leEq_minus_one r : [--] [1] [<=] Cos r.
+Proof using.
+  pose proof (AbsIR_Cos_leEq_One r) as Hl.
+  apply AbsIR_imp_AbsSmall in Hl.
+  apply Hl.
+Qed.
+
 Hint Resolve PiBy2Ge0 MinusPiBy2Le0 AbsIR_nonneg: CoRN.

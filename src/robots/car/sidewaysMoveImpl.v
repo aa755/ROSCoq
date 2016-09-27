@@ -31,6 +31,7 @@ Require Import fastReals.interface.
 Require Import fastReals.misc.
 Require Import geometry2D.
 Require Import geometry2DProps.
+Require Import car.errorBounds.
 Require Import robots.car.ackermannSteeringProp.
 Require Import MathClasses.orders.rings.
 Require Import MathClasses.interfaces.orders.
@@ -39,6 +40,7 @@ Require Import IRMisc.LegacyIRRing.
 Hint Unfold One_instance_IR : IRMC.
 Require Import robots.car.firstQuadrant.
 Require Import CRMisc.numericalOpt.
+
 
 
   Local Notation minxy := (lstart).

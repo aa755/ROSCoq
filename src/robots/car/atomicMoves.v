@@ -36,8 +36,10 @@ Require Import fastReals.interface.
 Require Import fastReals.misc.
 Require Import geometry2D.
 Require Import geometry2DProps.
+Require Import car.errorBounds.
 Require Import ackermannSteeringProp.
 Require Import IRMisc.LegacyIRRing.
+
 
 Local Opaque CSine.
 Local Opaque CCos.

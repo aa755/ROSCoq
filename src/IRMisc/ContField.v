@@ -1610,4 +1610,28 @@ Proof.
 Qed.
 
 
-Hint Rewrite CFCosAp IContRConstAp IContRInvAp CFAbsAp CFSineAp IContRPlusAp IContRMultAp IContRMinusAp IContRIdAp: IContRApDown.
+  (* 
+  Global Instance ProperFCos (I : interval) (pI : proper I) :
+    Proper (equiv ==> equiv) (@FCos I pI).
+  Abort.
+
+(* is there an automatic way (internal or via tactic) to lift lemmas about
+Cos to lemmas about FCos? *)
+Lemma FCos_plus: ∀ x y : TContR (* IContR*),
+   FCos (x + y) = FCos x * FCos y - FSin x * FSin y.
+Abort.
+
+*)
+Lemma CSineAp x : {CSine} x [=] Sin x.
+Proof using.
+  simpl. apply SineSin.
+Qed.
+
+Lemma CCosAp x : {CCos} x [=] Cos x.
+Proof using.
+  simpl. apply CosineCos.
+Qed.
+Hint Rewrite CSineAp CCosAp CFCosAp IContRConstAp IContRInvAp CFAbsAp CFSineAp IContRPlusAp IContRMultAp IContRMinusAp IContRIdAp: IContRApDown.
+
+
+
