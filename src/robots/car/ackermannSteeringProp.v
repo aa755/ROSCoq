@@ -442,7 +442,16 @@ Context {maxTurnCurvature : Qpos}
   let θi := θ2D init in
   {|pos2D := pos2D init + {|X:=Sin θ - Sin θi; Y:=Cos θi - Cos θ|}*'tr;
     θ2D := θ|}.
-  
+
+  Definition turnRigidStateAtDist (init : Rigid2DState IR)
+  (tc: sigT (fun a => apartT a (0:IR))) (d : IR)
+  := 
+  let tr :IR := recipT (projT1 tc) (projT2 tc) in
+  let θi := θ2D init in
+  let θ :IR := θi + (projT1 tc)*d in
+  turnRigidStateAtθ init tr θ.
+
+
   Global Instance ProperturnRigidStateAtθ: Proper 
   (equiv ==> equiv ==> equiv ==> equiv) turnRigidStateAtθ.
   Proof using.
@@ -454,7 +463,7 @@ Context {maxTurnCurvature : Qpos}
   Qed.
   
   Lemma turnRigidStateAtθCorrect: forall (t :Time)  (p: tstart ≤ t ≤ tend),
-    rigidStateAtTime acs t 
+    rigidStateAtTime acs t
     = turnRigidStateAtθ 
             (rigidStateAtTime acs tstart) 
             turnRadius
@@ -465,6 +474,26 @@ Context {maxTurnCurvature : Qpos}
     simpl. apply RingShiftMinus.
     split;simpl;[apply fixedSteeeringX | apply fixedSteeeringY];
     assumption.
+  Qed.
+
+  Lemma holdsDuringAMDistIf : forall(P: (Rigid2DState IR) -> Prop)
+    `{@Setoid_Morphism  _ _ _ _ P},
+  let tcc := (existT _ tc tcNZ) in
+    noSignChangeDuring (linVel acs) tstart tend
+    ->
+    (∀ (d : IR), inBetweenR d 0 (∫ (mkIntBnd tstartEnd) (linVel acs))
+      -> P (turnRigidStateAtDist (rigidStateAtTime acs tstart) tcc d))
+     ->  (∀ t : Time, tstart ≤ t ≤ tend → P (rigidStateAtTime acs t)).
+  Proof using fixed tstartEnd.
+    simpl.
+    intros ? ?  Hn hh t Hb.
+    specialize (hh ((∫ (mkIntBnd (proj1 Hb)) (linVel acs)))).
+    rewrite turnRigidStateAtθCorrect;[| assumption].
+    unfold turnRigidStateAtDist, recipT, RecipTIR in hh. simpl in hh.
+    rewrite <- fixedSteeringTheta in hh.
+    assert  (θ0 + ({theta acs} t - θ0) = {theta acs} t) as Heq by IRring.
+    rewrite Heq in hh. clear Heq. repnd.
+    apply hh. apply nosignChangeInBwInt; eauto.
   Qed.
 
   Lemma holdsDuringAMIf : forall(P: (Rigid2DState IR) -> Prop)
@@ -484,6 +513,7 @@ Context {maxTurnCurvature : Qpos}
     autounfold with IRMC.
     destruct Hdec; [left|right]; eauto 2 with CoRN.
   Qed.
+
     
   Lemma auxConfinedDuringAMIf : forall (confineRect : Line2D IR) cd,
     noSignChangeDuring (linVel acs) tstart tend
