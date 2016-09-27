@@ -39,6 +39,33 @@ Let rball : Qpos → IR → IR → Prop  :=
   Lemma ss (x: Cart2D IR) : x ≤ x.
   Lemma ss (x: Rigid2DState IR) : x ≤ x. *)
 
+  Definition turnRigidStateAtθ (init : Rigid2DState IR) 
+  (tr θ : IR)
+  := 
+  let θi := θ2D init in
+  {|pos2D := pos2D init + {|X:=Sin θ - Sin θi; Y:=Cos θi - Cos θ|}*'tr;
+    θ2D := θ|}.
+
+
+  Global Instance ProperturnRigidStateAtθ: Proper 
+  (equiv ==> equiv ==> equiv ==> equiv) turnRigidStateAtθ.
+  Proof using.
+    intros ? ? H1 ? ? H2 ? ? H3.
+    unfold turnRigidStateAtθ.
+    rewrite H1.
+    rewrite H2.
+    rewrite H3. reflexivity.
+  Qed.
+
+  Definition turnRigidStateAtDist (init : Rigid2DState IR)
+  (tc: sigT (fun a => apartT a (0:IR))) (d : IR) :
+    Rigid2DState IR
+  := 
+  let tr :IR := recipT (projT1 tc) (projT2 tc) in
+  let θi := θ2D init in
+  let θ :IR := θi + (projT1 tc)*d in
+  turnRigidStateAtθ init tr θ.
+
 Section Car.
 Add Ring TContRisaRing: (stdlib_ring_theory TContR).
 
@@ -142,6 +169,7 @@ Qed.
   Qed.
 
   Hypothesis tcNZ : (tc [#] 0).
+
   Local Notation turnRadius  (* :IR *) := (f_rcpcl tc tcNZ).
   
   (** [X] coordinate of the [position] at a given time. Note that in CoRN,
@@ -296,6 +324,76 @@ Qed.
     setoid_rewrite CFSineAp.
     apply AbsIR_Sin_leEq_One.
   Qed.
+
+Typeclasses eauto :=4.
+
+(*
+  Lemma fixedSteeeringTurn :
+  let rs:= rigidStateAtTime acs in
+  let tcc := (existT _ tc tcNZ) in
+    pNorm (rs tend - 
+            (turnRigidStateAtDist (rs tstart) tcc dist))
+    ≤ {| pos2D := '(|tcErr * adist [/] tc [//] tcNZ|); θ2D := (| tcErr * adist|)|}.
+  Proof.
+    unfold turnRigidStateAtDist, recipT, RecipTIR.
+    simpl. split;  simpl;[split;simpl|]; apply AbsSmall_imp_AbsIR.
+  - Fail apply fixedSteeeringX. admit.
+  - rewrite negate_plus_distr.
+    setoid_rewrite (@simple_associativity IR _ plus _ _ _ _).
+Fail apply fixedSteeeringY.
+
+Doesn't work!! Now, angle at tend is not known exactly. So turnRigidStateAtDist
+doesn't work. use turnRigidStateAtθ instead.
+
+
+  - rewrite negate_plus_distr.
+    setoid_rewrite (@simple_associativity IR _ plus _ _ _ _).
+    apply thetaBall.
+Qed.
+*)
+
+  Lemma fixedSteeeringTurn :
+  let rs:= rigidStateAtTime acs in
+    pNorm (rs tend - 
+            (turnRigidStateAtθ (rs tstart) turnRadius ({theta acs} tend)))
+    ≤ {| pos2D := '(|tcErr * adist [/] tc [//] tcNZ|); θ2D := (| tcErr * adist|)|}.
+  Proof.
+    unfold turnRigidStateAtDist, recipT, RecipTIR.
+    simpl. split;  simpl;[split;simpl|]; apply AbsSmall_imp_AbsIR; simpl;
+    try (rewrite negate_plus_distr;
+    setoid_rewrite (@simple_associativity IR _ plus _ _ _ _));
+    try apply fixedSteeeringX;
+    try apply fixedSteeeringY;[].
+    rewrite plus_negate_r.
+    apply zero_AbsSmall. apply AbsIR_nonneg.
+  Qed.
+  Lemma holdsDuringAMIf : forall(P: (Rigid2DState IR) -> Prop)
+    `{@Setoid_Morphism  _ _ _ _ P},
+  let θs := ({theta acs} tstart) in 
+    noSignChangeDuring (linVel acs) tstart tend
+    ->
+    (∀ θe, AbsSmall (| tcErr * adist|)  (θe - (θs + tc*dist)) (* remove this quantif to get 1 range *)
+        ->
+       ∀ (θ : IR), inBetweenR θ θs θe
+      -> P (turnRigidStateAtθ (rigidStateAtTime acs tstart) turnRadius θ))
+     ->  (∀ t : Time, tstart ≤ t ≤ tend → P (rigidStateAtTime acs t)).
+  Abort.
+
+  (* move to outside the section so that t can be used instead of tend*)
+  Lemma holdsDuringAMIf : forall(P: (Rigid2DState IR) -> Prop)
+    `{@Setoid_Morphism  _ _ _ _ P},
+    let θs := ({theta acs} tstart) in 
+    let θe := θs + tc*dist in 
+    let θerr := (| tcErr * adist|) in 
+    noSignChangeDuring (linVel acs) tstart tend
+    ->
+    (∀ (θ : IR), (Min θs (θe - θerr) [<=] θ ∧ θ [<=] Max θs (θe + θerr))
+      -> P (turnRigidStateAtθ (rigidStateAtTime acs tstart) turnRadius θ))
+     ->  (∀ t : Time, tstart ≤ t ≤ tend → P (rigidStateAtTime acs t)).
+  Proof. simpl.
+    intros ? ?  Hn hh t Hb.
+    specialize (hh ({theta acs}t)).
+  Abort.
 
   End Turn.
 

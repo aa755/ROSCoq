@@ -436,31 +436,6 @@ Context {maxTurnCurvature : Qpos}
   End CornersCircle.
     Require Import MCMisc.rings.
 
-  Definition turnRigidStateAtθ (init : Rigid2DState IR) 
-  (tr θ : IR)
-  := 
-  let θi := θ2D init in
-  {|pos2D := pos2D init + {|X:=Sin θ - Sin θi; Y:=Cos θi - Cos θ|}*'tr;
-    θ2D := θ|}.
-
-  Definition turnRigidStateAtDist (init : Rigid2DState IR)
-  (tc: sigT (fun a => apartT a (0:IR))) (d : IR)
-  := 
-  let tr :IR := recipT (projT1 tc) (projT2 tc) in
-  let θi := θ2D init in
-  let θ :IR := θi + (projT1 tc)*d in
-  turnRigidStateAtθ init tr θ.
-
-
-  Global Instance ProperturnRigidStateAtθ: Proper 
-  (equiv ==> equiv ==> equiv ==> equiv) turnRigidStateAtθ.
-  Proof using.
-    intros ? ? H1 ? ? H2 ? ? H3.
-    unfold turnRigidStateAtθ.
-    rewrite H1.
-    rewrite H2.
-    rewrite H3. reflexivity.
-  Qed.
   
   Lemma turnRigidStateAtθCorrect: forall (t :Time)  (p: tstart ≤ t ≤ tend),
     rigidStateAtTime acs t
