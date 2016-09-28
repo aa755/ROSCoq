@@ -411,14 +411,16 @@ Qed.
     if this predicate implies some safety condition, that condition must hold.
     Furthermore, this condition only depends on its formal arguments and
     the section variable [tcc]. In particular, it does not depend on how
-    [linVel] evolved. *)
+    [linVel] evolved. 
+    Assuming the intermediate value theorem, this may be be a necessary condition
+  *)
   Definition possibleStateDuringTurn
-    (dis : IR) (init s : Rigid2DState IR) : Prop :=
+    (dis : IR) (init s : Rigid2DState IR) : Type :=
     let θi := θ2D init in
     let θs := θ2D s in
-    exists d, inBetweenR d 0 dis ∧
+    sigT (fun d => inBetweenR d 0 dis ∧
     pNorm (s - (turnRigidStateAtθ init tr θs)) 
-    ≤ turnErr tcErr (|d|) tr.
+    ≤ turnErr tcErr (|d|) tr).
 
 
   Hypothesis nsc : noSignChangeDuring (linVel acs) tstart tend.
@@ -447,16 +449,19 @@ Qed.
   Qed.
 
   (* for every point (state) in the trajectory, there is a point in the ideal trajectory
-    that is not too far *)
+    that is not too far 
   Lemma possibleStateErrIdeal : ∀ s
    (p : possibleStateDuringTurn dist init s),
-   exists si,  stateDuringIdealTurn tcc dist init si
-      ∧ pNorm (s-si) ≤ (turnErr tcErr (|dist|) tr). 
-  (* can (|dist|) be reduced, and made a function of (proj1 p)?
-    does it need to be moved from Prop to Type?
-    use the Type version, and automatically derive the Prop version? *)
+   sigT  (fun si =>  stateDuringIdealTurn tcc dist init si
+      ∧ pNorm (s-si) ≤ (turnErr tcErr (|projT1 p|) tr)).
+
+(* we know that [(|projT1 p|) ≤ (|dist|)] *)
+
   Proof using.
+    intros ? ?. destruct p. simpl in *.
+    repnd.
   Abort.
+*)
 
 (*
   Lemma holdsDuringAMIf : forall(P: (Rigid2DState IR) -> Prop)

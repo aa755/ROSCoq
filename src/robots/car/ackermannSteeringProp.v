@@ -201,6 +201,7 @@ Context {maxTurnCurvature : Qpos}
   Section FixedSteeringWheel.
   Variable tc : IR.
 
+  (*Move*)
   Lemma absSmall0 : forall x:IR,
     AbsSmall 0 x <-> x=0.
   Proof using.
