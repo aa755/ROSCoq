@@ -32,6 +32,18 @@ Require Import CoRN.metric2.Metric.
 Require Import CRMisc.OldMetricAsNew.
 Require Import MCMisc.rings.
 Require Import MathClasses.theory.rings.
+
+(* Move *)
+  Lemma noSignChangeDuringWeaken: forall F a1 b1 a2 b2,
+    noSignChangeDuring F a1 b1
+    -> a1 ≤ a2
+    -> b2 ≤ b1
+    -> noSignChangeDuring F a2 b2.
+  Proof using .
+    intros ? ? ? ? ? Hn ? ?. destruct Hn as [Hn | Hn];[left|right];
+      intros t Hb; apply Hn; destruct Hb; split; eauto 2 with CoRN.
+  Qed.
+
 Let rball : Qpos → IR → IR → Prop  :=
 @ball (fromOldMetricTheory IR_as_CMetricSpace). 
 
@@ -58,13 +70,21 @@ Let rball : Qpos → IR → IR → Prop  :=
   Qed.
 
   Definition turnRigidStateAtDist (init : Rigid2DState IR)
-  (tc: sigT (fun a => apartT a (0:IR))) (d : IR) :
+  (tc: NonZeroT IR) (d : IR) :
     Rigid2DState IR
   := 
-  let tr :IR := recipT (projT1 tc) (projT2 tc) in
+  let tr :IR := recip1T tc in
   let θi := θ2D init in
   let θ :IR := θi + (projT1 tc)*d in
   turnRigidStateAtθ init tr θ.
+
+
+  Definition stateDuringIdealTurn (tc: NonZeroT IR)
+    (dist : IR) (init s : Rigid2DState IR) : Prop :=
+    let θi := θ2D init in
+    let tr :IR := recip1T tc in
+    exists θ, inBetweenR θ θi (θi + (projT1 tc) * dist) /\
+    s = turnRigidStateAtθ init tr θ.
 
 Section Car.
 Add Ring TContRisaRing: (stdlib_ring_theory TContR).
@@ -325,9 +345,9 @@ Qed.
     apply AbsIR_Sin_leEq_One.
   Qed.
 
-Typeclasses eauto :=4.
 
 (*
+Typeclasses eauto :=4.
   Lemma fixedSteeeringTurn :
   let rs:= rigidStateAtTime acs in
   let tcc := (existT _ tc tcNZ) in
@@ -352,11 +372,14 @@ doesn't work. use turnRigidStateAtθ instead.
 Qed.
 *)
 
+  Definition turnErr  (adist tr:IR) : Rigid2DState IR :=
+{| pos2D := '(|tcErr * adist * tr |); θ2D := (| tcErr * adist|)|}.
+
   Lemma fixedSteeeringTurn :
   let rs:= rigidStateAtTime acs in
     pNorm (rs tend - 
             (turnRigidStateAtθ (rs tstart) turnRadius ({theta acs} tend)))
-    ≤ {| pos2D := '(|tcErr * adist [/] tc [//] tcNZ|); θ2D := (| tcErr * adist|)|}.
+    ≤ turnErr adist turnRadius.
   Proof.
     unfold turnRigidStateAtDist, recipT, RecipTIR.
     simpl. split;  simpl;[split;simpl|]; apply AbsSmall_imp_AbsIR; simpl;
@@ -367,35 +390,86 @@ Qed.
     rewrite plus_negate_r.
     apply zero_AbsSmall. apply AbsIR_nonneg.
   Qed.
+
+
+  End Turn.
+
+
+
+  Section TurnIntermediate.
+  Variable tstart : Time.
+  Variable tend : Time.
+  Hypothesis timeInc : (tstart ≤ tend).
+  Variable tcc: NonZeroT IR.
+  Let tr : IR := recip1T tcc.
+  Variable tcErr : IR.
+
+  Let tc :IR := projT1 tcc.
+
+  (* All possible states in the trajectory satisfy this 
+    predicate (see [possibleStateDuringTurnCorrect]). So
+    if this predicate implies some safety condition, that condition must hold.
+    Furthermore, this condition only depends on its formal arguments and
+    the section variable [tcc]. In particular, it does not depend on how
+    [linVel] evolved. *)
+  Definition possibleStateDuringTurn
+    (dis : IR) (init s : Rigid2DState IR) : Prop :=
+    let θi := θ2D init in
+    let θs := θ2D s in
+    exists d, inBetweenR d 0 dis ∧
+    pNorm (s - (turnRigidStateAtθ init tr θs)) 
+    ≤ turnErr tcErr (|d|) tr.
+
+
+  Hypothesis nsc : noSignChangeDuring (linVel acs) tstart tend.
+  Let dist := ∫ (mkIntBnd timeInc) (linVel acs).
+  Let adist := ∫ (mkIntBnd timeInc) (CFAbs (linVel acs)).
+  Let init := (rigidStateAtTime acs tstart).
+
+  Hypothesis amec: steeringAlmostFixed tstart tend tc tcErr.
+
+  Lemma possibleStateDuringTurnCorrect :
+   ∀ t : Time, tstart ≤ t ≤ tend →
+     possibleStateDuringTurn dist init (rigidStateAtTime acs t).
+  Proof using nsc amec.
+    intros ? Hb.
+    unfold possibleStateDuringTurn. simpl.
+    exists (∫ (mkIntBnd (proj1 Hb)) (linVel acs)).
+    subst dist.
+    split; [apply nosignChangeInBwInt; tauto | ].
+    eapply noSignChangeDuringWeaken with (a2:=tstart) (b2:=t) in nsc;
+      eauto with relations; try tauto.
+    unfold turnErr.
+    setoid_rewrite <- noChangeAbs; auto.
+    apply fixedSteeeringTurn.
+    intros ? Hbb.
+    apply amec. repnd. eauto with relations.
+  Qed.
+
+  (* for every point (state) in the trajectory, there is a point in the ideal trajectory
+    that is not too far *)
+  Lemma possibleStateErrIdeal : ∀ s
+   (p : possibleStateDuringTurn dist init s),
+   exists si,  stateDuringIdealTurn tcc dist init si
+      ∧ pNorm (s-si) ≤ (turnErr tcErr (|dist|) tr). 
+  (* can (|dist|) be reduced, and made a function of (proj1 p)?
+    does it need to be moved from Prop to Type?
+    use the Type version, and automatically derive the Prop version? *)
+  Proof using.
+  Abort.
+
+(*
   Lemma holdsDuringAMIf : forall(P: (Rigid2DState IR) -> Prop)
     `{@Setoid_Morphism  _ _ _ _ P},
-  let θs := ({theta acs} tstart) in 
-    noSignChangeDuring (linVel acs) tstart tend
-    ->
     (∀ θe, AbsSmall (| tcErr * adist|)  (θe - (θs + tc*dist)) (* remove this quantif to get 1 range *)
         ->
        ∀ (θ : IR), inBetweenR θ θs θe
       -> P (turnRigidStateAtθ (rigidStateAtTime acs tstart) turnRadius θ))
      ->  (∀ t : Time, tstart ≤ t ≤ tend → P (rigidStateAtTime acs t)).
   Abort.
+*)
 
-  (* move to outside the section so that t can be used instead of tend*)
-  Lemma holdsDuringAMIf : forall(P: (Rigid2DState IR) -> Prop)
-    `{@Setoid_Morphism  _ _ _ _ P},
-    let θs := ({theta acs} tstart) in 
-    let θe := θs + tc*dist in 
-    let θerr := (| tcErr * adist|) in 
-    noSignChangeDuring (linVel acs) tstart tend
-    ->
-    (∀ (θ : IR), (Min θs (θe - θerr) [<=] θ ∧ θ [<=] Max θs (θe + θerr))
-      -> P (turnRigidStateAtθ (rigidStateAtTime acs tstart) turnRadius θ))
-     ->  (∀ t : Time, tstart ≤ t ≤ tend → P (rigidStateAtTime acs t)).
-  Proof. simpl.
-    intros ? ?  Hn hh t Hb.
-    specialize (hh ({theta acs}t)).
-  Abort.
-
-  End Turn.
+  End TurnIntermediate.
 
 (* we need the intermediate values of theta. Unless we end the section
   and force generalization, we only have [theta] for [tend]. *)
@@ -404,6 +478,8 @@ Qed.
   Variable tstart : Time.
   Variable tend : Time.
   Hypothesis timeInc : (tstart ≤ tend).
+  
+
 
   Let dist := ∫ (mkIntBnd timeInc) (linVel acs).
   Let adist := ∫ (mkIntBnd timeInc) (CFAbs (linVel acs)).
@@ -479,7 +555,8 @@ Qed.
               * (CFAbs (linVel acs))).
   - setoid_rewrite CIntegral_scale. fold adist.
     subst errb. apply eq_imp_leEq.
-    setoid_rewrite AbsIR_resp_mult. unfold sqr, norm, NormSpace_instance_IR.
+    setoid_rewrite AbsIR_resp_mult.
+    unfold sqr, norm, NormSpace_instance_IR.
     rewrite (AbsIR_eq_x adist);[IRring|].
     apply DerivNonNegIntegral.
     intros ? ?. rewrite CFAbsAp. apply AbsIR_nonneg.

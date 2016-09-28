@@ -42,10 +42,19 @@ Require Import MathClasses.interfaces.canonical_names.
 
 (*reciprocal. generalizes [CRinvT], which uses the constructive proof of
 apartness during division *)
-Class ReciprocalT `{Zero A} `{ApartT A}
+Class ReciprocalT (A:Type ) `{Zero A} `{ApartT A}
   := recipT: forall (a:A), apartT a 0 -> A.
 
-Infix "≭" := apartT (at level 75, no associativity) : mc_scope.  
+Definition NonZeroT (A:Type) {_:ApartT A} {_:Zero A}
+  := sigT (fun a => apartT a (0:A)).
+
+(* Arguments NonZeroT A {_} {_}. *)
+
+
+Definition recip1T {A:Type} {_:ApartT A} {_:Zero A} {_ : ReciprocalT A}
+  (a: NonZeroT A) := recipT (projT1 a) (projT2 a).
+
+Infix "≭" := apartT (at level 75, no associativity) : mc_scope.
 
 
 Require Import ROSCOQ.IRMisc.CoRNMisc.

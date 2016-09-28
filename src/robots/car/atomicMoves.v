@@ -358,15 +358,6 @@ Section AtomicMove.
 
     Local Notation turnRadius  (* :IR *) := (f_rcpcl tc tcNZ).
 
-  Lemma noSignChangeDuringWeaken: forall F a1 b1 a2 b2,
-    noSignChangeDuring F a1 b1
-    -> a1 ≤ a2
-    -> b2 ≤ b1
-    -> noSignChangeDuring F a2 b2.
-  Proof using .
-    intros ? ? ? ? ? Hn ? ?. destruct Hn as [Hn | Hn];[left|right];
-      intros t Hb; apply Hn; destruct Hb; split; eauto 2 with CoRN.
-  Qed.
 
   Lemma AMTurnCurvature : ∀ t : Time,
       tdrive ≤ t ≤ tend → {turnCurvature acs} t = tc.
@@ -389,6 +380,11 @@ Section AtomicMove.
     ∀ (θ : IR), 
       inBetweenR θ θi θf
        -> (`P) (turnRigidStateAtθ init turnRadius θ).
+
+
+
+  
+
 
 
 
