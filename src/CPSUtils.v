@@ -778,7 +778,7 @@ Context
   {eo : @EventOrdering Topic Event Loc tdeq edeq rtopic etype}.
 
 
-Lemma  sameELoc : forall loc nd ns ed es,
+Lemma  sameELoc : forall (loc: Loc) nd ns (ed es : Event),
   localEvts loc nd = Some ed 
   -> localEvts loc ns = Some es
   -> eLoc ed = eLoc es.
@@ -797,7 +797,7 @@ Definition  NoDuplicateDelivery : Prop := ∀ (evs evr1 evr2 : Event),
       → evr1 = evr2.
 
 
-Lemma  sameLocCausal : forall loc nd ns ed es,
+Lemma  sameLocCausal : forall (loc: Loc) nd ns (ed es : Event),
   localEvts loc nd = Some ed 
   -> localEvts loc ns = Some es
   -> nd < ns

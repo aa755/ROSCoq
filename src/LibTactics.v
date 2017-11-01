@@ -610,10 +610,9 @@ Definition eq' := @eq.
 
 Hint Unfold eq'.
 
-(*
 Notation "x '='' y" := (@eq' _ x y) 
-  (at level 70, arguments at next level).
-*)
+  (at level 70, y at next level).
+
 
 
 (* ********************************************************************** *)
@@ -2831,7 +2830,7 @@ Tactic Notation "destructs" constr(N) constr(T) :=
 (** Underlying implementation of [branch]. *)
 
 Ltac branch_tactic K N := 
-  match constr:(K,N) with
+  match constr:((K,N)) with
   | (_,0) => fail 1
   | (0,_) => fail 1
   | (1,1) => idtac
@@ -4091,7 +4090,7 @@ Ltac skip_with_existential :=
   match goal with |- ?G => 
     let H := fresh in evar(H:G); eexact H end.
 
-Variable skip_axiom : True. 
+Variable skip_axiom : False. 
   (* To obtain a safe development, change to [skip_axiom : True] *)
 Ltac skip_with_axiom :=
   elimtype False; apply skip_axiom.

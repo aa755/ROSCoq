@@ -1495,10 +1495,18 @@ First we define what it means for a move to be an inverse of another.
     apply CarExecutesAtomicMovesDuring_ProperM.
   Qed.
 
+Lemma forall_iff (A:Type) (Pa Pb : A-> Prop):
+  (forall (a:A), (Pa a <-> Pb a))
+  -> ((forall a, Pa a) <-> (forall a, Pb a)).
+Proof using.
+  firstorder.
+Qed.
   Global Instance MovesInverseProper : Proper 
     (equiv ==> equiv ==> iff)  MovesInverse.
   Proof using Type.
     intros ? ? ? ? ? ?. unfold MovesInverse.
+    apply forall_iff. intros.
+    apply forall_iff. intros acs.
     setoid_rewrite (foldForProperAM acs x).
     setoid_rewrite (foldForProperAM acs x0).
     setoid_rewrite  H.

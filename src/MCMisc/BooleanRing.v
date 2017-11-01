@@ -21,7 +21,8 @@ Global Instance BooleanAlgIntersection : SetIntersection R :=
 
 Notation "b \ x " := (b + b * x) (at level 100).
 
-Notation "x ᶜ  " := (1 \ x) (at level 100).
+
+(* Notation " x ᶜ  " := (1 \ x) (at level 100). *)
 
 End BooleanRingNotations.
 
