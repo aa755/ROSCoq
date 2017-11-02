@@ -372,7 +372,7 @@ Definition rigid_angleAsRadians (a:Rigid2DState  CR) : Rigid2DState CR :=
   {|pos2D := pos2D a; θ2D := angleAsRadians (θ2D a) |}.
 
 
-Definition drawCarFrameZPicture (carLabel: string) (ns : NamedCarState) : string  :=
+Definition drawCarFrameZPicture (ns : NamedCarState) : string  :=
   let cs := (csrigid2D (snd ns)) in
 	(sconcat [ "\node at ";
              tikZPoint (roundPointRZ eps  (pos2D cs));
@@ -383,7 +383,7 @@ Definition drawCarFrameZPicture (carLabel: string) (ns : NamedCarState) : string
              newLineString;
              "\node[green] at ";
              tikZPoint (roundPointRZ eps  (pos2D cs));
-             "{"; carLabel; "};" ])%string.
+             "{"; frameLabel (fst ns); "};"; newLineString ])%string.
 
     
 Definition carStatesFrames  (l:list NamedCarState) 
@@ -621,6 +621,9 @@ Definition mkRelativeMove (rel : Q*Q) : DAtomicMove CR :=
 Definition mkNamedRelativeMove (rel : Q*Q) :NameDAtomicMove :=
   ((EmptyString (* convert rel to string*) , EmptyString), mkRelativeMove rel).
 
+Definition mkNamedRelativeMove2 (name:string)(rel : Q*Q) :NameDAtomicMove :=
+  ((name , EmptyString), mkRelativeMove rel).
+
 Require Import ROSCOQ.geometry2D.
 Definition relGlobalBound (initb :  BoundingRectangle Z) (extra : BoundingRectangle Q) : BoundingRectangle Z := 
 let extra := (''' finerRes) * extra in
@@ -690,7 +693,7 @@ Definition animateMoves
       sconcat frames.
 
 Definition clipRect : BoundingRectangle Z :=
-({| lstart := {|X:=-10000; Y:=-10000|}; lend := {|X:=35000; Y:=10000|} |})%Z.
+({| lstart := {|X:=-10000; Y:=-10000|}; lend := {|X:=35000; Y:=15000|} |})%Z.
 
 Definition header : string :=
   "\begin{frame}\begin{tikzpicture}[scale=0.02]".
@@ -701,28 +704,56 @@ Definition footer : string :=
 Print Instances Cast.
 Print castCart.
 
-
-Definition animateMovesPic
-           (carLabel : string)
-(initState: Rigid2DState Q)
-   (moves : list (Q*Q))
-   (extraSpace : BoundingRectangle Q)
-   (framesPerMove : Z⁺) : string := 
-  let sidewaysMove : list NameDAtomicMove := List.map mkNamedRelativeMove moves  in
-  let initCst : carState CR :=
-      {| csrigid2D :=
-           rigid_angleAsRadians ('initState);
-         cs_tc := 0 |} in
-  let initStp := (mkRenderingInfo (EmptyString,EmptyString),  initCst) in
-  let cs := (finerMovesStates framesPerMove sidewaysMove initStp) in
-  let frame (rs:NamedCarState) :=
+Definition mkFrame
+           (rs:list NamedCarState) : string :=
       sconcat [
           header; newLineString;
             tikZBoundingClip clipRect; newLineString;
-              drawCarFrameZPicture carLabel rs; newLineString;
-                footer;newLineString
-        ] in
-  sconcat (List.map frame cs).
+              sconcat (List.map  drawCarFrameZPicture rs);
+              newLineString;
+              footer;newLineString
+        ].
+
+SearchAbout (list (list ?A) -> list (list ?A)).
+
+Record CarAnim (A:Type): Type :=
+  {initState: Rigid2DState A; carMoves: list (A*A); carLabel : string}.
+
+
+Fixpoint listTranspose {A:Type} (row : list (list A)) : list (list A) :=
+  match row with
+    |[] => []
+    |lh::[] => List.map (fun h => [h]) lh
+    |lh::ltl =>
+     let r := listTranspose ltl in
+     let zl := zip lh r in
+     List.map (fun p => (fst p):: (snd p)) zl
+  end.
+
+Eval compute in (listTranspose [ [1;2;3;4]; [10; 20; 30; 40] ; [100; 200; 300; 400]]).
+
+Print CarStateRenderingInfo.
+
+SearchAbout NameDAtomicMove.
+Definition carAnimStates
+           (framesPerMove : Z⁺)
+           (ca : CarAnim Q) : list  NamedCarState :=
+  let sidewaysMove : list NameDAtomicMove :=
+      List.map (mkNamedRelativeMove2 (carLabel ca)) (carMoves ca) in
+  let initCst : carState CR :=
+      {| csrigid2D :=
+           rigid_angleAsRadians ('(initState ca));
+         cs_tc := 0 |} in
+  let initStp := (mkRenderingInfo (EmptyString,EmptyString),  initCst) in
+  (finerMovesStates framesPerMove sidewaysMove initStp).
+
+
+Definition animateMovesPic
+   (lca : list (CarAnim Q))
+   (framesPerMove : Z⁺) : string :=
+  let carStates := List.map (carAnimStates framesPerMove) lca in
+  let carStatesT := listTranspose carStates in
+  sconcat (List.map mkFrame carStatesT).
 
 
 Definition extra :BoundingRectangle Q :=
@@ -841,9 +872,20 @@ Print extra.
 Print initSt.
 Definition initSt1 : Rigid2DState Q:= {| pos2D := 0; θ2D:=0|}.
 
+Print moves.
+Definition car1Anim : CarAnim Q :=
+  {| carLabel := "p1";
+     initState := {| pos2D := 0; θ2D:=0|};
+     carMoves := [(0, 4); (3, Qmake 21 10) ] |}.
+
+Definition car2Anim : CarAnim Q :=
+  @Build_CarAnim Q
+                 (({| pos2D := (@mkCart2D Q (300) (0))
+                    ; θ2D:=(180)%Q|}):(Rigid2DState Q))
+     ([(0, 6); (-3, -Qmake 21 10) ])%Q ("p2")%string.
 
 Definition toPrint : string :=
-  animateMovesPic Mazda3Sedan2014sGT "p1" initSt1 moves extra (4)%positive.
+  animateMovesPic Mazda3Sedan2014sGT [car1Anim; car2Anim] (7)%positive.
 
 Close Scope string_scope.
 Locate posCompareContAbstract43820948120402312.
