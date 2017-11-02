@@ -312,9 +312,11 @@ Extract Inlined Constant cbvApply => "(Prelude.$!)".
 Axiom showQQQQ : (list (Z ** (list Z))) -> string.
 Axiom showZZ : (Z ** Z) -> string.
 Axiom showN : (nat) -> string.
+Axiom showZ : Z -> string.
 Extract Constant showQQQQ => "(Prelude.show)".
 Extract Constant showZZ => "(Prelude.show)".
 Extract Constant showN => "(Prelude.show)".
+Extract Constant showZ => "(Prelude.show)".
 
 Section simulator.
 Variable carGeo : CarGeometry Z.
@@ -357,6 +359,17 @@ let angle : string :=
    drawCarZ eps myCarDim (snd ns)).
 
 
+Require Import sidewaysMoveImpl.
+
+Definition drawCarFrameZPicture (ns : NamedCarState) : string  :=
+  let cs := (csrigid2D (snd ns)) in
+	(sconcat [ ("\node at ");
+             tikZPoint (roundPointRZ eps  (pos2D cs));
+             "{\includegraphics[width=4cm, angle=";
+             (showZ ((R2ZApprox (angleAsDegrees (θ2D cs))) eps- 45));
+             ", origin=c]{car.pdf}};"])%string.
+
+    
 Definition carStatesFrames  (l:list NamedCarState) 
 : list ((string * string) * list (Line2D Z))  :=
 List.map (drawCarFrameZ) l.
@@ -385,7 +398,6 @@ match tail with
 end.
 
 
-Require Import sidewaysMoveImpl.
 
 (*
 Local Definition wriggleMove : DAtomicMoves :=
@@ -637,6 +649,46 @@ Definition animateSpaceReq
       sconcat frames
   end.
 
+Definition animateMoves
+   (moves : list (Q*Q))
+   (extraSpace : BoundingRectangle Q)
+   (framesPerMove : Z⁺) : string := 
+  let sidewaysMove : list NameDAtomicMove := List.map mkNamedRelativeMove moves  in
+  let initStp := (mkRenderingInfo (EmptyString,EmptyString),initSt) in
+  let cs := (finerMovesStates framesPerMove sidewaysMove initStp) in
+  let namedLines : list ((string * string) * list (Line2D Z)) 
+      := carStatesFrames cs in
+      let frames :=
+        List.map (fun p => frameWithLines "\newframe" (snd p))
+          namedLines in
+      sconcat frames.
+
+Definition clipRect : BoundingRectangle Z :=
+({| lstart := {|X:=-10000; Y:=-10000|}; lend := {|X:=10000; Y:=10000|} |})%Z.
+
+Definition header : string :=
+  "\begin{frame}\begin{tikzpicture}[scale=0.02]".
+
+Definition footer : string :=
+  "\end{tikzpicture}\end{frame}".
+
+Definition animateMovesPic
+   (moves : list (Q*Q))
+   (extraSpace : BoundingRectangle Q)
+   (framesPerMove : Z⁺) : string := 
+  let sidewaysMove : list NameDAtomicMove := List.map mkNamedRelativeMove moves  in
+  let initStp := (mkRenderingInfo (EmptyString,EmptyString),initSt) in
+  let cs := (finerMovesStates framesPerMove sidewaysMove initStp) in
+  let frame (rs:NamedCarState) :=
+      sconcat [
+          header; newLineString;
+            tikZBoundingClip clipRect; newLineString;
+              drawCarFrameZPicture rs; newLineString;
+                footer
+        ] in
+  sconcat (List.map frame cs).
+
+
 Definition extra :BoundingRectangle Q :=
 {| minxy := {|X:=Qmake 1 5; Y:= Qmake 1 10|}; maxxy := {|X:=Qmake 1 5; Y:= Qmake 1 1|} |}.
 
@@ -747,7 +799,10 @@ Definition spaceXplotStr : string := sconcat (List.map  spaceXplotnStr (seq 0 5)
 (*
 Definition toPrint : string := animateSpaceReqOptimalMove Mazda3Sedan2014sGT (4)%positive. *)
 
-Definition toPrint : string := animateSpaceReq Mazda3Sedan2014sGT moves extra (4)%positive.
+
+
+Print extra.
+Definition toPrint : string := animateMovesPic Mazda3Sedan2014sGT moves extra (4)%positive.
 
 Close Scope string_scope.
 Locate posCompareContAbstract43820948120402312.
