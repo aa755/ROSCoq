@@ -693,10 +693,14 @@ Definition animateMoves
       sconcat frames.
 
 Definition clipRect : BoundingRectangle Z :=
-({| lstart := {|X:=-10000; Y:=-10000|}; lend := {|X:=35000; Y:=15000|} |})%Z.
+({| lstart := {|X:=-10000; Y:=-10000|}; lend := {|X:=50000; Y:=15000|} |})%Z.
 
 Definition header : string :=
-  "\begin{frame}\begin{tikzpicture}[scale=0.02]".
+  "\begin{frame}\begin{tikzpicture}[scale=0.02];
+\node at (44,85){\includegraphics[width=2cm, angle=44, origin=c]{car.pdf}};
+\node at (-36,85){\includegraphics[width=2cm, angle=44, origin=c]{car.pdf}};
+\node at (299,85){\includegraphics[width=2cm, angle=44, origin=c]{car.pdf}};
+".
 
 Definition footer : string :=
   "\end{tikzpicture}\end{frame}".
@@ -876,13 +880,13 @@ Print moves.
 Definition car1Anim : CarAnim Q :=
   {| carLabel := "p1";
      initState := {| pos2D := 0; θ2D:=0|};
-     carMoves := [(0, 4); (3, Qmake 21 10) ] |}.
+     carMoves := [(0, Qmake 2 1); (3, Qmake 21 10); (0,Qmake 1 1); (0,0); (0,0); (0,0) ] |}.
 
 Definition car2Anim : CarAnim Q :=
   @Build_CarAnim Q
-                 (({| pos2D := (@mkCart2D Q (300) (0))
+                 (({| pos2D := (@mkCart2D Q (280) (0))
                     ; θ2D:=(180)%Q|}):(Rigid2DState Q))
-     ([(0, 6); (-3, -Qmake 21 10) ])%Q ("p2")%string.
+     ([(0, 2); (0,0) ; (0,0); (0,1); (-3, -Qmake 21 10); (0,-Qmake 1 1)])%Q ("p2")%string.
 
 Definition toPrint : string :=
   animateMovesPic Mazda3Sedan2014sGT [car1Anim; car2Anim] (7)%positive.
