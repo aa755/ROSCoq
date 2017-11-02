@@ -363,6 +363,15 @@ Require Import sidewaysMoveImpl.
 
 Definition carPhotoWidth : Z :=2.
 
+
+(* Move to CRMisc.v also move angleAsDegrees*)
+Definition angleAsRadians (a:CR) : CR :=
+  (a*CRpi* '(Qmake 1 180)).
+
+Definition rigid_angleAsRadians (a:Rigid2DState  CR) : Rigid2DState CR :=
+  {|pos2D := pos2D a; θ2D := angleAsRadians (θ2D a) |}.
+
+
 Definition drawCarFrameZPicture (carLabel: string) (ns : NamedCarState) : string  :=
   let cs := (csrigid2D (snd ns)) in
 	(sconcat [ "\node at ";
@@ -681,7 +690,7 @@ Definition animateMoves
       sconcat frames.
 
 Definition clipRect : BoundingRectangle Z :=
-({| lstart := {|X:=-10000; Y:=-10000|}; lend := {|X:=20000; Y:=10000|} |})%Z.
+({| lstart := {|X:=-10000; Y:=-10000|}; lend := {|X:=35000; Y:=10000|} |})%Z.
 
 Definition header : string :=
   "\begin{frame}\begin{tikzpicture}[scale=0.02]".
@@ -700,8 +709,11 @@ Definition animateMovesPic
    (extraSpace : BoundingRectangle Q)
    (framesPerMove : Z⁺) : string := 
   let sidewaysMove : list NameDAtomicMove := List.map mkNamedRelativeMove moves  in
-  let initCst : carState CR := {| csrigid2D := 'initState; cs_tc := 0 |} in
-  let initStp := (mkRenderingInfo (EmptyString,EmptyString), initCst) in
+  let initCst : carState CR :=
+      {| csrigid2D :=
+           rigid_angleAsRadians ('initState);
+         cs_tc := 0 |} in
+  let initStp := (mkRenderingInfo (EmptyString,EmptyString),  initCst) in
   let cs := (finerMovesStates framesPerMove sidewaysMove initStp) in
   let frame (rs:NamedCarState) :=
       sconcat [
@@ -718,7 +730,7 @@ Definition extra :BoundingRectangle Q :=
 
 
 Definition moves : (list (Q*Q)) :=
-[(1, Qmake 1 3); (-1, Qmake 1 3) ].
+[(0, 4); (3, Qmake 21 10) ].
 
 (*
 Definition animationAutoBounding : string := 
