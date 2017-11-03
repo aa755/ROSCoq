@@ -374,16 +374,22 @@ Definition rigid_angleAsRadians (a:Rigid2DState  CR) : Rigid2DState CR :=
 
 Definition drawCarFrameZPicture (ns : NamedCarState) : string  :=
   let cs := (csrigid2D (snd ns)) in
+  let carLabel := frameLabel (fst ns) in
+  let carFile : string :=
+      (match String.index 0 "1" carLabel with
+        | Some _ => "blue_car.pdf"
+        | None => "red_car.pdf"
+      end)%string in
 	(sconcat [ "\node at ";
              tikZPoint (roundPointRZ eps  (pos2D cs));
              "{\includegraphics[width=";
              showZ carPhotoWidth;"cm, angle=";
              (showZ ((R2ZApprox (angleAsDegrees (θ2D cs))) eps- 45));
-             ", origin=c]{car.pdf}};";
+             ", origin=c]{"; carFile ;"}};";
              newLineString;
              "\node[green] at ";
              tikZPoint (roundPointRZ eps  (pos2D cs));
-             "{"; frameLabel (fst ns); "};"; newLineString ])%string.
+             "{"; carLabel ; "};"; newLineString ])%string.
 
     
 Definition carStatesFrames  (l:list NamedCarState) 
@@ -877,21 +883,33 @@ Print initSt.
 Definition initSt1 : Rigid2DState Q:= {| pos2D := 0; θ2D:=0|}.
 
 Print moves.
-Definition car1Anim : CarAnim Q :=
-  {| carLabel := "p1";
+Definition car1Anim (both: bool): CarAnim Q :=
+  {| carLabel := (if both then "$g$" else EmptyString)++"$p_1$";
      initState := {| pos2D := 0; θ2D:=0|};
-     carMoves := [(0, Qmake 2 1); (3, Qmake 21 10); (0,Qmake 1 1); (0,0); (0,0); (0,0) ] |}.
+     carMoves :=
+       [(0, Qmake 2 1); (3, Qmake 21 10); (0,Qmake 1 1)]
+         ++ if both then [(0,0); (0,0); (0,0)] else []|}.
 
-Definition car2Anim : CarAnim Q :=
+Definition car2Anim (both: bool) : CarAnim Q :=
   @Build_CarAnim Q
-                 (({| pos2D := (@mkCart2D Q (280) (0))
-                    ; θ2D:=(180)%Q|}):(Rigid2DState Q))
-     ([(0, 2); (0,0) ; (0,0); (0,1); (-3, -Qmake 21 10); (0,-Qmake 1 1)])%Q ("p2")%string.
+                 ({| pos2D := (@mkCart2D Q (280) (0))
+                    ; θ2D:=(180)%Q|})
+                 ((0, 2)::
+                        ((if both then [(0,0) ; (0,0)] else [])++
+                        [(0,1); (-3, -Qmake 21 10); (0,-Qmake 1 1)]))%Q
+                 ((if both then "$g$" else EmptyString)++"$p_2$")%string.
+
+Definition toPrint1 : string :=
+  animateMovesPic Mazda3Sedan2014sGT [car1Anim false] (10)%positive.
+
+Definition toPrint2 : string :=
+  animateMovesPic Mazda3Sedan2014sGT [car2Anim false] (10)%positive.
 
 Definition toPrint : string :=
-  animateMovesPic Mazda3Sedan2014sGT [car1Anim; car2Anim] (7)%positive.
+  animateMovesPic Mazda3Sedan2014sGT [car1Anim true; car2Anim true] (10)%positive.
+
 
 Close Scope string_scope.
 Locate posCompareContAbstract43820948120402312.
-Extraction "simulator.hs"  (*animation spaceXplot *) toPrint 
+Extraction "simulator.hs"  (*animation spaceXplot *) toPrint1  toPrint2 toPrint
   ExtrHaskellQ.posCompareContAbstract43820948120402312.
